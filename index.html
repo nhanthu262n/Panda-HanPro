@@ -3687,6 +3687,13 @@ function startWriteGame() {
 
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+window.onload = function () {
+    if (window.google) {
+        initGoogle();
+    }
+};
+</script>
 <div id="textToolPopup">
   <button id="ttHighlight" title="Highlight">🖍️</button>
   <button id="ttStrike" title="Gạch ngang / Strikethrough">〰️</button>
