@@ -4299,6 +4299,15 @@ window.onload = function () {
     }
 };
 </script>
+<script>
+if (!sessionStorage.getItem("reloaded")) {
+    sessionStorage.setItem("reloaded", "true");
+
+    setTimeout(() => {
+        location.reload();
+    }, 10);
+}
+</script>
 <div id="textToolPopup">
   <button class="swatch sw-yellow" data-color="yellow" title="Highlight vàng"></button>
   <button class="swatch sw-green" data-color="green" title="Highlight xanh lá"></button>
