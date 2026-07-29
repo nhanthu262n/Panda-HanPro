@@ -4289,52 +4289,16 @@ function startWriteGame() {
   render();
 }
 
-<script>
-function waitForGoogle() {
-
-    let retry = 0;
-
-    const timer = setInterval(() => {
-
-        const googleReady =
-            window.google?.accounts?.id;
-
-        const container =
-            document.getElementById(
-                "googleBtnContainer"
-            );
-
-        if (googleReady && container) {
-
-            clearInterval(timer);
-
-            console.log(
-                "Google Sign-In Ready!"
-            );
-
-            initGoogleSignIn();
-        }
-
-        retry++;
-
-        if (retry > 100) {
-
-            clearInterval(timer);
-
-            console.log(
-                "Google Script Timeout!"
-            );
-        }
-
-    }, 100);
-}
-
-window.addEventListener(
-    "load",
-    waitForGoogle
-);
 </script>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+window.onload = function () {
+    if (window.google) {
+        initGoogle();
+    }
+};
+</script>
 <div id="textToolPopup">
   <button class="swatch sw-yellow" data-color="yellow" title="Highlight vàng"></button>
   <button class="swatch sw-green" data-color="green" title="Highlight xanh lá"></button>
