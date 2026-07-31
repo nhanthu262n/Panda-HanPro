@@ -296,9 +296,9 @@ body{padding-left:216px;}
 .animate-pop{animation:pop-in .45s cubic-bezier(.22,1,.36,1) both;}
 .animate-wiggle{animation:wiggle .55s ease-in-out infinite;}
 #pastelBg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-#pastelBg .blob{position:absolute;border-radius:50%;}
+#pastelBg .blob{position:absolute;border-radius:50%;will-change:transform;}
 #petalLayer{position:fixed;inset:0;z-index:1;overflow:hidden;pointer-events:none;}
-#petalLayer .petal{position:absolute;top:-60px;}
+#petalLayer .petal{position:absolute;top:-60px;will-change:transform,opacity;}
 [data-theme="dark"] #pastelBg,[data-theme="dark"] #petalLayer{display:none;}
 
 .mascot-label{position:absolute;top:3px;right:8px;font-size:10px;font-weight:700;color:#7ba6d1;background:#fff;border-radius:8px;padding:1px 7px;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
@@ -613,7 +613,7 @@ span.pandahan-bold-hl{font-weight:800;}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="if(typeof initGoogleSignIn === 'function') initGoogleSignIn()"></script>
 </head>
 <body>
 <script>
@@ -1425,7 +1425,9 @@ function handleGoogleCredentialResponse(response) {
   localStorage.setItem("pandahan_google_profile_" + username, JSON.stringify(u));
   completeLogin(u);
 }
+let isGoogleInitialized = false;
 function initGoogleSignIn() {
+  if (isGoogleInitialized) return;
   const notice = document.getElementById("googleSetupNotice");
   const container = document.getElementById("googleBtnContainer");
   if (GOOGLE_CLIENT_ID.startsWith("YOUR_GOOGLE_CLIENT_ID")) {
@@ -1439,11 +1441,17 @@ function initGoogleSignIn() {
     return;
   }
   if (typeof google === "undefined" || !google.accounts) {
-    if (notice) { notice.style.display = "block"; notice.textContent = L("⚠️ Không tải được thư viện Google — kiểm tra kết nối mạng.", "⚠️ Couldn't load the Google library — check your network connection."); }
+    // If called from DOMContentLoaded but script not yet loaded, it will be called again by onload
     return;
   }
-  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredentialResponse });
-  google.accounts.id.renderButton(container, { theme: "outline", size: "large", text: "signin_with", shape: "pill", width: 260 });
+  try {
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredentialResponse });
+    google.accounts.id.renderButton(container, { theme: "outline", size: "large", text: "signin_with", shape: "pill", width: 260 });
+    isGoogleInitialized = true;
+    if (notice) notice.style.display = "none";
+  } catch (e) {
+    console.error("Google Init Error:", e);
+  }
 }
 
 /* Per-user namespaced storage: each demo account gets its own stats/log
@@ -2160,29 +2168,63 @@ function getFilteredVocab() {
 
 function renderGrids() {
   const filtered = getFilteredVocab();
-  [1, 2, 3].forEach(level => {
-    const list = filtered.filter(w => w.hsk === level);
-    const grid = document.getElementById("hsk" + level + "Grid");
-    grid.innerHTML = list.map(cardHtml).join("") || '<p style="color:var(--text-light);padding:10px;">Không tìm thấy / No results</p>';
-    const allLevel = VOCAB.filter(w => w.hsk === level);
-    const learnedLevel = allLevel.filter(w => getTier(w.char) > 0).length;
-    document.getElementById("hsk" + level + "Count").textContent = `${learnedLevel}/${allLevel.length} đã học`;
-  });
+  
+  // Async rendering to prevent UI freeze
+  const renderLevel = (level) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const list = filtered.filter(w => w.hsk === level);
+        const grid = document.getElementById("hsk" + level + "Grid");
+        if (grid) {
+          grid.innerHTML = list.map(cardHtml).join("") || '<p style="color:var(--text-light);padding:10px;">Không tìm thấy / No results</p>';
+        }
+        const allLevel = VOCAB.filter(w => w.hsk === level);
+        const learnedLevel = allLevel.filter(w => getTier(w.char) > 0).length;
+        const countEl = document.getElementById("hsk" + level + "Count");
+        if (countEl) countEl.textContent = `${learnedLevel}/${allLevel.length} đã học`;
+        resolve();
+      }, 0);
+    });
+  };
+
+  // Run updates sequentially in small batches
+  (async () => {
+    await renderLevel(1);
+    await renderLevel(2);
+    await renderLevel(3);
+    updateHeaderStats();
+  })();
+  
+  // Only attach handlers once using delegation
   grid_attachHandlers();
-  updateHeaderStats();
 }
 
+let isGridHandlerAttached = false;
 function grid_attachHandlers() {
-  document.querySelectorAll(".card").forEach(c => {
-    c.addEventListener("click", (e) => {
-      if (e.target.closest(".audio-mini")) return;
-      playTing("open");
-      openDetail(c.dataset.char);
+  if (isGridHandlerAttached) return;
+  
+  // Use Event Delegation on the main app or specific grids
+  [1, 2, 3].forEach(level => {
+    const grid = document.getElementById("hsk" + level + "Grid");
+    if (!grid) return;
+    
+    grid.addEventListener("click", (e) => {
+      const audioBtn = e.target.closest(".audio-mini");
+      if (audioBtn) {
+        e.stopPropagation();
+        speak(audioBtn.dataset.speak);
+        return;
+      }
+      
+      const card = e.target.closest(".card");
+      if (card) {
+        playTing("open");
+        openDetail(card.dataset.char);
+      }
     });
   });
-  document.querySelectorAll(".audio-mini").forEach(b => {
-    b.addEventListener("click", (e) => { e.stopPropagation(); speak(b.dataset.speak); });
-  });
+  
+  isGridHandlerAttached = true;
 }
 
 function populatePosFilter() {
@@ -3944,9 +3986,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("langToggleBtn").addEventListener("click", () => setLangMode(LANG_MODE === "vi" ? "en" : "vi"));
   document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
   initTheme();
-  initCherryBlossoms();
+  // Delay non-critical visual effects to reduce initial lag
+  setTimeout(initCherryBlossoms, 1000);
   renderGrids();
-  updateHeaderStats();
+  // updateHeaderStats is now called inside renderGrids async loop
 
   document.querySelectorAll(".nav-tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
   document.getElementById("searchInput").addEventListener("input", renderGrids);
@@ -4289,23 +4332,7 @@ function startWriteGame() {
   render();
 }
 </script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>
-window.onload = function () {
-    if (window.google) {
-        initGoogle();
-    }
-};
-</script>
-<script>
-if (!sessionStorage.getItem("reloaded")) {
-    sessionStorage.setItem("reloaded", "true");
-
-    setTimeout(() => {
-        location.reload();
-    }, 30);
-}
-</script>
+<!-- Redundant Google GSI script and reload hack removed to improve performance and fix login issues -->
 <div id="textToolPopup">
   <button class="swatch sw-yellow" data-color="yellow" title="Highlight vàng"></button>
   <button class="swatch sw-green" data-color="green" title="Highlight xanh lá"></button>
