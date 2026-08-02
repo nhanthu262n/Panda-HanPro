@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PandaHán">
 <style>
@@ -653,11 +653,13 @@ span.pandahan-bold-hl{font-weight:800;}
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Firebase SDKs (Professional Integration) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Firebase SDKs (Unified Version) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     </head>
 <body>
     <div id="proAuthOverlay">
@@ -666,7 +668,13 @@ span.pandahan-bold-hl{font-weight:800;}
             <h2>PandaHán Pro</h2>
             <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Hệ thống học tập thông minh & đồng bộ</p>
             
-            <div id="fbGoogleBtnPro"></div>
+            
+            <button class="btn-main" style="background:#fff; color:#444; border:1px solid #ddd; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px; box-shadow:none;" onclick="proGoogleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+                Đăng nhập bằng Google
+            </button>
+            <div id="loadingIndicator" style="display:none; font-size:12px; color:#e84393; margin-bottom:10px;">⌛ Đang xử lý, vui lòng chờ...</div>
+    
             
             <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
                 <div style="flex:1; height:1px; background:#eee;"></div>
@@ -699,7 +707,7 @@ span.pandahan-bold-hl{font-weight:800;}
       <div id="googleBtnContainer" style="display:flex;justify-content:center;"></div>
     </div>
     <div id="authError" class="auth-error"></div>
-    <p style="margin-top:20px;font-size:12px;color:#888;">Chưa có tài khoản? Hãy đăng nhập bằng Google để tự động tạo.</p>
+    <p style="margin-top:20px;font-size:12px;color:#888;">Sử dụng Email/Mật khẩu hoặc Đăng nhập nhanh bằng Google bên dưới.</p>
   </div>
 </div>
 <div id="pastelBg">
@@ -4894,17 +4902,15 @@ function renderWriteGameShell() {
     // PROFESSIONAL FIREBASE & OPTIMIZATION SYSTEM
     // =====================================================================
     const PRO_CONFIG = {
-        firebaseConfig = {
-          apiKey: "AIzaSyBhjivJYd16vazp4Mi5XSv4Hp_N3Jd14Q4",
-          authDomain: "pandahanpro.firebaseapp.com",
-          databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "pandahanpro",
-          storageBucket: "pandahanpro.firebasestorage.app",
-          messagingSenderId: "897241491720",
-          appId: "1:897241491720:web:43e654aeadc08668cf64bd",
-          measurementId: "G-1JRBVDYFED"
-  };
-        masterEmail: "nhanthu262n@gmail.com", // Cài đặt email Master của bạn tại đây
+        firebase: {
+            apiKey: "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            authDomain: "pandahan-pro.firebaseapp.com",
+            projectId: "pandahan-pro",
+            storageBucket: "pandahan-pro.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdefghijklmnop"
+        },
+        masterEmail: "teacher@gmail.com", // Cài đặt email Master của bạn tại đây
         googleClientId: "476158579081-8sp096m4onjf9jf6mmp5toisu0mj28e9.apps.googleusercontent.com"
     };
 
@@ -4927,6 +4933,7 @@ function renderWriteGameShell() {
                 if (user) {
                     proUser = user;
                     await syncUserProfile(user);
+                    handleRedirectResult();
                     document.getElementById('proAuthOverlay').style.display = "none";
                     document.getElementById('app').style.display = "block";
                     document.getElementById('syncDot').classList.add('online');
@@ -4937,7 +4944,7 @@ function renderWriteGameShell() {
                 } else {
                     proUser = null;
                     document.getElementById('proAuthOverlay').style.display = "flex";
-                    initProGoogleSignIn();
+                    // initProGoogleSignIn();
                 }
             });
         } catch(e) { console.error("Pro System Init Error", e); }
@@ -5077,26 +5084,119 @@ function renderWriteGameShell() {
         area.style.display = area.style.display === "none" ? "block" : "none";
     }
 
+    
     async function proLogin() {
-        const email = document.getElementById('proEmail').value;
+        let email = document.getElementById('proEmail').value.trim();
         const pass = document.getElementById('proPass').value;
+        const errEl = document.getElementById('proError');
+        
+        if (!email || !pass) {
+            errEl.textContent = "Vui lòng nhập đầy đủ thông tin!";
+            errEl.style.display = "block";
+            return;
+        }
+
+        // Tự động chuyển Username thành Email giả lập cho Firebase
+        if (!email.includes('@')) {
+            email = email.toLowerCase() + "@pandahan.com";
+        }
+        
         try {
+            errEl.style.display = "none";
             await firebase.auth().signInWithEmailAndPassword(email, pass);
         } catch(e) {
+            let msg = e.message;
+            if (e.code === 'auth/user-not-found') msg = "Tài khoản không tồn tại.";
+            if (e.code === 'auth/wrong-password') msg = "Mật khẩu không chính xác.";
+            if (e.code === 'auth/invalid-email') msg = "Định dạng email không hợp lệ.";
+            
+            errEl.textContent = "Lỗi: " + msg;
+            errEl.style.display = "block";
+        }
+    }
+     catch(e) {
             const errEl = document.getElementById('proError');
             errEl.textContent = "Lỗi đăng nhập: " + e.message;
             errEl.style.display = "block";
         }
     }
 
+    
+    
+    
+    async function proGoogleLogin() {
+        const errEl = document.getElementById('proError');
+        const loader = document.getElementById('loadingIndicator');
+        errEl.style.display = "none";
+        loader.style.display = "block";
+        
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            // Sử dụng Redirect thay vì Popup để tránh bị trình duyệt chặn
+            await firebase.auth().signInWithRedirect(provider);
+        } catch (e) {
+            loader.style.display = "none";
+            errEl.textContent = "Lỗi: " + e.message;
+            errEl.style.display = "block";
+        }
+    }
+
+    // Xử lý kết quả sau khi Redirect quay lại
+    function handleRedirectResult() {
+        firebase.auth().getRedirectResult().then((result) => {
+            if (result.user) {
+                console.log("Đăng nhập thành công sau redirect");
+            }
+        }).catch((error) => {
+            const errEl = document.getElementById('proError');
+            if(errEl) {
+                errEl.textContent = "Lỗi Google: " + error.message;
+                errEl.style.display = "block";
+            }
+        });
+    }
+     catch (e) {
+            loader.style.display = "none";
+            let msg = e.message;
+            if (e.code === 'auth/popup-closed-by-user') msg = "Bạn đã đóng cửa sổ đăng nhập.";
+            if (e.code === 'auth/cancelled-popup-request') msg = "Yêu cầu đăng nhập bị hủy.";
+            if (e.code === 'auth/operation-not-allowed') msg = "Bạn chưa bật Google Sign-in trong Firebase Console.";
+            
+            errEl.textContent = "Lỗi: " + msg;
+            errEl.style.display = "block";
+        }
+    }
+    
     function initProGoogleSignIn() {
-        if (typeof google === "undefined") return;
+        if (typeof google === "undefined") {
+            console.error("Google SDK chưa load xong.");
+            return;
+        }
+        const container = document.getElementById("fbGoogleBtnPro");
+        if (!container) return;
+
         google.accounts.id.initialize({
             client_id: PRO_CONFIG.googleClientId,
-            callback: (res) => {
-                const cred = firebase.auth.GoogleAuthProvider.credential(res.credential);
-                firebase.auth().signInWithCredential(cred);
+            /* callback disabled */ old_callback: (response) => {
+                try {
+                    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
+                    await firebase.auth().signInWithCredential(credential);
+                } catch (e) {
+                    const errEl = document.getElementById('proError');
+                    errEl.textContent = "Lỗi Google: " + e.message;
+                    errEl.style.display = "block";
+                }
             }
+        });
+        google.accounts.id.renderButton(container, { 
+            theme: "outline", 
+            size: "large", 
+            shape: "pill", 
+            width: container.offsetWidth || 340,
+            text: "signin_with"
+        });
+    }
+    
         });
         google.accounts.id.renderButton(document.getElementById("fbGoogleBtnPro"), { theme: "outline", size: "large", shape: "pill", width: 340 });
     }
