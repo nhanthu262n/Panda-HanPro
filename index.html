@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#f59e0b">
 <link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PandaHán">
 <style>
@@ -653,11 +653,13 @@ span.pandahan-bold-hl{font-weight:800;}
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Firebase SDKs (Professional Integration) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Firebase SDKs (Unified Version) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     </head>
 <body>
     <div id="proAuthOverlay">
@@ -1253,7 +1255,7 @@ async function loadData() {
     const data = doc.data();
     localStorage.setItem("pandahan_pro_stats_v1_" + CURRENT_USER.uid, JSON.stringify(data.stats || {}));
   }
-  if (typeof renderGrids === 'function') renderGrids();
+  setTimeout(() => { if (typeof renderGrids === "function") renderGrids(); }, 500);
 }
 
 async function syncData() {
@@ -4917,9 +4919,10 @@ function renderWriteGameShell() {
     let db = null;
 
     // 1. KHỞI TẠO HỆ THỐNG
+    
     function initProSystem() {
         if (PRO_CONFIG.firebase.apiKey.includes("YOUR_")) {
-            console.warn("Hệ thống đang chạy Offline. Vui lòng cấu hình Firebase để đồng bộ.");
+            console.warn("Chế độ Offline");
             return;
         }
         
@@ -4931,6 +4934,37 @@ function renderWriteGameShell() {
                 if (user) {
                     proUser = user;
                     await syncUserProfile(user);
+                    
+                    document.getElementById('proAuthOverlay').style.display = "none";
+                    document.getElementById('app').style.display = "block";
+                    document.getElementById('syncDot').classList.add('online');
+                    document.getElementById('syncText').textContent = "Đã kết nối: " + user.email;
+                    
+                    applyProRoles();
+                    await loadCloudData();
+                    
+                    // TỰ ĐỘNG MỞ TAB TỪ VỰNG
+                    if (typeof switchTab === 'function') {
+                        switchTab('browse');
+                    }
+                } else {
+                    proUser = null;
+                    document.getElementById('proAuthOverlay').style.display = "flex";
+                }
+            });
+        } catch(e) { console.error("Lỗi khởi tạo:", e); }
+    }
+    
+        
+        try {
+            firebase.initializeApp(PRO_CONFIG.firebase);
+            db = firebase.firestore();
+            
+            firebase.auth().onAuthStateChanged(async (user) => {
+                if (user) {
+                    proUser = user;
+                    await syncUserProfile(user);
+                    handleRedirectResult();
                     document.getElementById('proAuthOverlay').style.display = "none";
                     document.getElementById('app').style.display = "block";
                     document.getElementById('syncDot').classList.add('online');
@@ -4948,14 +4982,42 @@ function renderWriteGameShell() {
     }
 
     // 2. XỬ LÝ VAI TRÒ & PROFILE
+    
     async function syncUserProfile(user) {
-        const userRef = db.collection("users").doc(user.uid);
-        const doc = await userRef.get();
-        
-        let role = "student";
-        if (user.email === PRO_CONFIG.masterEmail || user.email === "teacher@gmail.com") {
-            role = "master_teacher";
-        } else if (doc.exists && doc.data().role) {
+        try {
+            const userRef = db.collection("users").doc(user.uid);
+            const doc = await userRef.get();
+            
+            let role = "student";
+            if (user.email === PRO_CONFIG.masterEmail || user.email === "teacher@gmail.com") {
+                role = "master_teacher";
+            } else if (doc.exists && doc.data().role) {
+                role = doc.data().role;
+            }
+
+            proData = {
+                uid: user.uid,
+                email: user.email,
+                name: user.displayName || user.email.split('@')[0],
+                role: role,
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // QUAN TRỌNG: Ánh xạ vào biến CURRENT_USER của app gốc
+            window.CURRENT_USER = {
+                username: user.uid,
+                email: user.email,
+                name: proData.name,
+                nameEn: proData.name,
+                role: role === "master_teacher" ? "teacher" : role
+            };
+
+            await userRef.set(proData, { merge: true });
+        } catch (e) {
+            console.error("Lỗi đồng bộ profile:", e);
+        }
+    }
+     else if (doc.exists && doc.data().role) {
             role = doc.data().role;
         }
 
@@ -5011,7 +5073,7 @@ function renderWriteGameShell() {
             const cloudStats = doc.data().stats;
             const localKey = "pandahan_pro_stats_v1_" + (CURRENT_USER ? CURRENT_USER.username : "guest");
             localStorage.setItem(localKey, JSON.stringify(cloudStats));
-            if (typeof renderGrids === 'function') renderGrids();
+            setTimeout(() => { if (typeof renderGrids === "function") renderGrids(); }, 500);
         }
     }
 
@@ -5120,6 +5182,7 @@ function renderWriteGameShell() {
 
     
     
+    
     async function proGoogleLogin() {
         const errEl = document.getElementById('proError');
         const loader = document.getElementById('loadingIndicator');
@@ -5128,8 +5191,30 @@ function renderWriteGameShell() {
         
         try {
             const provider = new firebase.auth.GoogleAuthProvider();
-            await firebase.auth().signInWithPopup(provider);
+            // Sử dụng Redirect thay vì Popup để tránh bị trình duyệt chặn
+            await firebase.auth().signInWithRedirect(provider);
         } catch (e) {
+            loader.style.display = "none";
+            errEl.textContent = "Lỗi: " + e.message;
+            errEl.style.display = "block";
+        }
+    }
+
+    // Xử lý kết quả sau khi Redirect quay lại
+    function handleRedirectResult() {
+        firebase.auth().getRedirectResult().then((result) => {
+            if (result.user) {
+                console.log("Đăng nhập thành công sau redirect");
+            }
+        }).catch((error) => {
+            const errEl = document.getElementById('proError');
+            if(errEl) {
+                errEl.textContent = "Lỗi Google: " + error.message;
+                errEl.style.display = "block";
+            }
+        });
+    }
+     catch (e) {
             loader.style.display = "none";
             let msg = e.message;
             if (e.code === 'auth/popup-closed-by-user') msg = "Bạn đã đóng cửa sổ đăng nhập.";
@@ -5151,7 +5236,7 @@ function renderWriteGameShell() {
 
         google.accounts.id.initialize({
             client_id: PRO_CONFIG.googleClientId,
-            callback: async (response) => {
+            /* callback disabled */ old_callback: (response) => {
                 try {
                     const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
                     await firebase.auth().signInWithCredential(credential);
