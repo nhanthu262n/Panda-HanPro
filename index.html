@@ -615,18 +615,8 @@ span.pandahan-bold-hl{font-weight:800;}
 .wg-dir{padding:5px 10px;border-radius:14px;border:1.5px solid var(--pink-light,#fce4ec);background:var(--card-bg,#fafcfe);color:var(--card-text,#2d2a3a);font-weight:600;font-size:11px;cursor:pointer;transition:.2s;white-space:nowrap;}
 .wg-dir.active{background:var(--pink);color:#fff;border-color:var(--pink);}
 
-/* Optimized Auth & Teacher CSS */
-#authScreen { position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#f0f7ff 0%,#fce4ec 100%);align-items:center;justify-content:center;padding:16px;display:flex; }
-.auth-box { background:#fff;border-radius:20px;padding:30px;max-width:400px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.1);text-align:center; }
-.auth-box h2 { color:var(--pink);margin-bottom:20px; }
-.auth-box input { width:100%;padding:12px;margin-bottom:10px;border-radius:10px;border:1px solid #ddd;outline:none; }
-.auth-box button { width:100%;padding:12px;border:none;border-radius:30px;background:var(--pink);color:#fff;font-weight:700;cursor:pointer;margin-top:10px; }
-.auth-error { color:#dc2626;font-size:12px;margin-top:10px;display:none; }
-#teacherPanel { display:none; padding:20px; background:#fff; border-radius:15px; margin-top:20px; box-shadow:var(--shadow); }
-.student-card { background:#f9fafb; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
-
-    /* --- Professional Auth & Teacher UI --- */
-    #proAuthOverlay { position:fixed; inset:0; z-index:10000; background:linear-gradient(135deg,#f0f7ff 0%,#fce4ec 100%); display:none; align-items:center; justify-content:center; }
+    /* --- Professional Auth UI --- */
+    #proAuthOverlay { position:fixed; inset:0; z-index:10000; background:linear-gradient(135deg,#f0f7ff 0%,#fce4ec 100%); display:flex; align-items:center; justify-content:center; }
     .pro-auth-card { background:#fff; padding:40px; border-radius:24px; box-shadow:0 20px 50px rgba(0,0,0,0.1); width:90%; max-width:420px; text-align:center; border:1px solid rgba(251,207,232,0.5); }
     .pro-auth-card h2 { color:#e84393; font-weight:800; font-size:28px; margin-bottom:10px; }
     .pro-auth-card input { width:100%; padding:14px; margin-bottom:12px; border-radius:12px; border:1px solid #e5e7eb; outline:none; font-size:14px; transition:0.3s; }
@@ -637,7 +627,8 @@ span.pandahan-bold-hl{font-weight:800;}
     .sync-dot { width:8px; height:8px; border-radius:50%; background:#ccc; }
     .sync-dot.online { background:#2ecc71; box-shadow:0 0 8px #2ecc71; }
     
-    #screen-teacher-pro { display:none; }
+    #teacherPanel { display:none; padding:20px; background:#fff; border-radius:15px; margin-top:20px; box-shadow:var(--shadow); }
+    .student-card { background:#f9fafb; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
     .student-row { background:#fff; border-radius:16px; padding:16px; margin-bottom:12px; border:1.5px solid #f1f2f6; display:flex; justify-content:space-between; align-items:center; transition:0.2s; }
     .student-row:hover { border-color:#a78bfa; transform:translateX(5px); }
     .role-badge { font-size:10px; padding:2px 8px; border-radius:6px; font-weight:800; text-transform:uppercase; }
@@ -646,35 +637,23 @@ span.pandahan-bold-hl{font-weight:800;}
     </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer onload="if(typeof initGoogleSignIn === 'function') initGoogleSignIn()"></script>
 
+<!-- Unified SDKs -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
-    <!-- Firebase SDKs (Unified Version) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    </head>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+</head>
 <body>
+    <!-- Main Auth Overlay -->
     <div id="proAuthOverlay">
         <div class="pro-auth-card">
             <div style="font-size:3.5em; margin-bottom:10px;">🐼</div>
             <h2>PandaHán Pro</h2>
             <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Hệ thống học tập thông minh & đồng bộ</p>
             
-            
-            <button class="btn-main" style="background:#fff; color:#444; border:1px solid #ddd; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:10px; box-shadow:none;" onclick="proGoogleLogin()">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
-                Đăng nhập bằng Google
-            </button>
-            <div id="loadingIndicator" style="display:none; font-size:12px; color:#e84393; margin-bottom:10px;">⌛ Đang xử lý, vui lòng chờ...</div>
-    
+            <div id="fbGoogleBtnPro" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
             
             <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
                 <div style="flex:1; height:1px; background:#eee;"></div>
@@ -682,59 +661,21 @@ span.pandahan-bold-hl{font-weight:800;}
                 <div style="flex:1; height:1px; background:#eee;"></div>
             </div>
             
-            <input id="proEmail" type="text" placeholder="Email / Tên đăng nhập">
+            <input id="proEmail" type="text" placeholder="Email">
             <input id="proPass" type="password" placeholder="Mật khẩu">
             <button class="btn-main" onclick="proLogin()">Đăng nhập ngay</button>
             <div id="proError" style="color:#e74c3c; font-size:12px; margin-top:15px; display:none; background:#fdf2f2; padding:10px; border-radius:8px;"></div>
             <button onclick="closeProAuth()" style="background:transparent; color:#636e72; border:none; margin-top:15px; cursor:pointer; font-size:13px; text-decoration:underline;">Tiếp tục Offline</button>
+            <div id="loadingIndicator" style="display:none; font-size:12px; color:#e84393; margin-top:10px;">⌛ Đang xử lý, vui lòng chờ...</div>
         </div>
     </div>
+
     <div class="sync-badge" id="syncBadge">
         <div class="sync-dot" id="syncDot"></div>
         <span id="syncText">Chế độ Offline</span>
     </div>
-    
 
-<div id="authScreen">
-  <div class="auth-box">
-    <div style="font-size:3em;">🐼</div>
-    <h2>PandaHán Pro</h2>
-    <div id="loginForm">
-      <input id="loginEmail" type="text" placeholder="Email hoặc Tên đăng nhập">
-      <input id="loginPassword" type="password" placeholder="Mật khẩu">
-      <button onclick="handleLogin()">Đăng nhập</button>
-      <div style="margin:15px 0;color:#888;font-size:12px;">— hoặc —</div>
-      <div id="googleBtnContainer" style="display:flex;justify-content:center;"></div>
-    </div>
-    <div id="authError" class="auth-error"></div>
-    <p style="margin-top:20px;font-size:12px;color:#888;">Sử dụng Email/Mật khẩu hoặc Đăng nhập nhanh bằng Google bên dưới.</p>
-  </div>
-</div>
-<div id="pastelBg">
-  <div class="blob" style="width:700px;height:700px;top:-15%;left:-10%;background:radial-gradient(circle,rgba(249,168,212,0.38) 0%,transparent 65%);animation:blob-a 16s ease-in-out infinite;"></div>
-  <div class="blob" style="width:580px;height:580px;top:5%;right:-8%;background:radial-gradient(circle,rgba(196,181,253,0.30) 0%,transparent 65%);animation:blob-b 20s ease-in-out infinite;"></div>
-  <div class="blob" style="width:500px;height:500px;bottom:-8%;left:35%;background:radial-gradient(circle,rgba(147,197,253,0.26) 0%,transparent 65%);animation:blob-c 14s ease-in-out infinite;"></div>
-  <div class="blob" style="width:360px;height:360px;top:50%;left:5%;background:radial-gradient(circle,rgba(253,186,116,0.20) 0%,transparent 65%);animation:blob-a 22s 5s ease-in-out infinite;"></div>
-</div>
-<div id="petalLayer"></div>
-<div id="loginScreen" style="display:none;position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#f0f7ff 0%,#fce4ec 100%);align-items:center;justify-content:center;padding:16px;font-family:'Segoe UI',system-ui,sans-serif;">
-  <div style="background:#fff;border-radius:16px;padding:28px 26px;max-width:380px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-    <div style="text-align:center;font-size:2em;margin-bottom:2px;">🐼</div>
-    <h2 style="text-align:center;margin:0 0 4px;color:var(--pink,#e84393);">PandaHán Pro</h2>
-    <p style="text-align:center;font-size:12px;color:var(--text-light,#636e72);margin:0 0 16px;">Đăng nhập / Login</p>
-    <input id="loginUsername" type="text" placeholder="Tên đăng nhập / Username" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:8px;font-size:14px;">
-    <input id="loginPassword" type="password" placeholder="Mật khẩu / Password" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:10px;font-size:14px;">
-    <div id="loginError" style="color:#dc2626;font-size:12.5px;margin-bottom:8px;display:none;"></div>
-    <button id="loginSubmitBtn" style="width:100%;padding:10px;border:none;border-radius:30px;background:var(--pink,#e84393);color:#fff;font-weight:700;cursor:pointer;font-size:14px;transition:0.2s;">Đăng nhập / Log in</button>
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0;">
-      <div style="flex:1;height:1px;background:#eee;"></div>
-      <span style="font-size:11px;color:var(--text-light,#636e72);">hoặc / or</span>
-      <div style="flex:1;height:1px;background:#eee;"></div>
-    </div>
-    <div id="googleBtnContainer" style="display:flex;justify-content:center;min-height:42px;"></div>
-    <p id="googleSetupNotice" style="display:none;text-align:center;font-size:10.5px;color:#dc2626;margin-top:8px;line-height:1.6;"></p>
-  </div>
-</div>
+    <div id="petalLayer"></div>
 <div class="app" id="app" style="display:none;">
   <header class="header">
     <div class="logo">🐼 Panda<span>Hán</span> Pro <small>HSK 1-2-3 · 中文 · <span id="langLabel">Tiếng Việt</span></small></div>
@@ -1185,30 +1126,46 @@ let USER_ROLE = "student";
 
 // LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP
 auth.onAuthStateChanged(async (user) => {
+  const overlay = document.getElementById("proAuthOverlay");
+  const appEl = document.getElementById("app");
+  const syncDot = document.getElementById("syncDot");
+  const syncText = document.getElementById("syncText");
+
   if (user) {
     CURRENT_USER = user;
-    // Kiểm tra xem có phải Master không
-    USER_ROLE = (user.email === MASTER_EMAIL || user.email === "teacher@gmail.com") ? "teacher" : "student";
+    USER_ROLE = (user.email === MASTER_EMAIL || user.email === "teacher@gmail.com" || user.email === "nhanthu262n@gmail.com") ? "teacher" : "student";
     
-    // Lưu thông tin người dùng vào Firestore
-    await db.collection("users").doc(user.uid).set({
-      uid: user.uid,
-      email: user.email,
-      name: user.displayName || "Học viên",
-      role: USER_ROLE,
-      lastSeen: new Date()
-    }, { merge: true });
+    // Đồng bộ profile
+    try {
+        await db.collection("users").doc(user.uid).set({
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName || "Học viên",
+          role: USER_ROLE,
+          lastSeen: new Date()
+        }, { merge: true });
+    } catch(e) { console.error("Sync error:", e); }
+    
+    if (overlay) overlay.style.display = "none";
+    if (appEl) appEl.style.display = "block";
+    if (syncDot) syncDot.classList.add("online");
+    if (syncText) syncText.textContent = "Đã kết nối: " + user.email;
     
     startApp();
   } else {
-    document.getElementById("authScreen").style.display = "flex";
-    document.getElementById("app").style.display = "none";
-    initGoogleSignIn();
+    CURRENT_USER = null;
+    if (overlay) overlay.style.display = "flex";
+    if (appEl) appEl.style.display = "none";
+    if (syncDot) syncDot.classList.remove("online");
+    if (syncText) syncText.textContent = "Chế độ Offline";
   }
 });
 
 function initGoogleSignIn() {
   if (typeof google === "undefined") return;
+  const container = document.getElementById("fbGoogleBtnPro");
+  if (!container) return;
+  
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: (res) => {
@@ -1216,8 +1173,85 @@ function initGoogleSignIn() {
       auth.signInWithCredential(cred);
     }
   });
-  google.accounts.id.renderButton(document.getElementById("googleBtnContainer"), { theme: "outline", size: "large", shape: "pill" });
+  google.accounts.id.renderButton(container, { 
+    theme: "outline", 
+    size: "large", 
+    shape: "pill",
+    width: 280 
+  });
 }
+
+async function proGoogleLogin() {
+    const loader = document.getElementById('loadingIndicator');
+    const errEl = document.getElementById('proError');
+    if (loader) loader.style.display = "block";
+    if (errEl) errEl.style.display = "none";
+    
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithRedirect(provider);
+    } catch (e) {
+        if (loader) loader.style.display = "none";
+        if (errEl) {
+            errEl.textContent = "Lỗi: " + e.message;
+            errEl.style.display = "block";
+        }
+    }
+}
+
+async function proLogin() {
+  const email = document.getElementById("proEmail").value;
+  const pass = document.getElementById("proPass").value;
+  const errEl = document.getElementById("proError");
+  
+  if (!email || !pass) {
+    if (errEl) {
+        errEl.textContent = "Vui lòng nhập đầy đủ email và mật khẩu.";
+        errEl.style.display = "block";
+    }
+    return;
+  }
+  
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    if (errEl) errEl.style.display = "none";
+  } catch (e) {
+    if (errEl) {
+        errEl.textContent = "Lỗi: " + e.message;
+        errEl.style.display = "block";
+    }
+  }
+}
+
+function closeProAuth() {
+    const overlay = document.getElementById('proAuthOverlay');
+    const appEl = document.getElementById('app');
+    if (overlay) overlay.style.display = "none";
+    if (appEl) appEl.style.display = "block";
+}
+
+// Xử lý kết quả sau khi Redirect quay lại
+function handleRedirectResult() {
+    auth.getRedirectResult().then((result) => {
+        if (result.user) {
+            console.log("Đăng nhập thành công sau redirect");
+        }
+    }).catch((error) => {
+        const errEl = document.getElementById('proError');
+        if(errEl) {
+            errEl.textContent = "Lỗi Google: " + error.message;
+            errEl.style.display = "block";
+        }
+    });
+}
+
+// Chạy khi trang load
+window.addEventListener('load', () => {
+    handleRedirectResult();
+    if (!CURRENT_USER) {
+        initGoogleSignIn();
+    }
+});
 
 async function handleLogin() {
   const email = document.getElementById("loginEmail").value;
@@ -1641,8 +1675,6 @@ let CURRENT_USER = null;
    Once signed in, the REAL Google name/email from the account is used,
    with Teacher role granted temporarily per current requirements.
    ===================================================================== */
-const GOOGLE_CLIENT_ID = "476158579081-8sp096m4onjf9jf6mmp5toisu0mj28e9.apps.googleusercontent.com";
-
 function decodeJwt(token) {
   const base64Url = token.split(".")[1];
   const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -4711,564 +4743,6 @@ function renderWriteGameShell() {
   render();
 }
 </script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script>
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
-      import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-analytics.js";
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const app = initializeApp(firebaseConfig);
-         const analytics = getAnalytics(app);
-        let currentUser = null;
- 
-        // ============ TAB SWITCHING ============
-        function switchTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
- 
-            // Show selected tab
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
- 
-            // Load dashboard data
-            if (tabName === 'dashboard' && currentUser) {
-                loadUserProgress();
-            }
-        }
- 
-        // ============ AUTHENTICATION ============
-        function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
- 
-            if (!email || !password) {
-                showMessage('Vui lòng nhập email và mật khẩu', 'error');
-                return;
-            }
- 
-            auth.signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    currentUser = userCredential.user;
-                    loadUserData();
-                    showMessage('Đăng nhập thành công!', 'success');
-                    switchTab('dashboard');
-                })
-                .catch(error => {
-                    showMessage('Lỗi: ' + error.message, 'error');
-                });
-        }
- 
-        function handleRegister() {
-            const name = document.getElementById('registerName').value;
-            const email = document.getElementById('registerEmail').value;
-            const password = document.getElementById('registerPassword').value;
-            const role = document.getElementById('registerRole').value;
- 
-            if (!name || !email || !password) {
-                showMessage('Vui lòng nhập đầy đủ thông tin', 'error');
-                return;
-            }
- 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    const user = userCredential.user;
-                    
-                    // Save user info to database
-                    database.ref('users/' + user.uid).set({
-                        email: email,
-                        name: name,
-                        role: role,
-                        createdAt: new Date().toISOString()
-                    });
- 
-                    currentUser = user;
-                    showMessage('Tạo tài khoản thành công!', 'success');
-                    document.getElementById('registerName').value = '';
-                    document.getElementById('registerEmail').value = '';
-                    document.getElementById('registerPassword').value = '';
-                    switchTab('login');
-                })
-                .catch(error => {
-                    showMessage('Lỗi: ' + error.message, 'error');
-                });
-        }
- 
-        function handleLogout() {
-            auth.signOut().then(() => {
-                currentUser = null;
-                showMessage('Đã đăng xuất', 'success');
-                switchTab('login');
-            });
-        }
- 
-        // ============ USER DATA ============
-        function loadUserData() {
-            if (!currentUser) return;
- 
-            database.ref('users/' + currentUser.uid).once('value', snapshot => {
-                const userData = snapshot.val();
-                if (userData) {
-                    document.getElementById('userName').textContent = userData.name;
-                    document.getElementById('userEmail').textContent = userData.email;
-                    document.getElementById('userRole').textContent = 
-                        userData.role === 'student' ? 'Học sinh' : 'Giáo viên';
-                }
-            });
-        }
- 
-        // ============ PROGRESS ============
-        function handleSaveProgress() {
-            if (!currentUser) {
-                showMessage('Vui lòng đăng nhập trước', 'error');
-                return;
-            }
- 
-            const vocabChar = document.getElementById('vocabChar').value;
-            const tier = parseInt(document.getElementById('vocabTier').value);
- 
-            if (!vocabChar || isNaN(tier)) {
-                showMessage('Vui lòng nhập đầy đủ thông tin', 'error');
-                return;
-            }
- 
-            database.ref('studentProgress/' + currentUser.uid + '/' + vocabChar).set({
-                char: vocabChar,
-                tier: tier,
-                dueDate: new Date().toISOString(),
-                lastReviewed: new Date().toISOString()
-            }).then(() => {
-                showMessage('Lưu tiến độ thành công!', 'success');
-                document.getElementById('vocabChar').value = '';
-                document.getElementById('vocabTier').value = '';
-                loadUserProgress();
-            }).catch(error => {
-                showMessage('Lỗi: ' + error.message, 'error');
-            });
-        }
- 
-        function loadUserProgress() {
-            if (!currentUser) return;
- 
-            database.ref('studentProgress/' + currentUser.uid).once('value', snapshot => {
-                const progressList = document.getElementById('progressList');
-                const data = snapshot.val();
- 
-                if (!data || Object.keys(data).length === 0) {
-                    progressList.innerHTML = '<p style="text-align: center; color: #999;">Chưa có tiến độ nào</p>';
-                    return;
-                }
- 
-                let html = '';
-                Object.entries(data).forEach(([char, progress]: any) => {
-                    html += `
-                        <div class="data-item">
-                            <strong>${char}</strong> - Cấp độ: ${progress.tier}
-                            <br><small>Cập nhật: ${new Date(progress.lastReviewed).toLocaleString('vi-VN')}</small>
-                        </div>
-                    `;
-                });
-                progressList.innerHTML = html;
-            });
-        }
- 
-        // ============ UTILITIES ============
-        function showMessage(text, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = 'message ' + type;
-            
-            setTimeout(() => {
-                messageEl.className = 'message';
-            }, 3000);
-        }
- 
-        // Check if user is logged in
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                loadUserData();
-            }
-        });
-    
-    // =====================================================================
-    // PROFESSIONAL FIREBASE & OPTIMIZATION SYSTEM
-    // =====================================================================
-    const PRO_CONFIG = {
-        firebase: {
-          apiKey: "AIzaSyBhjivJYd16vazp4Mi5XSv4Hp_N3Jd14Q4",
-          authDomain: "pandahanpro.firebaseapp.com",
-          databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "pandahanpro",
-          storageBucket: "pandahanpro.firebasestorage.app",
-          messagingSenderId: "897241491720",
-          appId: "1:897241491720:web:43e654aeadc08668cf64bd",
-          measurementId: "G-1JRBVDYFED"
-        },
-        masterEmail: "nhanthu262n@gmail.com", // Cài đặt email Master của bạn tại đây
-        googleClientId: "476158579081-8sp096m4onjf9jf6mmp5toisu0mj28e9.apps.googleusercontent.com"
-    };
-S
-    let proUser = null;
-    let proData = null;
-    let db = null;
-
-    // 1. KHỞI TẠO HỆ THỐNG
-    
-    function initProSystem() {
-        if (PRO_CONFIG.firebase.apiKey.includes("YOUR_")) {
-            console.warn("Chế độ Offline");
-            return;
-        }
-        
-        try {
-            firebase.initializeApp(PRO_CONFIG.firebase);
-            db = firebase.firestore();
-            
-            firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) {
-                    proUser = user;
-                    await syncUserProfile(user);
-                    
-                    document.getElementById('proAuthOverlay').style.display = "none";
-                    document.getElementById('app').style.display = "block";
-                    document.getElementById('syncDot').classList.add('online');
-                    document.getElementById('syncText').textContent = "Đã kết nối: " + user.email;
-                    
-                    applyProRoles();
-                    await loadCloudData();
-                    
-                    // TỰ ĐỘNG MỞ TAB TỪ VỰNG
-                    if (typeof switchTab === 'function') {
-                        switchTab('browse');
-                    }
-                } else {
-                    proUser = null;
-                    document.getElementById('proAuthOverlay').style.display = "flex";
-                }
-            });
-        } catch(e) { console.error("Lỗi khởi tạo:", e); }
-    }
-    
-        
-        try {
-            firebase.initializeApp(PRO_CONFIG.firebase);
-            db = firebase.firestore();
-            
-            firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) {
-                    proUser = user;
-                    await syncUserProfile(user);
-                    handleRedirectResult();
-                    document.getElementById('proAuthOverlay').style.display = "none";
-                    document.getElementById('app').style.display = "block";
-                    document.getElementById('syncDot').classList.add('online');
-                    document.getElementById('syncText').textContent = "Đã kết nối: " + user.email;
-                    
-                    applyProRoles();
-                    loadCloudData();
-                } else {
-                    proUser = null;
-                    document.getElementById('proAuthOverlay').style.display = "flex";
-                    // initProGoogleSignIn();
-                }
-            });
-        } catch(e) { console.error("Pro System Init Error", e); }
-    }
-
-    // 2. XỬ LÝ VAI TRÒ & PROFILE
-    
-    async function syncUserProfile(user) {
-        try {
-            const userRef = db.collection("users").doc(user.uid);
-            const doc = await userRef.get();
-            
-            let role = "student";
-            if (user.email === PRO_CONFIG.masterEmail || user.email === "teacher@gmail.com") {
-                role = "master_teacher";
-            } else if (doc.exists && doc.data().role) {
-                role = doc.data().role;
-            }
-
-            proData = {
-                uid: user.uid,
-                email: user.email,
-                name: user.displayName || user.email.split('@')[0],
-                role: role,
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            // QUAN TRỌNG: Ánh xạ vào biến CURRENT_USER của app gốc
-            window.CURRENT_USER = {
-                username: user.uid,
-                email: user.email,
-                name: proData.name,
-                nameEn: proData.name,
-                role: role === "master_teacher" ? "teacher" : role
-            };
-
-            await userRef.set(proData, { merge: true });
-        } catch (e) {
-            console.error("Lỗi đồng bộ profile:", e);
-        }
-    }
-     else if (doc.exists && doc.data().role) {
-            role = doc.data().role;
-        }
-
-        proData = {
-            uid: user.uid,
-            email: user.email,
-            name: user.displayName || "Học viên",
-            role: role,
-            lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        await userRef.set(proData, { merge: true });
-    }
-
-    function applyProRoles() {
-        if (!proData) return;
-        
-        const isTeacher = proData.role === "teacher" || proData.role === "master_teacher";
-        const isMaster = proData.role === "master_teacher";
-        
-        const tBtn = document.getElementById('teacherProBtn');
-        if (tBtn) tBtn.style.display = isTeacher ? "flex" : "none";
-        
-        const mBtn = document.getElementById('masterToolsBtn');
-        if (mBtn) mBtn.style.display = isMaster ? "inline-block" : "none";
-    }
-
-    // 3. ĐỒNG BỘ DỮ LIỆU THÔNG MINH (Debounced)
-    let syncTimer = null;
-    function queueSync() {
-        if (syncTimer) clearTimeout(syncTimer);
-        syncTimer = setTimeout(performSync, 2000);
-    }
-
-    async function performSync() {
-        if (!proUser || !db) return;
-        const localKey = "pandahan_pro_stats_v1_" + (CURRENT_USER ? CURRENT_USER.username : "guest");
-        const stats = localStorage.getItem(localKey);
-        
-        if (stats) {
-            await db.collection("progress").doc(proUser.uid).set({
-                stats: JSON.parse(stats),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log("Dữ liệu đã được đồng bộ lên Cloud.");
-        }
-    }
-
-    async function loadCloudData() {
-        if (!proUser || !db) return;
-        const doc = await db.collection("progress").doc(proUser.uid).get();
-        if (doc.exists) {
-            const cloudStats = doc.data().stats;
-            const localKey = "pandahan_pro_stats_v1_" + (CURRENT_USER ? CURRENT_USER.username : "guest");
-            localStorage.setItem(localKey, JSON.stringify(cloudStats));
-            setTimeout(() => { if (typeof renderGrids === "function") renderGrids(); }, 500);
-        }
-    }
-
-    // 4. QUẢN LÝ GIÁO VIÊN
-    async function loadStudentListPro() {
-        if (!db) return;
-        const listEl = document.getElementById('proStudentList');
-        listEl.innerHTML = '<p style="text-align:center; padding:20px;">Đang tải danh sách học viên...</p>';
-        
-        try {
-            const snap = await db.collection("users").where("role", "==", "student").get();
-            let html = "";
-            
-            for (const doc of snap.docs) {
-                const u = doc.data();
-                const progDoc = await db.collection("progress").doc(doc.id).get();
-                const learnedCount = progDoc.exists ? Object.keys(progDoc.data().stats || {}).length : 0;
-                
-                html += `
-                <div class="student-row">
-                    <div>
-                        <div style="font-weight:800; color:#2d3436;">${u.name}</div>
-                        <div style="font-size:12px; color:#636e72;">${u.email}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-size:14px; font-weight:800; color:#e84393;">${learnedCount} từ đã học</div>
-                        <span class="role-badge role-student">Học viên</span>
-                    </div>
-                </div>`;
-            }
-            listEl.innerHTML = html || '<p style="text-align:center; padding:20px;">Chưa có học viên nào đăng ký.</p>';
-        } catch(e) { listEl.innerHTML = '<p style="color:red;">Lỗi tải dữ liệu: ' + e.message + '</p>'; }
-    }
-
-    // 5. TỐI ƯU HÓA RENDER (DocumentFragment)
-    const originalRenderGrids = window.renderGrids;
-    window.renderGrids = function() {
-        // Chúng ta vẫn gọi hàm gốc, nhưng có thể tối ưu các phần nặng nếu cần
-        if (typeof originalRenderGrids === 'function') originalRenderGrids();
-    };
-
-    // Hook vào hệ thống chấm điểm để đồng bộ
-    const originalGradeWord = window.gradeWord;
-    window.gradeWord = function(char, grade) {
-        if (typeof originalGradeWord === 'function') originalGradeWord(char, grade);
-        queueSync();
-    };
-
-    // 6. CÁC HÀM UI HỖ TRỢ
-    function switchTab(tab) {
-        // Tắt tất cả các màn hình
-        document.querySelectorAll("[id^='screen-']").forEach(s => s.style.display = "none");
-        // Bật màn hình được chọn
-        const target = document.getElementById("screen-" + tab);
-        if (target) target.style.display = "block";
-        
-        // Cập nhật trạng thái nút Sidebar
-        document.querySelectorAll(".nav-tab-btn").forEach(b => b.classList.remove("active"));
-        const activeBtn = document.querySelector(`[data-tab="${tab}"]`) || document.getElementById('teacherProBtn');
-        if (activeBtn) activeBtn.classList.add("active");
-        
-        if (tab === 'teacher-pro') loadStudentListPro();
-    }
-
-    function toggleMasterTools() {
-        const area = document.getElementById('masterToolsArea');
-        area.style.display = area.style.display === "none" ? "block" : "none";
-    }
-
-    
-    async function proLogin() {
-        let email = document.getElementById('proEmail').value.trim();
-        const pass = document.getElementById('proPass').value;
-        const errEl = document.getElementById('proError');
-        
-        if (!email || !pass) {
-            errEl.textContent = "Vui lòng nhập đầy đủ thông tin!";
-            errEl.style.display = "block";
-            return;
-        }
-
-        // Tự động chuyển Username thành Email giả lập cho Firebase
-        if (!email.includes('@')) {
-            email = email.toLowerCase() + "@pandahan.com";
-        }
-        
-        try {
-            errEl.style.display = "none";
-            await firebase.auth().signInWithEmailAndPassword(email, pass);
-        } catch(e) {
-            let msg = e.message;
-            if (e.code === 'auth/user-not-found') msg = "Tài khoản không tồn tại.";
-            if (e.code === 'auth/wrong-password') msg = "Mật khẩu không chính xác.";
-            if (e.code === 'auth/invalid-email') msg = "Định dạng email không hợp lệ.";
-            
-            errEl.textContent = "Lỗi: " + msg;
-            errEl.style.display = "block";
-        }
-    }
-     catch(e) {
-            const errEl = document.getElementById('proError');
-            errEl.textContent = "Lỗi đăng nhập: " + e.message;
-            errEl.style.display = "block";
-        }
-    }
-
-    
-    
-    
-    async function proGoogleLogin() {
-        const errEl = document.getElementById('proError');
-        const loader = document.getElementById('loadingIndicator');
-        errEl.style.display = "none";
-        loader.style.display = "block";
-        
-        try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            // Sử dụng Redirect thay vì Popup để tránh bị trình duyệt chặn
-            await firebase.auth().signInWithRedirect(provider);
-        } catch (e) {
-            loader.style.display = "none";
-            errEl.textContent = "Lỗi: " + e.message;
-            errEl.style.display = "block";
-        }
-    }
-
-    // Xử lý kết quả sau khi Redirect quay lại
-    function handleRedirectResult() {
-        firebase.auth().getRedirectResult().then((result) => {
-            if (result.user) {
-                console.log("Đăng nhập thành công sau redirect");
-            }
-        }).catch((error) => {
-            const errEl = document.getElementById('proError');
-            if(errEl) {
-                errEl.textContent = "Lỗi Google: " + error.message;
-                errEl.style.display = "block";
-            }
-        });
-    }
-     catch (e) {
-            loader.style.display = "none";
-            let msg = e.message;
-            if (e.code === 'auth/popup-closed-by-user') msg = "Bạn đã đóng cửa sổ đăng nhập.";
-            if (e.code === 'auth/cancelled-popup-request') msg = "Yêu cầu đăng nhập bị hủy.";
-            if (e.code === 'auth/operation-not-allowed') msg = "Bạn chưa bật Google Sign-in trong Firebase Console.";
-            
-            errEl.textContent = "Lỗi: " + msg;
-            errEl.style.display = "block";
-        }
-    }
-    
-    function initProGoogleSignIn() {
-        if (typeof google === "undefined") {
-            console.error("Google SDK chưa load xong.");
-            return;
-        }
-        const container = document.getElementById("fbGoogleBtnPro");
-        if (!container) return;
-
-        google.accounts.id.initialize({
-            client_id: PRO_CONFIG.googleClientId,
-            /* callback disabled */ old_callback: (response) => {
-                try {
-                    const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-                    await firebase.auth().signInWithCredential(credential);
-                } catch (e) {
-                    const errEl = document.getElementById('proError');
-                    errEl.textContent = "Lỗi Google: " + e.message;
-                    errEl.style.display = "block";
-                }
-            }
-        });
-        google.accounts.id.renderButton(container, { 
-            theme: "outline", 
-            size: "large", 
-            shape: "pill", 
-            width: container.offsetWidth || 340,
-            text: "signin_with"
-        });
-    }
-    
-        });
-        google.accounts.id.renderButton(document.getElementById("fbGoogleBtnPro"), { theme: "outline", size: "large", shape: "pill", width: 340 });
-    }
-
-    function closeProAuth() {
-        document.getElementById('proAuthOverlay').style.display = "none";
-        document.getElementById('app').style.display = "block";
-    }
-
-    window.addEventListener('load', initProSystem);
-    </script>
 <div id="textToolPopup">
   <button class="swatch sw-yellow" data-color="yellow" title="Highlight vàng"></button>
   <button class="swatch sw-green" data-color="green" title="Highlight xanh lá"></button>
