@@ -1103,19 +1103,19 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
 // CẤU HÌNH FIREBASE (BẮT BUỘC THAY THẾ)
 // ============================================
 const firebaseConfig = {
-          apiKey: "AIzaSyBhjivJYd16vazp4Mi5XSv4Hp_N3Jd14Q4",
-          authDomain: "pandahanpro.firebaseapp.com",
-          databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "pandahanpro",
-          storageBucket: "pandahanpro.firebasestorage.app",
-          messagingSenderId: "897241491720",
-          appId: "1:897241491720:web:43e654aeadc08668cf64bd",
-          measurementId: "G-1JRBVDYFED"
-        };
+  apiKey: "AIzaSyBhjivJYd16vazp4Mi5XSv4Hp_N3Jd14Q4",
+  authDomain: "pandahanpro.firebaseapp.com",
+  databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pandahanpro",
+  storageBucket: "pandahanpro.firebasestorage.app",
+  messagingSenderId: "897241491720",
+  appId: "1:897241491720:web:43e654aeadc08668cf64bd",
+  measurementId: "G-1JRBVDYFED"
+};
 
 // TÀI KHOẢN MASTER CỐ ĐỊNH CỦA BẠN
 const MASTER_EMAILS = ["teacher@gmail.com", "nhanthu262n@gmail.com"];
-const GOOGLE_CLIENT_ID = "476158579081-8sp096m4onjf9jf6mmp5toisu0mj28e9.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "897241491720-obod7unscrt6m0drrv6msjp1jscu32gu.apps.googleusercontent.com";
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -4099,6 +4099,7 @@ async function renderTeacherDashboard() {
                 <div style="display:flex;gap:6px;">
                     <button class="btn btn-hsk1" onclick="updateUserRole('${u.uid}', 'student')" style="font-size:11px;padding:6px 10px;">Duyệt Học sinh</button>
                     <button class="btn btn-hsk2" onclick="updateUserRole('${u.uid}', 'teacher')" style="font-size:11px;padding:6px 10px;">Duyệt Giáo viên</button>
+                    <button class="btn btn-outline" onclick="deleteUser('${u.uid}')" style="font-size:11px;padding:6px 10px;color:#dc2626;border-color:#dc2626;">Xóa</button>
                 </div>
             </div>
           `).join("");
@@ -4134,10 +4135,56 @@ async function viewStudentProgress(uid, name) {
     try {
         const prog = await db.collection("progress").doc(uid).get();
         const stats = prog.exists ? prog.data().stats : {};
+        
+        // Tính toán các chỉ số
         const learned = Object.keys(stats).length;
-        alert(`Tiến độ của ${name}:\n- Đã học: ${learned} từ\n(Tính năng xem chi tiết bảng từ đang được phát triển)`);
+        let mastered = 0;
+        const tierCounts = [0, 0, 0, 0, 0]; // 0: chưa học, 1-4: các cấp độ
+        
+        // Tổng số từ HSK 1-3 là 604
+        const totalWords = 604;
+        
+        Object.values(stats).forEach(s => {
+            const tier = tierFromStat(s);
+            if (tier >= 1 && tier <= 4) tierCounts[tier]++;
+            if (tier === 4) mastered++;
+        });
+        tierCounts[0] = Math.max(0, totalWords - learned);
+
+        document.getElementById("teacherDetailName").textContent = `Tiến độ của ${name}`;
+        document.getElementById("teacherDetailStats").innerHTML = `
+            <div class="time-grid" style="grid-template-columns:1fr 1fr;">
+              <div class="time-box"><div class="num">${learned}</div><div class="lbl">Từ đã học</div></div>
+              <div class="time-box"><div class="num">${mastered}</div><div class="lbl">Từ thành thạo</div></div>
+            </div>
+            <table class="time-table" style="margin-top:14px;">
+              <thead><tr><th>Mức độ</th><th>Số từ</th></tr></thead>
+              <tbody>
+                <tr><td>⚪ Chưa học</td><td>${tierCounts[0]}</td></tr>
+                <tr><td>🔴 Mới học</td><td>${tierCounts[1]}</td></tr>
+                <tr><td>🟡 Đang ôn luyện</td><td>${tierCounts[2]}</td></tr>
+                <tr><td>🟢 Đã nắm vững</td><td>${tierCounts[3]}</td></tr>
+                <tr><td>🐼 Thành thạo</td><td>${tierCounts[4]}</td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:20px; font-size:13px; color:var(--text-light);">
+                <i>Dữ liệu được lấy trực tiếp từ Firebase.</i>
+            </div>
+        `;
+        showScreen("teacherDetail");
     } catch(e) {
         alert("Lỗi khi tải tiến độ: " + e.message);
+    }
+}
+
+async function deleteUser(uid) {
+    if (!confirm("Bạn có chắc chắn muốn xóa người dùng này khỏi danh sách chờ?")) return;
+    try {
+        await db.collection("users").doc(uid).delete();
+        alert("Đã xóa người dùng thành công!");
+        renderTeacherDashboard();
+    } catch(e) {
+        alert("Lỗi khi xóa người dùng: " + e.message);
     }
 }
 
