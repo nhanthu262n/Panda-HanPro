@@ -670,10 +670,10 @@ span.pandahan-bold-hl{font-weight:800;}
         </div>
     </div>
 
-    <div class="sync-badge" id="syncBadge">
+    <!-- <div class="sync-badge" id="syncBadge">
         <div class="sync-dot" id="syncDot"></div>
         <span id="syncText">Chế độ Offline</span>
-    </div>
+    </div> -->
 
     <div id="petalLayer"></div>
 <div class="app" id="app" style="display:none;">
@@ -740,7 +740,7 @@ span.pandahan-bold-hl{font-weight:800;}
     </div>
 
     <button class="active" data-tab="browse">📚 Từ điển<span class="en">Dictionary</span></button>
-    <button data-tab="review">🎯 Ôn tập<span class="en">Review (SRS)</span></button>
+    <!-- <button data-tab="review">🎯 Ôn tập<span class="en">Review (SRS)</span></button> -->
     <button data-tab="practice">✍️ Luyện tập<span class="en">Practice</span></button>
     <button data-tab="dashboard">📊 Tiến độ<span class="en">Progress &amp; Rubric</span></button>
     <button data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Giáo viên<span class="en">Teacher</span></button>
@@ -1114,7 +1114,7 @@ const firebaseConfig = {
         };
 
 // TÀI KHOẢN MASTER CỐ ĐỊNH CỦA BẠN
-const MASTER_EMAIL = "teacher@gmail.com"; // Thay bằng email thật của bạn
+const MASTER_EMAILS = ["teacher@gmail.com", "nhanthu262n@gmail.com"];
 const GOOGLE_CLIENT_ID = "476158579081-8sp096m4onjf9jf6mmp5toisu0mj28e9.apps.googleusercontent.com";
 
 firebase.initializeApp(firebaseConfig);
@@ -1124,38 +1124,73 @@ const db = firebase.firestore();
 let CURRENT_USER = null;
 let USER_ROLE = "student";
 
+function showPendingScreen() {
+    const overlay = document.getElementById("proAuthOverlay");
+    const appEl = document.getElementById("app");
+    const card = document.querySelector(".pro-auth-card");
+    if (overlay) overlay.style.display = "flex";
+    if (appEl) appEl.style.display = "none";
+    if (card) {
+        card.innerHTML = `
+            <div style="font-size:3.5em; margin-bottom:10px;">⏳</div>
+            <h2>Tài khoản đang chờ duyệt</h2>
+            <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Chào <b>${auth.currentUser.displayName || auth.currentUser.email}</b>, tài khoản của bạn đang chờ Giáo viên (Master) phê duyệt và phân quyền. Vui lòng quay lại sau.</p>
+            <button class="btn-main" onclick="doLogout()">Đăng xuất</button>
+        `;
+    }
+}
+
 // LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP
 auth.onAuthStateChanged(async (user) => {
-  const syncDot = document.getElementById("syncDot");
-  const syncText = document.getElementById("syncText");
+  // const syncDot = document.getElementById("syncDot");
+  // const syncText = document.getElementById("syncText");
 
   if (user) {
-    CURRENT_USER = user;
-    USER_ROLE = (user.email === MASTER_EMAIL || user.email === "teacher@gmail.com" || user.email === "nhanthu262n@gmail.com") ? "teacher" : "student";
-    
-    // Đồng bộ profile
     try {
-        await db.collection("users").doc(user.uid).set({
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName || "Học viên",
-          role: USER_ROLE,
-          lastSeen: new Date()
-        }, { merge: true });
-    } catch(e) { console.error("Sync error:", e); }
-    
-    if (syncDot) syncDot.classList.add("online");
-    if (syncText) syncText.textContent = "Đã kết nối: " + user.email;
-    
-    completeLogin(user);
+        // Kiểm tra role trong Firestore
+        const userDoc = await db.collection("users").doc(user.uid).get();
+        let userData = userDoc.exists ? userDoc.data() : null;
+        
+        if (!userData) {
+            // Người dùng mới - Mặc định là pending, trừ khi là Master
+            USER_ROLE = MASTER_EMAILS.includes(user.email) ? "teacher" : "pending";
+            userData = {
+                uid: user.uid,
+                email: user.email,
+                name: user.displayName || "Học viên",
+                role: USER_ROLE,
+                status: USER_ROLE === "teacher" ? "approved" : "pending",
+                lastSeen: new Date()
+            };
+            await db.collection("users").doc(user.uid).set(userData);
+        } else {
+            USER_ROLE = userData.role || "pending";
+        }
+
+        CURRENT_USER = { ...user, ...userData };
+        
+        // if (syncDot) syncDot.classList.add("online");
+        // if (syncText) syncText.textContent = "Đã kết nối: " + user.email;
+        
+        if (USER_ROLE === "pending") {
+            showPendingScreen();
+        } else {
+            completeLogin(user);
+        }
+    } catch(e) { 
+        console.error("Auth error:", e);
+        // Fallback if firestore fails
+        CURRENT_USER = user;
+        completeLogin(user);
+    }
   } else {
     CURRENT_USER = null;
     const overlay = document.getElementById("proAuthOverlay");
     const appEl = document.getElementById("app");
     if (overlay) overlay.style.display = "flex";
     if (appEl) appEl.style.display = "none";
-    if (syncDot) syncDot.classList.remove("online");
-    if (syncText) syncText.textContent = "Chế độ Offline";
+    // if (syncDot) syncDot.classList.remove("online");
+    // if (syncText) syncText.textContent = "Chế độ Offline";
   }
 });
 
@@ -1673,15 +1708,20 @@ function handleGoogleCredentialResponse(response) {
   const username = "google_" + payload.sub;
   let u = findUser(username);
   if (!u) {
+    const isMaster = MASTER_EMAILS.includes(payload.email);
     u = {
-      username, password: null, role: "teacher", // temporary, per current requirements
+      username, password: null, role: isMaster ? "teacher" : "pending",
       name: payload.name || payload.email, nameEn: payload.name || payload.email,
       email: payload.email, picture: payload.picture, isGoogleUser: true,
     };
     DEMO_USERS.push(u);
   }
   localStorage.setItem("pandahan_google_profile_" + username, JSON.stringify(u));
-  completeLogin(u);
+  if (u.role === "pending") {
+    showPendingScreen();
+  } else {
+    completeLogin(u);
+  }
 }
 let isGoogleInitialized = false;
 // Duplicate initGoogleSignIn removed
@@ -4015,38 +4055,73 @@ function studentSummary(username) {
   });
   return { learned, mastered, quizAttempts, quizCorrect, lastSeen, total: chars.length };
 }
-function renderTeacherDashboard() {
+async function renderTeacherDashboard() {
   const list = document.getElementById("teacherStudentList");
   if (!list) return;
-  const students = DEMO_USERS.filter(u => u.role === "student");
-  list.innerHTML = students.map(u => {
-    const sum = studentSummary(u.username);
-    const locked = isLocked(u.username);
-    const quizPct = sum.quizAttempts ? Math.round(sum.quizCorrect / sum.quizAttempts * 100) : null;
-    const lastText = sum.lastSeen ? new Date(sum.lastSeen).toLocaleDateString("vi-VN") : L("Chưa hoạt động", "No activity");
-    return `<div style="background:#fafcfe;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid #eef2f7;">
-      <div>
-        <div style="font-weight:700;">${esc(L(u.name, u.nameEn))} ${locked ? '<span style="color:#dc2626;font-size:11px;margin-left:6px;">🔒 ' + L('Đã khóa', 'Locked') + '</span>' : ''}</div>
-        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">@${u.username} · ${sum.learned} ${L('từ đã học', 'words studied')} · ${sum.mastered} ${L('từ thành thạo', 'mastered')} · ${quizPct === null ? L('chưa làm quiz', 'no quiz yet') : quizPct + '% ' + L('quiz đúng', 'quiz correct')} · ${L('hoạt động gần nhất', 'last active')}: ${lastText}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-outline" data-act="view" data-u="${u.username}" style="font-size:11px;padding:6px 10px;">👁️ ${L('Xem', 'View')}</button>
-        <button class="btn btn-outline" data-act="lock" data-u="${u.username}" style="font-size:11px;padding:6px 10px;">${locked ? '🔓 ' + L('Mở khóa', 'Unlock') : '🔒 ' + L('Khóa', 'Lock')}</button>
-        <button class="btn btn-outline" data-act="reset" data-u="${u.username}" style="font-size:11px;padding:6px 10px;color:#dc2626;">🗑️ ${L('Xóa dữ liệu', 'Reset data')}</button>
-      </div>
-    </div>`;
-  }).join("");
-  list.querySelectorAll("button[data-act]").forEach(b => {
-    b.addEventListener("click", () => {
-      const u = b.dataset.u, act = b.dataset.act;
-      if (act === "lock") { setLocked(u, !isLocked(u)); renderTeacherDashboard(); }
-      else if (act === "reset") {
-        if (confirm(L("Xóa toàn bộ dữ liệu học tập của học viên này? Không thể hoàn tác.", "Delete all learning data for this student? This cannot be undone."))) {
-          clearUserData(u); renderTeacherDashboard();
-        }
-      } else if (act === "view") { showTeacherStudentDetail(u); }
-    });
-  });
+  
+  list.innerHTML = `<div style="text-align:center;padding:20px;">⌛ Đang tải danh sách người dùng...</div>`;
+  
+  try {
+      const snap = await db.collection("users").get();
+      const allUsers = snap.docs.map(doc => doc.data());
+      
+      const pendingUsers = allUsers.filter(u => u.role === "pending");
+      const approvedUsers = allUsers.filter(u => (u.role === "student" || u.role === "teacher") && !MASTER_EMAILS.includes(u.email));
+      
+      let html = "";
+      
+      if (pendingUsers.length > 0) {
+          html += `<h3 style="font-size:15px;margin:15px 0 10px;color:var(--pink);">⏳ Người dùng chờ duyệt (${pendingUsers.length})</h3>`;
+          html += pendingUsers.map(u => `
+            <div style="background:#fff5f5;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1.5px dashed var(--pink);margin-bottom:8px;">
+                <div>
+                    <div style="font-weight:700;">${esc(u.name)}</div>
+                    <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn-hsk1" onclick="updateUserRole('${u.uid}', 'student')" style="font-size:11px;padding:6px 10px;">Duyệt Học sinh</button>
+                    <button class="btn btn-hsk2" onclick="updateUserRole('${u.uid}', 'teacher')" style="font-size:11px;padding:6px 10px;">Duyệt Giáo viên</button>
+                </div>
+            </div>
+          `).join("");
+      }
+      
+      html += `<h3 style="font-size:15px;margin:20px 0 10px;">👥 Danh sách thành viên</h3>`;
+      if (approvedUsers.length === 0) {
+          html += `<p style="font-size:12px;color:#888;">Chưa có thành viên nào.</p>`;
+      } else {
+          html += approvedUsers.map(u => {
+            const roleLabel = u.role === "teacher" ? "👨‍🏫 GV" : "🎓 HS";
+            return `<div style="background:#fafcfe;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #eef2f7;margin-bottom:8px;">
+              <div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge ${u.role === 'teacher' ? 'role-teacher' : 'role-student'}">${roleLabel}</span></div>
+                <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-outline" onclick="updateUserRole('${u.uid}', 'pending')" style="font-size:11px;padding:6px 10px;color:#dc2626;">Hủy quyền</button>
+              </div>
+            </div>`;
+          }).join("");
+      }
+      
+      list.innerHTML = html;
+  } catch(e) {
+      list.innerHTML = `<div style="color:red;">Lỗi khi tải dữ liệu: ${e.message}</div>`;
+  }
+}
+
+async function updateUserRole(uid, newRole) {
+    if (!confirm(`Xác nhận thay đổi quyền cho người dùng này thành ${newRole}?`)) return;
+    try {
+        await db.collection("users").doc(uid).update({ 
+            role: newRole, 
+            status: newRole === 'pending' ? 'pending' : 'approved' 
+        });
+        alert("Đã cập nhật thành công!");
+        renderTeacherDashboard();
+    } catch(e) {
+        alert("Lỗi: " + e.message);
+    }
 }
 function showTeacherStudentDetail(username) {
   const u = findUser(username);
@@ -4242,9 +4317,14 @@ function attemptLogin() {
   errEl.style.display = "none";
   completeLogin(u);
 }
-function doLogout() {
+async function doLogout() {
   finalizeSession();
   clearSession();
+  if (auth) {
+      try {
+          await auth.signOut();
+      } catch(e) { console.error("SignOut error:", e); }
+  }
   CURRENT_USER = null;
   location.reload();
 }
