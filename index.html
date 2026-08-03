@@ -1115,7 +1115,7 @@ const firebaseConfig = {
 
 // TÀI KHOẢN MASTER CỐ ĐỊNH CỦA BẠN
 const MASTER_EMAILS = ["teacher@gmail.com", "nhanthu262n@gmail.com"];
-const GOOGLE_CLIENT_ID = "897241491720-obod7unscrt6m0drrv6msjp1jscu32gu.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "476158579081-8sp096m4onjf9jf6mmp5toisu0mj28e9.apps.googleusercontent.com";
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -1713,7 +1713,7 @@ function clearSession() { localStorage.removeItem("pandahan_session_v1"); }
         and paste it below as GOOGLE_CLIENT_ID.
    Until that's done, the button area shows a setup notice instead.
    Once signed in, the REAL Google name/email from the account is used,
-   with Teacher role granted temporarily per current requirements.
+   with Teacher role granted temporarily per current requirements.firebaseConfig
    ===================================================================== */
 function decodeJwt(token) {
   const base64Url = token.split(".")[1];
