@@ -654,9 +654,6 @@ span.pandahan-bold-hl{font-weight:800;}
             <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Hệ thống học tập thông minh & đồng bộ</p>
             
             <div id="fbGoogleBtnPro" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
-            <button class="btn-main" onclick="proGoogleLogin()" style="background:#fff; color:#444; border:1px solid #ddd; margin-bottom:15px; display:flex; align-items:center; justify-content:center; gap:10px;">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Đăng nhập với Google
-            </button>
             
             <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
                 <div style="flex:1; height:1px; background:#eee;"></div>
@@ -4120,6 +4117,7 @@ async function renderTeacherDashboard() {
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
               </div>
               <div style="display:flex;gap:6px;">
+                ${u.role === 'student' ? `<button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 Xem tiến độ</button>` : ''}
                 ${!isMaster ? `<button class="btn btn-outline" onclick="updateUserRole('${u.uid}', 'pending')" style="font-size:11px;padding:6px 10px;color:#dc2626;">Hủy quyền</button>` : ''}
               </div>
             </div>`;
@@ -4132,6 +4130,17 @@ async function renderTeacherDashboard() {
   }
 }
 
+async function viewStudentProgress(uid, name) {
+    try {
+        const prog = await db.collection("progress").doc(uid).get();
+        const stats = prog.exists ? prog.data().stats : {};
+        const learned = Object.keys(stats).length;
+        alert(`Tiến độ của ${name}:\n- Đã học: ${learned} từ\n(Tính năng xem chi tiết bảng từ đang được phát triển)`);
+    } catch(e) {
+        alert("Lỗi khi tải tiến độ: " + e.message);
+    }
+}
+
 async function updateUserRole(uid, newRole) {
     if (!confirm(`Xác nhận thay đổi quyền cho người dùng này thành ${newRole}?`)) return;
     try {
@@ -4142,7 +4151,11 @@ async function updateUserRole(uid, newRole) {
         alert("Đã cập nhật thành công!");
         renderTeacherDashboard();
     } catch(e) {
-        alert("Lỗi: " + e.message);
+        if (e.message.includes("permissions")) {
+            alert("Lỗi: Bạn không có quyền sửa đổi người dùng này. Vui lòng cập nhật Security Rules trên Firebase Console (xem hướng dẫn trong tin nhắn của tôi).");
+        } else {
+            alert("Lỗi: " + e.message);
+        }
     }
 }
 function showTeacherStudentDetail(username) {
