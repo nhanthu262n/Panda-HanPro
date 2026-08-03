@@ -1126,8 +1126,6 @@ let USER_ROLE = "student";
 
 // LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP
 auth.onAuthStateChanged(async (user) => {
-  const overlay = document.getElementById("proAuthOverlay");
-  const appEl = document.getElementById("app");
   const syncDot = document.getElementById("syncDot");
   const syncText = document.getElementById("syncText");
 
@@ -1146,14 +1144,14 @@ auth.onAuthStateChanged(async (user) => {
         }, { merge: true });
     } catch(e) { console.error("Sync error:", e); }
     
-    if (overlay) overlay.style.display = "none";
-    if (appEl) appEl.style.display = "block";
     if (syncDot) syncDot.classList.add("online");
     if (syncText) syncText.textContent = "Đã kết nối: " + user.email;
     
-    startApp();
+    completeLogin(user);
   } else {
     CURRENT_USER = null;
+    const overlay = document.getElementById("proAuthOverlay");
+    const appEl = document.getElementById("app");
     if (overlay) overlay.style.display = "flex";
     if (appEl) appEl.style.display = "none";
     if (syncDot) syncDot.classList.remove("online");
@@ -1269,26 +1267,20 @@ async function handleLogin() {
   }
 }
 
-function startApp() {
-  document.getElementById("authScreen").style.display = "none";
-  document.getElementById("app").style.display = "block";
-  
-  // Hiển thị tab Quản lý nếu là Giáo viên
-  if (USER_ROLE === "teacher") {
-    document.getElementById("teacherTabBtn").style.display = "flex";
-    createTeacherView();
-  }
-  
-  loadData();
-}
+// startApp logic merged into completeLogin
 
 // ĐỒNG BỘ DỮ LIỆU
 async function loadData() {
-  const doc = await db.collection("progress").doc(CURRENT_USER.uid).get();
-  if (doc.exists) {
-    const data = doc.data();
-    localStorage.setItem("pandahan_pro_stats_v1_" + CURRENT_USER.uid, JSON.stringify(data.stats || {}));
-  }
+  if (!CURRENT_USER || !CURRENT_USER.uid) return;
+  try {
+    const doc = await db.collection("progress").doc(CURRENT_USER.uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      const key = "pandahan_pro_stats_v1_" + CURRENT_USER.uid;
+      localStorage.setItem(key, JSON.stringify(data.stats || {}));
+      if (typeof reloadUserData === "function") reloadUserData();
+    }
+  } catch (e) { console.error("Load error:", e); }
   setTimeout(() => { if (typeof renderGrids === "function") renderGrids(); }, 500);
 }
 
@@ -1345,12 +1337,7 @@ async function loadStudentList() {
   document.getElementById("studentList").innerHTML = html || "Chưa có học sinh nào.";
 }
 
-function switchTab(tab) {
-  document.querySelectorAll("[id^='screen-']").forEach(s => s.style.display = "none");
-  document.getElementById("screen-" + tab).style.display = "block";
-  document.querySelectorAll(".nav-tab-btn").forEach(b => b.classList.remove("active"));
-  event.target.classList.add("active");
-}
+// switchTab (Old version removed to avoid conflict)
 
 async function viewStudentDetail(uid) {
   alert("Tính năng xem chi tiết bảng từ của từng học sinh đang được cập nhật...");
@@ -1641,7 +1628,7 @@ function getSession() {
 function setSession(username) { localStorage.setItem("pandahan_session_v1", JSON.stringify({ username })); }
 function clearSession() { localStorage.removeItem("pandahan_session_v1"); }
 
-let CURRENT_USER = null;
+// let CURRENT_USER = null; // Redundant declaration removed
 {
   const sess = getSession();
   if (sess && sess.username) {
@@ -1697,37 +1684,15 @@ function handleGoogleCredentialResponse(response) {
   completeLogin(u);
 }
 let isGoogleInitialized = false;
-function initGoogleSignIn() {
-  if (isGoogleInitialized) return;
-  const notice = document.getElementById("googleSetupNotice");
-  const container = document.getElementById("googleBtnContainer");
-  if (GOOGLE_CLIENT_ID.startsWith("YOUR_GOOGLE_CLIENT_ID")) {
-    if (notice) {
-      notice.style.display = "block";
-      notice.innerHTML = L(
-        "⚠️ Chưa cấu hình Google Sign-In: cần dán Client ID thật vào biến GOOGLE_CLIENT_ID trong code (xem hướng dẫn trong comment).",
-        "⚠️ Google Sign-In not configured: paste a real Client ID into GOOGLE_CLIENT_ID in the code (see setup comment)."
-      );
-    }
-    return;
-  }
-  if (typeof google === "undefined" || !google.accounts) {
-    return;
-  }
-  try {
-    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredentialResponse });
-    google.accounts.id.renderButton(container, { theme: "outline", size: "large", text: "signin_with", shape: "pill", width: 260 });
-    isGoogleInitialized = true;
-    if (notice) notice.style.display = "none";
-  } catch (e) {
-    console.error("Google Init Error:", e);
-  }
-}
+// Duplicate initGoogleSignIn removed
 
 /* Per-user namespaced storage: each demo account gets its own stats/log
    slice within localStorage, so a "student" account's progress doesn't
    mix with another's on the same browser. */
-function storageNamespace() { return CURRENT_USER ? CURRENT_USER.username : "guest"; }
+function storageNamespace() { 
+  if (!CURRENT_USER) return "guest";
+  return CURRENT_USER.uid || CURRENT_USER.username || "guest";
+}
 
 /* ---------- Persistent storage (localStorage) ---------- */
 let STORE_KEY = "pandahan_pro_stats_v1_" + storageNamespace();
@@ -3997,21 +3962,27 @@ function switchTab(tab) {
 function showScreen(name) {
   ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView"].forEach(id => {
     const el = document.getElementById(id);
-    el.style.display = "none"; el.classList.remove("visible");
+    if (el) { el.style.display = "none"; el.classList.remove("visible"); }
   });
-  if (name === "browse") { document.getElementById("browseTab").style.display = "block"; renderGrids(); }
-  else if (name === "detail") document.getElementById("detailView").classList.add("visible"), document.getElementById("detailView").style.display = "block";
-  else if (name === "quiz") document.getElementById("quizView").classList.add("visible"), document.getElementById("quizView").style.display = "block";
-  else if (name === "flashcard") document.getElementById("flashcardView").classList.add("visible"), document.getElementById("flashcardView").style.display = "block";
-  else if (name === "unscramble") document.getElementById("unscrambleView").classList.add("visible"), document.getElementById("unscrambleView").style.display = "block";
-  else if (name === "practice") { document.getElementById("practiceTab").classList.add("visible"); document.getElementById("practiceTab").style.display = "block"; document.getElementById("gameContainer").classList.remove("visible"); document.getElementById("gameContainer").style.display = "none"; const pg = document.querySelector("#practiceTab .practice-grid"); if (pg) pg.style.display = ""; }
-  else if (name === "dashboard") { document.getElementById("dashboardView").classList.add("visible"); document.getElementById("dashboardView").style.display = "block"; renderDashboard(); }
-  else if (name === "reviewIntro") { document.getElementById("browseTab").style.display = "block"; renderGrids(); startReviewSession(); }
-  else if (name === "teacher") { document.getElementById("teacherView").classList.add("visible"); document.getElementById("teacherView").style.display = "block"; renderTeacherDashboard(); }
-  else if (name === "teacherDetail") { document.getElementById("teacherStudentDetail").classList.add("visible"); document.getElementById("teacherStudentDetail").style.display = "block"; }
-  else if (name === "certificate") { document.getElementById("certificateView").classList.add("visible"); document.getElementById("certificateView").style.display = "block"; }
-  else if (name === "addWord") { document.getElementById("addWordView").classList.add("visible"); document.getElementById("addWordView").style.display = "block"; }
-  else if (name === "wordList") { document.getElementById("wordListView").classList.add("visible"); document.getElementById("wordListView").style.display = "block"; }
+  const el = (id) => document.getElementById(id);
+  if (name === "browse") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); }
+  else if (name === "detail") { if (el("detailView")) { el("detailView").classList.add("visible"); el("detailView").style.display = "block"; } }
+  else if (name === "quiz") { if (el("quizView")) { el("quizView").classList.add("visible"); el("quizView").style.display = "block"; } }
+  else if (name === "flashcard") { if (el("flashcardView")) { el("flashcardView").classList.add("visible"); el("flashcardView").style.display = "block"; } }
+  else if (name === "unscramble") { if (el("unscrambleView")) { el("unscrambleView").classList.add("visible"); el("unscrambleView").style.display = "block"; } }
+  else if (name === "practice") { 
+    if (el("practiceTab")) { el("practiceTab").classList.add("visible"); el("practiceTab").style.display = "block"; }
+    if (el("gameContainer")) { el("gameContainer").classList.remove("visible"); el("gameContainer").style.display = "none"; }
+    const pg = document.querySelector("#practiceTab .practice-grid"); if (pg) pg.style.display = "";
+    const asv = el("advancedSetsView"); if (asv) asv.style.display = "none";
+  }
+  else if (name === "dashboard") { if (el("dashboardView")) { el("dashboardView").classList.add("visible"); el("dashboardView").style.display = "block"; if (typeof renderDashboard === "function") renderDashboard(); } }
+  else if (name === "reviewIntro") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); if (typeof startReviewSession === "function") startReviewSession(); }
+  else if (name === "teacher") { if (el("teacherView")) { el("teacherView").classList.add("visible"); el("teacherView").style.display = "block"; if (typeof renderTeacherDashboard === "function") renderTeacherDashboard(); } }
+  else if (name === "teacherDetail") { if (el("teacherStudentDetail")) { el("teacherStudentDetail").classList.add("visible"); el("teacherStudentDetail").style.display = "block"; } }
+  else if (name === "certificate") { if (el("certificateView")) { el("certificateView").classList.add("visible"); el("certificateView").style.display = "block"; } }
+  else if (name === "addWord") { if (el("addWordView")) { el("addWordView").classList.add("visible"); el("addWordView").style.display = "block"; } }
+  else if (name === "wordList") { if (el("wordListView")) { el("wordListView").classList.add("visible"); el("wordListView").style.display = "block"; } }
 }
 
 /* ===================== TEACHER DASHBOARD (reads other users' namespaced data) ===================== */
@@ -4204,16 +4175,28 @@ function renderCustomWordsList() {
 
 /* ===================== AUTH: login / logout ===================== */
 function applyRoleUI() {
-  const teacherTab = document.getElementById("teacherTabBtn");
   if (!CURRENT_USER) return;
+  const teacherTab = document.getElementById("teacherTabBtn");
   const sbName = document.getElementById("sidebarUserName");
   const sbAvatar = document.getElementById("sidebarUserAvatar");
-  if (sbName) sbName.textContent = L(CURRENT_USER.name, CURRENT_USER.nameEn) + (CURRENT_USER.role === "teacher" ? " (GV)" : "");
+  
+  const name = CURRENT_USER.displayName || CURRENT_USER.name || "Học viên";
+  const photo = CURRENT_USER.photoURL || CURRENT_USER.picture || "";
+
+  if (sbName) sbName.textContent = name + (USER_ROLE === "teacher" ? " (GV)" : "");
   if (sbAvatar) {
-    if (CURRENT_USER.picture) sbAvatar.innerHTML = `<img src="${CURRENT_USER.picture}" style="width:100%;height:100%;border-radius:10px;object-fit:cover;">`;
-    else sbAvatar.textContent = (L(CURRENT_USER.name, CURRENT_USER.nameEn) || "?").charAt(0).toUpperCase();
+    if (photo) sbAvatar.innerHTML = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    else sbAvatar.textContent = name.charAt(0).toUpperCase();
   }
-  teacherTab.style.display = CURRENT_USER.role === "teacher" ? "inline-block" : "none";
+  if (teacherTab) teacherTab.style.display = USER_ROLE === "teacher" ? "flex" : "none";
+}
+
+function toggleHsk(level) {
+  const grid = document.getElementById("hsk" + level + "Grid");
+  if (grid) {
+    const isHidden = grid.style.display === "none" || !grid.style.display;
+    grid.style.display = isHidden ? "grid" : "none";
+  }
 }
 function reloadUserData() {
   STORE_KEY = "pandahan_pro_stats_v1_" + storageNamespace();
@@ -4223,18 +4206,23 @@ function reloadUserData() {
 }
 function completeLogin(user) {
   CURRENT_USER = user;
-  setSession(user.username);
+  setSession(user.username || user.uid);
   reloadUserData();
+  if (typeof loadData === "function") loadData(); // Fetch cloud data immediately
   startSessionTracking();
-  document.getElementById("loginScreen").style.display = "none";
-  document.getElementById("app").style.display = "";
+  const loginScr = document.getElementById("loginScreen");
+  if (loginScr) loginScr.style.display = "none";
+  const proAuth = document.getElementById("proAuthOverlay");
+  if (proAuth) proAuth.style.display = "none";
+  const appEl = document.getElementById("app");
+  if (appEl) appEl.style.display = "block";
   applyRoleUI();
   updateHeaderStats();
   renderGrids();
-  renderMergedHistory();
+  if (typeof renderMergedHistory === "function") renderMergedHistory();
   if (CURRENT_USER.role === "teacher") switchTab("teacher"); else switchTab("browse");
-  checkStreakWarning();
-  updateNotifBell();
+  if (typeof checkStreakWarning === "function") checkStreakWarning();
+  if (typeof updateNotifBell === "function") updateNotifBell();
 }
 function attemptLogin() {
   const username = document.getElementById("loginUsername").value.trim();
@@ -4263,146 +4251,180 @@ function doLogout() {
 
 /* ===================== INIT / EVENT WIRING ===================== */
 document.addEventListener("DOMContentLoaded", () => {
-  /* --- Auth gate: block the app entirely until a valid (non-locked) demo login exists --- */
+  const safeAdd = (id, evt, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(evt, fn); };
+  const appEl = document.getElementById("app");
+  const loginScr = document.getElementById("loginScreen");
+  const proAuth = document.getElementById("proAuthOverlay");
+
   if (!CURRENT_USER) {
-    document.getElementById("app").style.display = "none";
-    document.getElementById("loginScreen").style.display = "flex";
+    if (appEl) appEl.style.display = "none";
+    if (proAuth) proAuth.style.display = "flex";
+    else if (loginScr) loginScr.style.display = "flex";
   } else {
-    document.getElementById("loginScreen").style.display = "none";
+    if (loginScr) loginScr.style.display = "none";
+    if (proAuth) proAuth.style.display = "none";
+    if (appEl) appEl.style.display = "block";
     applyRoleUI();
     startSessionTracking();
   }
-  document.getElementById("loginSubmitBtn").addEventListener("click", attemptLogin);
-  document.getElementById("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
-  document.getElementById("loginUsername").addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
-  initGoogleSignIn();
-  document.getElementById("notifBellBtn").addEventListener("click", (e) => {
+  
+  const loginBtn = document.getElementById("loginSubmitBtn");
+  if (loginBtn) loginBtn.addEventListener("click", attemptLogin);
+  
+  const loginPass = document.getElementById("loginPassword");
+  if (loginPass) loginPass.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
+  
+  const loginUser = document.getElementById("loginUsername");
+  if (loginUser) loginUser.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
+  
+  if (typeof initGoogleSignIn === "function") initGoogleSignIn();
+  safeAdd("notifBellBtn", "click", (e) => {
     e.stopPropagation();
-    updateNotifBell();
+    if (typeof updateNotifBell === "function") updateNotifBell();
     const dd = document.getElementById("notifDropdown");
-    dd.style.display = dd.style.display === "block" ? "none" : "block";
+    if (dd) dd.style.display = dd.style.display === "block" ? "none" : "block";
   });
   document.addEventListener("click", () => {
-    document.getElementById("notifDropdown").style.display = "none";
-    const sbDropdown = document.getElementById("sidebarUserDropdown");
-    if (sbDropdown) sbDropdown.style.display = "none";
+    const ndd = document.getElementById("notifDropdown"); if (ndd) ndd.style.display = "none";
+    const sdd = document.getElementById("sidebarUserDropdown"); if (sdd) sdd.style.display = "none";
   });
-  const sbBadge = document.getElementById("sidebarUserBadge");
-  if (sbBadge) {
-    sbBadge.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const dd = document.getElementById("sidebarUserDropdown");
-      if (dd) dd.style.display = dd.style.display === "block" ? "none" : "block";
-    });
-  }
-  const sbLogoutBtn = document.getElementById("sidebarLogoutBtnReal");
-  if (sbLogoutBtn) {
-    sbLogoutBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (confirm(L("Đăng xuất khỏi tài khoản hiện tại?", "Log out of the current account?"))) doLogout();
-    });
-  }
+  safeAdd("sidebarUserBadge", "click", (e) => {
+    e.stopPropagation();
+    const dd = document.getElementById("sidebarUserDropdown");
+    if (dd) dd.style.display = dd.style.display === "block" ? "none" : "block";
+  });
+  safeAdd("sidebarLogoutBtnReal", "click", (e) => {
+    e.stopPropagation();
+    if (confirm(L("Đăng xuất khỏi tài khoản hiện tại?", "Log out of the current account?"))) {
+      if (typeof doLogout === "function") doLogout();
+    }
+  });
   const teacherBackBtn = document.getElementById("teacherDetailBack");
   if (teacherBackBtn) teacherBackBtn.addEventListener("click", () => showScreen("teacher"));
 
-  document.getElementById("range7Btn").addEventListener("click", () => {
+  safeAdd("range7Btn", "click", () => {
     dashChartRange = 7;
-    document.getElementById("range7Btn").classList.add("active");
-    document.getElementById("range30Btn").classList.remove("active");
-    renderActivityChart(7);
+    const b7 = document.getElementById("range7Btn"), b30 = document.getElementById("range30Btn");
+    if (b7) b7.classList.add("active"); if (b30) b30.classList.remove("active");
+    if (typeof renderActivityChart === "function") renderActivityChart(7);
   });
-  document.getElementById("range30Btn").addEventListener("click", () => {
+  safeAdd("range30Btn", "click", () => {
     dashChartRange = 30;
-    document.getElementById("range30Btn").classList.add("active");
-    document.getElementById("range7Btn").classList.remove("active");
-    renderActivityChart(30);
+    const b7 = document.getElementById("range7Btn"), b30 = document.getElementById("range30Btn");
+    if (b30) b30.classList.add("active"); if (b7) b7.classList.remove("active");
+    if (typeof renderActivityChart === "function") renderActivityChart(30);
   });
 
-  populatePosFilter();
-  document.getElementById("langLabel").textContent = LANG_MODE === "vi" ? "Tiếng Việt" : "English";
-  document.getElementById("langToggleBtn").textContent = LANG_MODE === "vi" ? "🌐 中文 - Tiếng Việt ▾" : "🌐 中文 - English ▾";
-  document.getElementById("langToggleBtn").addEventListener("click", () => setLangMode(LANG_MODE === "vi" ? "en" : "vi"));
-  // Delay non-critical visual effects to reduce initial lag
-  setTimeout(initCherryBlossoms, 1000);
-  renderGrids();
-  // updateHeaderStats is now called inside renderGrids async loop
+  if (typeof populatePosFilter === "function") populatePosFilter();
+  const ll = document.getElementById("langLabel"); if (ll) ll.textContent = LANG_MODE === "vi" ? "Tiếng Việt" : "English";
+  const ltb = document.getElementById("langToggleBtn");
+  if (ltb) {
+    ltb.textContent = LANG_MODE === "vi" ? "🌐 中文 - Tiếng Việt ▾" : "🌐 中文 - English ▾";
+    ltb.addEventListener("click", () => { if (typeof setLangMode === "function") setLangMode(LANG_MODE === "vi" ? "en" : "vi"); });
+  }
+  setTimeout(() => { if (typeof initCherryBlossoms === "function") initCherryBlossoms(); }, 1000);
+  if (typeof renderGrids === "function") renderGrids();
 
   document.querySelectorAll(".nav-tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
-  document.getElementById("searchInput").addEventListener("input", renderGrids);
-  document.getElementById("posFilter").addEventListener("change", renderGrids);
-  document.getElementById("tierFilter").addEventListener("change", renderGrids);
+  safeAdd("searchInput", "input", renderGrids);
+  safeAdd("posFilter", "change", renderGrids);
+  safeAdd("tierFilter", "change", renderGrids);
 
-  document.getElementById("detailBack").addEventListener("click", () => { currentDetailChar = null; showScreen("browse"); });
-  document.getElementById("dReviewBtn").addEventListener("click", () => startReviewForWord(currentDetailChar));
-  document.getElementById("dQuizBtn").addEventListener("click", () => startQuizForWord(currentDetailChar));
-  document.getElementById("dUnscrambleBtn").addEventListener("click", () => startUnscrambleForWord(currentDetailChar));
+  safeAdd("detailBack", "click", () => { currentDetailChar = null; showScreen("browse"); });
+  safeAdd("dReviewBtn", "click", () => { if (typeof startReviewForWord === "function") startReviewForWord(currentDetailChar); });
+  safeAdd("dQuizBtn", "click", () => { if (typeof startQuizForWord === "function") startQuizForWord(currentDetailChar); });
+  safeAdd("dUnscrambleBtn", "click", () => { if (typeof startUnscrambleForWord === "function") startUnscrambleForWord(currentDetailChar); });
 
-  document.getElementById("qExitBtn").addEventListener("click", () => { clearQuizTimer(); stopAdvancedSetTimer(); inAdvancedSetMode = false; switchTab("browse"); });
-  document.getElementById("fcExitBtn").addEventListener("click", () => switchTab("browse"));
-  document.getElementById("uExitBtn").addEventListener("click", () => { stopAdvancedSetTimer(); inAdvancedSetMode = false; switchTab("browse"); });
-
-  document.getElementById("fcAudioBtn").addEventListener("click", (e) => speak(e.target.dataset.speak));
-  document.getElementById("fcRevealBtn").addEventListener("click", () => {
-    document.getElementById("fcHidden").classList.add("show");
-    document.getElementById("fcRevealBtn").style.display = "none";
-    document.getElementById("fcActions").style.display = "flex";
-    const auto = computeAutoQuality(fcQueue[fcIdx]);
-    const assessEl = document.getElementById("fcAutoAssess");
-    if (auto.ratio === null) {
-      assessEl.innerHTML = L(
-        `📊 Đánh giá tự động: <b>${auto.label}</b> (chưa làm quiz cho từ này — hãy làm phần trắc nghiệm/sắp xếp câu để hệ thống đánh giá chính xác hơn)`,
-        `📊 Auto-assessment: <b>${auto.label}</b> (no quiz done for this word yet — try the quiz/unscramble sections for a more accurate rating)`
-      );
-    } else {
-      assessEl.innerHTML = L(
-        `📊 Đánh giá tự động (SM-2, dựa trên quiz): <b>${auto.label}</b> — đúng ${Math.round(auto.ratio*100)}% các lần làm quiz từ này`,
-        `📊 Auto-assessment (SM-2, quiz-based): <b>${auto.label}</b> — ${Math.round(auto.ratio*100)}% correct across quizzes on this word`
-      );
-    }
-    document.getElementById("fcContinueBtn").dataset.grade = String(auto.quality);
+  safeAdd("qExitBtn", "click", () => { 
+    if (typeof clearQuizTimer === "function") clearQuizTimer(); 
+    if (typeof stopAdvancedSetTimer === "function") stopAdvancedSetTimer(); 
+    inAdvancedSetMode = false; switchTab("browse"); 
   });
-  document.getElementById("fcContinueBtn").addEventListener("click", (e) => {
+  safeAdd("fcExitBtn", "click", () => switchTab("browse"));
+  safeAdd("uExitBtn", "click", () => { 
+    if (typeof stopAdvancedSetTimer === "function") stopAdvancedSetTimer(); 
+    inAdvancedSetMode = false; switchTab("browse"); 
+  });
+
+  safeAdd("fcAudioBtn", "click", (e) => { if (typeof speak === "function") speak(e.target.dataset.speak); });
+  safeAdd("fcRevealBtn", "click", () => {
+    const fch = document.getElementById("fcHidden"); if (fch) fch.classList.add("show");
+    const frb = document.getElementById("fcRevealBtn"); if (frb) frb.style.display = "none";
+    const fac = document.getElementById("fcActions"); if (fac) fac.style.display = "flex";
+    if (typeof computeAutoQuality === "function") {
+      const auto = computeAutoQuality(fcQueue[fcIdx]);
+      const assessEl = document.getElementById("fcAutoAssess");
+      if (assessEl) {
+        if (auto.ratio === null) {
+          assessEl.innerHTML = L(
+            `📊 Đánh giá tự động: <b>${auto.label}</b> (chưa làm quiz cho từ này — hãy làm phần trắc nghiệm/sắp xếp câu để hệ thống đánh giá chính xác hơn)`,
+            `📊 Auto-assessment: <b>${auto.label}</b> (no quiz done for this word yet — try the quiz/unscramble sections for a more accurate rating)`
+          );
+        } else {
+          assessEl.innerHTML = L(
+            `📊 Đánh giá tự động (SM-2, dựa trên quiz): <b>${auto.label}</b> — đúng ${Math.round(auto.ratio*100)}% các lần làm quiz từ này`,
+            `📊 Auto-assessment (SM-2, quiz-based): <b>${auto.label}</b> — ${Math.round(auto.ratio*100)}% correct across quizzes on this word`
+          );
+        }
+      }
+      const fcb = document.getElementById("fcContinueBtn"); if (fcb) fcb.dataset.grade = String(auto.quality);
+    }
+  });
+  safeAdd("fcContinueBtn", "click", (e) => {
     const grade = Number(e.currentTarget.dataset.grade || 3);
     const char = fcQueue[fcIdx];
     const prevTier = getTier(char);
-    gradeWord(char, grade);
+    if (typeof gradeWord === "function") gradeWord(char, grade);
     const newTier = getTier(char);
     const leveledUp = newTier > prevTier;
-    playTing(leveledUp ? "levelup" : (grade >= 4 ? "correct" : "wrong"));
-    reactMascot(grade);
-    updateStreak(grade);
+    if (typeof playTing === "function") playTing(leveledUp ? "levelup" : (grade >= 4 ? "correct" : "wrong"));
+    if (typeof reactMascot === "function") reactMascot(grade);
+    if (typeof updateStreak === "function") updateStreak(grade);
     if (grade >= 4) fcCorrect++; else fcWrong++;
-    if (grade === 5 || leveledUp || fcStreak > 0 && fcStreak % 5 === 0) {
-      burstConfetti(document.getElementById("fcCard"));
-      if (leveledUp) playFanfare();
+    if (grade === 5 || leveledUp || (typeof fcStreak !== "undefined" && fcStreak > 0 && fcStreak % 5 === 0)) {
+      const fcc = document.getElementById("fcCard"); if (fcc && typeof burstConfetti === "function") burstConfetti(fcc);
+      if (leveledUp && typeof playFanfare === "function") playFanfare();
     }
     fcIdx++;
-    setTimeout(showFlashcard, grade >= 4 ? 550 : 300);
+    setTimeout(() => { if (typeof showFlashcard === "function") showFlashcard(); }, grade >= 4 ? 550 : 300);
   });
-  document.getElementById("fcEndBtn").addEventListener("click", () => switchTab("dashboard"));
+  safeAdd("fcEndBtn", "click", () => switchTab("dashboard"));
 
-  document.getElementById("pCardMc").addEventListener("click", () => startQuizLevel(document.getElementById("practiceHskFilter").value));
-  document.getElementById("pCardUnscramble").addEventListener("click", () => startUnscrambleLevel(document.getElementById("practiceHskFilter").value));
-  document.getElementById("pCardMatch").addEventListener("click", startMatchGame);
-  document.getElementById("pCardWrite").addEventListener("click", startWriteGame);
-  document.getElementById("gameExitBtn").addEventListener("click", () => {
-    document.getElementById("gameContainer").classList.remove("visible");
-    document.getElementById("gameContainer").style.display = "none";
-    document.querySelector("#practiceTab .practice-grid").style.display = "";
+  safeAdd("pCardMc", "click", () => {
+    const filter = document.getElementById("practiceHskFilter");
+    if (typeof startQuizLevel === "function") startQuizLevel(filter ? filter.value : "all");
   });
-  document.getElementById("pCardAdvanced").addEventListener("click", () => {
-    document.querySelector("#practiceTab .practice-grid").style.display = "none";
-    document.getElementById("gameContainer").style.display = "none";
-    document.getElementById("advancedSetsView").style.display = "block";
-    renderAdvancedSetsList();
+  safeAdd("pCardMatch", "click", () => { if (typeof startMatchGame === "function") startMatchGame(); });
+  safeAdd("pCardWrite", "click", () => { if (typeof startWriteGame === "function") startWriteGame(); });
+  safeAdd("uAudioBtn", "click", (e) => { if (typeof speak === "function") speak(e.target.dataset.speak); });
+  safeAdd("uSubmitBtn", "click", () => { if (typeof checkUnscramble === "function") checkUnscramble(); });
+  safeAdd("uNextBtn", "click", () => { if (typeof nextUnscramble === "function") nextUnscramble(); });
+
+  safeAdd("pCardAdvanced", "click", () => {
+    const pg = document.querySelector("#practiceTab .practice-grid"); if (pg) pg.style.display = "none";
+    const gc = document.getElementById("gameContainer"); if (gc) gc.style.display = "none";
+    const asv = document.getElementById("advancedSetsView"); if (asv) asv.style.display = "block";
+    if (typeof renderAdvancedSetsList === "function") renderAdvancedSetsList();
   });
-  document.getElementById("advancedSetsBack").addEventListener("click", () => {
-    document.getElementById("advancedSetsView").style.display = "none";
-    document.querySelector("#practiceTab .practice-grid").style.display = "";
-    document.getElementById("gameContainer").style.display = "";
+  safeAdd("advancedSetsBack", "click", () => {
+    const asv = document.getElementById("advancedSetsView"); if (asv) asv.style.display = "none";
+    const pg = document.querySelector("#practiceTab .practice-grid"); if (pg) pg.style.display = "";
+    const gc = document.getElementById("gameContainer"); if (gc) gc.style.display = "";
   });
 
-  logActivity("🐼 Chào mừng đến với PandaHán Pro! / Welcome to PandaHán Pro!");
+  // HSK section toggle logic
+  document.querySelectorAll(".hsk-section").forEach(section => {
+    section.addEventListener("click", () => {
+      const grid = section.nextElementSibling;
+      if (grid && grid.classList.contains("grid")) {
+        const isHidden = grid.style.display === "none" || !grid.style.display;
+        grid.style.display = isHidden ? "grid" : "none";
+        section.classList.toggle("collapsed", !isHidden);
+      }
+    });
+  });
+
+  if (typeof logActivity === "function") logActivity("🐼 Chào mừng đến với PandaHán Pro! / Welcome to PandaHán Pro!");
 });
 
 /* ===================== ADVANCED PRACTICE SETS (HSK3+) ===================== */
