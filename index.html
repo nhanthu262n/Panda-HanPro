@@ -654,6 +654,9 @@ span.pandahan-bold-hl{font-weight:800;}
             <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Hệ thống học tập thông minh & đồng bộ</p>
             
             <div id="fbGoogleBtnPro" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
+            <button class="btn-main" onclick="proGoogleLogin()" style="background:#fff; color:#444; border:1px solid #ddd; margin-bottom:15px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Đăng nhập với Google
+            </button>
             
             <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
                 <div style="flex:1; height:1px; background:#eee;"></div>
@@ -1175,7 +1178,7 @@ auth.onAuthStateChanged(async (user) => {
         if (USER_ROLE === "pending") {
             showPendingScreen();
         } else {
-            completeLogin(user);
+            completeLogin(CURRENT_USER);
         }
     } catch(e) { 
         console.error("Auth error:", e);
@@ -1199,11 +1202,21 @@ function initGoogleSignIn() {
   const container = document.getElementById("fbGoogleBtnPro");
   if (!container) return;
   
-  google.accounts.id.initialize({
+    google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
-    callback: (res) => {
+    callback: async (res) => {
       const cred = firebase.auth.GoogleAuthProvider.credential(res.credential);
-      auth.signInWithCredential(cred);
+      try {
+          await auth.signInWithCredential(cred);
+          // Redirect handled by onAuthStateChanged
+      } catch (e) {
+          console.error("Google Auth Error:", e);
+          const errEl = document.getElementById('proError');
+          if (errEl) {
+              errEl.textContent = "Lỗi đăng nhập: " + e.message;
+              errEl.style.display = "block";
+          }
+      }
     }
   });
   google.accounts.id.renderButton(container, { 
@@ -1222,12 +1235,20 @@ async function proGoogleLogin() {
     
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithRedirect(provider);
+        // Use signInWithPopup instead of Redirect for better UX if possible, 
+        // but keep Redirect if that's what was working.
+        await auth.signInWithPopup(provider);
     } catch (e) {
-        if (loader) loader.style.display = "none";
-        if (errEl) {
-            errEl.textContent = "Lỗi: " + e.message;
-            errEl.style.display = "block";
+        console.error("Popup failed, trying redirect:", e);
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await auth.signInWithRedirect(provider);
+        } catch (e2) {
+            if (loader) loader.style.display = "none";
+            if (errEl) {
+                errEl.textContent = "Lỗi: " + e2.message;
+                errEl.style.display = "block";
+            }
         }
     }
 }
@@ -4088,17 +4109,18 @@ async function renderTeacherDashboard() {
       
       html += `<h3 style="font-size:15px;margin:20px 0 10px;">👥 Danh sách thành viên</h3>`;
       if (approvedUsers.length === 0) {
-          html += `<p style="font-size:12px;color:#888;">Chưa có thành viên nào.</p>`;
+          html += `<p style="font-size:12.5px;color:#888;padding:10px;">Chưa có thành viên nào được duyệt.</p>`;
       } else {
           html += approvedUsers.map(u => {
             const roleLabel = u.role === "teacher" ? "👨‍🏫 GV" : "🎓 HS";
+            const isMaster = MASTER_EMAILS.includes(u.email);
             return `<div style="background:#fafcfe;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #eef2f7;margin-bottom:8px;">
               <div>
                 <div style="font-weight:700;">${esc(u.name)} <span class="role-badge ${u.role === 'teacher' ? 'role-teacher' : 'role-student'}">${roleLabel}</span></div>
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
               </div>
               <div style="display:flex;gap:6px;">
-                <button class="btn btn-outline" onclick="updateUserRole('${u.uid}', 'pending')" style="font-size:11px;padding:6px 10px;color:#dc2626;">Hủy quyền</button>
+                ${!isMaster ? `<button class="btn btn-outline" onclick="updateUserRole('${u.uid}', 'pending')" style="font-size:11px;padding:6px 10px;color:#dc2626;">Hủy quyền</button>` : ''}
               </div>
             </div>`;
           }).join("");
@@ -4255,10 +4277,10 @@ function applyRoleUI() {
   const sbName = document.getElementById("sidebarUserName");
   const sbAvatar = document.getElementById("sidebarUserAvatar");
   
-  const name = CURRENT_USER.displayName || CURRENT_USER.name || "Học viên";
+  const name = CURRENT_USER.name || CURRENT_USER.displayName || "Học viên";
   const photo = CURRENT_USER.photoURL || CURRENT_USER.picture || "";
 
-  if (sbName) sbName.textContent = name + (USER_ROLE === "teacher" ? " (GV)" : "");
+  if (sbName) sbName.textContent = name + (USER_ROLE === "teacher" ? " (Master)" : "");
   if (sbAvatar) {
     if (photo) sbAvatar.innerHTML = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
     else sbAvatar.textContent = name.charAt(0).toUpperCase();
@@ -4281,6 +4303,7 @@ function reloadUserData() {
 }
 function completeLogin(user) {
   CURRENT_USER = user;
+  USER_ROLE = user.role || "student"; // Cập nhật role toàn cục
   setSession(user.username || user.uid);
   reloadUserData();
   if (typeof loadData === "function") loadData(); // Fetch cloud data immediately
@@ -4295,7 +4318,7 @@ function completeLogin(user) {
   updateHeaderStats();
   renderGrids();
   if (typeof renderMergedHistory === "function") renderMergedHistory();
-  if (CURRENT_USER.role === "teacher") switchTab("teacher"); else switchTab("browse");
+  if (USER_ROLE === "teacher") switchTab("teacher"); else switchTab("browse");
   if (typeof checkStreakWarning === "function") checkStreakWarning();
   if (typeof updateNotifBell === "function") updateNotifBell();
 }
