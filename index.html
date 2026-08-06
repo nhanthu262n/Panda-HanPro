@@ -636,7 +636,7 @@ span.pandahan-bold-hl{font-weight:800;}
     .role-teacher { background:#dbeafe; color:#1e40af; }
     </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
 
 <!-- Unified SDKs -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -743,6 +743,7 @@ span.pandahan-bold-hl{font-weight:800;}
     <!-- <button data-tab="review">🎯 Ôn tập<span class="en">Review (SRS)</span></button> -->
     <button data-tab="practice">✍️ Luyện tập<span class="en">Practice</span></button>
     <button data-tab="dashboard">📊 Tiến độ<span class="en">Progress &amp; Rubric</span></button>
+    <button data-tab="pinyin">🎵 Ngữ âm<span class="en">Phonics</span></button>
     <button data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Giáo viên<span class="en">Teacher</span></button>
 
     <div style="flex:1;"></div>
@@ -953,6 +954,11 @@ span.pandahan-bold-hl{font-weight:800;}
       <p style="color:var(--text-light);font-size:12.5px;margin-bottom:12px;">Mỗi đề gồm: đoạn văn điền từ + từ đồng/trái nghĩa (phần trắc nghiệm), sau đó là sắp xếp hội thoại. Nội dung gốc do PandaHán Pro biên soạn dựa trên từ vựng HSK1-3 đã học. / Each set: paragraph cloze + synonym/antonym (MC section), then dialogue reordering. Original content authored from the app's own HSK1-3 vocabulary.</p>
       <div id="advancedSetsList" style="display:flex;flex-direction:column;gap:10px;"></div>
     </div>
+  </div>
+
+  <!-- ═══ NGỮ ÂM — 10 BUỔI HỌC PHONICS ═══ -->
+  <div class="dashboard-view" id="pinyinView" style="display:none;">
+    <div id="pinyinContent"></div>
   </div>
 
   <div class="dashboard-view" id="certificateView" style="display:none;">
@@ -4111,10 +4117,10 @@ function renderMergedHistory() {
 /* ===================== TAB / SCREEN NAVIGATION ===================== */
 function switchTab(tab) {
   document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : "dashboard");
+  showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "pinyin" ? "pinyin" : "dashboard");
 }
 function showScreen(name) {
-  ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView"].forEach(id => {
+  ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = "none"; el.classList.remove("visible"); }
   });
@@ -4137,6 +4143,7 @@ function showScreen(name) {
   else if (name === "certificate") { if (el("certificateView")) { el("certificateView").classList.add("visible"); el("certificateView").style.display = "block"; } }
   else if (name === "addWord") { if (el("addWordView")) { el("addWordView").classList.add("visible"); el("addWordView").style.display = "block"; } }
   else if (name === "wordList") { if (el("wordListView")) { el("wordListView").classList.add("visible"); el("wordListView").style.display = "block"; } }
+  else if (name === "pinyin") { if (el("pinyinView")) { el("pinyinView").classList.add("visible"); el("pinyinView").style.display = "block"; if (typeof renderPinyinView === "function") renderPinyinView(); } }
 }
 
 /* ===================== TEACHER DASHBOARD (reads other users' namespaced data) ===================== */
@@ -5218,5 +5225,851 @@ function renderWriteGameShell() {
     <button id="chatSendBtn">➤</button>
   </div>
 </div>
+
+<!-- ═══ NGỮ ÂM — 10 BUỔI HỌC PHONICS ═══ -->
+<style>
+/* Pinyin View Styles */
+.pv-container{max-width:880px;margin:0 auto;padding:8px 0}
+.pv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.pv-title{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.45rem;color:#1e1b4b}
+.pv-title span{background:linear-gradient(135deg,#ec4899,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.pv-sub{font-size:.82rem;color:#9ca3af;font-weight:600;margin-top:2px}
+.pv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.pv-stat-card{background:#fff;border-radius:16px;padding:14px;border:2px solid #fbcfe8;box-shadow:0 2px 10px rgba(236,72,153,.06)}
+.pv-stat-icon{font-size:1.6rem}
+.pv-stat-num{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem;color:#ec4899}
+.pv-stat-label{font-size:.72rem;color:#9ca3af;font-weight:600}
+.pv-stat-bar{height:5px;background:#f3f4f6;border-radius:4px;overflow:hidden;margin-top:6px}
+.pv-stat-fill{height:100%;border-radius:4px;background:linear-gradient(to right,#ec4899,#a855f7);transition:width .8s ease}
+.pv-sessions{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.pv-session-card{background:#fff;border-radius:20px;border:2px solid #fbcfe8;cursor:pointer;transition:all .2s;overflow:hidden}
+.pv-session-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(236,72,153,.15)}
+.pv-session-card.locked{opacity:.5;cursor:not-allowed;border-color:#e5e7eb}
+.pv-session-bar{height:5px;background:linear-gradient(to right,#ec4899,#a855f7)}
+.pv-session-card.locked .pv-session-bar{background:#f1f5f9}
+.pv-session-body{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.pv-session-emoji{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;background:linear-gradient(135deg,#fdf2f8,#fff);border:2px solid #fbcfe8}
+.pv-session-info{flex:1;min-width:0}
+.pv-session-badge{display:inline-block;font-size:.68rem;font-weight:800;color:#fff;padding:2px 8px;border-radius:10px;margin-right:6px}
+.pv-session-title{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:.95rem;color:#1e1b4b;margin-top:3px}
+.pv-session-sub{font-size:.72rem;color:#9ca3af;font-weight:600}
+.pv-session-stars{display:flex;gap:2px;margin-top:4px;font-size:12px}
+.pv-session-arrow{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#fce7f3}
+.pv-session-arrow svg{width:12px;height:12px}
+/* Session Detail */
+.pv-detail{animation:pvSlideUp .4s ease}
+@keyframes pvSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.pv-phases{display:flex;gap:6px;justify-content:center;padding:8px 16px;background:rgba(255,255,255,.85);border-bottom:1.5px solid #fbcfe8}
+.pv-phase-btn{padding:6px 14px;border-radius:14px;font-size:.72rem;font-weight:800;border:2px solid #fce7f3;background:rgba(255,255,255,.7);color:#9ca3af;transition:all .2s}
+.pv-phase-btn.active{background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border-color:transparent}
+.pv-phase-btn.done{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}
+.pv-flash-wrap{max-width:520px;margin:0 auto;padding:20px}
+.pv-flash-progress{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+.pv-flash-dot{height:6px;border-radius:4px;transition:all .3s}
+.pv-flash-card{width:100%;height:220px;border-radius:24px;cursor:pointer;margin-bottom:16px;position:relative;transform-style:preserve-3d;transition:transform .5s}
+.pv-flash-card.flipped{transform:rotateY(180deg)}
+.pv-flash-front,.pv-flash-back{position:absolute;inset:0;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;backface-visibility:hidden}
+.pv-flash-front{background:#fff;border:2px solid #fbcfe8;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.pv-flash-back{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border:2px solid #fbcfe8;transform:rotateY(180deg)}
+.pv-flash-pinyin{font-family:'Noto Sans SC',sans-serif;font-weight:700;color:#ec4899;line-height:1}
+.pv-flash-hanzi{font-family:'Noto Serif SC',serif;font-weight:700;color:#1e1b4b;line-height:1}
+.pv-flash-viet{color:#6b7280;font-weight:600}
+.pv-flash-btn{display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:16px;font-size:.82rem;font-weight:800;border:none;cursor:pointer;transition:all .2s}
+.pv-flash-btn:hover{transform:scale(1.05)}
+.pv-tone-guide{width:100%;border-radius:16px;padding:14px;margin-bottom:14px;border:2px solid;display:flex;gap:14px;align-items:flex-start;animation:pvPop .4s ease}
+@keyframes pvPop{0%{opacity:0;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
+.pv-tone-guide .tg-info{flex:1;min-width:0}
+.pv-tone-guide .tg-name{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:.9rem;margin-bottom:4px}
+.pv-tone-guide .tg-viet{font-size:.8rem;color:#374151;font-weight:600;line-height:1.5}
+.pv-tone-guide .tg-tip{font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:10px;display:inline-block;margin-top:6px}
+/* Game */
+.pv-game-wrap{max-width:500px;margin:0 auto;padding:20px}
+.pv-game-score{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:16px;font-size:.82rem;font-weight:800;background:#fdf2f8;color:#ec4899}
+.pv-game-question{width:100%;background:#fff;border-radius:24px;border:2px solid #fbcfe8;padding:28px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-bottom:16px}
+.pv-game-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.pv-game-opt{padding:14px;border-radius:16px;font-weight:800;font-size:1.1rem;border:2px solid #fce7f3;background:rgba(255,255,255,.9);cursor:pointer;transition:all .2s;text-align:center}
+.pv-game-opt:hover{transform:scale(1.03)}
+.pv-game-opt.correct{background:linear-gradient(135deg,#22c55e,#16a34a);border-color:transparent;color:#fff}
+.pv-game-opt.wrong{background:linear-gradient(135deg,#ef4444,#dc2626);border-color:transparent;color:#fff}
+/* Quiz */
+.pv-quiz-wrap{max-width:520px;margin:0 auto;padding:16px}
+.pv-quiz-card{background:#fff;border-radius:20px;border:2px solid #fbcfe8;padding:20px;text-align:center;margin-bottom:14px}
+.pv-quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pv-quiz-opt{padding:12px;border-radius:14px;font-weight:700;border:2px solid #fce7f3;background:rgba(255,255,255,.9);cursor:pointer;transition:all .2s;text-align:center;font-size:.95rem}
+.pv-quiz-opt.correct{background:linear-gradient(135deg,#22c55e,#16a34a);border-color:transparent;color:#fff}
+.pv-quiz-opt.wrong{background:linear-gradient(135deg,#ef4444,#dc2626);border-color:transparent;color:#fff}
+/* Result */
+.pv-result{max-width:440px;margin:0 auto;padding:30px;text-align:center}
+.pv-result-ring{width:120px;height:120px;margin:0 auto 16px}
+/* Intro */
+.pv-intro{max-width:480px;margin:0 auto;padding:30px;text-align:center}
+.pv-intro-emoji{font-size:3.5rem;margin-bottom:12px}
+.pv-intro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:16px 0;background:#fff;border-radius:16px;padding:12px;border:2px solid #fbcfe8}
+.pv-intro-card{display:flex;flex-direction:column;align-items:center;padding:8px;border-radius:10px;background:#fdf2f8}
+.pv-intro-card .ic-py{font-family:'Noto Sans SC',sans-serif;font-weight:700;color:#ec4899;font-size:.85rem}
+.pv-intro-card .ic-hz{font-family:'Noto Serif SC',serif;font-weight:700;font-size:1.1rem;color:#1e1b4b}
+.pv-intro-card .ic-vi{font-size:.65rem;color:#9ca3af;font-weight:600}
+.pv-start-btn{width:100%;padding:14px;border-radius:20px;border:none;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1rem;color:#fff;cursor:pointer;transition:all .2s}
+.pv-start-btn:hover{transform:scale(1.02)}
+.pv-back-btn{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:.85rem;background:none;border:none;cursor:pointer;transition:all .2s}
+.pv-back-btn:hover{transform:scale(1.05)}
+.pv-action-row{display:flex;gap:10px;width:100%}
+.pv-action-btn{flex:1;padding:12px;border-radius:16px;font-weight:800;font-size:.85rem;border:2px solid;cursor:pointer;transition:all .2s;text-align:center}
+.pv-action-btn:hover{transform:scale(1.03)}
+/* Tone diagram SVG */
+.pv-tone-svg{overflow:visible}
+.pv-tone-line{stroke-dasharray:200;animation:pvToneDraw .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes pvToneDraw{from{stroke-dashoffset:200}to{stroke-dashoffset:0}}
+/* Progress dots */
+.pv-quiz-dots{display:flex;gap:4px;margin-top:14px}
+.pv-quiz-dot{width:10px;height:10px;border-radius:50%;transition:all .3s}
+</style>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   NGỮ ÂM — 10 BUỔI HỌC PHONICS
+   ═══════════════════════════════════════════════════════════ */
+
+const PV_TONE_MARKS = {
+  a:['\u0101','\u00e1','\u01ce','\u00e0','a'],
+  e:['\u0113','\u00e9','\u011b','\u00e8','e'],
+  i:['\u012b','\u00ed','\u01d0','\u00ec','i'],
+  o:['\u014d','\u00f3','\u01d2','\u00f2','o'],
+  u:['\u016b','\u00fa','\u01d4','\u00f9','u'],
+  \u00fc:['\u01d6','\u01d8','\u01da','\u01dc','\u00fc'],
+};
+
+function pvApplyTone(syl, tone) {
+  if (!tone) return syl;
+  const order = ['a','e','o','\u00fc','u','i'];
+  for (const v of order) {
+    if (syl.includes(v)) {
+      return syl.replace(v, PV_TONE_MARKS[v] ? PV_TONE_MARKS[v][tone - 1] : v);
+    }
+  }
+  return syl;
+}
+
+/* ── TTS: speak HANZI in zh-CN for natural tone reading ── */
+let pvZhVoice = null;
+function pvLoadVoices() {
+  const voices = speechSynthesis.getVoices();
+  pvZhVoice = voices.find(v => v.lang === 'zh-CN') || voices.find(v => v.lang.startsWith('zh')) || null;
+}
+if ('speechSynthesis' in window) {
+  pvLoadVoices();
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = pvLoadVoices;
+  }
+}
+
+function pvSpeak(hanzi, teacherMode) {
+  if (!('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  pvZhVoice = pvZhVoice || voices.find(v => v.lang === 'zh-CN') || voices.find(v => v.lang.startsWith('zh')) || null;
+  window.speechSynthesis.cancel();
+  const make = (rate) => {
+    const u = new SpeechSynthesisUtterance(hanzi);
+    u.lang = 'zh-CN';
+    u.rate = rate;
+    u.pitch = 1.0;
+    if (pvZhVoice) u.voice = pvZhVoice;
+    return u;
+  };
+  if (teacherMode) {
+    // Teacher mode: đọc chậm 2 lần với khoảng nghỉ
+    const u1 = make(0.38);
+    u1.onend = () => { setTimeout(() => { window.speechSynthesis.speak(make(0.52)); }, 700); };
+    window.speechSynthesis.speak(u1);
+  } else {
+    window.speechSynthesis.speak(make(0.55));
+  }
+}
+
+/* ── Tone Guide Data ── */
+const PV_TONE_GUIDE = [
+  { tone:1, name:'Thanh 1 — Thanh bằng', color:'#ec4899', bg:'#fdf2f8', border:'#fbcfe8',
+    viet:'Cao và đều — như kéo dài tiếng \"a...\" khi bác sĩ khám họng',
+    tip:'Mi\u1ec7ng m\u1edf, h\u00e0m th\u1ea3 l\u1ecfng, gi\u1ecdng cao \u0111\u1ec1u KH\u00d4NG l\u00ean xu\u1ed1ng',
+    path:'M10,20 L90,20' },
+  { tone:2, name:'Thanh 2 — Thanh sắc', color:'#f97316', bg:'#fff7ed', border:'#fed7aa',
+    viet:'L\u00ean cao d\u1ea7n — nh\u01b0 h\u1ecfi l\u1ea1i ng\u1ea1c nhi\u00ean \"H\u1ea3?\", gi\u1ecdng v\u00fat l\u00ean',
+    tip:'B\u1eaft \u0111\u1ea7u gi\u1ecdng trung b\u00ecnh r\u1ed3i K\u00c9O L\u00caN cao',
+    path:'M10,60 L90,10' },
+  { tone:3, name:'Thanh 3 — Thanh h\u1ecfi', color:'#8b5cf6', bg:'#f5f3ff', border:'#ddd6fe',
+    viet:'Xu\u1ed1ng r\u1ed3i l\u00ean — nh\u01b0 ti\u1ebfng \"\u1edd...\" ph\u00e2n v\u00e2n, gi\u1ecdng h\u01a1i xu\u1ed1ng th\u1ea5p r\u1ed3i v\u00fat l\u00ean',
+    tip:'Xu\u1ed1ng th\u1ea5p v\u00e0 GI\u1eee th\u1ea5p r\u1ed3i m\u1edbi l\u00ean',
+    path:'M10,30 L40,72 L90,28' },
+  { tone:4, name:'Thanh 4 — Thanh n\u1eb7ng', color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe',
+    viet:'Xu\u1ed1ng m\u1ea1nh v\u00e0 ng\u1eafn — nh\u01b0 ra l\u1ec7nh \"Kh\u00f4ng!\", gi\u1ecdng \u0111\u1ed5 xu\u1ed1ng d\u1ee9t kho\u00e1t',
+    tip:'B\u1eaft \u0111\u1ea7u cao nh\u1ea5t, R\u1eccT XU\u1ed0NG th\u1eadt nhanh — ng\u1eafn v\u00e0 m\u1ea1nh',
+    path:'M10,8 L90,72' },
+];
+
+/* ── 10 Sessions Data ── */
+const PV_SESSIONS = [
+  {id:1,title:'4 Thanh Điệu',sub:'Nền tảng quan trọng nhất',emoji:'🎵',color:'#ec4899',light:'#fdf2f8',cards:[
+    {pinyin:'ma',tone:1,hanzi:'妈',viet:'mẹ'},{pinyin:'ma',tone:2,hanzi:'麻',viet:'gai'},
+    {pinyin:'ma',tone:3,hanzi:'马',viet:'ngựa'},{pinyin:'ma',tone:4,hanzi:'骂',viet:'mắng'},
+    {pinyin:'ba',tone:1,hanzi:'八',viet:'tám'},{pinyin:'ba',tone:2,hanzi:'拔',viet:'nhổ'},
+    {pinyin:'ba',tone:3,hanzi:'把',viet:'cái'},{pinyin:'ba',tone:4,hanzi:'爸',viet:'bố'},
+  ]},
+  {id:2,title:'Đơn Vận (a o e)',sub:'Nguyên âm đơn cơ bản',emoji:'🅐',color:'#f97316',light:'#fff7ed',cards:[
+    {pinyin:'a',tone:1,hanzi:'啊',viet:'à'},{pinyin:'o',tone:2,hanzi:'哦',viet:'ồ'},
+    {pinyin:'e',tone:3,hanzi:'饿',viet:'đói'},{pinyin:'yi',tone:1,hanzi:'一',viet:'một'},
+    {pinyin:'wu',tone:3,hanzi:'五',viet:'năm'},{pinyin:'yu',tone:2,hanzi:'鱼',viet:'cá'},
+    {pinyin:'ai',tone:4,hanzi:'爱',viet:'yêu'},{pinyin:'ei',tone:4,hanzi:'诶',viet:'ê'},
+  ]},
+  {id:3,title:'Thanh mẫu b p m f',sub:'Phụ âm đầu nhóm môi',emoji:'💋',color:'#8b5cf6',light:'#f5f3ff',cards:[
+    {pinyin:'ba',tone:4,hanzi:'爸',viet:'bố'},{pinyin:'ma',tone:1,hanzi:'妈',viet:'mẹ'},
+    {pinyin:'pa',tone:2,hanzi:'爬',viet:'leo'},{pinyin:'fa',tone:1,hanzi:'发',viet:'tóc'},
+    {pinyin:'bo',tone:1,hanzi:'波',viet:'sóng'},{pinyin:'po',tone:2,hanzi:'婆',viet:'bà'},
+    {pinyin:'mo',tone:2,hanzi:'模',viet:'mô hình'},{pinyin:'fo',tone:2,hanzi:'佛',viet:'Phật'},
+  ]},
+  {id:4,title:'Thanh mẫu d t n l',sub:'Phụ âm đầu nhóm lưỡi trước',emoji:'👅',color:'#22c55e',light:'#f0fdf4',cards:[
+    {pinyin:'da',tone:4,hanzi:'大',viet:'to'},{pinyin:'ta',tone:1,hanzi:'他',viet:'anh ấy'},
+    {pinyin:'na',tone:4,hanzi:'那',viet:'đó'},{pinyin:'la',tone:1,hanzi:'拉',viet:'kéo'},
+    {pinyin:'di',tone:4,hanzi:'地',viet:'đất'},{pinyin:'ti',tone:2,hanzi:'蹄',viet:'móng'},
+    {pinyin:'ni',tone:3,hanzi:'你',viet:'bạn'},{pinyin:'li',tone:4,hanzi:'力',viet:'sức'},
+  ]},
+  {id:5,title:'Thanh mẫu g k h',sub:'Phụ âm đầu nhóm gốc lưỡi',emoji:'🔊',color:'#3b82f6',light:'#eff6ff',cards:[
+    {pinyin:'ge',tone:1,hanzi:'哥',viet:'anh'},{pinyin:'ke',tone:3,hanzi:'可',viet:'có thể'},
+    {pinyin:'he',tone:4,hanzi:'喝',viet:'uống'},{pinyin:'gu',tone:3,hanzi:'谷',viet:'thung lũng'},
+    {pinyin:'ku',tone:4,hanzi:'库',viet:'kho'},{pinyin:'hu',tone:2,hanzi:'胡',viet:'râu'},
+    {pinyin:'guo',tone:2,hanzi:'国',viet:'nước'},{pinyin:'hao',tone:3,hanzi:'好',viet:'tốt'},
+  ]},
+  {id:6,title:'Thanh mẫu j q x',sub:'Phụ âm đầu nhóm mặt lưỡi',emoji:'🗣️',color:'#ec4899',light:'#fdf2f8',cards:[
+    {pinyin:'ji',tone:1,hanzi:'鸡',viet:'gà'},{pinyin:'qi',tone:3,hanzi:'起',viet:'đứng dậy'},
+    {pinyin:'xi',tone:1,hanzi:'希',viet:'hy vọng'},{pinyin:'jia',tone:1,hanzi:'家',viet:'nhà'},
+    {pinyin:'xia',tone:4,hanzi:'下',viet:'dưới'},{pinyin:'jin',tone:1,hanzi:'金',viet:'vàng'},
+    {pinyin:'xin',tone:1,hanzi:'心',viet:'tim'},{pinyin:'qian',tone:2,hanzi:'钱',viet:'tiền'},
+  ]},
+  {id:7,title:'Thanh mẫu zh ch sh r',sub:'Phụ âm đầu cuộn lưỡi',emoji:'🌀',color:'#f97316',light:'#fff7ed',cards:[
+    {pinyin:'zhi',tone:1,hanzi:'知',viet:'biết'},{pinyin:'chi',tone:1,hanzi:'吃',viet:'ăn'},
+    {pinyin:'shi',tone:4,hanzi:'是',viet:'là'},{pinyin:'ri',tone:4,hanzi:'日',viet:'mặt trời'},
+    {pinyin:'zhu',tone:4,hanzi:'住',viet:'sống'},{pinyin:'chu',tone:1,hanzi:'出',viet:'ra'},
+    {pinyin:'shu',tone:1,hanzi:'书',viet:'sách'},{pinyin:'ren',tone:2,hanzi:'人',viet:'người'},
+  ]},
+  {id:8,title:'Thanh mẫu z c s',sub:'Phụ âm đầu đầu lưỡi - răng',emoji:'🦷',color:'#8b5cf6',light:'#f5f3ff',cards:[
+    {pinyin:'zi',tone:4,hanzi:'字',viet:'chữ'},{pinyin:'ci',tone:2,hanzi:'词',viet:'từ'},
+    {pinyin:'si',tone:4,hanzi:'四',viet:'bốn'},{pinyin:'zuo',tone:4,hanzi:'做',viet:'làm'},
+    {pinyin:'cuo',tone:4,hanzi:'错',viet:'sai'},{pinyin:'suo',tone:3,hanzi:'锁',viet:'khóa'},
+    {pinyin:'zan',tone:4,hanzi:'赞',viet:'khen'},{pinyin:'san',tone:1,hanzi:'三',viet:'ba'},
+  ]},
+  {id:9,title:'Phức Vận Mẫu',sub:'Nguyên âm ghép (ai ei ao ou...)',emoji:'🔗',color:'#22c55e',light:'#f0fdf4',cards:[
+    {pinyin:'ai',tone:4,hanzi:'爱',viet:'yêu'},{pinyin:'ao',tone:4,hanzi:'澳',viet:'Úc'},
+    {pinyin:'ou',tone:3,hanzi:'偶',viet:'thỉnh thoảng'},{pinyin:'ia',tone:1,hanzi:'呀',viet:'à'},
+    {pinyin:'ie',tone:4,hanzi:'叶',viet:'lá'},{pinyin:'ua',tone:3,hanzi:'瓦',viet:'ngói'},
+    {pinyin:'uo',tone:3,hanzi:'我',viet:'tôi'},{pinyin:'ui',tone:4,hanzi:'位',viet:'vị trí'},
+  ]},
+  {id:10,title:'Vận Mẫu Mũi',sub:'Âm mũi (an en ang eng...)',emoji:'👃',color:'#3b82f6',light:'#eff6ff',cards:[
+    {pinyin:'an',tone:1,hanzi:'安',viet:'yên'},{pinyin:'en',tone:1,hanzi:'恩',viet:'ân'},
+    {pinyin:'ang',tone:2,hanzi:'昂',viet:'ngẩng'},{pinyin:'eng',tone:2,hanzi:'能',viet:'có thể'},
+    {pinyin:'in',tone:1,hanzi:'音',viet:'âm'},{pinyin:'ing',tone:1,hanzi:'英',viet:'Anh'},
+    {pinyin:'un',tone:1,hanzi:'温',viet:'ấm'},{pinyin:'ong',tone:1,hanzi:'空',viet:'không'},
+  ]},
+];
+
+const PV_STORAGE = 'pandahan_phonics_v1';
+
+function pvLoadProgress() {
+  try { return JSON.parse(localStorage.getItem(PV_STORAGE) || '{}'); }
+  catch { return {}; }
+}
+function pvSaveProgress(p) { localStorage.setItem(PV_STORAGE, JSON.stringify(p)); }
+
+function pvGetDefaultProgress() {
+  const p = pvLoadProgress();
+  if (!p[1]) p[1] = { stars:0, bestScore:0, unlocked:true };
+  // Ensure all sessions exist
+  PV_SESSIONS.forEach(s => { if (!p[s.id]) p[s.id] = { stars:0, bestScore:0, unlocked: s.id === 1 }; });
+  return p;
+}
+
+/* ── State ── */
+let pvState = { progress: pvGetDefaultProgress(), activeSession: null, phase: 'intro', flashIdx: 0, flashFlipped: false, flashDone: [], gameRound: 0, gameScore: 0, gameStreak: 0, gameChosen: null, quizQIdx: 0, quizScore: 0, quizChosen: null, quizAnswers: [], quizQuestions: [], speaking: false };
+
+/* ── Render Pinyin View ── */
+function renderPinyinView() {
+  const container = document.getElementById('pinyinContent');
+  if (!container) return;
+  pvState.progress = pvGetDefaultProgress();
+
+  if (pvState.activeSession !== null) {
+    renderSessionDetail(container);
+  } else {
+    renderSessionList(container);
+  }
+}
+
+/* ── Session List ── */
+function renderSessionList(container) {
+  const prog = pvState.progress;
+  const totalStars = Object.values(prog).reduce((s, p) => s + (p.stars || 0), 0);
+  const doneCount = Object.values(prog).filter(p => p.stars > 0).length;
+  const unlockedCount = Object.values(prog).filter(p => p.unlocked).length;
+
+  let html = `<div class="pv-container">
+    <div class="pv-header">
+      <div>
+        <div class="pv-title">🎵 Ngữ âm — <span>10 Buổi Học</span></div>
+        <div class="pv-sub">Flashcard → Game → Bài tập · Đạt ≥80% để mở khóa buổi tiếp</div>
+      </div>
+    </div>
+    <div class="pv-stats">
+      <div class="pv-stat-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="pv-stat-icon">⭐</span>
+          <span style="font-size:.68rem;font-weight:800;color:#f97316;background:#fff7ed;padding:2px 8px;border-radius:8px">30 max</span>
+        </div>
+        <div class="pv-stat-num">${totalStars}</div>
+        <div class="pv-stat-label">Tổng sao</div>
+        <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(totalStars/30)*100}%"></div></div>
+      </div>
+      <div class="pv-stat-card" style="border-color:#bbf7d0">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="pv-stat-icon">✅</span>
+          <span style="font-size:.68rem;font-weight:800;color:#22c55e;background:#f0fdf4;padding:2px 8px;border-radius:8px">10 max</span>
+        </div>
+        <div class="pv-stat-num" style="color:#22c55e">${doneCount}</div>
+        <div class="pv-stat-label">Buổi hoàn thành</div>
+        <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(doneCount/10)*100}%;background:#22c55e"></div></div>
+      </div>
+      <div class="pv-stat-card" style="border-color:#ddd6fe">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="pv-stat-icon">🔓</span>
+          <span style="font-size:.68rem;font-weight:800;color:#8b5cf6;background:#f5f3ff;padding:2px 8px;border-radius:8px">10 max</span>
+        </div>
+        <div class="pv-stat-num" style="color:#8b5cf6">${unlockedCount}</div>
+        <div class="pv-stat-label">Buổi đã mở</div>
+        <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(unlockedCount/10)*100}%;background:#8b5cf6"></div></div>
+      </div>
+    </div>
+    <div class="pv-sessions">`;
+
+  PV_SESSIONS.forEach(s => {
+    const p = prog[s.id] || { stars:0, bestScore:0, unlocked: s.id === 1 };
+    const unlocked = p.unlocked;
+    const done = p.stars > 0;
+    html += `<div class="pv-session-card${unlocked ? '' : ' locked'}" onclick="${unlocked ? 'pvOpenSession('+s.id+')' : ''}">
+      <div class="pv-session-bar"></div>
+      <div class="pv-session-body">
+        <div class="pv-session-emoji">${unlocked ? s.emoji : '🔒'}</div>
+        <div class="pv-session-info">
+          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">Buổi ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
+          <div class="pv-session-title">${s.title}</div>
+          <div class="pv-session-sub">${s.sub}</div>
+          ${done ? `<div style="margin-top:6px;height:4px;background:#f3f4f6;border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;width:${(p.bestScore/10)*100}%;background:linear-gradient(to right,${s.color},#a855f7)"></div></div>` : ''}
+        </div>
+        ${unlocked ? `<div class="pv-session-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="${done ? '#fff' : s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+/* ── Session Detail ── */
+function renderSessionDetail(container) {
+  const sid = pvState.activeSession;
+  const session = PV_SESSIONS.find(s => s.id === sid);
+  if (!session) return;
+  const progress = pvState.progress[sid] || { stars:0, bestScore:0, unlocked:true };
+  const phase = pvState.phase;
+
+  let html = `<div class="pv-container pv-detail">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid #fbcfe8;margin-bottom:8px">
+      <button class="pv-back-btn" onclick="pvBackToList()" style="color:${session.color}">← Quay lại</button>
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;color:#1e1b4b">${session.emoji} ${session.title}</div>
+      <div style="font-size:16px">${'⭐'.repeat(progress.stars)}${'☆'.repeat(3-progress.stars)}</div>
+    </div>`;
+
+  if (phase !== 'result') {
+    const phases = ['flash','game','quiz'];
+    const labels = ['🃏 Flashcard','🎮 Game','📝 Bài tập'];
+    html += '<div class="pv-phases">';
+    phases.forEach((p, i) => {
+      const isActive = phase === p || (phase === 'intro' && p === 'flash');
+      const isPassed = (phase === 'game' && p === 'flash') || (phase === 'quiz' && (p === 'flash' || p === 'game'));
+      const cls = isActive ? 'active' : isPassed ? 'done' : '';
+      html += `<div class="pv-phase-btn ${cls}">${isPassed && !isActive ? '✓ ' : ''}${labels[i]}</div>`;
+    });
+    html += '</div>';
+  }
+
+  html += '<div style="flex:1;overflow-y:auto">';
+
+  if (phase === 'intro') {
+    html += renderIntro(session);
+  } else if (phase === 'flash') {
+    html += renderFlash(session);
+  } else if (phase === 'game') {
+    html += renderGame(session);
+  } else if (phase === 'quiz') {
+    html += renderQuiz(session);
+  } else if (phase === 'result') {
+    html += renderResult(session);
+  }
+
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+/* ── Intro ── */
+function renderIntro(session) {
+  let html = `<div class="pv-intro">
+    <div class="pv-intro-emoji">${session.emoji}</div>
+    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem;color:#1e1b4b;margin-bottom:4px">${session.title}</h2>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:20px">${session.sub}</p>
+    <div class="pv-intro-grid">`;
+  session.cards.forEach(c => {
+    html += `<div class="pv-intro-card">
+      <div class="ic-py">${pvApplyTone(c.pinyin, c.tone)}</div>
+      <div class="ic-hz">${c.hanzi}</div>
+      <div class="ic-vi">${c.viet}</div>
+    </div>`;
+  });
+  html += `</div>
+    <div style="color:#9ca3af;font-weight:600;font-size:.82rem;margin-bottom:18px">
+      📌 3 giai đoạn: Flashcard → Game → Bài tập<br/>
+      🎯 Cần ≥80% (8/10) để qua buổi
+    </div>
+    <button class="pv-start-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);box-shadow:0 6px 20px ${session.color}44" onclick="pvSetPhase('flash')">
+      Bắt đầu học 🚀
+    </button>
+  </div>`;
+  return html;
+}
+
+/* ── Tone Guide HTML ── */
+function renderToneGuide(tone) {
+  const g = PV_TONE_GUIDE.find(x => x.tone === tone);
+  if (!g) return '';
+  return `<div class="pv-tone-guide" style="background:${g.bg};border-color:${g.border}">
+    <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px">
+      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">CAO</div>
+      <svg class="pv-tone-svg" width="90" height="70" viewBox="0 0 100 80">
+        <line x1="5" y1="15" x2="95" y2="15" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="5" y1="30" x2="95" y2="30" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="5" y1="45" x2="95" y2="45" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="5" y1="60" x2="95" y2="60" stroke="#f1f5f9" stroke-width="1"/>
+        <line x1="5" y1="75" x2="95" y2="75" stroke="#f1f5f9" stroke-width="1"/>
+        <polyline points="${g.path.replace('M','').replace(/L/g,' ').trim()}" fill="none" stroke="${g.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="pv-tone-line" style="filter:drop-shadow(0 2px 4px ${g.color}55)"/>
+        <text x="50" y="78" text-anchor="middle" font-size="11" font-weight="800" fill="${g.color}" font-family="'Nunito',sans-serif">${tone}声</text>
+      </svg>
+      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">THẤP</div>
+    </div>
+    <div class="tg-info">
+      <div class="tg-name" style="color:${g.color}">${g.name}</div>
+      <div class="tg-viet">${g.viet}</div>
+      <div class="tg-tip" style="background:${g.color}15;color:${g.color}">💡 ${g.tip}</div>
+    </div>
+  </div>`;
+}
+
+/* ── Flash Phase ── */
+function renderFlash(session) {
+  const idx = pvState.flashIdx;
+  const card = session.cards[idx];
+  const flipped = pvState.flashFlipped;
+  const done = pvState.flashDone;
+  const hasToneGuide = PV_TONE_GUIDE.some(g => g.tone === card.tone);
+  const speaking = pvState.speaking;
+
+  // Auto-speak on mount
+  if (!pvState._flashSpeakingTriggered || pvState._flashSpeakingTriggered !== idx) {
+    pvState._flashSpeakingTriggered = idx;
+    pvState.flashFlipped = false;
+    setTimeout(() => {
+      pvState.speaking = true;
+      pvSpeak(card.hanzi, true);
+      setTimeout(() => { pvState.speaking = false; }, 2200);
+    }, 200);
+  }
+
+  let html = `<div class="pv-flash-wrap">
+    <div class="pv-flash-progress">`;
+  session.cards.forEach((_, i) => {
+    const w = i === idx ? 24 : 8;
+    const bg = done.includes(i) ? '#22c55e' : i === idx ? 'linear-gradient(to right,#ec4899,#a855f7)' : '#fce7f3';
+    html += `<div class="pv-flash-dot" style="width:${w}px;height:6px;border-radius:4px;background:${bg}"></div>`;
+  });
+  html += `</div>
+    <p style="color:#9ca3af;font-weight:700;font-size:.85rem;text-align:center;margin-bottom:14px">Thẻ ${idx+1}/${session.cards.length}</p>
+    <div class="pv-flash-card${flipped ? ' flipped' : ''}" onclick="pvFlipCard()">
+      <div class="pv-flash-front">
+        <div class="pv-flash-pinyin" style="font-size:3rem">${pvApplyTone(card.pinyin, card.tone)}</div>
+        <div style="display:flex;gap:4px;margin-top:8px">`;n  [1,2,3,4].forEach(t => {
+    const isThis = t === card.tone;
+    html += `<span style="width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid;transition:all .2s;background:${isThis ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};border-color:${isThis ? 'transparent' : '#fbcfe8'};color:${isThis ? '#fff' : '#f9a8d4'};transform:${isThis ? 'scale(1.15)' : 'scale(1)'}">${t}</span>`;
+  });
+  html += `</div>
+        <button class="pv-flash-btn" style="margin-top:14px;background:${speaking ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};color:${speaking ? '#fff' : '#ec4899'};box-shadow:${speaking ? '0 4px 14px rgba(236,72,153,.4)' : 'none'}" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
+          ${speaking ? '🔊 Đang đọc...' : '🔊 Nghe giáo viên'}
+        </button>
+        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:11px;animation:pvPulse 2s ease infinite">nhấn thẻ để xem chữ ↗</div>
+      </div>
+      <div class="pv-flash-back">
+        <div class="pv-flash-hanzi" style="font-size:4.5rem">${card.hanzi}</div>
+        <div class="pv-flash-pinyin" style="font-size:1.4rem;margin-top:6px">${pvApplyTone(card.pinyin, card.tone)}</div>
+        <div class="pv-flash-viet" style="font-size:.95rem;margin-top:2px">${card.viet}</div>
+        <button class="pv-flash-btn" style="margin-top:10px;background:rgba(255,255,255,.7);color:#ec4899;border:2px solid #fbcfe8" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
+          🔊 Nghe lại
+        </button>
+      </div>
+    </div>`;
+
+  if (hasToneGuide) {
+    html += renderToneGuide(card.tone);
+  }
+
+  const isLast = idx >= session.cards.length - 1;
+  html += `<div class="pv-action-row">
+    <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvTeacherSpeak('${card.hanzi}')">🔊 Nghe lại</button>
+    <button class="pv-action-btn" style="background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(236,72,153,.35)" onclick="pvFlashNext()">
+      ${isLast ? 'Vào Game 🎮' : 'Tiếp theo →'}
+    </button>
+  </div>
+  </div>`;
+  return html;
+}
+
+/* ── Game Phase ── */
+function renderGame(session) {
+  const ROUNDS = Math.min(8, session.cards.length);
+  const round = pvState.gameRound;
+  const score = pvState.gameScore;
+  const streak = pvState.gameStreak;
+  const chosen = pvState.gameChosen;
+
+  // Generate question
+  const correct = session.cards[round % session.cards.length];
+  const others = session.cards.filter((_, i) => i !== round % session.cards.length);
+  const distractors = others.sort(() => Math.random() - 0.5).slice(0, 3);
+  const opts = [...distractors, correct].sort(() => Math.random() - 0.5);
+  const correctIdx = opts.findIndex(o => o.pinyin === correct.pinyin && o.tone === correct.tone);
+
+  // Auto-speak
+  if (!pvState._gameSpeakingTriggered || pvState._gameSpeakingTriggered !== round) {
+    pvState._gameSpeakingTriggered = round;
+    pvState.gameChosen = null;
+    setTimeout(() => pvSpeak(correct.hanzi), 400);
+  }
+
+  let html = `<div class="pv-game-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div class="pv-game-score">⭐ ${score}</div>
+      ${streak >= 2 ? `<div style="padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#fbbf24)">🔥 ${streak} liên tiếp!</div>` : ''}
+      <div style="color:#9ca3af;font-weight:700;font-size:.82rem">${round+1}/${ROUNDS}</div>
+    </div>
+    <div style="width:100%;height:8px;background:#fce7f3;border-radius:6px;overflow:hidden;margin-bottom:24px;border:1px solid #fbcfe8">
+      <div style="height:100%;border-radius:6px;width:${(round/ROUNDS)*100}%;background:linear-gradient(to right,#ec4899,#a855f7);transition:width .5s"></div>
+    </div>
+    <div class="pv-game-question">
+      <p style="color:#9ca3af;font-weight:700;font-size:.82rem;margin-bottom:10px">Chọn pinyin đúng cho âm vừa nghe</p>
+      <button onclick="pvSpeak('${correct.hanzi}')" style="font-size:2.8rem;background:none;border:none;cursor:pointer">🔊</button>
+      <div style="font-size:1.8rem;font-weight:700;color:#1e1b4b;font-family:'Noto Serif SC',serif;margin-top:6px">${correct.hanzi}</div>
+      <div style="color:#6b7280;font-size:.82rem;font-weight:600;margin-top:2px">${correct.viet}</div>
+    </div>
+    <div class="pv-game-opts">`;
+
+  opts.forEach((opt, i) => {
+    let bg = 'rgba(255,255,255,.9)', border = '#fce7f3', col = '#374151';
+    if (chosen !== null) {
+      if (i === correctIdx) { bg = 'linear-gradient(135deg,#22c55e,#16a34a)'; border = 'transparent'; col = '#fff'; }
+      else if (chosen === i) { bg = 'linear-gradient(135deg,#ef4444,#dc2626)'; border = 'transparent'; col = '#fff'; }
+    }
+    html += `<div class="pv-game-opt" style="background:${bg};border-color:${border};color:${col}" onclick="pvGamePick(${i},${correctIdx})">
+      <span style="font-family:'Noto Sans SC',sans-serif">${pvApplyTone(opt.pinyin, opt.tone)}</span>
+    </div>`;
+  });
+
+  html += `</div>`;
+
+  if (chosen !== null) {
+    const ok = chosen === correctIdx;
+    html += `<div style="margin-top:12px;text-align:center;font-weight:800;font-size:.95rem;animation:pvPop .4s ease;color:${ok ? '#22c55e' : '#ef4444'}">
+      ${ok ? '🎉 Chính xác!' : '❌ Đáp án: ' + pvApplyTone(correct.pinyin, correct.tone)}
+    </div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+/* ── Quiz Phase ── */
+function renderQuiz(session) {
+  const TOTAL = 10;
+  let questions = pvState.quizQuestions;
+  if (!questions || questions.length === 0) {
+    // Generate questions
+    const pool = [...session.cards, ...session.cards].sort(() => Math.random() - 0.5).slice(0, TOTAL);
+    questions = pool.map(correct => {
+      const others = session.cards.filter(c => !(c.pinyin === correct.pinyin && c.tone === correct.tone));
+      const distractors = others.sort(() => Math.random() - 0.5).slice(0, 3);
+      const type = Math.random() < 0.5 ? 'pinyin2hanzi' : 'hanzi2pinyin';
+      return { correct, opts: [...distractors, correct].sort(() => Math.random() - 0.5), type };
+    });
+    pvState.quizQuestions = questions;
+  }
+
+  const qIdx = pvState.quizQIdx;
+  const score = pvState.quizScore;
+  const chosen = pvState.quizChosen;
+  const answers = pvState.quizAnswers;
+  const q = questions[qIdx];
+  if (!q) return '<div>Đang tải...</div>';
+
+  // Auto-speak
+  if (!pvState._quizSpeakingTriggered || pvState._quizSpeakingTriggered !== qIdx) {
+    pvState._quizSpeakingTriggered = qIdx;
+    pvState.quizChosen = null;
+    if (q.type === 'pinyin2hanzi') pvSpeak(q.correct.hanzi);
+  }
+
+  const correctIdx = q.opts.findIndex(o => o.pinyin === q.correct.pinyin && o.tone === q.correct.tone);
+
+  let html = `<div class="pv-quiz-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.1rem;color:${session.color}">Câu ${qIdx+1}/${TOTAL}</div>
+      <div style="padding:4px 12px;border-radius:12px;font-weight:800;font-size:.82rem;color:#fff;background:linear-gradient(135deg,${session.color},#a855f7)">✅ ${score}/${qIdx}</div>
+    </div>
+    <div style="width:100%;height:8px;background:#fce7f3;border-radius:6px;overflow:hidden;margin-bottom:18px;border:1px solid #fbcfe8">
+      <div style="height:100%;border-radius:6px;width:${(qIdx/TOTAL)*100}%;background:linear-gradient(to right,${session.color},#a855f7);transition:width .3s"></div>
+    </div>`;
+
+  if (q.type === 'pinyin2hanzi') {
+    html += `<div class="pv-quiz-card">
+      <p style="color:#9ca3af;font-weight:700;font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:2px">Chọn chữ Hán đúng</p>
+      <button onclick="pvSpeak('${q.correct.hanzi}')" style="font-size:2.2rem;background:none;border:none;cursor:pointer">🔊</button>
+      <div style="font-size:1.3rem;font-weight:800;color:${session.color};font-family:'Noto Sans SC',sans-serif">${pvApplyTone(q.correct.pinyin, q.correct.tone)}</div>
+    </div>`;
+  } else {
+    html += `<div class="pv-quiz-card">
+      <p style="color:#9ca3af;font-weight:700;font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:2px">Chọn pinyin đúng</p>
+      <div style="font-size:3rem;font-weight:700;font-family:'Noto Serif SC',serif;color:#1e1b4b">${q.correct.hanzi}</div>
+      <div style="color:#6b7280;font-weight:600;font-size:.85rem;margin-top:4px">${q.correct.viet}</div>
+    </div>`;
+  }
+
+  html += '<div class="pv-quiz-opts">';
+  q.opts.forEach((opt, i) => {
+    let bg = 'rgba(255,255,255,.9)', border = '#fce7f3', col = '#374151', fs = q.type === 'pinyin2hanzi' ? '1.4rem' : '.95rem';
+    if (chosen !== null) {
+      if (i === correctIdx) { bg = 'linear-gradient(135deg,#22c55e,#16a34a)'; border = 'transparent'; col = '#fff'; }
+      else if (chosen === i) { bg = 'linear-gradient(135deg,#ef4444,#dc2626)'; border = 'transparent'; col = '#fff'; }
+    }
+    const font = q.type === 'pinyin2hanzi' ? "'Noto Serif SC',serif" : "'Noto Sans SC',sans-serif";
+    const text = q.type === 'pinyin2hanzi' ? opt.hanzi : pvApplyTone(opt.pinyin, opt.tone);
+    html += `<div class="pv-quiz-opt" style="background:${bg};border-color:${border};color:${col};font-size:${fs};font-family:${font}" onclick="pvQuizPick(${i},${correctIdx})">${text}</div>`;
+  });
+  html += '</div>';
+
+  html += `<div class="pv-quiz-dots">`;
+  for (let i = 0; i < TOTAL; i++) {
+    const bg = i < answers.length ? (answers[i] ? '#22c55e' : '#ef4444') : '#fce7f3';
+    html += `<div class="pv-quiz-dot" style="background:${bg}"></div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+/* ── Result Screen ── */
+function renderResult(session) {
+  const score = pvState.quizScore;
+  const total = 10;
+  const pct = Math.round(score / total * 100);
+  const isPass = score / total >= 0.8;
+  const stars = score >= 9 ? 3 : score >= 7 ? 2 : score >= 6 ? 1 : 0;
+
+  // Auto-speak result
+  if (!pvState._resultSpoken) {
+    pvState._resultSpoken = true;
+    pvSpeak(isPass ? '太棒了！' : '继续加油！');
+  }
+
+  const dashLen = pct * 2.64;
+  let html = `<div class="pv-result">
+    <div style="font-size:3.5rem;margin-bottom:12px">${isPass ? '🎉' : '😊'}</div>
+    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.5rem;color:#1e1b4b;margin-bottom:4px">${isPass ? 'Xuất sắc! Qua buổi học! 🏆' : 'Cố lên! Thử lại nhé 💪'}</h2>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? 'Đạt 80% — mở khóa buổi tiếp theo!' : 'Cần ≥80% (8/10) để qua buổi.'}</p>
+    <svg viewBox="0 0 100 100" style="width:120px;height:120px;transform:rotate(-90deg)">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#fce7f3" stroke-width="10"/>
+      <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round"
+        stroke="${isPass ? '#22c55e' : session.color}" stroke-dasharray="${dashLen} 264"
+        style="transition:stroke-dasharray 1s ease"/>
+    </svg>
+    <div style="margin-top:-80px;display:flex;flex-direction:column;align-items:center">
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:2rem;color:#1e1b4b">${pct}%</div>
+      <div style="font-size:.82rem;color:#9ca3af;font-weight:600">${score}/${total}</div>
+    </div>
+    <div style="display:flex;gap:6px;font-size:1.8rem;margin-top:10px;margin-bottom:24px">
+      ${[1,2,3].map(i => `<span style="opacity:${i<=stars?1:.25};transform:${i<=stars?'scale(1.1)':'none'}">⭐</span>`).join('')}
+    </div>
+    <div class="pv-action-row">
+      <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvRetryQuiz()">🔄 Làm lại</button>
+      ${isPass ? `<button class="pv-action-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px ${session.color}44" onclick="pvNextSession()">Buổi tiếp →</button>` : ''}
+    </div>
+  </div>`;
+  return html;
+}
+
+/* ── Actions ── */
+function pvOpenSession(id) {
+  pvState.activeSession = id;
+  pvState.phase = 'intro';
+  pvState.flashIdx = 0;
+  pvState.flashFlipped = false;
+  pvState.flashDone = [];
+  pvState.gameRound = 0;
+  pvState.gameScore = 0;
+  pvState.gameStreak = 0;
+  pvState.gameChosen = null;
+  pvState.quizQIdx = 0;
+  pvState.quizScore = 0;
+  pvState.quizChosen = null;
+  pvState.quizAnswers = [];
+  pvState.quizQuestions = [];
+  pvState.speaking = false;
+  pvState._flashSpeakingTriggered = -1;
+  pvState._gameSpeakingTriggered = -1;
+  pvState._quizSpeakingTriggered = -1;
+  pvState._resultSpoken = false;
+  renderPinyinView();
+}
+
+function pvBackToList() {
+  pvState.activeSession = null;
+  pvState.phase = 'intro';
+  renderPinyinView();
+}
+
+function pvSetPhase(phase) {
+  pvState.phase = phase;
+  pvState._flashSpeakingTriggered = -1;
+  pvState._gameSpeakingTriggered = -1;
+  pvState._quizSpeakingTriggered = -1;
+  pvState._resultSpoken = false;
+  renderPinyinView();
+}
+
+function pvFlipCard() {
+  pvState.flashFlipped = !pvState.flashFlipped;
+  if (!pvState.flashFlipped) {
+    const session = PV_SESSIONS.find(s => s.id === pvState.activeSession);
+    if (session) pvTeacherSpeak(session.cards[pvState.flashIdx].hanzi);
+  }
+  renderPinyinView();
+}
+
+function pvTeacherSpeak(hanzi) {
+  pvState.speaking = true;
+  pvSpeak(hanzi, true);
+  setTimeout(() => { pvState.speaking = false; }, 2200);
+  // Re-render to update button state
+  setTimeout(() => renderPinyinView(), 2300);
+}
+
+function pvFlashNext() {
+  const session = PV_SESSIONS.find(s => s.id === pvState.activeSession);
+  if (!session) return;
+  const done = [...pvState.flashDone, pvState.flashIdx];
+  pvState.flashDone = done;
+  if (pvState.flashIdx < session.cards.length - 1) {
+    pvState.flashIdx = pvState.flashIdx + 1;
+    pvState.flashFlipped = false;
+  } else {
+    pvState.phase = 'game';
+  }
+  pvState._flashSpeakingTriggered = -1;
+  renderPinyinView();
+}
+
+function pvGamePick(i, correctIdx) {
+  if (pvState.gameChosen !== null) return;
+  pvState.gameChosen = i;
+  const session = PV_SESSIONS.find(s => s.id === pvState.activeSession);
+  const ROUNDS = Math.min(8, session.cards.length);
+  if (i === correctIdx) {
+    pvState.gameScore = pvState.gameScore + 1;
+    pvState.gameStreak = pvState.gameStreak + 1;
+  } else {
+    pvState.gameStreak = 0;
+  }
+  setTimeout(() => {
+    if (pvState.gameRound < ROUNDS - 1) {
+      pvState.gameRound = pvState.gameRound + 1;
+      pvState.gameChosen = null;
+    } else {
+      pvState.phase = 'quiz';
+    }
+    pvState._gameSpeakingTriggered = -1;
+    renderPinyinView();
+  }, 1000);
+}
+
+function pvQuizPick(i, correctIdx) {
+  if (pvState.quizChosen !== null) return;
+  pvState.quizChosen = i;
+  const ok = i === correctIdx;
+  if (ok) pvState.quizScore = pvState.quizScore + 1;
+  pvState.quizAnswers = [...pvState.quizAnswers, ok];
+  setTimeout(() => {
+    if (pvState.quizQIdx < pvState.quizQuestions.length - 1) {
+      pvState.quizQIdx = pvState.quizQIdx + 1;
+      pvState.quizChosen = null;
+    } else {
+      pvState.phase = 'result';
+      // Save progress
+      const sid = pvState.activeSession;
+      const p = pvState.progress[sid] || { stars:0, bestScore:0, unlocked:true };
+      const finalScore = ok ? pvState.quizScore : pvState.quizScore;
+      const newStars = finalScore >= 9 ? 3 : finalScore >= 8 ? 2 : finalScore >= 6 ? 1 : 0;
+      pvState.progress[sid] = {
+        stars: Math.max(p.stars || 0, newStars),
+        bestScore: Math.max(p.bestScore || 0, finalScore),
+        unlocked: true
+      };
+      // Unlock next session
+      const next = sid + 1;
+      if (next <= 10 && finalScore / 10 >= 0.8) {
+        pvState.progress[next] = pvState.progress[next] || { stars:0, bestScore:0, unlocked:true };
+        pvState.progress[next].unlocked = true;
+      }
+      pvSaveProgress(pvState.progress);
+    }
+    pvState._quizSpeakingTriggered = -1;
+    renderPinyinView();
+  }, 900);
+}
+
+function pvRetryQuiz() {
+  pvState.phase = 'quiz';
+  pvState.quizQIdx = 0;
+  pvState.quizScore = 0;
+  pvState.quizChosen = null;
+  pvState.quizAnswers = [];
+  pvState.quizQuestions = [];
+  pvState._quizSpeakingTriggered = -1;
+  pvState._resultSpoken = false;
+  renderPinyinView();
+}
+
+function pvNextSession() {
+  const sid = pvState.activeSession;
+  const next = sid + 1;
+  pvState.activeSession = null;
+  if (next <= 10 && pvState.progress[next] && pvState.progress[next].unlocked) {
+    pvOpenSession(next);
+  } else {
+    renderPinyinView();
+  }
+}
+
+/* Pulse animation for hint text */
+@keyframes pvPulse{0%,100%{opacity:.4}50%{opacity:1}}
+</script>
+
 </body>
 </html>
