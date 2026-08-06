@@ -968,8 +968,8 @@ span.pandahan-bold-hl{font-weight:800;}
     <div id="certContainer" style="margin-top:14px;"></div>
   </div>
 
-    <!-- CHAT TAB -->
-  <div class="dashboard-view" id="chatTab" style="display:none;">
+    <!-- REMOVED -->
+  <div class="dashboard-view" id="oldChatTab" style="display:none;">
     <h2 style="font-size:20px;font-weight:800;color:var(--pink);margin-bottom:16px;">💬 Trò chuyện trực tiếp Giáo viên - Học viên / Direct Messaging</h2>
     <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;height:550px;background:#fff;border-radius:16px;padding:16px;border:2px solid var(--border);">
       <div style="border-right:2px solid var(--border);padding-right:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
@@ -991,8 +991,8 @@ span.pandahan-bold-hl{font-weight:800;}
     </div>
   </div>
 
-  <!-- REMINDER TAB -->
-  <div class="dashboard-view" id="reminderTab" style="display:none;">
+  <!-- REMOVED -->
+  <div class="dashboard-view" id="oldRemTab" style="display:none;">
     <h2 style="font-size:20px;font-weight:800;color:var(--hsk2);margin-bottom:16px;">⏰ Nhắc nhở học tập & Thông báo Email / Study Reminders & Email Notifications</h2>
     <div style="background:#fff;border-radius:16px;padding:24px;border:2px solid var(--border);max-width:700px;display:flex;flex-direction:column;gap:18px;">
       <p style="font-size:13.5px;color:var(--text-light);line-height:1.6;">Cài đặt lịch nhắc nhở học tập hàng ngày và nhận thông báo trực tiếp qua Email khi có lịch học hoặc tin nhắn mới từ giáo viên.</p>
@@ -1021,9 +1021,35 @@ span.pandahan-bold-hl{font-weight:800;}
   </div>
 
   <div class="dashboard-view" id="teacherView" style="display:none;">
-    <h2 style="font-size:18px;">👩‍🏫 Bảng điều khiển Giáo viên / Teacher Dashboard</h2>
+    <h2 style="font-size:18px;margin-bottom:12px;">👩‍🏫 Bảng điều khiển Giáo viên & Nhắn tin trực tiếp / Teacher Dashboard & Direct Messaging</h2>
     <button id="openAddWordBtn" class="btn btn-hsk3" style="margin:6px 0 14px;display:none;">➕ Thêm từ vựng mới / Add new vocabulary</button>
-    <div id="teacherStudentList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    
+    <div style="margin-bottom:20px;">
+      <h3 style="font-size:14px;margin-bottom:8px;">👥 Danh sách học viên / Student List</h3>
+      <div id="teacherStudentList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <div style="margin-top:20px;border-top:2px solid var(--border);padding-top:16px;">
+      <h3 style="font-size:14px;margin-bottom:8px;">💬 Trò chuyện trực tiếp với học viên / Direct Chat</h3>
+      <div style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:480px;background:#fff;border-radius:16px;padding:16px;border:2px solid var(--border);">
+        <div style="border-right:2px solid var(--border);padding-right:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+          <h4 style="font-size:12.5px;color:var(--text-light);margin-bottom:4px;">Chọn học viên / Select student</h4>
+          <div id="chatContactList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;height:100%;">
+          <div id="chatBoxHeader" style="padding:8px 12px;background:var(--surface-2);border-radius:10px;font-weight:800;font-size:13px;margin-bottom:8px;">
+            <span id="activeChatTitle">Chọn học viên để bắt đầu nhắn tin</span>
+          </div>
+          <div id="chatMessagesArea" style="flex:1;overflow-y:auto;background:var(--surface-2);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+            <div style="text-align:center;color:var(--text-light);margin:auto;font-size:12.5px;">Chưa chọn cuộc trò chuyện nào.</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="chatMsgInput" placeholder="Nhập tin nhắn..." style="flex:1;padding:8px 12px;border-radius:18px;border:1.5px solid var(--border);outline:none;background:var(--surface);font-size:13px;" />
+            <button id="chatSendMsgBtn" style="background:var(--pink);color:#fff;border:none;border-radius:18px;padding:0 18px;font-weight:700;cursor:pointer;font-size:13px;">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="dashboard-view" id="addWordView" style="display:none;">
@@ -6128,12 +6154,9 @@ function pvNextSession() {
 }
 
 /* Pulse animation for hint text */
-</script>
 
-</body>
-</html>
 
-  /* ===================== CHAT & EMAIL NOTIFICATION SYSTEM ===================== */
+  /* ===================== INTEGRATED CHAT & AUTOMATIC EMAIL NOTIFICATIONS ===================== */
   let activeChatUserId = null;
   let activeChatId = null;
   let chatUnsubscribe = null;
@@ -6147,7 +6170,7 @@ function pvNextSession() {
     if (typeof USERS !== "undefined" && Array.isArray(USERS)) {
       contacts = USERS.filter(u => u.username !== (CURRENT_USER ? CURRENT_USER.username : ""));
     } else {
-      contacts = [{name: "Hệ thống / Giáo viên", username: "teacher1", role: "teacher", uid: "teacher_1"}];
+      contacts = [{name: "Học viên mẫu", username: "student1", role: "student", uid: "student_1"}];
     }
 
     if (contacts.length === 0) {
@@ -6157,11 +6180,11 @@ function pvNextSession() {
 
     contacts.forEach(u => {
       const div = document.createElement("div");
-      div.style.cssText = "padding:10px 12px;border-radius:10px;cursor:pointer;background:var(--surface);border:1px solid var(--border);transition:0.2s;display:flex;align-items:center;gap:8px;";
-      div.innerHTML = '<div style="width:32px;height:32px;border-radius:50%;background:var(--pink-light);color:var(--pink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
+      div.style.cssText = "padding:8px 10px;border-radius:8px;cursor:pointer;background:var(--surface);border:1px solid var(--border);transition:0.2s;display:flex;align-items:center;gap:8px;";
+      div.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:var(--pink-light);color:var(--pink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
         '<div>' +
-          '<div style="font-weight:700;font-size:13px;color:var(--card-text);">' + u.name + '</div>' +
-          '<div style="font-size:10.5px;color:var(--text-light);">' + (u.role === "teacher" || u.role === "master_teacher" ? "👩‍🏫 Giáo viên" : "🎓 Học viên") + '</div>' +
+          '<div style="font-weight:700;font-size:12.5px;color:var(--card-text);">' + u.name + '</div>' +
+          '<div style="font-size:10px;color:var(--text-light);">' + (u.role === "teacher" || u.role === "master_teacher" ? "👩‍🏫 Giáo viên" : "🎓 Học viên") + '</div>' +
         '</div>';
       div.onclick = () => openChatWith(u.uid || u.username, u.name);
       contactListEl.appendChild(div);
@@ -6206,9 +6229,9 @@ function pvNextSession() {
           const m = doc.data();
           const isMe = m.senderId === myUid;
           const bubble = document.createElement("div");
-          bubble.style.cssText = "max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.4;align-self:" + (isMe ? "flex-end" : "flex-start") + ";background:" + (isMe ? "var(--pink)" : "#fff") + ";color:" + (isMe ? "#fff" : "var(--card-text)") + ";border:" + (isMe ? "none" : "1.5px solid var(--border)") + ";";
+          bubble.style.cssText = "max-width:75%;padding:8px 12px;border-radius:12px;font-size:12.5px;line-height:1.4;align-self:" + (isMe ? "flex-end" : "flex-start") + ";background:" + (isMe ? "var(--pink)" : "#fff") + ";color:" + (isMe ? "#fff" : "var(--card-text)") + ";border:" + (isMe ? "none" : "1.5px solid var(--border)") + ";";
           const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Vừa xong";
-          bubble.innerHTML = '<div>' + escapeHtml(m.text || "") + '</div><div style="font-size:9.5px;opacity:0.7;margin-top:3px;text-align:right;">' + timeStr + '</div>';
+          bubble.innerHTML = '<div>' + escapeHtml(m.text || "") + '</div><div style="font-size:9px;opacity:0.7;margin-top:2px;text-align:right;">' + timeStr + '</div>';
           msgArea.appendChild(bubble);
         });
         msgArea.scrollTop = msgArea.scrollHeight;
@@ -6239,7 +6262,7 @@ function pvNextSession() {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           }, {merge: true});
 
-          triggerEmailNotification(activeChatUserId, "Bạn có tin nhắn mới từ " + (CURRENT_USER.name || "Thành viên"), text);
+          triggerAutomaticEmailNotification(activeChatUserId, "Bạn có tin nhắn mới từ " + (CURRENT_USER.name || "Thành viên"), text);
         } catch(e) {
           console.error("Send message error:", e);
           alert("Không thể gửi tin nhắn. Kiểm tra kết nối / Firestore Rules.");
@@ -6248,67 +6271,21 @@ function pvNextSession() {
       sendBtn.onclick = doSend;
       msgInput.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
     }
-
-    const saveRemBtn = document.getElementById("saveReminderSettingsBtn");
-    const testRemBtn = document.getElementById("testReminderBtn");
-    if (saveRemBtn) {
-      saveRemBtn.onclick = () => {
-        const email = document.getElementById("reminderEmailInput").value.trim();
-        const time = document.getElementById("reminderTimeInput").value;
-        const enabled = document.getElementById("emailNotifToggle").checked;
-        localStorage.setItem("panda_reminder_email", email);
-        localStorage.setItem("panda_reminder_time", time);
-        localStorage.setItem("panda_reminder_enabled", enabled ? "1" : "0");
-        
-        const statusEl = document.getElementById("reminderStatusMsg");
-        if (statusEl) {
-          statusEl.textContent = "✅ Đã lưu cài đặt nhắc nhở thành công!";
-          statusEl.style.display = "block";
-          setTimeout(() => statusEl.style.display = "none", 3000);
-        }
-      };
-    }
-
-    if (testRemBtn) {
-      testRemBtn.onclick = () => {
-        if (Notification.permission !== "granted") {
-          Notification.requestPermission();
-        }
-        new Notification("⏰ Nhắc nhở học tập PandaHán", {
-          body: "Đã đến giờ ôn tập HSK hôm hôm nay! Hãy vào ứng dụng để duy trì chuỗi học tập nhé.",
-          icon: "icon-192.png"
-        });
-        const email = document.getElementById("reminderEmailInput").value.trim() || (CURRENT_USER ? CURRENT_USER.email : "");
-        triggerEmailNotification(email, "⏰ Nhắc nhở học tập hàng ngày từ PandaHán Pro", "Đã đến giờ ôn tập từ vựng HSK! Chúc bạn học tốt và đạt kết quả cao.");
-        alert("🔔 Đã kích hoạt thông báo nhắc nhở mẫu thành công!");
-      };
-    }
-
-    if (localStorage.getItem("panda_reminder_email")) {
-      const emailEl = document.getElementById("reminderEmailInput");
-      if (emailEl) emailEl.value = localStorage.getItem("panda_reminder_email");
-    } else if (typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.email) {
-      const emailEl = document.getElementById("reminderEmailInput");
-      if (emailEl) emailEl.value = CURRENT_USER.email;
-    }
-    if (localStorage.getItem("panda_reminder_time")) {
-      const timeEl = document.getElementById("reminderTimeInput");
-      if (timeEl) timeEl.value = localStorage.getItem("panda_reminder_time");
-    }
   });
 
-  function triggerEmailNotification(targetUserOrEmail, subject, bodyText) {
-    console.log("[Email Notification Logged]", {targetUserOrEmail, subject, bodyText});
+  function triggerAutomaticEmailNotification(targetUserId, subject, bodyText) {
+    console.log("[Auto Email Notification Triggered]", {targetUserId, subject, bodyText});
     try {
       db.collection("notifications").add({
-        userId: targetUserOrEmail,
+        userId: targetUserId,
         subject: subject,
         body: bodyText,
         sent: false,
+        type: "email_alert",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     } catch(e) {
-      console.error("Error logging notification:", e);
+      console.error("Error triggering automatic email notification:", e);
     }
   }
 
@@ -6316,23 +6293,13 @@ function pvNextSession() {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
-  const originalSwitchTab = window.switchTab || function(){};
-  window.switchTab = function(name) {
-    if (typeof originalSwitchTab === "function") originalSwitchTab(name);
-    if (name === "chat") {
-      const chatEl = document.getElementById("chatTab");
-      if (chatEl) {
-        chatEl.style.display = "block";
-        chatEl.classList.add("visible");
-        initChatSystem();
-      }
-    } else if (name === "reminder") {
-      const remEl = document.getElementById("reminderTab");
-      if (remEl) {
-        remEl.style.display = "block";
-        remEl.classList.add("visible");
-      }
-    }
+  const originalRenderTeacherDashboard = window.renderTeacherDashboard || function(){};
+  window.renderTeacherDashboard = function() {
+    if (typeof originalRenderTeacherDashboard === "function") originalRenderTeacherDashboard();
+    initChatSystem();
   };
+
 </script>
+
 </body>
+</html>
