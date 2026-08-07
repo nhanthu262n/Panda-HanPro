@@ -138,6 +138,8 @@ body{font-family:var(--font);background:var(--body-bg);background-attachment:fix
 [data-theme="dark"] #sidebarUserName ~ div,[data-theme="dark"] .nav-tabs div[style*="color:#a78bfa"]{color:#c9a8f0 !important;}
 [data-theme="dark"] .nav-tabs div[style*="color:#1e1b4b"],[data-theme="dark"] .nav-tabs div[style*="color: #1e1b4b"]{color:#f1f0f7 !important;}
 [data-theme="dark"] .nav-tabs div[style*="color:#9ca3af"]{color:#a8a2c0 !important;}
+.notif-dot{position:absolute;top:10px;right:10px;width:8px;height:8px;background:#ef4444;border-radius:50%;display:none;box-shadow:0 0 0 rgba(239,68,68,0.7);animation:notifPulse 1.5s infinite;}
+@keyframes notifPulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.7);}70%{box-shadow:0 0 0 6px rgba(239,68,68,0);}100%{box-shadow:0 0 0 0 rgba(239,68,68,0);}}
 .hs-hsk1{background:var(--hsk1-light);color:var(--hsk1);}
 .hs-hsk2{background:var(--hsk2-light);color:var(--hsk2);}
 .hs-hsk3{background:var(--hsk3-light);color:var(--hsk3);}
@@ -744,7 +746,7 @@ span.pandahan-bold-hl{font-weight:800;}
     <button data-tab="practice">✍️ Luyện tập<span class="en">Practice</span></button>
     <button data-tab="dashboard">📊 Tiến độ<span class="en">Progress &amp; Rubric</span></button>
     <button data-tab="pinyin">🎵 Ngữ âm<span class="en">Phonics</span></button>
-        <button data-tab="chat">💬 Nhắn tin<span class="en">Messages</span></button>
+        <button data-tab="chat" style="position:relative;">💬 Nhắn tin<span class="en">Messages</span><span class="notif-dot" id="chatNotifDot"></span></button>
     <button data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Giáo viên<span class="en">Teacher</span></button>
 
     <div style="flex:1;"></div>
@@ -4144,8 +4146,12 @@ function renderMergedHistory() {
 }
 
 /* ===================== TAB / SCREEN NAVIGATION ===================== */
-function switchTab(tab) {
+  function switchTab(tab) {
   document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  if (tab === "chat") {
+    const dot = document.getElementById("chatNotifDot");
+    if (dot) dot.style.display = "none";
+  }
   showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "chat" ? "chat" : tab === "pinyin" ? "pinyin" : "dashboard");
 }
 function showScreen(name) {
@@ -4643,6 +4649,7 @@ function completeLogin(user) {
   if (USER_ROLE === "teacher" || USER_ROLE === "master_teacher") switchTab("teacher"); else switchTab("browse");
   if (typeof checkStreakWarning === "function") checkStreakWarning();
   if (typeof updateNotifBell === "function") updateNotifBell();
+  if (typeof startGlobalChatListener === "function") startGlobalChatListener();
   // Sync data lên cloud sau khi login (1s delay để đợi loadData hoàn tất)
   setTimeout(() => { if (typeof syncDataNow === "function") syncDataNow(); }, 1000);
 }
@@ -4694,6 +4701,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (appEl) appEl.style.display = "block";
     applyRoleUI();
     startSessionTracking();
+    if (typeof startGlobalChatListener === "function") startGlobalChatListener();
   } else {
     // Ẩn app cho đến khi auth xác nhận (tối đa 5s)
     if (appEl) appEl.style.display = "none";
@@ -6110,6 +6118,28 @@ function pvNextSession() {
   let activeChatUserId = null;
   let activeChatId = null;
   let chatUnsubscribe = null;
+  let globalChatUnsubscribe = null;
+
+  function startGlobalChatListener() {
+    if (!CURRENT_USER || typeof db === "undefined") return;
+    const myUid = CURRENT_USER.uid || CURRENT_USER.username;
+    if (globalChatUnsubscribe) globalChatUnsubscribe();
+
+    globalChatUnsubscribe = db.collection("chats")
+      .where("participants", "array-contains", myUid)
+      .onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === "modified" || change.type === "added") {
+            const data = change.doc.data();
+            const isChatTabActive = document.querySelector('.nav-tabs button[data-tab="chat"]').classList.contains('active');
+            if (data.lastSenderId && data.lastSenderId !== myUid && !isChatTabActive) {
+              const dot = document.getElementById("chatNotifDot");
+              if (dot) dot.style.display = "block";
+            }
+          }
+        });
+      });
+  }
 
   async function initChatSystem() {
     const contactListEl = document.getElementById("chatContactList");
@@ -6118,13 +6148,22 @@ function pvNextSession() {
 
     let contacts = [];
     try {
+      const myUid = CURRENT_USER ? (CURRENT_USER.uid || CURRENT_USER.username) : "";
       if (typeof db !== "undefined") {
         const snap = await db.collection("users").get();
-        contacts = snap.docs.map(doc => doc.data()).filter(u => u.uid !== (CURRENT_USER ? CURRENT_USER.uid : ""));
-      } else if (typeof USERS !== "undefined" && Array.isArray(USERS)) {
-        contacts = USERS.filter(u => u.username !== (CURRENT_USER ? CURRENT_USER.username : ""));
-      } else {
-        contacts = [{name: "Học viên mẫu", username: "student1", role: "student", uid: "student_1"}];
+        contacts = snap.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, uid: data.uid || data.username || doc.id };
+        }).filter(u => u.uid !== myUid);
+      } 
+      
+      // Fallback to DEMO_USERS if Firestore is empty or fails
+      if (contacts.length === 0 && typeof DEMO_USERS !== "undefined") {
+        contacts = DEMO_USERS.filter(u => (u.uid || u.username) !== myUid);
+      }
+      
+      if (contacts.length === 0 && typeof USERS !== "undefined" && Array.isArray(USERS)) {
+        contacts = USERS.filter(u => (u.uid || u.username) !== myUid);
       }
     } catch (e) {
       console.error("initChatSystem error:", e);
@@ -6139,12 +6178,15 @@ function pvNextSession() {
     contacts.forEach(u => {
       const div = document.createElement("div");
       div.style.cssText = "padding:8px 10px;border-radius:8px;cursor:pointer;background:var(--surface);border:1px solid var(--border);transition:0.2s;display:flex;align-items:center;gap:8px;";
+      const roleLabel = (u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 Giáo viên" : "🎓 Học viên";
+      const roleColor = (u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)";
+      
       div.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:var(--pink-light);color:var(--pink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
         '<div>' +
-          '<div style="font-weight:700;font-size:12.5px;color:var(--card-text);">' + u.name + '</div>' +
-          '<div style="font-size:10px;color:var(--text-light);">' + (u.role === "teacher" || u.role === "master_teacher" ? "👩‍🏫 Giáo viên" : "🎓 Học viên") + '</div>' +
+          '<div style="font-weight:700;font-size:12.5px;color:var(--card-text);">' + (u.name || u.username) + '</div>' +
+          '<div style="font-size:10px;color:' + roleColor + ';font-weight:600;">' + roleLabel + '</div>' +
         '</div>';
-      div.onclick = () => openChatWith(u.uid || u.username, u.name);
+      div.onclick = () => openChatWith(u.uid || u.username, u.name || u.username);
       contactListEl.appendChild(div);
     });
   }
@@ -6217,6 +6259,7 @@ function pvNextSession() {
           });
           await db.collection("chats").doc(activeChatId).set({
             lastMessage: text,
+            lastSenderId: myUid,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           }, {merge: true});
 
