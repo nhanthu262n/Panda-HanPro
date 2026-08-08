@@ -333,6 +333,8 @@ body{padding-left:216px;}
 .btn-hsk2{background:var(--hsk2);color:#fff;}
 .btn-pink{background:var(--pink);color:#fff;}
 .btn-hsk1{background:var(--hsk1);color:#fff;}
+.btn.wrong{background:#fce4e4 !important;border-color:#e74c3c !important;color:#e74c3c !important;animation:btnWrongShake .3s;}
+@keyframes btnWrongShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
 .btn-hsk3{background:var(--hsk3);color:#fff;}
 .btn-outline{background:#fff;color:var(--hsk2);border:2px solid var(--hsk2);}
 .btn-outline:hover{background:var(--hsk2-light);}
@@ -3349,11 +3351,13 @@ function startReviewForWord(char) {
 function startReviewSession() {
   // Most-overdue-first: with a daily cap, we want the words at real risk of
   // being forgotten to always make the cut, not lose out to a random shuffle.
+  // Only review words the student has already learned before (repetitions > 0
+  // via isDue). Never pull in fresh/unstudied (tier 0) words here — "Ôn tập"
+  // must only cover previously learned vocabulary, not introduce new ones.
   let due = VOCAB.filter(w => isDue(w.char))
     .sort((a, b) => getStat(a.char).nextReview - getStat(b.char).nextReview)
     .map(w => w.char);
-  let fresh = shuffle(VOCAB.filter(w => getTier(w.char) === 0)).map(w => w.char);
-  let queue = due.concat(fresh).slice(0, 20); // daily review cap — keeps sessions manageable, avoids pile-up burnout
+  let queue = due.slice(0, 20); // daily review cap — keeps sessions manageable, avoids pile-up burnout
   if (!queue.length) { alert("🎉 Không có từ nào cần ôn lúc này! / Nothing due right now!"); return; }
   hideStudyReminder();
   playReminderAudio().catch(() => {});
@@ -4867,6 +4871,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const filter = document.getElementById("practiceHskFilter");
     if (typeof startQuizLevel === "function") startQuizLevel(filter ? filter.value : "all");
   });
+  safeAdd("pCardUnscramble", "click", () => {
+    const filter = document.getElementById("practiceHskFilter");
+    if (typeof startUnscrambleLevel === "function") startUnscrambleLevel(filter ? filter.value : "all");
+  });
   safeAdd("pCardMatch", "click", () => { if (typeof startMatchGame === "function") startMatchGame(); });
   safeAdd("pCardWrite", "click", () => { if (typeof startWriteGame === "function") startWriteGame(); });
   safeAdd("uAudioBtn", "click", (e) => { if (typeof speak === "function") speak(e.target.dataset.speak); });
@@ -6170,8 +6178,24 @@ function pvNextSession() {
     }
 
     contactListEl.innerHTML = "";
+
+    // ─── Broadcast entry: teachers can send one message to ALL students at
+    // once; everyone (teacher + students) can open it to read the history. ───
+    const bDiv = document.createElement("div");
+    bDiv.style.cssText = "padding:8px 10px;border-radius:8px;cursor:pointer;background:linear-gradient(135deg,#fbcfe8,#f472b6);border:1px solid var(--pink);transition:0.2s;display:flex;align-items:center;gap:8px;margin-bottom:6px;";
+    bDiv.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:15px;">📢</div>' +
+      '<div>' +
+        '<div style="font-weight:800;font-size:12.5px;color:#fff;">Thông báo chung</div>' +
+        '<div style="font-size:10px;color:#fff;opacity:.9;font-weight:600;">Gửi cho tất cả học viên / Broadcast to all</div>' +
+      '</div>';
+    bDiv.onclick = () => openBroadcastChat();
+    contactListEl.appendChild(bDiv);
+
     if (contacts.length === 0) {
-      contactListEl.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px;">Chưa có liên hệ nào.</div>';
+      const empty = document.createElement("div");
+      empty.style.cssText = "font-size:12px;color:var(--text-light);padding:8px;";
+      empty.textContent = "Chưa có liên hệ nào.";
+      contactListEl.appendChild(empty);
       return;
     }
 
@@ -6195,6 +6219,62 @@ function pvNextSession() {
     return [uid1, uid2].sort().join("_");
   }
 
+  const BROADCAST_CHAT_ID = "__BROADCAST__";
+
+  function isTeacherRole() {
+    return USER_ROLE === "teacher" || USER_ROLE === "master_teacher";
+  }
+
+  async function openBroadcastChat() {
+    if (!CURRENT_USER) return;
+    activeChatUserId = null;
+    activeChatId = BROADCAST_CHAT_ID;
+
+    const titleEl = document.getElementById("activeChatTitle");
+    if (titleEl) titleEl.textContent = "📢 Thông báo chung / Broadcast to all students";
+
+    // Only teachers/master teachers may type & send a broadcast; students can
+    // only read the history.
+    const msgInput = document.getElementById("chatMsgInput");
+    const sendBtn = document.getElementById("chatSendMsgBtn");
+    if (msgInput) {
+      msgInput.disabled = !isTeacherRole();
+      msgInput.placeholder = isTeacherRole()
+        ? "Nhập thông báo gửi cho tất cả học viên... / Type an announcement for all students..."
+        : "Chỉ giáo viên mới có thể gửi thông báo chung / Only teachers can send broadcasts";
+    }
+    if (sendBtn) sendBtn.disabled = !isTeacherRole();
+
+    if (chatUnsubscribe) chatUnsubscribe();
+
+    const msgArea = document.getElementById("chatMessagesArea");
+    if (msgArea) msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;">Đang tải thông báo...</div>';
+
+    try {
+      chatUnsubscribe = db.collection("broadcasts").orderBy("createdAt", "asc").limit(100).onSnapshot(snapshot => {
+        msgArea.innerHTML = "";
+        if (snapshot.empty) {
+          msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">Chưa có thông báo nào.</div>';
+          return;
+        }
+        const myUid = CURRENT_USER.uid || CURRENT_USER.username;
+        snapshot.forEach(doc => {
+          const m = doc.data();
+          const isMe = m.senderId === myUid;
+          const bubble = document.createElement("div");
+          bubble.style.cssText = "max-width:85%;padding:8px 12px;border-radius:12px;font-size:12.5px;line-height:1.4;align-self:" + (isMe ? "flex-end" : "flex-start") + ";background:" + (isMe ? "var(--pink)" : "#fff") + ";color:" + (isMe ? "#fff" : "var(--card-text)") + ";border:" + (isMe ? "none" : "1.5px solid var(--border)") + ";";
+          const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Vừa xong";
+          bubble.innerHTML = '<div style="font-size:9.5px;font-weight:800;opacity:0.75;margin-bottom:2px;">📢 ' + escapeHtml(m.senderName || "Giáo viên") + '</div><div>' + escapeHtml(m.text || "") + '</div><div style="font-size:9px;opacity:0.7;margin-top:2px;text-align:right;">' + timeStr + '</div>';
+          msgArea.appendChild(bubble);
+        });
+        msgArea.scrollTop = msgArea.scrollHeight;
+      });
+    } catch(e) {
+      console.error("Broadcast error:", e);
+      if (msgArea) msgArea.innerHTML = '<div style="color:red;font-size:12px;text-align:center;">Lỗi tải thông báo (Kiểm tra Firestore Rules).</div>';
+    }
+  }
+
   async function openChatWith(otherUid, otherName) {
     if (!CURRENT_USER) return;
     activeChatUserId = otherUid;
@@ -6203,6 +6283,12 @@ function pvNextSession() {
     
     const titleEl = document.getElementById("activeChatTitle");
     if (titleEl) titleEl.textContent = "Đang chat với: " + otherName;
+
+    // Reset input/send state in case it was left disabled by the broadcast view
+    const msgInputEl = document.getElementById("chatMsgInput");
+    const sendBtnEl = document.getElementById("chatSendMsgBtn");
+    if (msgInputEl) { msgInputEl.disabled = false; msgInputEl.placeholder = "Nhập tin nhắn... / Type a message..."; }
+    if (sendBtnEl) sendBtnEl.disabled = false;
 
     if (chatUnsubscribe) chatUnsubscribe();
 
@@ -6250,6 +6336,26 @@ function pvNextSession() {
         const text = msgInput.value.trim();
         if (!text || !activeChatId || !CURRENT_USER) return;
         const myUid = CURRENT_USER.uid || CURRENT_USER.username;
+
+        // Broadcast mode: teacher sends one message that every student can read,
+        // instead of writing into a single 1-1 chat thread.
+        if (activeChatId === BROADCAST_CHAT_ID) {
+          if (!isTeacherRole()) return;
+          msgInput.value = "";
+          try {
+            await db.collection("broadcasts").add({
+              senderId: myUid,
+              senderName: CURRENT_USER.name || CURRENT_USER.username || "Giáo viên",
+              text: text,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } catch(e) {
+            console.error("Send broadcast error:", e);
+            alert("Không thể gửi thông báo. Kiểm tra kết nối / Firestore Rules.");
+          }
+          return;
+        }
+
         msgInput.value = "";
         try {
           await db.collection("chats").doc(activeChatId).collection("messages").add({
