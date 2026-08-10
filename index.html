@@ -6299,7 +6299,7 @@ function pvNextSession() {
       })
     });
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Upload lên Google Drive thất bại.");
+    if (!data.success) throw new Error((data.error || "Upload lên Google Drive thất bại.") + (data.debugStack ? ("\n\n[DEBUG]\n" + data.debugStack) : ""));
 
     return {
       fileUrl: isImage ? data.viewUrl : data.previewUrl,
