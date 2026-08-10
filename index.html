@@ -482,7 +482,7 @@ body{padding-left:216px;}
 
 /* ═══ Messenger/Zalo-style direct messaging (Nhắn tin tab) ═══ */
 .chat-wrap{display:grid;grid-template-columns:280px 1fr;gap:0;height:min(640px,75vh);background:var(--surface);border-radius:16px;border:2px solid var(--border);overflow:hidden;position:relative;}
-.chat-sidebar{border-right:2px solid var(--border);padding:14px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;background:var(--surface-2);}
+.chat-sidebar{border-right:2px solid var(--border);padding:14px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;background:var(--surface-2);min-height:0;}
 .chat-sidebar h4{font-size:11.5px;color:var(--text-light);margin:2px 4px 4px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;}
 .chat-contact{padding:9px 10px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.15s;border:1.5px solid transparent;}
 .chat-contact:hover{background:var(--pink-light);}
@@ -491,10 +491,10 @@ body{padding-left:216px;}
 .chat-contact .cc-meta{min-width:0;flex:1;}
 .chat-contact .cc-name{font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chat-contact .cc-role{font-size:10.5px;font-weight:600;}
-.chat-main{display:flex;flex-direction:column;height:100%;min-width:0;background:var(--surface);}
+.chat-main{display:flex;flex-direction:column;height:100%;min-width:0;min-height:0;background:var(--surface);}
 .chat-header2{padding:12px 16px;background:var(--surface);border-bottom:2px solid var(--border);font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text);flex:none;}
 .chat-header2 .back-btn{display:none;background:none;border:none;font-size:19px;cursor:pointer;color:var(--pink);padding:0 2px 0 0;line-height:1;}
-.chat-messages2{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:3px;background:var(--surface-2);}
+.chat-messages2{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:3px;background:var(--surface-2);min-height:0;}
 .chat-msg-row{display:flex;margin:3px 0;max-width:100%;}
 .chat-msg-row.me{justify-content:flex-end;}
 .chat-msg-row.them{justify-content:flex-start;}
@@ -3768,6 +3768,7 @@ function getSessions() {
    is beyond what they've actually been taught. ═══ */
 let chatHistory = [];
 let currentChatTopicId = 0; // 0 = free conversation, no fixed topic
+let dialogueStepIndex = 0; // tracks progress through the current topic's scripted dialogue
 function populateChatTopicSelect() {
   const sel = document.getElementById("chatTopicSelect");
   if (!sel) return;
@@ -3782,12 +3783,19 @@ function onChatTopicChange() {
   currentChatTopicId = Number(document.getElementById("chatTopicSelect").value);
   const topic = getCurrentTopic();
   chatHistory = []; // start a fresh guided session for the chosen topic
+  dialogueStepIndex = 0;
   if (topic) {
     chatHistory.push({
       role: "bot",
       zh: `我们练习「${topic.title_zh}」吧！`,
       vi: `Cùng luyện chủ đề "${topic.title_vi}" nhé! Mục tiêu: ${topic.goals[0] || ""}`,
+      en: `Let's practice the topic "${topic.title_vi}"! Goal: ${topic.goals[0] || ""}`,
     });
+    // Kick off with the first line of the topic's real sample dialogue, so
+    // the practice conversation follows a genuine, coherent script instead
+    // of a random unrelated sentence.
+    const firstLine = pickLocalChatReply("");
+    if (firstLine) chatHistory.push({ role: "bot", zh: firstLine.zh, vi: firstLine.vi, en: firstLine.en });
   }
   renderChatMessages();
   saveChatHistory();
@@ -3881,6 +3889,12 @@ async function sendChatMessage() {
 }
 
 // ── Free, local reply picker (no AI / no API key needed) ──────────────────
+// Instead of picking a random unrelated sentence each turn (which felt like
+// spam, not a real conversation), the bot now walks through the selected
+// topic's own curated sample dialogue IN ORDER — a coherent, real exchange
+// — advancing one line per student turn. In free-chat mode (no topic
+// picked) it just handles greetings and nudges the student toward picking
+// a topic, since genuine open-domain understanding needs real AI.
 const CHAT_GREETING_REPLIES = [
   { zh: "你好！很高兴认识你。", vi: "Xin chào! Rất vui được quen bạn.", en: "Hello! Nice to meet you." },
   { zh: "你好！我们开始聊天吧。", vi: "Xin chào! Chúng ta bắt đầu trò chuyện nhé.", en: "Hi! Let's start chatting." },
@@ -3888,27 +3902,41 @@ const CHAT_GREETING_REPLIES = [
 function isGreetingText(t) {
   return /你好|嗨|hello|hi\b|chào|xin chào/i.test(t);
 }
-let lastLocalReplyZh = "";
 function pickLocalChatReply(userText) {
-  if (isGreetingText(userText) && chatHistory.length <= 2) {
+  const topic = getCurrentTopic();
+  if (topic && topic.dialogue && topic.dialogue.length) {
+    if (dialogueStepIndex < topic.dialogue.length) {
+      const rawLine = topic.dialogue[dialogueStepIndex];
+      dialogueStepIndex++;
+      const zh = rawLine.replace(/^[AB]:\s*/, "").trim();
+      // Try to find the matching translation from this topic's own curated
+      // sentence list (reusing real, human-written translations) rather
+      // than guessing.
+      const match = (topic.sentences || []).find(s => s.zh === zh);
+      return {
+        zh,
+        vi: match ? match.vi : "",
+        en: match ? match.en : "",
+      };
+    }
+    // Reached the end of the scripted dialogue for this topic.
+    return {
+      zh: "我们练习完这段对话了！你可以换一个话题继续练习。",
+      vi: "Chúng ta đã luyện xong đoạn hội thoại mẫu của chủ đề này rồi! Bạn có thể chọn chủ đề khác ở trên để tiếp tục luyện nhé.",
+      en: "We've finished practicing this dialogue! Pick another topic above to keep practicing.",
+    };
+  }
+  // Free-chat mode (no topic selected): only handle simple greetings —
+  // anything else gets nudged toward picking a topic, since without a real
+  // AI backend the bot can't genuinely understand open-ended input.
+  if (!userText || isGreetingText(userText)) {
     return CHAT_GREETING_REPLIES[Math.floor(Math.random() * CHAT_GREETING_REPLIES.length)];
   }
-  const topic = getCurrentTopic();
-  let pool = [];
-  if (topic && topic.sentences && topic.sentences.length) {
-    pool = topic.sentences; // stick to the chosen topic's own example sentences
-  } else {
-    // Free conversation: mix in sentences from a few random topics for variety.
-    const shuffled = shuffle(HSK3_TOPICS).slice(0, 4);
-    shuffled.forEach(t => { if (t.sentences) pool = pool.concat(t.sentences); });
-  }
-  if (!pool.length) return CHAT_GREETING_REPLIES[0];
-  // Avoid repeating the exact same line twice back-to-back.
-  let candidates = pool.filter(p => p.zh !== lastLocalReplyZh);
-  if (!candidates.length) candidates = pool;
-  const pick = candidates[Math.floor(Math.random() * candidates.length)];
-  lastLocalReplyZh = pick.zh;
-  return { zh: pick.zh, vi: pick.vi, en: pick.en };
+  return {
+    zh: "这是自由聊天，建议你先选一个话题，我们可以练习真正的对话！",
+    vi: "Đây là chế độ trò chuyện tự do — gợi ý bạn chọn 1 chủ đề ở ô phía trên để luyện đúng theo mạch hội thoại thật nhé!",
+    en: "This is free-chat mode — try picking a topic in the dropdown above so we can practice a real, structured conversation!",
+  };
 }
 
 /* ---------- Streak milestone badges + panda "level-up" + Treasure Review ---------- */
