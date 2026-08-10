@@ -479,6 +479,51 @@ body{padding-left:216px;}
 .bento-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:14px 0;align-items:start;}
 .bento-wide{grid-column:1/-1;}
 @media (max-width:720px){.bento-grid{grid-template-columns:1fr;}}
+
+/* ═══ Messenger/Zalo-style direct messaging (Nhắn tin tab) ═══ */
+.chat-wrap{display:grid;grid-template-columns:280px 1fr;gap:0;height:min(640px,75vh);background:var(--surface);border-radius:16px;border:2px solid var(--border);overflow:hidden;position:relative;}
+.chat-sidebar{border-right:2px solid var(--border);padding:14px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;background:var(--surface-2);}
+.chat-sidebar h4{font-size:11.5px;color:var(--text-light);margin:2px 4px 4px;text-transform:uppercase;letter-spacing:.5px;font-weight:800;}
+.chat-contact{padding:9px 10px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:.15s;border:1.5px solid transparent;}
+.chat-contact:hover{background:var(--pink-light);}
+.chat-contact.active{background:var(--pink-light);border-color:var(--pink);}
+.chat-contact .cc-avatar{width:36px;height:36px;border-radius:50%;background:var(--pink-light);color:var(--pink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none;}
+.chat-contact .cc-meta{min-width:0;flex:1;}
+.chat-contact .cc-name{font-weight:700;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-contact .cc-role{font-size:10.5px;font-weight:600;}
+.chat-main{display:flex;flex-direction:column;height:100%;min-width:0;background:var(--surface);}
+.chat-header2{padding:12px 16px;background:var(--surface);border-bottom:2px solid var(--border);font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text);flex:none;}
+.chat-header2 .back-btn{display:none;background:none;border:none;font-size:19px;cursor:pointer;color:var(--pink);padding:0 2px 0 0;line-height:1;}
+.chat-messages2{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:3px;background:var(--surface-2);}
+.chat-msg-row{display:flex;margin:3px 0;max-width:100%;}
+.chat-msg-row.me{justify-content:flex-end;}
+.chat-msg-row.them{justify-content:flex-start;}
+.chat-bubble2{max-width:72%;padding:9px 13px;border-radius:18px;font-size:13.5px;line-height:1.42;word-wrap:break-word;}
+.chat-msg-row.me .chat-bubble2{background:linear-gradient(135deg,var(--pink),#ec6ea8);color:#fff;border-bottom-right-radius:5px;}
+.chat-msg-row.them .chat-bubble2{background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-bottom-left-radius:5px;}
+.chat-msg-row.broadcast .chat-bubble2{background:linear-gradient(135deg,#fbcfe8,#f9a8d4);color:#831843;border:1.5px solid #f472b6;}
+.chat-bubble2 img.chat-img{max-width:200px;max-height:200px;border-radius:12px;display:block;cursor:pointer;}
+.chat-bubble2 .chat-file-card{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.07);border-radius:10px;padding:8px 10px;text-decoration:none;color:inherit;font-weight:700;font-size:12.5px;}
+.chat-msg-row.me .chat-bubble2 .chat-file-card{background:rgba(255,255,255,0.22);}
+.chat-dl-link{display:inline-block;font-size:10px;font-weight:700;opacity:0.8;margin-top:3px;color:inherit;text-decoration:underline;}
+.chat-msg-time{font-size:9.5px;opacity:.65;margin-top:2px;text-align:right;}
+.chat-input-bar{display:flex;gap:8px;padding:12px 14px;background:var(--surface);border-top:2px solid var(--border);align-items:center;flex:none;}
+.chat-input-bar input[type="text"]{flex:1;padding:10px 16px;border-radius:22px;border:1.5px solid var(--border);outline:none;background:var(--surface-2);color:var(--text);font-size:13.5px;}
+.chat-input-bar input[type="text"]:focus{border-color:var(--pink);}
+.chat-attach-btn2{background:var(--surface-2);color:var(--pink);border:1.5px solid var(--pink-light);border-radius:50%;width:40px;height:40px;flex:none;cursor:pointer;font-size:17px;}
+.chat-send-btn2{background:linear-gradient(135deg,var(--pink),#ec6ea8);color:#fff;border:none;border-radius:50%;width:40px;height:40px;flex:none;cursor:pointer;font-size:16px;transition:.15s;}
+.chat-send-btn2:hover:not(:disabled){transform:scale(1.07);}
+.chat-send-btn2:disabled{opacity:.5;cursor:default;}
+.chat-broadcast-btn{background:linear-gradient(135deg,#fbcfe8,#f472b6);color:#fff;border:none;border-radius:10px;padding:9px 10px;font-weight:800;font-size:11.5px;cursor:pointer;margin-bottom:8px;line-height:1.3;text-align:left;}
+@media (max-width:720px){
+  .chat-wrap{grid-template-columns:1fr;height:calc(100vh - 200px);min-height:420px;}
+  .chat-sidebar{position:absolute;inset:0;z-index:2;transition:transform .25s ease;}
+  .chat-wrap.chat-open .chat-sidebar{transform:translateX(-101%);}
+  .chat-main{position:absolute;inset:0;transform:translateX(101%);transition:transform .25s ease;}
+  .chat-wrap.chat-open .chat-main{transform:translateX(0);}
+  .chat-header2 .back-btn{display:inline-block;}
+  .chat-bubble2{max-width:85%;}
+}
 .cert-mini{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fafcfe;border:2px solid var(--hsk2-light);border-radius:12px;padding:10px 14px;cursor:pointer;}
 .cert-mini:hover{background:var(--hsk2-light);}
 
@@ -973,27 +1018,29 @@ span.pandahan-bold-hl{font-weight:800;}
 
   <div class="dashboard-view" id="chatView" style="display:none;">
     <h2 style="font-size:20px;font-weight:800;color:var(--pink);margin-bottom:16px;">💬 Trò chuyện trực tiếp Giáo viên - Học viên / Direct Messaging</h2>
-    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;height:550px;background:#fff;border-radius:16px;padding:16px;border:2px solid var(--border);">
-      <div style="border-right:2px solid var(--border);padding-right:12px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
-        <h4 style="font-size:13px;color:var(--text-light);margin-bottom:6px;">Danh sách liên hệ / Contacts</h4>
-        <button id="chatBroadcastBtn" type="button" style="display:none;background:linear-gradient(135deg,#fbcfe8,#f472b6);color:#fff;border:none;border-radius:10px;padding:8px 10px;font-weight:800;font-size:11.5px;cursor:pointer;margin-bottom:8px;line-height:1.3;text-align:left;">📢 Gửi thông báo cho tất cả học viên<br><span style="font-weight:600;font-size:9.5px;opacity:.9;">Broadcast to all students</span></button>
-        <div id="chatContactList" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <div class="chat-wrap" id="chatWrap">
+      <div class="chat-sidebar">
+        <h4>Danh sách liên hệ / Contacts</h4>
+        <button id="chatBroadcastBtn" type="button" class="chat-broadcast-btn" style="display:none;">📢 Gửi thông báo cho tất cả học viên<br><span style="font-weight:600;font-size:9.5px;opacity:.9;">Broadcast to all students</span></button>
+        <div id="chatContactList" style="display:flex;flex-direction:column;gap:4px;"></div>
       </div>
-      <div style="display:flex;flex-direction:column;height:100%;">
-        <div id="chatBoxHeader" style="padding:10px 14px;background:var(--surface-2);border-radius:12px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+      <div class="chat-main">
+        <div class="chat-header2" id="chatBoxHeader">
+          <button class="back-btn" id="chatBackBtn" type="button" title="Quay lại danh sách / Back">←</button>
           <span id="activeChatTitle">Chọn một liên hệ để bắt đầu trò chuyện / Select a contact to chat</span>
         </div>
-        <div id="chatMessagesArea" style="flex:1;overflow-y:auto;background:var(--surface-2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+        <div id="chatMessagesArea" class="chat-messages2">
           <div style="text-align:center;color:var(--text-light);margin-top:auto;margin-bottom:auto;font-size:13px;">Chưa chọn cuộc trò chuyện nào.</div>
         </div>
-        <div id="chatFilePreview" style="display:none;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--pink);background:var(--pink-light);border-radius:10px;padding:6px 10px;margin-bottom:8px;"></div>
-        <div style="display:flex;gap:8px;">
+        <div id="chatFilePreview" style="display:none;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--pink);background:var(--pink-light);border-radius:10px;padding:6px 10px;margin:0 14px 8px;"></div>
+        <div class="chat-input-bar">
           <input type="file" id="chatFileInput" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" />
-          <button id="chatAttachBtn" type="button" title="Đính kèm file / hình ảnh · Attach file / image" style="background:var(--surface);color:var(--pink);border:1.5px solid var(--pink-light);border-radius:50%;width:40px;height:40px;flex:none;cursor:pointer;font-size:16px;">📎</button>
-          <input type="text" id="chatMsgInput" placeholder="Nhập tin nhắn... / Type a message..." style="flex:1;padding:10px 14px;border-radius:20px;border:1.5px solid var(--border);outline:none;background:var(--surface);" />
-          <button id="chatSendMsgBtn" style="background:var(--pink);color:#fff;border:none;border-radius:20px;padding:0 20px;font-weight:700;cursor:pointer;">Gửi</button>
+          <button id="chatAttachBtn" type="button" class="chat-attach-btn2" title="Đính kèm file / hình ảnh · Attach file / image">📎</button>
+          <input type="text" id="chatMsgInput" placeholder="Nhập tin nhắn... / Type a message..." />
+          <button id="chatSendMsgBtn" class="chat-send-btn2" title="Gửi / Send">➤</button>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -2316,19 +2363,8 @@ Trả lời DUY NHẤT bằng JSON hợp lệ (minified, không xuống dòng th
 Nếu chuỗi này không phải chữ Hán hợp lệ, trả về {"error":"invalid"}.`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 400,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    const data = await response.json();
-    const textBlock = (data.content || []).find(c => c.type === "text");
-    if (!textBlock) throw new Error("no response");
-    let clean = textBlock.text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+    const textReply = await callClaudeAI(prompt, 400);
+    let clean = textReply.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
     const parsed = JSON.parse(clean);
     if (parsed.error) throw new Error("invalid word");
     renderAiWordCard(text, parsed);
@@ -2346,15 +2382,8 @@ async function fetchAiExample(text, parsed, char) {
   if (btn) { btn.disabled = true; btn.textContent = "⏳ " + L("Đang tạo...", "Generating..."); }
   const prompt = `Cho từ tiếng Trung "${char}" (nghĩa: ${parsed.meaning || parsed.meaning_en}), viết 1 câu ví dụ ngắn trình độ HSK1-3. Trả lời DUY NHẤT JSON minified: {"example_zh":"...","example_pinyin":"...","example_vi":"...","example_en":"..."}`;
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 250, messages: [{ role: "user", content: prompt }] }),
-    });
-    const data = await response.json();
-    const textBlock = (data.content || []).find(c => c.type === "text");
-    if (!textBlock) throw new Error("no response");
-    const clean = textBlock.text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+    const textReply = await callClaudeAI(prompt, 250);
+    const clean = textReply.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
     const ex = JSON.parse(clean);
     Object.assign(parsed, ex);
     renderAiWordCard(text, parsed);
@@ -3804,14 +3833,16 @@ function saveChatHistory() {
 function renderChatMessages() {
   const el = document.getElementById("chatMessages");
   if (!chatHistory.length) {
-    el.innerHTML = `<div class="chat-bubble bot"><div class="zh">你好！我是熊猫老师 🐼</div><div class="vi">Xin chào! Mình là gấu trúc giáo viên. Cùng trò chuyện bằng tiếng Trung nhé — mình chỉ dùng đúng những từ bạn đã học trong từ điển thôi!</div></div>`;
+    el.innerHTML = `<div class="chat-bubble bot"><div class="zh">你好！我是熊猫老师 🐼</div><div class="vi">${L("Xin chào! Mình là gấu trúc giáo viên. Cùng trò chuyện bằng tiếng Trung nhé — mình chỉ dùng đúng những từ bạn đã học trong từ điển thôi! (Bạn có thể gõ bằng tiếng Việt, tiếng Anh, hoặc tiếng Trung.)", "Hi! I'm the panda teacher. Let's practice chatting in Chinese — I'll only use words you've already learned in the dictionary! (You can type in Vietnamese, English, or Chinese.)")}</div></div>`;
     return;
   }
-  el.innerHTML = chatHistory.map(m =>
-    `<div class="chat-bubble ${m.role === "user" ? "user" : "bot"}">
+  el.innerHTML = chatHistory.map(m => {
+    const translation = m.role === "user" ? "" : (LANG_MODE === "en" ? (m.en || m.vi) : (m.vi || m.en));
+    return `<div class="chat-bubble ${m.role === "user" ? "user" : "bot"}">
       <div class="zh">${esc(m.zh || m.text || "")}</div>
-      ${m.vi ? `<div class="vi">${esc(m.vi)}</div>` : ""}
-    </div>`).join("");
+      ${translation ? `<div class="vi">${esc(translation)}</div>` : ""}
+    </div>`;
+  }).join("");
   el.scrollTop = el.scrollHeight;
 }
 function toggleChatPanel() {
@@ -3836,63 +3867,48 @@ async function sendChatMessage() {
   const typing = document.getElementById("chatTyping");
   typing.style.display = "block";
 
-  const vocabList = getChatVocabList();
-  const grammarPoints = getChatGrammarPoints();
-  const topic = getCurrentTopic();
-  const topicBlock = topic ? `
-CHỦ ĐỀ ĐANG LUYỆN: "${topic.title_vi}" (${topic.title_zh})
-Mục tiêu giao tiếp: ${topic.goals.join("; ")}
-Từ vựng trọng tâm của chủ đề này (ưu tiên dùng, ngoài vốn từ chung bên dưới): ${topic.vocab.map(v => `${v[0]}(${v[1]})=${v[3]}`).join("、")}
-Mẫu câu giao tiếp mẫu của chủ đề (có thể dùng lại hoặc biến tấu nhẹ): ${topic.sentences.map(s => s.zh).join(" / ")}
-Hội thoại mẫu tham khảo:
-${topic.dialogue.join("\n")}
-HÃY DẪN DẮT học viên luyện đúng chủ đề này, đặt câu hỏi liên quan để học viên thực hành, không lạc sang chủ đề khác.
-` : `
-DANH SÁCH 18 CHỦ ĐỀ GIAO TIẾP HSK3 có sẵn trong app (học viên chưa chọn chủ đề cụ thể — đang trò chuyện tự do): ${HSK3_TOPICS.map(t => `${t.id}.${t.title_vi}`).join("、")}
-Nếu hội thoại tự nhiên hướng tới 1 trong các chủ đề này, có thể gợi ý học viên vào mục Luyện tập → chọn chủ đề đó để luyện sâu hơn.
-`;
-  // Pull the cultural/etymology explanation (chiết tự) for any dictionary
-  // words that showed up in the last couple of turns, so the bot can weave
-  // in a short cultural note when relevant — reusing the app's own content
-  // instead of the AI improvising facts from scratch.
-  const recentText = chatHistory.slice(-4).map(m => m.zh || "").join("");
-  const mentionedChietu = VOCAB.filter(w => w.char.length >= 1 && recentText.includes(w.char) && w.chietu_vi)
-    .slice(0, 3).map(w => `${w.char}: ${w.chietu_vi.slice(0, 150)}`);
-  const chietuBlock = mentionedChietu.length ? `\nKIẾN THỨC VĂN HÓA/CHIẾT TỰ có sẵn cho vài chữ vừa xuất hiện (có thể chia sẻ ngắn gọn nếu hợp ngữ cảnh, không bắt buộc):\n${mentionedChietu.join("\n")}\n` : "";
-  const recentTurns = chatHistory.slice(-8).map(m => `${m.role === "user" ? "Học viên" : "Gấu trúc"}: ${m.zh}`).join("\n");
-  const prompt = `Bạn là "Gấu trúc giáo viên" (Panda teacher), một AI trò chuyện tiếng Trung thân thiện, kiên nhẫn, hiểu biết sâu về văn hóa Trung Hoa, dành cho học viên trình độ HSK1-3.
-${topicBlock}
-QUY TẮC BẮT BUỘC: Chỉ được dùng các từ vựng tiếng Trung sau đây (cộng thêm các trợ từ ngữ pháp cơ bản như 的/了/吗/呢/也/都/很/不/是) — TUYỆT ĐỐI không dùng từ nào ngoài danh sách này (và từ vựng chủ đề ở trên nếu có):
-${vocabList}
+  // 100% miễn phí — KHÔNG gọi bất kỳ AI trả phí nào. Gấu trúc phản hồi bằng
+  // cách chọn câu mẫu phù hợp từ chính kho hội thoại + câu ví dụ HSK1-3 đã
+  // có sẵn trong app (theo đúng chủ đề đang chọn, hoặc ngẫu nhiên nếu đang
+  // trò chuyện tự do). Không cần cấu hình API key, không tốn phí.
+  setTimeout(() => {
+    const reply = pickLocalChatReply(text);
+    chatHistory.push({ role: "bot", zh: reply.zh, vi: reply.vi, en: reply.en });
+    typing.style.display = "none";
+    renderChatMessages();
+    saveChatHistory();
+  }, 450 + Math.random() * 350); // small delay so it feels like a real reply, not instant
+}
 
-CÁC MẪU CÂU GIAO TIẾP HSK3 nên ưu tiên lồng ghép khi phù hợp ngữ cảnh (không bắt buộc mỗi câu, chỉ dùng khi tự nhiên) — để học viên được ôn lại đúng cấu trúc đang học:
-${grammarPoints}
-${chietuBlock}
-Nếu học viên viết sai ngữ pháp/từ vựng rõ ràng, hãy nhẹ nhàng sửa lại đúng trong câu trả lời (không chê trách, chỉ mô hình hóa cách nói đúng).
-
-Lịch sử hội thoại gần đây:
-${recentTurns}
-
-Hãy trả lời tiếp câu nói cuối của học viên bằng 1 câu tiếng Trung ngắn (dùng đúng vốn từ trên, ưu tiên lồng 1 mẫu câu giao tiếp ở trên nếu hợp ngữ cảnh), tự nhiên, khích lệ học viên tiếp tục trò chuyện. Trả lời DUY NHẤT JSON minified: {"zh":"câu trả lời tiếng Trung","vi":"dịch nghĩa tiếng Việt"}`;
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, messages: [{ role: "user", content: prompt }] }),
-    });
-    const data = await response.json();
-    const textBlock = (data.content || []).find(c => c.type === "text");
-    if (!textBlock) throw new Error("no response");
-    const clean = textBlock.text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
-    const reply = JSON.parse(clean);
-    chatHistory.push({ role: "bot", zh: reply.zh, vi: reply.vi });
-  } catch (e) {
-    chatHistory.push({ role: "bot", zh: "抱歉，我没听懂。", vi: "Xin lỗi, gấu trúc chưa hiểu — bạn thử nói lại nhé!" });
+// ── Free, local reply picker (no AI / no API key needed) ──────────────────
+const CHAT_GREETING_REPLIES = [
+  { zh: "你好！很高兴认识你。", vi: "Xin chào! Rất vui được quen bạn.", en: "Hello! Nice to meet you." },
+  { zh: "你好！我们开始聊天吧。", vi: "Xin chào! Chúng ta bắt đầu trò chuyện nhé.", en: "Hi! Let's start chatting." },
+];
+function isGreetingText(t) {
+  return /你好|嗨|hello|hi\b|chào|xin chào/i.test(t);
+}
+let lastLocalReplyZh = "";
+function pickLocalChatReply(userText) {
+  if (isGreetingText(userText) && chatHistory.length <= 2) {
+    return CHAT_GREETING_REPLIES[Math.floor(Math.random() * CHAT_GREETING_REPLIES.length)];
   }
-  typing.style.display = "none";
-  renderChatMessages();
-  saveChatHistory();
+  const topic = getCurrentTopic();
+  let pool = [];
+  if (topic && topic.sentences && topic.sentences.length) {
+    pool = topic.sentences; // stick to the chosen topic's own example sentences
+  } else {
+    // Free conversation: mix in sentences from a few random topics for variety.
+    const shuffled = shuffle(HSK3_TOPICS).slice(0, 4);
+    shuffled.forEach(t => { if (t.sentences) pool = pool.concat(t.sentences); });
+  }
+  if (!pool.length) return CHAT_GREETING_REPLIES[0];
+  // Avoid repeating the exact same line twice back-to-back.
+  let candidates = pool.filter(p => p.zh !== lastLocalReplyZh);
+  if (!candidates.length) candidates = pool;
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+  lastLocalReplyZh = pick.zh;
+  return { zh: pick.zh, vi: pick.vi, en: pick.en };
 }
 
 /* ---------- Streak milestone badges + panda "level-up" + Treasure Review ---------- */
@@ -6188,6 +6204,9 @@ function pvNextSession() {
       broadcastBtn.onclick = openBroadcastComposer;
     }
 
+    const backBtn = document.getElementById("chatBackBtn");
+    if (backBtn) backBtn.onclick = () => document.getElementById("chatWrap").classList.remove("chat-open");
+
     let contacts = [];
     try {
       const myUid = CURRENT_USER ? (CURRENT_USER.uid || CURRENT_USER.username) : "";
@@ -6214,17 +6233,24 @@ function pvNextSession() {
     }
 
     contacts.forEach(u => {
+      const uid = u.uid || u.username;
       const div = document.createElement("div");
-      div.style.cssText = "padding:8px 10px;border-radius:8px;cursor:pointer;background:var(--surface);border:1px solid var(--border);transition:0.2s;display:flex;align-items:center;gap:8px;";
+      div.className = "chat-contact";
+      div.dataset.uid = uid;
       const roleLabel = (u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 Giáo viên" : "🎓 Học viên";
       const roleColor = (u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)";
-      
-      div.innerHTML = '<div style="width:28px;height:28px;border-radius:50%;background:var(--pink-light);color:var(--pink);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
-        '<div>' +
-          '<div style="font-weight:700;font-size:12.5px;color:var(--card-text);">' + (u.name || u.username) + '</div>' +
-          '<div style="font-size:10px;color:' + roleColor + ';font-weight:600;">' + roleLabel + '</div>' +
+
+      div.innerHTML = '<div class="cc-avatar">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
+        '<div class="cc-meta">' +
+          '<div class="cc-name">' + escapeHtml(u.name || u.username) + '</div>' +
+          '<div class="cc-role" style="color:' + roleColor + ';">' + roleLabel + '</div>' +
         '</div>';
-      div.onclick = () => openChatWith(u.uid || u.username, u.name || u.username);
+      div.onclick = () => {
+        document.querySelectorAll(".chat-contact").forEach(el => el.classList.remove("active"));
+        div.classList.add("active");
+        document.getElementById("chatWrap").classList.add("chat-open"); // mobile: slide to chat view
+        openChatWith(uid, u.name || u.username);
+      };
       contactListEl.appendChild(div);
     });
   }
@@ -6239,8 +6265,29 @@ function pvNextSession() {
   // avoids needing Firebase Storage / the Blaze billing plan entirely.
   //
   // SETUP REQUIRED — paste the values from your deployed Apps Script here:
-  const DRIVE_UPLOAD_ENDPOINT = "https://script.google.com/macros/s/AKfycbxn1FW8FHKq8i23oZUvxFVA7XrFKci2-SFTFQz_GCEEYnCcGQG5jIzjfj-ca5p9S_9k/exec";
+  const DRIVE_UPLOAD_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8iP5WJZvlTECyXWXXetmsqHZammb0uO2zCQOT-RLWHLKKh6BaASox_nqrwdRhfxAN/exec";
   const DRIVE_UPLOAD_API_KEY = "Nhanpham191123";
+
+  // Shared helper: proxies AI requests through the same Apps Script endpoint
+  // (which holds the real Anthropic key server-side in ANTHROPIC_API_KEY).
+  // Calling api.anthropic.com directly from the browser never works outside
+  // Claude.ai's own artifact sandbox — no key, and the API blocks browser
+  // CORS requests anyway.
+  async function callClaudeAI(prompt, maxTokens) {
+    const res = await fetch(DRIVE_UPLOAD_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        apiKey: DRIVE_UPLOAD_API_KEY,
+        action: "ai_chat",
+        prompt: prompt,
+        maxTokens: maxTokens || 400
+      })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || "Yêu cầu AI thất bại.");
+    return data.text;
+  }
 
   const CHAT_FILE_MAX_MB = 15;
   const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
@@ -6312,29 +6359,34 @@ function pvNextSession() {
   }
 
   function renderMessageBubble(m, isMe) {
-    const bubble = document.createElement("div");
     const isBroadcast = !!m.isBroadcast;
-    bubble.style.cssText = "max-width:78%;padding:8px 12px;border-radius:12px;font-size:12.5px;line-height:1.4;align-self:" + (isMe ? "flex-end" : "flex-start") + ";background:" + (isBroadcast ? "linear-gradient(135deg,#fbcfe8,#f9a8d4)" : (isMe ? "var(--pink)" : "#fff")) + ";color:" + (isBroadcast ? "#831843" : (isMe ? "#fff" : "var(--card-text)")) + ";border:" + (isBroadcast ? "1.5px solid #f472b6" : (isMe ? "none" : "1.5px solid var(--border)")) + ";";
+    const row = document.createElement("div");
+    row.className = "chat-msg-row " + (isMe ? "me" : "them") + (isBroadcast ? " broadcast" : "");
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble2";
     const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Vừa xong";
 
     let inner = "";
     if (isBroadcast) inner += '<div style="font-size:9.5px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 Thông báo chung</div>';
     if (m.fileUrl) {
       if (m.isImage) {
-        inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener"><img src="' + m.fileUrl + '" alt="' + escapeHtml(m.fileName || "") + '" style="max-width:180px;max-height:180px;border-radius:10px;display:block;cursor:pointer;" /></a>';
+        inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener">' +
+          '<img class="chat-img" src="' + m.fileUrl + '" alt="' + escapeHtml(m.fileName || "") + '" ' +
+          'onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'chat-file-card\',innerHTML:\'🖼️ <span>' + escapeHtml(m.fileName || "Hình ảnh") + ' (không tải được ảnh, bấm để mở)</span>\'}))" /></a>';
       } else {
-        inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.06);border-radius:8px;padding:6px 8px;text-decoration:none;color:inherit;font-weight:700;">📄 <span style="word-break:break-all;">' + escapeHtml(m.fileName || "Tệp đính kèm") + '</span></a>';
+        inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener" class="chat-file-card">📄 <span style="word-break:break-all;">' + escapeHtml(m.fileName || "Tệp đính kèm") + '</span></a>';
       }
       if (m.driveDownloadUrl) {
-        inner += '<a href="' + m.driveDownloadUrl + '" target="_blank" rel="noopener" style="display:inline-block;font-size:10px;font-weight:700;opacity:0.85;margin-top:3px;color:inherit;">⬇ Tải xuống / Download</a>';
+        inner += '<br><a href="' + m.driveDownloadUrl + '" target="_blank" rel="noopener" class="chat-dl-link">⬇ Tải xuống / Download</a>';
       }
       if (m.text) inner += '<div style="margin-top:4px;">' + escapeHtml(m.text) + '</div>';
     } else if (m.text) {
       inner += '<div>' + escapeHtml(m.text) + '</div>';
     }
-    inner += '<div style="font-size:9px;opacity:0.7;margin-top:2px;text-align:right;">' + timeStr + '</div>';
+    inner += '<div class="chat-msg-time">' + timeStr + '</div>';
     bubble.innerHTML = inner;
-    return bubble;
+    row.appendChild(bubble);
+    return row;
   }
 
   async function openChatWith(otherUid, otherName) {
@@ -6391,14 +6443,14 @@ function pvNextSession() {
     overlay.id = "broadcastComposerOverlay";
     overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;";
     overlay.innerHTML = `
-      <div style="background:#fff;border-radius:16px;padding:20px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="background:#fff;color:#2d2a3a;border-radius:16px;padding:20px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <h3 style="font-size:16px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 Gửi thông báo cho tất cả học viên</h3>
-        <p style="font-size:11.5px;color:var(--text-light);margin-bottom:12px;">Tin nhắn sẽ tự động xuất hiện trong khung chat riêng giữa bạn và từng học viên.</p>
-        <textarea id="broadcastText" rows="4" placeholder="Nhập nội dung thông báo..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;"></textarea>
+        <p style="font-size:11.5px;color:#6b6478;margin-bottom:12px;">Tin nhắn sẽ tự động xuất hiện trong khung chat riêng giữa bạn và từng học viên.</p>
+        <textarea id="broadcastText" rows="4" placeholder="Nhập nội dung thông báo..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <input type="file" id="broadcastFileInput" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" />
-          <button type="button" id="broadcastAttachBtn" style="background:var(--surface-2);border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 Đính kèm file</button>
-          <span id="broadcastFileName" style="font-size:11px;color:var(--text-light);"></span>
+          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 Đính kèm file</button>
+          <span id="broadcastFileName" style="font-size:11px;color:#6b6478;"></span>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:12.5px;">Hủy</button>
@@ -6515,7 +6567,7 @@ function pvNextSession() {
 
         sendBtn.disabled = true;
         const fileToSend = pendingChatFile;
-        if (fileToSend) sendBtn.textContent = "Đang tải file...";
+        if (fileToSend) sendBtn.textContent = "⏳";
         msgInput.value = "";
         clearPendingChatFile();
 
@@ -6544,7 +6596,7 @@ function pvNextSession() {
           alert("Không thể gửi tin nhắn: " + e.message);
         } finally {
           sendBtn.disabled = false;
-          sendBtn.textContent = "Gửi";
+          sendBtn.textContent = "➤";
         }
       };
       sendBtn.onclick = doSend;
