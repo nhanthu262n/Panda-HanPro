@@ -118,6 +118,23 @@
 /* Keep the floating AI chat away from the teacher-student messenger input. */
 #chatFab{touch-action:none;}
 #chatPanel{max-height:calc(100vh - 120px);}
+/* AI Teacher is now a normal sidebar destination, not a floating widget. */
+#aiToolbar{display:none !important;}
+#aiTeacherView{animation:fadeIn .3s ease;}
+.ai-teacher-page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px;padding:18px 20px;border-radius:18px;background:linear-gradient(135deg,#f0f7ff 0%,#fce4ec 100%);border:1.5px solid rgba(251,207,232,.7);}
+.ai-teacher-page-head h2{font-size:20px;font-weight:900;color:var(--pink);margin:0 0 4px;}
+.ai-teacher-page-head p{font-size:12.5px;color:var(--text-light);line-height:1.5;margin:0;}
+.ai-teacher-status{padding:7px 11px;border-radius:20px;background:#fff;color:var(--pink);font-size:10.5px;font-weight:800;white-space:nowrap;border:1px solid var(--pink-light);}
+#aiTeacherView #chatPanel{position:static;display:none;width:100%;max-width:none;height:min(640px,calc(100vh - 245px));max-height:none;border-radius:16px;box-shadow:var(--shadow);border:2px solid var(--border);}
+#aiTeacherView #chatPanel.open{display:flex;}
+#aiTeacherView #chatPanelHeader{border-radius:0;}
+#aiTeacherView #chatMessages{min-height:0;}
+@media (max-width:720px){
+  .ai-teacher-page-head{padding:14px;}
+  .ai-teacher-page-head h2{font-size:18px;}
+  .ai-teacher-status{font-size:9.5px;}
+  #aiTeacherView #chatPanel{height:calc(100vh - 260px);min-height:420px;}
+}
 body.direct-chat-open #aiToolbar{top:92px;bottom:auto;right:24px;}
 body.direct-chat-open #chatPanel{top:158px;bottom:auto;right:24px;max-height:calc(100vh - 180px);}
 @media (max-width:720px){
@@ -814,6 +831,7 @@ span.pandahan-bold-hl{font-weight:800;}
     <button data-tab="dashboard">📊 Tiến độ<span class="en">Progress &amp; Rubric</span></button>
     <button data-tab="pinyin">🎵 Ngữ âm<span class="en">Phonics</span></button>
         <button data-tab="chat" style="position:relative;">💬 Nhắn tin<span class="en">Messages</span><span class="notif-dot" id="chatNotifDot"></span></button>
+    <button data-tab="ai" id="aiTeacherTabBtn">🤖 AI Teacher<span class="en">AI Tutor</span></button>
     <button data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Giáo viên<span class="en">Teacher</span></button>
 
     <div style="flex:1;"></div>
@@ -1034,6 +1052,17 @@ span.pandahan-bold-hl{font-weight:800;}
   <div class="dashboard-view" id="certificateView" style="display:none;">
     <button class="back-btn" id="certBackBtn">← Quay lại / Back</button>
     <div id="certContainer" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="dashboard-view" id="aiTeacherView" style="display:none;">
+    <div class="ai-teacher-page-head">
+      <div>
+        <h2>🤖 AI Teacher</h2>
+        <p>Trợ lý học tiếng Trung hỗ trợ luyện hội thoại, giải thích từ và đề xuất bước học tiếp theo.</p>
+      </div>
+      <span class="ai-teacher-status">AI hỗ trợ · Giáo viên kiểm soát</span>
+    </div>
+    <div id="aiChatMount"></div>
   </div>
 
   <div class="dashboard-view" id="chatView" style="display:none;">
@@ -3888,6 +3917,18 @@ function renderChatMessages() {
   }).join("");
   el.scrollTop = el.scrollHeight;
 }
+function openAiTeacherScreen() {
+  const mount = document.getElementById("aiChatMount");
+  const panel = document.getElementById("chatPanel");
+  if (!mount || !panel) return;
+  if (panel.parentElement !== mount) mount.appendChild(panel);
+  panel.classList.add("open");
+  chatHistory = loadChatHistory();
+  populateChatTopicSelect();
+  renderChatMessages();
+  const input = document.getElementById("chatInput");
+  if (input) input.focus();
+}
 function toggleChatPanel() {
   const panel = document.getElementById("chatPanel");
   const toolbar = document.getElementById("aiToolbar");
@@ -4243,12 +4284,12 @@ function renderMergedHistory() {
     const dot = document.getElementById("chatNotifDot");
     if (dot) dot.style.display = "none";
   }
-  showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "chat" ? "chat" : tab === "pinyin" ? "pinyin" : "dashboard");
+  showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "chat" ? "chat" : tab === "ai" ? "aiTeacher" : tab === "pinyin" ? "pinyin" : "dashboard");
 }
 function showScreen(name) {
   // Move the floating AI assistant away from the direct-message composer.
   document.body.classList.toggle("direct-chat-open", name === "chat");
-  ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
+  ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "aiTeacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = "none"; el.classList.remove("visible"); }
   });
@@ -4267,6 +4308,7 @@ function showScreen(name) {
   else if (name === "dashboard") { if (el("dashboardView")) { el("dashboardView").classList.add("visible"); el("dashboardView").style.display = "block"; if (typeof renderDashboard === "function") renderDashboard(); } }
   else if (name === "reviewIntro") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); if (typeof startReviewSession === "function") startReviewSession(); }
   else if (name === "teacher") { if (el("teacherView")) { el("teacherView").classList.add("visible"); el("teacherView").style.display = "block"; if (typeof renderTeacherDashboard === "function") renderTeacherDashboard(); } }
+  else if (name === "aiTeacher") { if (el("aiTeacherView")) { el("aiTeacherView").classList.add("visible"); el("aiTeacherView").style.display = "block"; openAiTeacherScreen(); } }
   else if (name === "chat") { if (el("chatView")) { el("chatView").classList.add("visible"); el("chatView").style.display = "block"; if (typeof initChatSystem === "function") initChatSystem(); } }
   else if (name === "teacherDetail") { if (el("teacherStudentDetail")) { el("teacherStudentDetail").classList.add("visible"); el("teacherStudentDetail").style.display = "block"; } }
   else if (name === "certificate") { if (el("certificateView")) { el("certificateView").classList.add("visible"); el("certificateView").style.display = "block"; } }
