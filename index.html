@@ -105,7 +105,17 @@
 #chatInputRow input{flex:1;border:1.5px solid var(--pink-light,#fce4ec);border-radius:20px;padding:8px 14px;font-size:12.5px;outline:none;background:var(--surface-2,#fafcfe);color:var(--text,#2d2a3a);}
 #chatSendBtn{background:var(--pink,#e84393);color:#fff;border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:15px;flex:none;}
 #chatTyping{font-size:11px;color:var(--text-light);padding:0 12px 6px;font-style:italic;}
-@media (max-width:720px){#chatFab{bottom:80px;}#chatPanel{bottom:146px;}}
+/* Keep the floating AI chat away from the teacher-student messenger input. */
+#chatFab{touch-action:none;}
+#chatPanel{max-height:calc(100vh - 120px);}
+body.direct-chat-open #chatFab{top:92px;bottom:auto;right:24px;}
+body.direct-chat-open #chatPanel{top:158px;bottom:auto;right:24px;max-height:calc(100vh - 180px);}
+@media (max-width:720px){
+  #chatFab{bottom:80px;right:18px;}
+  #chatPanel{bottom:146px;right:12px;max-height:calc(100vh - 210px);}
+  body.direct-chat-open #chatFab{top:78px;bottom:auto;right:18px;}
+  body.direct-chat-open #chatPanel{top:142px;bottom:auto;right:10px;max-height:calc(100vh - 190px);}
+}
 *{margin:0;padding:0;box-sizing:border-box;}
 
 body{font-family:var(--font);background:var(--body-bg);background-attachment:fixed;min-height:100vh;color:var(--text);padding:12px;transition:background .3s,color .3s;position:relative;}
@@ -507,11 +517,11 @@ body{padding-left:216px;}
 .chat-msg-row.me .chat-bubble2 .chat-file-card{background:rgba(255,255,255,0.22);}
 .chat-dl-link{display:inline-block;font-size:10px;font-weight:700;opacity:0.8;margin-top:3px;color:inherit;text-decoration:underline;}
 .chat-msg-time{font-size:9.5px;opacity:.65;margin-top:2px;text-align:right;}
-.chat-input-bar{display:flex;gap:8px;padding:12px 14px;background:var(--surface);border-top:2px solid var(--border);align-items:center;flex:none;}
+.chat-input-bar{display:flex;gap:8px;padding:12px 14px;background:var(--surface);border-top:2px solid var(--border);align-items:center;flex:none;position:relative;z-index:20;}
 .chat-input-bar input[type="text"]{flex:1;padding:10px 16px;border-radius:22px;border:1.5px solid var(--border);outline:none;background:var(--surface-2);color:var(--text);font-size:13.5px;}
 .chat-input-bar input[type="text"]:focus{border-color:var(--pink);}
 .chat-attach-btn2{background:var(--surface-2);color:var(--pink);border:1.5px solid var(--pink-light);border-radius:50%;width:40px;height:40px;flex:none;cursor:pointer;font-size:17px;}
-.chat-send-btn2{background:linear-gradient(135deg,var(--pink),#ec6ea8);color:#fff;border:none;border-radius:50%;width:40px;height:40px;flex:none;cursor:pointer;font-size:16px;transition:.15s;}
+.chat-send-btn2{background:linear-gradient(135deg,var(--pink),#ec6ea8);color:#fff;border:none;border-radius:50%;width:40px;height:40px;flex:none;cursor:pointer;font-size:16px;transition:.15s;position:relative;z-index:21;}
 .chat-send-btn2:hover:not(:disabled){transform:scale(1.07);}
 .chat-send-btn2:disabled{opacity:.5;cursor:default;}
 .chat-broadcast-btn{background:linear-gradient(135deg,#fbcfe8,#f472b6);color:#fff;border:none;border-radius:10px;padding:9px 10px;font-weight:800;font-size:11.5px;cursor:pointer;margin-bottom:8px;line-height:1.3;text-align:left;}
@@ -4207,6 +4217,8 @@ function renderMergedHistory() {
   showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "chat" ? "chat" : tab === "pinyin" ? "pinyin" : "dashboard");
 }
 function showScreen(name) {
+  // Move the floating AI assistant away from the direct-message composer.
+  document.body.classList.toggle("direct-chat-open", name === "chat");
   ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = "none"; el.classList.remove("visible"); }
