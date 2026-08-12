@@ -88,8 +88,18 @@
 [data-theme="dark"] .stat-quad-num{color:#2d2a3a !important;font-weight:800;}
 [data-theme="dark"] #teacherStudentList > div{color:#2d2a3a;}
 /* ═══ Panda conversation chatbox (floating, bottom-right) ═══ */
-#chatFab{position:fixed;bottom:22px;right:22px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#a78bfa);border:none;cursor:pointer;font-size:28px;box-shadow:0 6px 20px rgba(236,72,153,.35);z-index:9000;display:flex;align-items:center;justify-content:center;transition:.2s;}
-#chatFab:hover{transform:scale(1.08);}
+#aiToolbar{position:fixed;right:22px;bottom:22px;z-index:9002;display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-family:'Nunito',sans-serif;}
+#aiToolbarMenu{display:none;flex-direction:column;gap:7px;min-width:220px;padding:10px;background:var(--surface,#fff);border:1.5px solid rgba(251,207,232,.8);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.18);}
+#aiToolbar.open #aiToolbarMenu{display:flex;}
+.ai-toolbar-title{font-size:11px;font-weight:900;color:var(--pink,#e84393);padding:2px 4px 4px;}
+.ai-toolbar-hint{font-size:10px;line-height:1.35;color:var(--text-light,#636e72);padding:0 4px 3px;}
+.ai-tool-action{width:100%;display:flex;align-items:center;gap:8px;padding:9px 11px;border:1.5px solid var(--pink-light,#fce4ec);border-radius:11px;background:var(--surface-2,#fafcfe);color:var(--text,#2d2a3a);font:800 11.5px 'Nunito',sans-serif;cursor:pointer;text-align:left;}
+.ai-tool-action:hover{background:var(--pink-light,#fce4ec);border-color:var(--pink,#e84393);}
+#aiToolbarToggle{width:52px;height:42px;border:1.5px solid rgba(255,255,255,.7);border-radius:22px;background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;box-shadow:0 6px 20px rgba(236,72,153,.35);font:900 13px 'Nunito',sans-serif;cursor:pointer;transition:.2s;}
+#aiToolbarToggle:hover{transform:translateY(-2px);}
+#chatFab{position:static;width:100%;height:40px;border-radius:11px;background:linear-gradient(135deg,#f472b6,#a78bfa);border:none;cursor:pointer;color:#fff;font-size:12px;font-weight:900;box-shadow:none;display:flex;align-items:center;justify-content:center;gap:7px;transition:.2s;}
+#chatFab:hover{transform:none;filter:brightness(1.04);}
+
 #chatPanel{position:fixed;bottom:90px;right:22px;width:340px;max-width:92vw;height:460px;max-height:75vh;background:var(--surface,#fff);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.25);z-index:9001;display:none;flex-direction:column;overflow:hidden;border:1.5px solid rgba(251,207,232,.6);}
 #chatPanel.open{display:flex;}
 #chatPanelHeader{background:linear-gradient(135deg,#f472b6,#a78bfa);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:8px;font-weight:800;font-family:'Baloo 2',sans-serif;}
@@ -108,12 +118,12 @@
 /* Keep the floating AI chat away from the teacher-student messenger input. */
 #chatFab{touch-action:none;}
 #chatPanel{max-height:calc(100vh - 120px);}
-body.direct-chat-open #chatFab{top:92px;bottom:auto;right:24px;}
+body.direct-chat-open #aiToolbar{top:92px;bottom:auto;right:24px;}
 body.direct-chat-open #chatPanel{top:158px;bottom:auto;right:24px;max-height:calc(100vh - 180px);}
 @media (max-width:720px){
-  #chatFab{bottom:80px;right:18px;}
+  #aiToolbar{bottom:80px;right:18px;}
   #chatPanel{bottom:146px;right:12px;max-height:calc(100vh - 210px);}
-  body.direct-chat-open #chatFab{top:78px;bottom:auto;right:18px;}
+  body.direct-chat-open #aiToolbar{top:78px;bottom:auto;right:18px;}
   body.direct-chat-open #chatPanel{top:142px;bottom:auto;right:10px;max-height:calc(100vh - 190px);}
 }
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -2817,6 +2827,21 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("calNextBtn").addEventListener("click", () => navigateCalMonth(1));
   document.getElementById("chatFab").addEventListener("click", toggleChatPanel);
   document.getElementById("chatCloseBtn").addEventListener("click", toggleChatPanel);
+  const aiToolbar = document.getElementById("aiToolbar");
+  const aiToolbarToggle = document.getElementById("aiToolbarToggle");
+  if (aiToolbar && aiToolbarToggle) {
+    aiToolbarToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = aiToolbar.classList.toggle("open");
+      aiToolbarToggle.setAttribute("aria-expanded", String(isOpen));
+    });
+    document.addEventListener("click", (e) => {
+      if (!aiToolbar.contains(e.target)) {
+        aiToolbar.classList.remove("open");
+        aiToolbarToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
   document.getElementById("chatSendBtn").addEventListener("click", sendChatMessage);
   document.getElementById("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChatMessage(); });
   document.getElementById("chatTopicSelect").addEventListener("change", onChatTopicChange);
@@ -3865,7 +3890,11 @@ function renderChatMessages() {
 }
 function toggleChatPanel() {
   const panel = document.getElementById("chatPanel");
+  const toolbar = document.getElementById("aiToolbar");
   const opening = !panel.classList.contains("open");
+  if (toolbar) toolbar.classList.remove("open");
+  const toolbarToggle = document.getElementById("aiToolbarToggle");
+  if (toolbarToggle) toolbarToggle.setAttribute("aria-expanded", "false");
   panel.classList.toggle("open");
   if (opening) {
     chatHistory = loadChatHistory();
@@ -5316,7 +5345,15 @@ function renderWriteGameShell() {
 <div id="dictLookupOverlay"></div>
 <div id="dictLookupPopup"></div>
 
-<button id="chatFab" title="Luyện hội thoại tiếng Trung với Panda">🐼</button>
+<div id="aiToolbar" aria-label="Công cụ AI / AI tools">
+  <div id="aiToolbarMenu" role="menu" aria-label="Các chức năng AI">
+    <div class="ai-toolbar-title">✨ AI Teacher</div>
+    <div class="ai-toolbar-hint">Các chức năng AI được gom về một vị trí để tránh chồng lấn với tin nhắn giáo viên.</div>
+    <button id="chatFab" class="ai-tool-action" type="button" title="Luyện hội thoại tiếng Trung với Panda">🐼 <span>Mở Chat AI luyện hội thoại</span></button>
+    <div class="ai-toolbar-hint">📖 Muốn tra từ hoặc nhờ AI giải thích: chọn một từ trong bài học rồi bấm nút tra từ.</div>
+  </div>
+  <button id="aiToolbarToggle" type="button" aria-expanded="false" aria-controls="aiToolbarMenu" title="Mở thanh công cụ AI">✨ AI</button>
+</div>
 <div id="chatPanel">
   <div id="chatPanelHeader">
     <span>🐼</span>
