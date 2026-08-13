@@ -459,6 +459,42 @@ body{padding-left:216px;}
 .practice-card .p-desc{font-size:12.5px;color:#8a8694;margin-top:6px;line-height:1.5;}
 .game-container{display:none;background:#fafcfe;border-radius:var(--radius);padding:20px;border:2px solid var(--hsk2-light);margin-top:10px;}
 .game-container.visible{display:block;}
+/* ═══ Video-inspired mini game: Tone Race ═══ */
+.tone-race-shell{background:linear-gradient(155deg,#eef8ff 0%,#fdf2f8 58%,#fff7ed 100%);border:2px solid #f5c7dd;border-radius:22px;padding:18px;overflow:hidden;position:relative;box-shadow:0 12px 28px rgba(232,67,147,.12);}
+.tone-race-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.tone-race-head h2{font-size:20px;color:var(--pink);font-weight:900;margin:0 0 3px;}
+.tone-race-head p{font-size:12px;color:var(--text-light);line-height:1.5;margin:0;}
+.tone-race-hud{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;}
+.tone-race-chip{background:#fff;border:1.5px solid #f5c7dd;border-radius:18px;padding:5px 10px;font-size:11px;font-weight:900;color:#6b3560;white-space:nowrap;}
+.tone-race-scene{height:220px;position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(#bde9ff 0 55%,#d9f7c7 55% 100%);border:2px solid rgba(255,255,255,.8);box-shadow:inset 0 -8px 0 rgba(101,163,13,.12);}
+.tone-race-sun{position:absolute;right:7%;top:13px;font-size:34px;filter:drop-shadow(0 4px 4px rgba(245,158,11,.22));}
+.tone-race-cloud{position:absolute;font-size:27px;opacity:.75;animation:toneCloud 12s linear infinite;}
+.tone-race-cloud.one{top:24px;left:9%;}.tone-race-cloud.two{top:62px;left:44%;font-size:21px;animation-delay:-5s;}
+.tone-race-hill{position:absolute;left:-5%;right:-5%;bottom:64px;height:100px;background:#9adf9b;border-radius:50% 50% 0 0/100% 100% 0 0;opacity:.72;}
+.tone-race-road{position:absolute;left:0;right:0;bottom:0;height:83px;background:#b9876c;border-top:5px solid #fff;}
+.tone-race-road:before{content:"";position:absolute;left:0;right:0;top:38px;border-top:4px dashed rgba(255,255,255,.86);}
+.tone-race-road:after{content:"";position:absolute;left:0;right:0;bottom:8px;border-top:3px solid rgba(99,52,37,.24);}
+#toneRaceTonePath{position:absolute;left:7%;right:7%;top:8px;height:72px;width:86%;overflow:visible;}
+#toneRaceTonePath polyline{fill:none;stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 2px rgba(90,53,40,.2));}
+#toneRaceCar{position:absolute;left:7%;bottom:24px;font-size:35px;line-height:1;z-index:3;transition:left .3s ease;filter:drop-shadow(0 4px 3px rgba(0,0,0,.2));}
+#toneRaceCar.drive{animation:toneRaceDrive .8s ease-out forwards;}
+#toneRaceCar.bump{animation:toneRaceBump .45s ease-in-out;}
+.tone-race-finish{position:absolute;right:5%;bottom:54px;font-size:30px;z-index:2;}
+.tone-race-sign{position:absolute;left:13%;bottom:57px;background:#9a6b45;color:#fff;border:3px solid #f6d3a7;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:900;transform:rotate(-3deg);box-shadow:0 3px 0 rgba(80,45,30,.2);z-index:2;}
+.tone-race-question{display:flex;align-items:center;gap:14px;background:#fff;border:2px solid #f7cfe1;border-radius:16px;padding:12px 14px;margin:14px 0 12px;}
+.tone-race-character{width:68px;height:68px;border-radius:18px;background:linear-gradient(145deg,#fff7ed,#fce4ec);display:flex;align-items:center;justify-content:center;font-size:40px;flex:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.8);}
+.tone-race-prompt{font-size:13px;color:var(--text);line-height:1.5;flex:1;}.tone-race-prompt strong{font-size:17px;color:var(--pink);}.tone-race-prompt small{display:block;color:var(--text-light);font-size:11px;margin-top:3px;}
+.tone-race-speak{border:none;background:#e0f2fe;color:#0369a1;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:16px;flex:none;}
+.tone-race-options{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.tone-race-option{border:2px solid #f0c5db;background:#fff;border-radius:15px;padding:10px 6px;cursor:pointer;text-align:center;color:#4c3150;font-weight:900;transition:.16s;min-height:76px;}
+.tone-race-option:hover{transform:translateY(-3px);border-color:var(--pink);box-shadow:0 7px 15px rgba(232,67,147,.16);}
+.tone-race-option .tone-symbol{display:block;font-size:24px;line-height:1;margin-bottom:4px;color:var(--pink);}.tone-race-option .tone-label{display:block;font-size:10px;color:var(--text-light);font-weight:700;}.tone-race-option.correct{background:#dcfce7;border-color:#22c55e;color:#166534;}.tone-race-option.wrong{background:#fee2e2;border-color:#ef4444;color:#991b1b;animation:toneRaceBump .45s ease-in-out;}.tone-race-option:disabled{cursor:default;opacity:.9;transform:none;}
+.tone-race-feedback{min-height:27px;margin:10px 0;text-align:center;font-weight:900;font-size:13px;color:var(--pink);}.tone-race-feedback.bad{color:#dc2626;}.tone-race-feedback.ok{color:#16a34a;}
+.tone-race-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}.tone-race-actions button{min-width:120px;}
+.tone-race-result{text-align:center;padding:30px 18px;background:#fff;border-radius:18px;border:2px dashed #f3b8d5;}.tone-race-result .result-emoji{font-size:50px;}.tone-race-result h3{font-size:22px;color:var(--pink);margin:6px 0;}.tone-race-result p{font-size:13px;color:var(--text-light);line-height:1.6;}
+@keyframes toneRaceDrive{from{left:7%;}to{left:82%;}}@keyframes toneRaceBump{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}@keyframes toneCloud{from{transform:translateX(-12px);}50%{transform:translateX(18px);}to{transform:translateX(-12px);}}
+@media(max-width:620px){.tone-race-shell{padding:12px;}.tone-race-scene{height:190px;}.tone-race-options{gap:6px;}.tone-race-option{padding:8px 3px;min-height:70px;}.tone-race-option .tone-symbol{font-size:21px;}.tone-race-character{width:56px;height:56px;font-size:32px;}.tone-race-question{gap:9px;padding:10px;}.tone-race-prompt{font-size:12px;}.tone-race-prompt strong{font-size:15px;}.tone-race-sign{left:10%;}.tone-race-finish{right:3%;}}
+
 
 .dashboard-view{display:none;animation:fadeIn 0.3s ease;}
 .dashboard-view.visible{display:block;}
@@ -1029,6 +1065,10 @@ span.pandahan-bold-hl{font-weight:800;}
       <div class="practice-card" id="pCardAdvanced" style="border:2px solid #fda4af;background:linear-gradient(160deg,#fce7f3,#fda4af);">
         <div class="p-icon">🚀</div><div class="p-title">Đề HSK3 3.0</div>
         <div class="p-desc">Đoạn văn điền từ · Đồng/trái nghĩa · Sắp xếp hội thoại</div>
+      </div>
+      <div class="practice-card" id="pCardToneRace" style="border:2px solid #f9a8d4;background:linear-gradient(160deg,#e0f2fe,#f9a8d4);">
+        <div class="p-icon">🚗</div><div class="p-title">Đua xe thanh điệu</div>
+        <div class="p-desc">Chọn đúng thanh điệu để Panda về đích · Video-inspired tone race</div>
       </div>
     </div>
     <div class="game-container" id="gameContainer">
@@ -5018,6 +5058,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const asv = document.getElementById("advancedSetsView"); if (asv) asv.style.display = "block";
     if (typeof renderAdvancedSetsList === "function") renderAdvancedSetsList();
   });
+  safeAdd("pCardToneRace", "click", () => { if (typeof startToneRaceGame === "function") startToneRaceGame(); });
   safeAdd("advancedSetsBack", "click", () => {
     const asv = document.getElementById("advancedSetsView"); if (asv) asv.style.display = "none";
     const pg = document.querySelector("#practiceTab .practice-grid"); if (pg) pg.style.display = "";
@@ -5228,6 +5269,77 @@ function renderSavedCerts() {
       });
     });
   });
+}
+
+/* ===================== MINI GAMES: Tone Race ===================== */
+let toneRaceState = null;
+const TONE_RACE_BANK = [
+  { char:"妈", meaning:"mẹ", meaningEn:"mother", syllable:"ma", pinyin:"mā", tone:1, hsk:1, emoji:"👩", options:["mā","má","mǎ","mà"] },
+  { char:"麻", meaning:"cây gai / tê", meaningEn:"hemp / numb", syllable:"ma", pinyin:"má", tone:2, hsk:3, emoji:"🌿", options:["mā","má","mǎ","mà"] },
+  { char:"马", meaning:"ngựa", meaningEn:"horse", syllable:"ma", pinyin:"mǎ", tone:3, hsk:1, emoji:"🐴", options:["mā","má","mǎ","mà"] },
+  { char:"骂", meaning:"mắng", meaningEn:"scold", syllable:"ma", pinyin:"mà", tone:4, hsk:3, emoji:"😤", options:["mā","má","mǎ","mà"] },
+  { char:"书", meaning:"sách", meaningEn:"book", syllable:"shu", pinyin:"shū", tone:1, hsk:1, emoji:"📖", options:["shū","shú","shǔ","shù"] },
+  { char:"学", meaning:"học", meaningEn:"study", syllable:"xue", pinyin:"xué", tone:2, hsk:1, emoji:"📚", options:["xuē","xué","xuě","xuè"] },
+  { char:"你", meaning:"bạn", meaningEn:"you", syllable:"ni", pinyin:"nǐ", tone:3, hsk:1, emoji:"👋", options:["nī","ní","nǐ","nì"] },
+  { char:"大", meaning:"lớn", meaningEn:"big", syllable:"da", pinyin:"dà", tone:4, hsk:1, emoji:"🐘", options:["dā","dá","dǎ","dà"] },
+  { char:"水", meaning:"nước", meaningEn:"water", syllable:"shui", pinyin:"shuǐ", tone:3, hsk:1, emoji:"💧", options:["shuī","shuí","shuǐ","shuì"] },
+  { char:"人", meaning:"người", meaningEn:"person", syllable:"ren", pinyin:"rén", tone:2, hsk:1, emoji:"🧑", options:["rēn","rén","rěn","rèn"] },
+  { char:"去", meaning:"đi", meaningEn:"go", syllable:"qu", pinyin:"qù", tone:4, hsk:1, emoji:"🚶", options:["qū","qú","qǔ","qù"] },
+  { char:"吃", meaning:"ăn", meaningEn:"eat", syllable:"chi", pinyin:"chī", tone:1, hsk:1, emoji:"🍜", options:["chī","chí","chǐ","chì"] }
+];
+function toneRacePath(tone){
+  return ({1:"8,46 25,46 42,46 59,46 76,46 94,46",2:"8,70 25,70 42,52 59,34 76,22 94,16",3:"8,26 25,26 42,68 59,68 76,36 94,36",4:"8,18 25,22 42,38 59,58 76,76 94,86"})[tone] || "8,46 94,46";
+}
+function startToneRaceGame(){
+  const grid=document.querySelector("#practiceTab .practice-grid"); if(grid) grid.style.display="none";
+  const gc=document.getElementById("gameContainer"); if(!gc) return;
+  gc.classList.add("visible"); gc.style.display="block"; window.scrollTo({top:0,behavior:"instant"});
+  const level=document.getElementById("practiceHskFilter");
+  const selected=level ? level.value : "all";
+  let pool=TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
+  if(pool.length<4) pool=TONE_RACE_BANK.slice();
+  toneRaceState={queue:shuffle(pool).slice(0,Math.min(8,pool.length)),index:0,score:0,correctCount:0,streak:0,answered:false};
+  renderToneRaceQuestion();
+}
+function renderToneRaceQuestion(){
+  const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState) return;
+  if(toneRaceState.index>=toneRaceState.queue.length){ renderToneRaceResult(); return; }
+  const q=toneRaceState.queue[toneRaceState.index]; toneRaceState.answered=false;
+  gc.innerHTML=`<div class="tone-race-shell">
+    <div class="tone-race-head"><div><h2>🚗 Đua xe thanh điệu</h2><p>Chọn đúng đường cao độ để chiếc xe vượt qua biển báo và về đích.</p></div><div class="tone-race-hud"><span class="tone-race-chip">Câu ${toneRaceState.index+1}/${toneRaceState.queue.length}</span><span class="tone-race-chip">⭐ <b id="toneRaceScore">${toneRaceState.score}</b></span><span class="tone-race-chip">🔥 <b id="toneRaceStreak">${toneRaceState.streak}</b></span></div></div>
+    <div class="tone-race-scene"><div class="tone-race-sun">☀️</div><div class="tone-race-cloud one">☁️</div><div class="tone-race-cloud two">☁️</div><div class="tone-race-hill"></div><div class="tone-race-sign">${esc(q.syllable)} + ?</div><div class="tone-race-finish">🏁</div><div class="tone-race-road"><svg id="toneRaceTonePath" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${toneRacePath(q.tone)}"></polyline></svg><div id="toneRaceCar">🚗</div></div></div>
+    <div class="tone-race-question"><div class="tone-race-character">${q.emoji}</div><div class="tone-race-prompt"><strong>${esc(q.char)}</strong> · ${esc(L(q.meaning,q.meaningEn))}<small>Âm tiết: <b>${esc(q.syllable)}</b> · Chọn thanh điệu đúng</small></div><button class="tone-race-speak" id="toneRaceSpeak" title="Nghe phát âm">🔊</button></div>
+    <div class="tone-race-options">${q.options.map((opt,i)=>`<button class="tone-race-option" data-tone="${i+1}" type="button"><span class="tone-symbol">${["—","↗","∨","↘"][i]}</span><span>${esc(opt)}</span><span class="tone-label">Thanh ${i+1}</span></button>`).join("")}</div>
+    <div class="tone-race-feedback" id="toneRaceFeedback">Chọn một thẻ thanh điệu để xe bắt đầu chạy.</div>
+    <div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceExit" type="button">✕ Thoát</button><button class="btn btn-pink" id="toneRaceNext" type="button" style="display:none;">Câu tiếp theo →</button></div>
+  </div>`;
+  document.getElementById("toneRaceSpeak").addEventListener("click",()=>speak(q.pinyin));
+  document.querySelectorAll(".tone-race-option").forEach(btn=>btn.addEventListener("click",()=>answerToneRace(Number(btn.dataset.tone),btn,q)));
+  document.getElementById("toneRaceNext").addEventListener("click",()=>{toneRaceState.index++;renderToneRaceQuestion();});
+  document.getElementById("toneRaceExit").addEventListener("click",exitToneRace);
+}
+function answerToneRace(tone,button,q){
+  if(!toneRaceState || toneRaceState.answered) return;
+  toneRaceState.answered=true;
+  const correct=tone===q.tone;
+  document.querySelectorAll(".tone-race-option").forEach(b=>{b.disabled=true;if(Number(b.dataset.tone)===q.tone)b.classList.add("correct");});
+  const car=document.getElementById("toneRaceCar"); const feedback=document.getElementById("toneRaceFeedback");
+  if(correct){toneRaceState.score+=10+toneRaceState.streak*2;toneRaceState.correctCount++;toneRaceState.streak++;button.classList.add("correct");if(car)car.classList.add("drive");feedback.className="tone-race-feedback ok";feedback.textContent=`✅ Chính xác! ${q.pinyin} là thanh ${q.tone}. Xe tăng tốc về đích!`;}else{toneRaceState.streak=0;button.classList.add("wrong");if(car)car.classList.add("bump");feedback.className="tone-race-feedback bad";feedback.textContent=`💡 Chưa đúng. Đáp án là ${q.pinyin} — thanh ${q.tone}. Hãy nghe lại và ghi nhớ đường cao độ.`;}
+  const s=document.getElementById("toneRaceScore");if(s)s.textContent=toneRaceState.score;const st=document.getElementById("toneRaceStreak");if(st)st.textContent=toneRaceState.streak;
+  if(typeof recordQuizResult==="function" && VOCAB_BY_CHAR[q.char]) recordQuizResult(q.char,correct);
+  const next=document.getElementById("toneRaceNext");if(next)next.style.display="inline-flex";
+}
+function renderToneRaceResult(){
+  const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState)return;
+  const total=toneRaceState.queue.length; const correct=toneRaceState.correctCount; const best=Math.max(Number(localStorage.getItem("pandahanToneRaceBest")||0),toneRaceState.score);localStorage.setItem("pandahanToneRaceBest",String(best));
+  gc.innerHTML=`<div class="tone-race-shell"><div class="tone-race-result"><div class="result-emoji">🏆🚗</div><h3>Hoàn thành đường đua!</h3><p>Bạn đạt <b>${toneRaceState.score} điểm</b> trong ${total} câu. Kỷ lục hiện tại: <b>${best} điểm</b>.<br>${correct>=Math.ceil(total*.8)?"Tuyệt vời! Bạn đã kiểm soát thanh điệu rất tốt.":"Hãy chơi lại một lượt để củng cố các thanh điệu còn nhầm lẫn."}</p><div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceBack" type="button">← Về luyện tập</button><button class="btn btn-pink" id="toneRaceReplay" type="button">🚗 Chơi lại</button></div></div></div>`;
+  document.getElementById("toneRaceBack").addEventListener("click",exitToneRace);document.getElementById("toneRaceReplay").addEventListener("click",startToneRaceGame);
+}
+function exitToneRace(){
+  const gc=document.getElementById("gameContainer");if(gc){gc.classList.remove("visible");gc.style.display="none";}
+  const grid=document.querySelector("#practiceTab .practice-grid");if(grid)grid.style.display="";
+  const gameContent=document.getElementById("gameContent");if(gameContent)gameContent.innerHTML="";
+  toneRaceState=null;window.scrollTo({top:0,behavior:"instant"});
 }
 
 /* ===================== MINI GAMES: Match & Write ===================== */
