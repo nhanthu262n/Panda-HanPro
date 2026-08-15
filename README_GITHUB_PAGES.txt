@@ -10,4 +10,4 @@ Important:
 
 
 Offline scoring update:
-Pronunciation scoring now runs locally in the browser and no longer calls the remote /api/pronunciation/grade endpoint. It estimates tone shape, duration and loudness from the recorded WAV. The Vietnamese subtitle/meaning block is hidden; the Pinyin quiz tab remains available. Học, Luyện đọc, recording and offline scoring remain available.
+Pronunciation scoring now runs locally in the browser and no longer calls the remote /api/pronunciation/grade endpoint. It estimates tone shape, duration and loudness from the recorded WAV. The Vietnamese subtitle/meaning block is hidden in both the lesson card and quiz answer cards; the Pinyin quiz tab remains available. Offline scoring returns the full rubric fields used by the feedback panel. Học, Luyện đọc, recording and offline scoring remain available.
