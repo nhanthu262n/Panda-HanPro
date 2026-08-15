@@ -843,3 +843,5 @@ span.pandahan-bold-hl{font-weight:800;}
 .pv-quiz-dots{display:flex;gap:4px;margin-top:14px}
 .pv-quiz-dot{width:10px;height:10px;border-radius:50%;transition:all .3s}
 @keyframes pvPulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* Pinyin quiz is intentionally disabled; offline pronunciation scoring remains available. */
