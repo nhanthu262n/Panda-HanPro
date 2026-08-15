@@ -9,5 +9,10 @@ Important:
 - GitHub: Settings -> Pages -> Deploy from a branch -> main -> /(root).
 
 
-Offline scoring update:
-Pronunciation scoring now runs locally in the browser and no longer calls the remote /api/pronunciation/grade endpoint. It estimates tone shape, duration and loudness from the recorded WAV. The Vietnamese subtitle/meaning block is hidden in both the lesson card and quiz answer cards; the Pinyin quiz tab remains available. Offline scoring returns the full rubric fields used by the feedback panel. Học, Luyện đọc, recording and offline scoring remain available.
+Frontend GitHub Pages build:
+This package keeps the entire frontend on GitHub Pages. The Pinyin module is lazy-loaded only when the Ngữ âm tab is opened. The Pinyin quiz tab remains available, while the Vietnamese subtitle/meaning block is hidden in both lesson cards and quiz answer cards.
+
+Real AI integration:
+The loader sets window.__PINYIN_TEACHER_API_BASE__ to https://pinyinteach-xct3ccac.manus.space. The frontend sends the recorded WAV to /api/pronunciation/grade and displays the backend rubric fields: score, feedback, classification, toneScore/toneFeedback, segmentalScore/segmentalFeedback, articulationScore/articulationFeedback, and fluencyScore/fluencyFeedback.
+
+Important: GitHub Pages cannot run the backend. The remote backend endpoint must answer OPTIONS and POST with CORS headers for the exact frontend origin, for example https://nhanthu262n.github.io. Do not put any AI key in this package.
