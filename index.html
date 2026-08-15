@@ -7104,7 +7104,11 @@ function legacyScheduleAutoplay(card){if(!card||legacyPhonicsState.autoPlayedId=
     host.style.display='none';
     document.body.appendChild(host);
     function showLoading(){
-      host.innerHTML='<div class="pandahan-phonetics-loading"><div class="pandahan-phonetics-spinner"></div><div>Đang mở bài học Ngữ âm…</div></div>';
+      var loader=document.createElement('div');
+      loader.className='pandahan-phonetics-loading';
+      loader.innerHTML='<div class="pandahan-phonetics-spinner"></div><div>Đang mở bài học Ngữ âm…</div>';
+      host.replaceChildren(loader);
+      return loader;
     }
     function renderDirectPhonetics(){
       var view=document.getElementById('pinyinView');
@@ -7135,9 +7139,47 @@ function legacyScheduleAutoplay(card){if(!card||legacyPhonicsState.autoPlayedId=
       });
     }
     window.renderPinyinView=renderDirectPhonetics;
+    function forceOpenPhonetics(event){
+      if(event){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      var view=document.getElementById('pinyinView');
+      var content=document.getElementById('pinyinContent');
+      if(!view||!content)return;
+      document.querySelectorAll('.dashboard-view').forEach(function(screen){
+        screen.classList.remove('visible');
+        screen.style.display='none';
+      });
+      view.classList.add('visible');
+      view.style.setProperty('display','block','important');
+      view.style.setProperty('visibility','visible','important');
+      document.querySelectorAll('.nav-tabs button').forEach(function(button){
+        button.classList.toggle('active',button.dataset.tab==='pinyin');
+      });
+      renderDirectPhonetics();
+    }
+    function isPhoneticsTab(target){
+      var tab=target&&target.closest?target.closest('[data-tab="pinyin"],button[onclick*="pinyin"]'):null;
+      return tab||(target&&target.textContent&&target.textContent.replace(/\s+/g,' ').trim()==='🎵 Ngữ âm'?target:null);
+    }
+    function interceptPhoneticsTab(event){
+      if(!isPhoneticsTab(event.target))return;
+      forceOpenPhonetics(event);
+    }
     function bind(){
-      var tab=document.querySelector('[data-tab="pinyin"]');
-      if(tab){tab.setAttribute('title','Ngữ âm Pinyin: flashcard, audio, ghi âm và chấm AI');tab.addEventListener('click',function(){window.setTimeout(renderDirectPhonetics,0)},true)}
+      function interceptPointerDown(event){
+        if(!isPhoneticsTab(event.target))return;
+        forceOpenPhonetics(event);
+      }
+      document.addEventListener('pointerdown',interceptPointerDown,true);
+      document.addEventListener('click',interceptPhoneticsTab,true);
+      var tab=document.querySelector('[data-tab="pinyin"],button[onclick*="pinyin"]');
+      if(tab){
+        tab.onpointerdown=interceptPointerDown;
+        tab.onclick=interceptPhoneticsTab;
+        tab.setAttribute('title','Ngữ âm Pinyin: flashcard, audio, ghi âm và chấm AI');
+      }
       var view=document.getElementById('pinyinView');
       if(view)new MutationObserver(function(){if(view.classList.contains('visible')||view.style.display==='block')renderDirectPhonetics()}).observe(view,{attributes:true,attributeFilter:['style','class']});
     }
