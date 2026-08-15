@@ -168,33 +168,18 @@ let pvState = { progress: pvGetDefaultProgress(), activeSession: null, phase: 'i
 
 /* ── Render Pinyin View ── */
 function renderPinyinView() {
+  // Chỉ tải bundle gần 96 MB khi người dùng thực sự mở tab Ngữ âm.
   if (typeof window.loadPinyinPhonetics === 'function') {
     window.loadPinyinPhonetics().catch((error) => {
       console.error('Không thể tải Ngữ âm Pinyin:', error);
     });
     return;
   }
-
   const container = document.getElementById('pinyinContent');
   if (!container) return;
   pvState.progress = pvGetDefaultProgress();
-
-  if (pvState.activeSession !== null) {
-    renderSessionDetail(container);
-  } else {
-    renderSessionList(container);
-  }
-}
-
-  const container = document.getElementById('pinyinContent');
-  if (!container) return;
-  pvState.progress = pvGetDefaultProgress();
-
-  if (pvState.activeSession !== null) {
-    renderSessionDetail(container);
-  } else {
-    renderSessionList(container);
-  }
+  if (pvState.activeSession !== null) renderSessionDetail(container);
+  else renderSessionList(container);
 }
 
 /* ── Session List ── */
