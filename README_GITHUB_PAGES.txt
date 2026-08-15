@@ -9,6 +9,5 @@ Important:
 - GitHub: Settings -> Pages -> Deploy from a branch -> main -> /(root).
 
 
-AI pronunciation scoring note:
-The frontend calls https://pinyinteach-xct3ccac.manus.space/api/pronunciation/grade.
-That API must allow the deployed GitHub Pages origin with CORS (OPTIONS and POST), for example https://nhanthu262n.github.io. This cannot be fixed by frontend-only code.
+Offline scoring update:
+Pronunciation scoring now runs locally in the browser and no longer calls the remote /api/pronunciation/grade endpoint. It estimates tone shape, duration and loudness from the recorded WAV. The Vietnamese subtitle/meaning block is hidden; the Pinyin quiz tab remains available. Học, Luyện đọc, recording and offline scoring remain available.
