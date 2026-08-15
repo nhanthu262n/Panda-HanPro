@@ -99,30 +99,61 @@
 
   function offlineGrade(payload) {
     const audio = analyzeWav(payload.studentAudio);
-    if (!audio) return { score: 45, feedback: 'Đã ghi âm nhưng không đọc được định dạng WAV để phân tích offline.', offline: true };
-    const contour = pitchContour(audio);
     const tone = Number(payload.targetTone) || 1;
-    const durationScore = Math.max(0, 1 - Math.abs(audio.duration - 0.65) / 1.2);
+
+    if (!audio) {
+      return {
+        score: 45,
+        feedback: 'Đã ghi âm nhưng chưa đọc được bản WAV. Hãy nói trọn âm tiết, rõ tiếng và thu lại.',
+        classification: 'Cần luyện thêm',
+        toneScore: 16, toneFeedback: 'Chưa đủ dữ liệu để xác định đường thanh điệu.',
+        segmentalScore: 16, segmentalFeedback: 'Hãy phát âm rõ âm đầu và âm cuối.',
+        articulationScore: 9, articulationFeedback: 'Giữ khẩu hình ổn định trong suốt âm tiết.',
+        fluencyScore: 4, fluencyFeedback: 'Đọc liền mạch, không ngắt giữa âm tiết.',
+        offline: true
+      };
+    }
+
+    const contour = pitchContour(audio);
+    const durationScore = Math.max(0, Math.min(1, 1 - Math.abs(audio.duration - 0.65) / 1.2));
     const loudScore = Math.min(1, Math.max(0, (audio.rms - 0.008) / 0.08));
     let shapeScore = 0.5;
     let shapeText = 'đường thanh điệu chưa đủ rõ';
     if (contour.length >= 4) {
-      const first = contour.slice(0, Math.max(1, Math.floor(contour.length * 0.25))).reduce((a,b)=>a+b,0) / Math.max(1, Math.floor(contour.length * 0.25));
-      const mid = contour.slice(Math.floor(contour.length * 0.4), Math.ceil(contour.length * 0.6)).reduce((a,b)=>a+b,0) / Math.max(1, Math.ceil(contour.length * 0.6)-Math.floor(contour.length * 0.4));
-      const last = contour.slice(Math.floor(contour.length * 0.75)).reduce((a,b)=>a+b,0) / Math.max(1, contour.length-Math.floor(contour.length*0.75));
+      const quarter = Math.max(1, Math.floor(contour.length * 0.25));
+      const first = contour.slice(0, quarter).reduce((a,b)=>a+b,0) / quarter;
+      const midStart = Math.floor(contour.length * 0.4);
+      const midEnd = Math.max(midStart + 1, Math.ceil(contour.length * 0.6));
+      const mid = contour.slice(midStart, midEnd).reduce((a,b)=>a+b,0) / Math.max(1, midEnd-midStart);
+      const lastStart = Math.floor(contour.length * 0.75);
+      const last = contour.slice(lastStart).reduce((a,b)=>a+b,0) / Math.max(1, contour.length-lastStart);
       const norm = (x) => Math.max(-1, Math.min(1, x / 100));
-      if (tone === 1) { shapeScore = 1 - Math.min(1, Math.abs(last - first) / 90); shapeText = 'giữ đường thanh điệu ngang'; }
-      if (tone === 2) { shapeScore = (norm(last - first) + 1) / 2; shapeText = 'đường thanh điệu đi lên'; }
-      if (tone === 3) { shapeScore = (norm(first - mid) + norm(last - mid) + 2) / 4; shapeText = 'hạ xuống rồi đi lên'; }
-      if (tone === 4) { shapeScore = (norm(first - last) + 1) / 2; shapeText = 'đường thanh điệu đi xuống'; }
+      if (tone === 1) { shapeScore = 1 - Math.min(1, Math.abs(last-first)/90); shapeText = 'giữ đường thanh điệu ngang'; }
+      if (tone === 2) { shapeScore = (norm(last-first)+1)/2; shapeText = 'đường thanh điệu đi lên'; }
+      if (tone === 3) { shapeScore = (norm(first-mid)+norm(last-mid)+2)/4; shapeText = 'hạ xuống rồi đi lên'; }
+      if (tone === 4) { shapeScore = (norm(first-last)+1)/2; shapeText = 'đường thanh điệu đi xuống'; }
     }
-    const score = Math.round(Math.max(20, Math.min(98, 100 * (0.55 * shapeScore + 0.25 * durationScore + 0.20 * loudScore))));
+
+    const toneScore = Math.round(Math.max(0, Math.min(35, shapeScore * 35)));
+    const segmentalScore = Math.round(Math.max(0, Math.min(35, (loudScore * 0.55 + durationScore * 0.45) * 35)));
+    const articulationScore = Math.round(Math.max(0, Math.min(20, (0.5 + loudScore * 0.5) * 20)));
+    const fluencyScore = Math.round(Math.max(0, Math.min(10, durationScore * 10)));
+    const score = toneScore + segmentalScore + articulationScore + fluencyScore;
+    const classification = score >= 80 ? 'Tốt' : score >= 65 ? 'Khá' : score >= 50 ? 'Đang tiến bộ' : 'Cần luyện thêm';
     const feedback = score >= 80
-      ? `Tốt. Bản thu có ${shapeText}. Đây là điểm chấm offline trên thiết bị.`
-      : score >= 60
-        ? `Khá ổn, nhưng hãy luyện lại để ${shapeText} rõ hơn. Đây là điểm chấm offline trên thiết bị.`
-        : `Hãy nói rõ và dài hơn một chút, đồng thời tập trung vào việc ${shapeText}. Đây là điểm chấm offline trên thiết bị.`;
-    return { score, feedback, offline: true, duration: audio.duration, rms: audio.rms };
+      ? `Tốt. Bản thu có ${shapeText}. Hãy giữ cách phát âm này và luyện thêm độ ổn định.`
+      : score >= 65
+        ? `Khá ổn. Hãy luyện để ${shapeText} rõ hơn và giữ âm lượng đều hơn.`
+        : `Hãy đọc trọn âm tiết, nói rõ hơn và tập trung vào việc ${shapeText}.`;
+
+    return {
+      score, feedback, classification,
+      toneScore, toneFeedback: toneScore >= 28 ? `Tốt: ${shapeText}.` : `Cần luyện ${shapeText} rõ hơn.`,
+      segmentalScore, segmentalFeedback: segmentalScore >= 28 ? 'Âm lượng và thời lượng bản thu khá ổn.' : 'Hãy phát âm rõ âm đầu–âm cuối và giữ âm lượng đều.',
+      articulationScore, articulationFeedback: articulationScore >= 16 ? 'Khẩu hình và lực âm tương đối ổn định.' : 'Hãy mở/khép khẩu hình rõ hơn theo âm tiết mẫu.',
+      fluencyScore, fluencyFeedback: fluencyScore >= 8 ? 'Nhịp đọc khá liền mạch.' : 'Đọc liền mạch hơn, tránh ngắt quá sớm.',
+      offline: true, duration: audio.duration, rms: audio.rms
+    };
   }
 
   // Thay riêng request chấm điểm bằng bộ phân tích offline; các fetch khác giữ nguyên.
@@ -146,25 +177,37 @@
     const shadow = host && host.shadowRoot;
     if (!shadow) return;
 
+    // Ẩn nhãn và giá trị nghĩa tiếng Việt của flashcard Học.
     const walker = document.createTreeWalker(shadow, NodeFilter.SHOW_TEXT);
     const nodes = [];
     let node;
     while ((node = walker.nextNode())) nodes.push(node);
-
     nodes.forEach((textNode) => {
       const text = (textNode.nodeValue || '').trim();
-      if (!/^(Nghĩa tiếng Việt|Vietnamese meaning)[:：]?$/i.test(text)) return;
-
+      if (!/^(Nghĩa tiếng Việt|Vietnamese meaning)(?: đang được bổ sung)?[:：]?$/i.test(text)) return;
       const label = textNode.parentElement;
       if (!label) return;
       label.style.display = 'none';
       label.setAttribute('aria-hidden', 'true');
-
-      // Ẩn luôn giá trị vietsub nằm ngay sau nhãn nếu chúng là hai node riêng.
       const next = label.nextElementSibling;
-      if (next && next.textContent && next.textContent.trim().length < 120) {
+      if (next && next.textContent && next.textContent.trim().length < 140) {
         next.style.display = 'none';
         next.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    // Ẩn dòng vietsub trong từng thẻ đáp án Trắc nghiệm, nhưng giữ Hán tự và Pinyin.
+    shadow.querySelectorAll('button').forEach((button) => {
+      const children = [...button.children];
+      if (children.length < 3) return;
+      const texts = children.map((el) => (el.textContent || '').trim());
+      const hasHan = texts.some((t) => /[一-鿿]/.test(t));
+      const hasPinyin = texts.some((t) => /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(t));
+      if (!hasHan || !hasPinyin) return;
+      const meaning = children[children.length - 1];
+      if (meaning && !/[一-鿿]/.test(meaning.textContent || '')) {
+        meaning.style.display = 'none';
+        meaning.setAttribute('aria-hidden', 'true');
       }
     });
   }
@@ -185,7 +228,7 @@
       let rounds = 0;
       host.__subtitleTimer = setInterval(() => {
         hideVietnameseSubtitle();
-        if (++rounds >= 10) {
+        if (++rounds >= 20) {
           clearInterval(host.__subtitleTimer);
           host.__subtitleTimer = null;
         }
@@ -211,6 +254,7 @@
       mounted = true;
       setTimeout(installVietnameseSubtitleHider, 0);
       setTimeout(installVietnameseSubtitleHider, 300);
+      setTimeout(installVietnameseSubtitleHider, 1000);
     })().catch((error) => { loadingPromise = null; mounted = false; showError(error); throw error; });
     return loadingPromise;
   };
