@@ -168,16 +168,24 @@ let pvState = { progress: pvGetDefaultProgress(), activeSession: null, phase: 'i
 
 /* ── Render Pinyin View ── */
 function renderPinyinView() {
-  // Mô-đun Pinyin Bootcamp nguyên bản được mount trong root riêng;
-  // không chạy renderer Pinyin cũ để bảo toàn toàn bộ UI, audio và ghi âm.
-  const phoneticsRoot = document.getElementById('pinyin-phonetics-root');
-  if (phoneticsRoot) {
-    window.__PANDAHAN_PHONETICS_ROOT__ = phoneticsRoot;
-    if (typeof window.__PANDAHAN_PHONETICS_MOUNT__ === 'function') {
-      window.__PANDAHAN_PHONETICS_MOUNT__(phoneticsRoot);
-    }
+  if (typeof window.loadPinyinPhonetics === 'function') {
+    window.loadPinyinPhonetics().catch((error) => {
+      console.error('Không thể tải Ngữ âm Pinyin:', error);
+    });
     return;
   }
+
+  const container = document.getElementById('pinyinContent');
+  if (!container) return;
+  pvState.progress = pvGetDefaultProgress();
+
+  if (pvState.activeSession !== null) {
+    renderSessionDetail(container);
+  } else {
+    renderSessionList(container);
+  }
+}
+
   const container = document.getElementById('pinyinContent');
   if (!container) return;
   pvState.progress = pvGetDefaultProgress();
