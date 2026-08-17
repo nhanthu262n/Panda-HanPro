@@ -758,7 +758,7 @@ function pvNextSession() {
   }
 
   function startGlobalChatListener() {
-    if (!CURRENT_USER || typeof db === "undefined") return;
+    if (!CURRENT_USER || CURRENT_USER.isGuest || typeof db === "undefined") return;
     const myUid = CURRENT_USER.uid || CURRENT_USER.username;
     if (globalChatUnsubscribe) globalChatUnsubscribe();
 
