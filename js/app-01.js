@@ -103,6 +103,17 @@ const db = firebase.firestore();
 
 let CURRENT_USER = null;
 let USER_ROLE = "student";
+// Bản test mở: không yêu cầu đăng nhập, dữ liệu học được lưu cục bộ trên trình duyệt.
+const TEST_OPEN_ACCESS = true;
+const TEST_GUEST_USER = {
+  uid: "guest",
+  username: "guest",
+  email: "",
+  name: "Học viên khách",
+  displayName: "Học viên khách",
+  role: "student",
+  isGuest: true
+};
 
 // showPendingScreen đã bị xóa - không còn cơ chế chờ duyệt (test mode)
 
@@ -149,12 +160,17 @@ auth.onAuthStateChanged(async (user) => {
         CURRENT_USER = user;
         completeLogin(user);
     }
+  } else if (TEST_OPEN_ACCESS) {
+    // Bản test: cấp một phiên khách cục bộ thay cho màn hình đăng nhập.
+    if (!CURRENT_USER) {
+      CURRENT_USER = { ...TEST_GUEST_USER };
+      USER_ROLE = "student";
+      completeLogin(CURRENT_USER);
+    }
   } else {
     CURRENT_USER = null;
-    // Ẩn app khi chưa có user
     const appEl = document.getElementById("app");
     if (appEl) appEl.style.display = "none";
-    // KHÔNG show overlay ở đây - DOMContentLoaded đã xử lý timing
   }
 });
 
@@ -281,7 +297,7 @@ async function handleLogin() {
 
 // ─── TẢI DỮ LIỆU TỪ FIRESTORE ───
 async function loadData() {
-  if (!CURRENT_USER || !CURRENT_USER.uid) return;
+  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest) return;
   try {
     const doc = await db.collection("progress").doc(CURRENT_USER.uid).get();
     if (doc.exists) {
@@ -306,7 +322,7 @@ let _syncTimer = null;
 let _syncPending = false;
 
 async function syncData() {
-  if (!CURRENT_USER || !CURRENT_USER.uid) return;
+  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest) return;
   _syncPending = true;
   // Throttle: gộp nhiều lần gọi thành 1 request sau 2 giây
   clearTimeout(_syncTimer);
@@ -329,7 +345,7 @@ async function syncData() {
 // Force sync ngay lập tức (dùng khi chuyển tab hoặc logout)
 async function syncDataNow() {
   clearTimeout(_syncTimer);
-  if (!CURRENT_USER || !CURRENT_USER.uid) return;
+  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest) return;
   try {
     const stats = JSON.parse(localStorage.getItem("pandahan_pro_stats_v1_" + CURRENT_USER.uid) || "{}");
     await db.collection("progress").doc(CURRENT_USER.uid).set({
