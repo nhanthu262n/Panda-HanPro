@@ -3209,25 +3209,12 @@ document.addEventListener("DOMContentLoaded", () => {
     applyRoleUI();
     startSessionTracking();
     if (typeof startGlobalChatListener === "function") startGlobalChatListener();
+  } else if (typeof TEST_OPEN_ACCESS !== "undefined" && TEST_OPEN_ACCESS) {
+    // Bản test mở: không chờ Firebase và không hiển thị màn hình đăng nhập.
+    if (proAuth) proAuth.style.display = "none";
+    if (appEl) appEl.style.display = "block";
   } else {
-    // Ẩn app cho đến khi auth xác nhận (tối đa 5s)
     if (appEl) appEl.style.display = "none";
-    // KHÔNG show overlay ngay → đợi onAuthStateChanged (đã có trong main handler)
-    // Dùng 1 listener duy nhất để hủy timeout
-    let _authResolved = false;
-    auth.onAuthStateChanged(function _firstAuth(user) {
-      _authResolved = true;
-      if (!user) {
-        // Không có user sau khi auth resolve → show login
-        if (proAuth) proAuth.style.display = "flex";
-      }
-    });
-    // Fallback: nếu 5s vẫn chưa resolve → show login
-    setTimeout(() => {
-      if (!_authResolved && !CURRENT_USER) {
-        if (proAuth) proAuth.style.display = "flex";
-      }
-    }, 5000);
   }
   
   const loginBtn = document.getElementById("loginSubmitBtn");
@@ -3239,8 +3226,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginUser = document.getElementById("loginUsername");
   if (loginUser) loginUser.addEventListener("keydown", (e) => { if (e.key === "Enter") attemptLogin(); });
   
-  // F5 FIX: chỉ initGoogleSignIn khi không có user (để tránh jitter)
-  if (typeof initGoogleSignIn === "function" && !CURRENT_USER) initGoogleSignIn();
+  // Chỉ khởi tạo Google Sign-In khi bật lại chế độ xác thực.
+  if (typeof TEST_OPEN_ACCESS !== "undefined" && !TEST_OPEN_ACCESS && typeof initGoogleSignIn === "function" && !CURRENT_USER) initGoogleSignIn();
   safeAdd("notifBellBtn", "click", (e) => {
     e.stopPropagation();
     if (typeof updateNotifBell === "function") updateNotifBell();
