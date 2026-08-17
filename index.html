@@ -15,7 +15,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
 
 <!-- Unified SDKs -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
@@ -23,29 +22,7 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Main Auth Overlay -->
-    <div id="proAuthOverlay">
-        <div class="pro-auth-card">
-            <div style="font-size:3.5em; margin-bottom:10px;">🐼</div>
-            <h2>PandaHán Pro</h2>
-            <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Hệ thống học tập thông minh & đồng bộ</p>
-            
-            <div id="fbGoogleBtnPro" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
-            
-            <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
-                <div style="flex:1; height:1px; background:#eee;"></div>
-                <span style="font-size:12px; color:#b2bec3;">hoặc</span>
-                <div style="flex:1; height:1px; background:#eee;"></div>
-            </div>
-            
-            <input id="proEmail" type="text" placeholder="Email">
-            <input id="proPass" type="password" placeholder="Mật khẩu">
-            <button class="btn-main" onclick="proLogin()">Đăng nhập ngay</button>
-            <div id="proError" style="color:#e74c3c; font-size:12px; margin-top:15px; display:none; background:#fdf2f2; padding:10px; border-radius:8px;"></div>
-            <button onclick="closeProAuth()" style="background:transparent; color:#636e72; border:none; margin-top:15px; cursor:pointer; font-size:13px; text-decoration:underline;">Tiếp tục Offline</button>
-            <div id="loadingIndicator" style="display:none; font-size:12px; color:#e84393; margin-top:10px;">⌛ Đang xử lý, vui lòng chờ...</div>
-        </div>
-    </div>
+    <!-- Bản test: bỏ qua màn hình đăng nhập, truy cập thẳng nội dung. -->
 
     <!-- <div class="sync-badge" id="syncBadge">
         <div class="sync-dot" id="syncDot"></div>
@@ -53,7 +30,7 @@
     </div> -->
 
     <div id="petalLayer"></div>
-<div class="app" id="app" style="display:none;">
+<div class="app" id="app" style="display:block;">
   <header class="header">
     <div class="logo">🐼 Panda<span>Hán</span> Pro <small>HSK 1-2-3 · 中文 · <span id="langLabel">Tiếng Việt</span></small></div>
     <div class="header-stats">
