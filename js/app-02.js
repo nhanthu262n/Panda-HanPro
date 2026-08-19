@@ -2686,21 +2686,7 @@ function showScreen(name) {
   else if (name === "certificate") { if (el("certificateView")) { el("certificateView").classList.add("visible"); el("certificateView").style.display = "block"; } }
   else if (name === "addWord") { if (el("addWordView")) { el("addWordView").classList.add("visible"); el("addWordView").style.display = "block"; } }
   else if (name === "wordList") { if (el("wordListView")) { el("wordListView").classList.add("visible"); el("wordListView").style.display = "block"; } }
-  else if (name === "pinyin") {
-    if (el("pinyinView")) {
-      el("pinyinView").classList.add("visible");
-      el("pinyinView").style.display = "block";
-      if (typeof window.loadPinyinPhonetics === "function") window.loadPinyinPhonetics().catch(() => {});
-      const openPinyinOverview = () => {
-        const host = document.getElementById("pinyin-phonetics-root");
-        const shadow = host && host.shadowRoot;
-        if (!shadow) return;
-        const back = [...shadow.querySelectorAll("button")].find((button) => (button.textContent || "").includes("Quay lại"));
-        if (back) back.click();
-      };
-      [0, 250, 600, 1200, 2200].forEach((delay) => window.setTimeout(openPinyinOverview, delay));
-    }
-  }
+  else if (name === "pinyin") { if (el("pinyinView")) { el("pinyinView").classList.add("visible"); el("pinyinView").style.display = "block"; if (typeof renderPinyinView === "function") renderPinyinView(); } }
 }
 
 /* ===================== TEACHER DASHBOARD (reads other users' namespaced data) ===================== */
