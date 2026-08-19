@@ -3,8 +3,8 @@
 
   const loaderScript = document.currentScript;
   const baseUrl = new URL('./', loaderScript.src);
-  const API_BASE = 'https://pinyinteach-xct3ccac.manus.space';
-  window.__PINYIN_TEACHER_API_BASE__ = API_BASE;
+  const API_BASE = "";
+  window.__PINYIN_TEACHER_API_BASE__ = "";
 
   const PARTS = [
     'pinyin-phonetics.part-01.js',
@@ -112,28 +112,14 @@
   }
 
   function installPinyinObservers() {
-    const host = getRoot();
-    if (!host || !host.shadowRoot) return;
-    const shadow = host.shadowRoot;
-
-    hideQuizAnswerMeanings();
-    installPinyinLayoutFix();
-
-    if (!host.__pinyinUiObserver) {
-      host.__pinyinUiObserver = new MutationObserver(() => {
-        hideQuizAnswerMeanings();
-        installPinyinLayoutFix();
-        queueMicrotask(() => {
-          hideQuizAnswerMeanings();
-          installPinyinLayoutFix();
-        });
-      });
-      host.__pinyinUiObserver.observe(shadow, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-    }
+    const host=getRoot();
+    if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
+    const shadow=host.shadowRoot;
+    let queued=false;
+    const refresh=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;hideQuizAnswerMeanings();installPinyinLayoutFix();});};
+    hideQuizAnswerMeanings();installPinyinLayoutFix();
+    host.__pinyinUiObserver=new MutationObserver(refresh);
+    host.__pinyinUiObserver.observe(shadow,{childList:true,subtree:true});
   }
 
   window.loadPinyinPhonetics = function () {
@@ -170,12 +156,10 @@
       const mountRoot = getRoot();
       if (!mountRoot) throw new Error('Không tìm thấy vùng Ngữ âm.');
       window.__PANDAHAN_PHONETICS_ROOT__ = mountRoot;
-      window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);
+      window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
       mounted = true;
 
       setTimeout(installPinyinObservers, 0);
-      setTimeout(installPinyinObservers, 300);
-      setTimeout(installPinyinObservers, 1000);
     })().catch((error) => {
       loadingPromise = null;
       mounted = false;
