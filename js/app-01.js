@@ -16,15 +16,15 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
  *
  *     function isTeacher() {
  *       return signedIn() &&
- *         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher","master_teacher"];
+ *         get(/databases/$(database)/documents/users/$(request.offlineAuth.uid)).data.role in ["teacher","master_teacher"];
  *     }
  *
  *     function isOwner() {
- *       return signedIn() && request.auth.uid == resource.id;
+ *       return signedIn() && request.offlineAuth.uid == resource.id;
  *     }
  *
  *     function isOwnerOrCreate() {
- *       return signedIn() && request.auth.uid == request.resource.id;
+ *       return signedIn() && request.offlineAuth.uid == request.resource.id;
  *     }
  *
  *     function validProgressData() {
@@ -42,24 +42,24 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
  *     // Helper: check if requester is a master (center admin)
  *     function isMaster() {
  *       return signedIn() &&
- *         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "master_teacher";
+ *         get(/databases/$(database)/documents/users/$(request.offlineAuth.uid)).data.role == "master_teacher";
  *     }
  *
  *     // Helper: check if requester is teacher or master
  *     function isTeacherOrMaster() {
  *       return signedIn() &&
- *         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "master_teacher"];
+ *         get(/databases/$(database)/documents/users/$(request.offlineAuth.uid)).data.role in ["teacher", "master_teacher"];
  *     }
  *
  *     // ─── USERS ───
  *     match /users/{userId} {
  *       // Ai cũng đọc được danh sách users (giáo viên xem danh sách học viên)
- *       allow read: if signedIn() && (request.auth.uid == userId || isTeacherOrMaster());
+ *       allow read: if signedIn() && (request.offlineAuth.uid == userId || isTeacherOrMaster());
  *       // User tự tạo account của mình
- *       allow create: if signedIn() && request.auth.uid == userId;
+ *       allow create: if signedIn() && request.offlineAuth.uid == userId;
  *       // User tự cập nhật profile (không đổi role), hoặc Master/GV đổi role
  *       allow update: if signedIn() && (
- *         (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
+ *         (request.offlineAuth.uid == userId && request.resource.data.role == resource.data.role) ||
  *         isTeacherOrMaster()
  *       );
  *       // Chỉ Master mới xóa user
@@ -69,9 +69,9 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
  *     // ─── PROGRESS ───
  *     match /progress/{userId} {
  *       // Học sinh đọc progress của mình; Giáo viên/Master đọc của học viên
- *       allow read: if signedIn() && (request.auth.uid == userId || isTeacherOrMaster());
+ *       allow read: if signedIn() && (request.offlineAuth.uid == userId || isTeacherOrMaster());
  *       // Chỉ học sinh tự ghi progress của mình
- *       allow write: if signedIn() && request.auth.uid == userId && validProgressData();
+ *       allow write: if signedIn() && request.offlineAuth.uid == userId && validProgressData();
  *     }
  *
  *   }
@@ -79,101 +79,19 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
  * ═══════════════════════════════════════════════════════════════════
  */
 
-// ============================================
-// CẤU HÌNH FIREBASE (BẮT BUỘC THAY THẾ)
-// ============================================
-const firebaseConfig = {
-  apiKey: "AIzaSyBhjivJYd16vazp4Mi5XSv4Hp_N3Jd14Q4",
-  authDomain: "pandahanpro.firebaseapp.com",
-  databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "pandahanpro",
-  storageBucket: "pandahanpro.firebasestorage.app",
-  messagingSenderId: "897241491720",
-  appId: "1:897241491720:web:43e654aeadc08668cf64bd",
-  measurementId: "G-1JRBVDYFED"
-};
-
-// TÀI KHOẢN MASTER CỐ ĐỊNH CỦA BẠN
-const MASTER_EMAILS = ["teacher@gmail.com", "nhanthu262n@gmail.com"];
-const GOOGLE_CLIENT_ID = "897241491720-obod7unscrt6m0drrv6msjp1jscu32gu.apps.googleusercontent.com";
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-let CURRENT_USER = null;
-let USER_ROLE = "student";
-// Bản test mở: không yêu cầu đăng nhập, dữ liệu học được lưu cục bộ trên trình duyệt.
-const TEST_OPEN_ACCESS = true;
-const TEST_GUEST_USER = {
-  uid: "guest",
-  username: "guest",
-  email: "",
-  name: "Học viên khách",
-  displayName: "Học viên khách",
-  role: "student",
-  isGuest: true
-};
-
-// showPendingScreen đã bị xóa - không còn cơ chế chờ duyệt (test mode)
-
-// LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP
-auth.onAuthStateChanged(async (user) => {
-  // const syncDot = document.getElementById("syncDot");
-  // const syncText = document.getElementById("syncText");
-
-  if (user) {
-    try {
-        // Kiểm tra role trong Firestore
-        const userDoc = await db.collection("users").doc(user.uid).get();
-        let userData = userDoc.exists ? userDoc.data() : null;
-        
-        if (!userData) {
-            // Người dùng mới - Tự động cấp role học sinh (test mode, không cần chờ duyệt)
-            // Trừ khi email thuộc MASTER_EMAILS → cấp role teacher (Master/Trung tâm)
-            USER_ROLE = MASTER_EMAILS.includes(user.email) ? "teacher" : "student";
-            userData = {
-                uid: user.uid,
-                email: user.email,
-                name: user.displayName || "Học viên",
-                role: USER_ROLE,
-                status: "approved",
-                lastSeen: new Date()
-            };
-            await db.collection("users").doc(user.uid).set(userData);
-        } else {
-            USER_ROLE = userData.role || "student";
-        }
-
-        CURRENT_USER = { ...user, ...userData };
-        
-        // if (syncDot) syncDot.classList.add("online");
-        // if (syncText) syncText.textContent = "Đã kết nối: " + user.email;
-        
-        completeLogin(CURRENT_USER);
-        // F5 FIX: ẩn overlay
-        const overlay = document.getElementById("proAuthOverlay");
-        if (overlay) overlay.style.display = "none";
-    } catch(e) { 
-        console.error("Auth error:", e);
-        // Fallback if firestore fails
-        CURRENT_USER = user;
-        completeLogin(user);
-    }
-  } else if (TEST_OPEN_ACCESS) {
-    // Bản test: cấp một phiên khách cục bộ thay cho màn hình đăng nhập.
-    if (!CURRENT_USER) {
-      CURRENT_USER = { ...TEST_GUEST_USER };
-      USER_ROLE = "student";
-      completeLogin(CURRENT_USER);
-    }
-  } else {
-    CURRENT_USER = null;
-    const appEl = document.getElementById("app");
-    if (appEl) appEl.style.display = "none";
-  }
-});
-
+// Chế độ host tối ưu: chỉ dùng dữ liệu cục bộ, không khởi tạo SDK cloud.
+const MASTER_EMAILS=[];
+const GOOGLE_CLIENT_ID="";
+const auth=null;
+const db=null;
+const offlineAuth=null;
+const offlineDb=null;
+const offlineCloud={firestore:{FieldValue:{serverTimestamp:()=>Date.now()}}};
+let CURRENT_USER=null;
+let USER_ROLE="student";
+const TEST_OPEN_ACCESS=true;
+const TEST_GUEST_USER={uid:"guest",username:"guest",email:"",name:"Học viên khách",displayName:"Học viên khách",role:"student",isGuest:true};
+function startOfflineGuest(){if(CURRENT_USER)return;CURRENT_USER={...TEST_GUEST_USER};USER_ROLE="student";if(typeof completeLogin==="function")completeLogin(CURRENT_USER);}
 function initGoogleSignIn() {
   if (typeof google === "undefined") return;
   const container = document.getElementById("fbGoogleBtnPro");
@@ -182,9 +100,9 @@ function initGoogleSignIn() {
     google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: async (res) => {
-      const cred = firebase.auth.GoogleAuthProvider.credential(res.credential);
+      const cred = offlineCloud.offlineAuth.GoogleAuthProvider.credential(res.credential);
       try {
-          await auth.signInWithCredential(cred);
+          await offlineAuth.signInWithCredential(cred);
           // Redirect handled by onAuthStateChanged
       } catch (e) {
           console.error("Google Auth Error:", e);
@@ -207,13 +125,13 @@ function initGoogleSignIn() {
 async function proGoogleLogin() {
     // Đăng nhập Google → tự động vào thẳng (test mode, không chờ duyệt)
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithPopup(provider);
+        const provider = new offlineCloud.offlineAuth.GoogleAuthProvider();
+        await offlineAuth.signInWithPopup(provider);
     } catch (e) {
         console.error("Popup failed, trying redirect:", e);
         try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            await auth.signInWithRedirect(provider);
+            const provider = new offlineCloud.offlineAuth.GoogleAuthProvider();
+            await offlineAuth.signInWithRedirect(provider);
         } catch (e2) {
             const errEl = document.getElementById('proError');
             if (errEl) {
@@ -238,7 +156,7 @@ async function proLogin() {
   }
   
   try {
-    await auth.signInWithEmailAndPassword(email, pass);
+    await offlineAuth.signInWithEmailAndPassword(email, pass);
     if (errEl) errEl.style.display = "none";
   } catch (e) {
     if (errEl) {
@@ -257,7 +175,7 @@ function closeProAuth() {
 
 // Xử lý kết quả sau khi Redirect quay lại
 function handleRedirectResult() {
-    auth.getRedirectResult().then((result) => {
+    offlineAuth.getRedirectResult().then((result) => {
         if (result.user) {
             console.log("Đăng nhập thành công sau redirect");
         }
@@ -286,7 +204,7 @@ async function handleLogin() {
   if (email === "teacher") targetEmail = "teacher@gmail.com"; 
   
   try {
-    await auth.signInWithEmailAndPassword(targetEmail, pass);
+    await offlineAuth.signInWithEmailAndPassword(targetEmail, pass);
   } catch (e) {
     document.getElementById("authError").textContent = "Lỗi: " + e.message;
     document.getElementById("authError").style.display = "block";
@@ -297,9 +215,9 @@ async function handleLogin() {
 
 // ─── TẢI DỮ LIỆU TỪ FIRESTORE ───
 async function loadData() {
-  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest) return;
+  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest || !db) return;
   try {
-    const doc = await db.collection("progress").doc(CURRENT_USER.uid).get();
+    const doc = await offlineDb.collection("progress").doc(CURRENT_USER.uid).get();
     if (doc.exists) {
       const data = doc.data();
       // Nếu data trên cloud mới hơn localStorage thì cập nhật
@@ -322,7 +240,7 @@ let _syncTimer = null;
 let _syncPending = false;
 
 async function syncData() {
-  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest) return;
+  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest || !db) return;
   _syncPending = true;
   // Throttle: gộp nhiều lần gọi thành 1 request sau 2 giây
   clearTimeout(_syncTimer);
@@ -330,9 +248,9 @@ async function syncData() {
     _syncPending = false;
     try {
       const stats = JSON.parse(localStorage.getItem("pandahan_pro_stats_v1_" + CURRENT_USER.uid) || "{}");
-      await db.collection("progress").doc(CURRENT_USER.uid).set({
+      await offlineDb.collection("progress").doc(CURRENT_USER.uid).set({
         stats,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        lastUpdated: offlineCloud.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (e) {
       console.error("Sync error:", e);
@@ -345,12 +263,12 @@ async function syncData() {
 // Force sync ngay lập tức (dùng khi chuyển tab hoặc logout)
 async function syncDataNow() {
   clearTimeout(_syncTimer);
-  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest) return;
+  if (!CURRENT_USER || !CURRENT_USER.uid || CURRENT_USER.isGuest || !db) return;
   try {
     const stats = JSON.parse(localStorage.getItem("pandahan_pro_stats_v1_" + CURRENT_USER.uid) || "{}");
-    await db.collection("progress").doc(CURRENT_USER.uid).set({
+    await offlineDb.collection("progress").doc(CURRENT_USER.uid).set({
       stats,
-      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      lastUpdated: offlineCloud.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   } catch (e) {
     console.error("Force sync error:", e);
@@ -376,12 +294,12 @@ function createTeacherView() {
 }
 
 async function loadStudentList() {
-  const snap = await db.collection("users").where("role", "==", "student").get();
+  const snap = await offlineDb.collection("users").where("role", "==", "student").get();
   let html = "";
   for (const doc of snap.docs) {
     const u = doc.data();
     // Lấy tiến độ của học sinh
-    const prog = await db.collection("progress").doc(u.uid).get();
+    const prog = await offlineDb.collection("progress").doc(u.uid).get();
     const stats = prog.exists ? prog.data().stats : {};
     const learned = Object.keys(stats).length;
     
