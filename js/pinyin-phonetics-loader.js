@@ -111,6 +111,28 @@
     if (nav) nav.classList.add('pinyin-sticky-nav');
   }
 
+  function openFirstPinyinFlashcard() {
+    const host = getRoot();
+    const shadow = host && host.shadowRoot;
+    if (!shadow) return false;
+    const startButton = [...shadow.querySelectorAll('button')].find((button) => {
+      const text = (button.textContent || '').trim();
+      return /Bắt đầu học|Start Learning/i.test(text);
+    });
+    if (!startButton || startButton.disabled) return false;
+    startButton.click();
+    return true;
+  }
+
+  function scheduleFirstPinyinFlashcard() {
+    [0, 120, 500].forEach((delay) => {
+      window.setTimeout(() => {
+        openFirstPinyinFlashcard();
+        installPinyinObservers();
+      }, delay);
+    });
+  }
+
   function installPinyinObservers() {
     const host=getRoot();
     if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
@@ -126,6 +148,7 @@
     const root = getRoot();
     if (mounted && root && root.shadowRoot && root.shadowRoot.firstElementChild) {
       installPinyinObservers();
+      scheduleFirstPinyinFlashcard();
       return Promise.resolve();
     }
 
@@ -159,7 +182,10 @@
       window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
       mounted = true;
 
-      setTimeout(installPinyinObservers, 0);
+      setTimeout(() => {
+        installPinyinObservers();
+        scheduleFirstPinyinFlashcard();
+      }, 0);
     })().catch((error) => {
       loadingPromise = null;
       mounted = false;
