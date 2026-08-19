@@ -8,7 +8,7 @@
 
   const PARTS = [
     'pinyin-phonetics.part-01.js',
-    'pinyin-phonetics.part-02.js?v=card-history-20260819-v3',
+    'pinyin-phonetics.part-02.js?v=audio-setting-20260819-v1',
     'pinyin-phonetics.part-03.js',
     'pinyin-phonetics.part-04.js',
     'pinyin-phonetics.part-05.js?v=overview-20260819'
