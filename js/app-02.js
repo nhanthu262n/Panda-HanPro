@@ -3156,9 +3156,6 @@ function completeLogin(user) {
   if (USER_ROLE === "teacher" || USER_ROLE === "master_teacher") switchTab("teacher"); else switchTab("browse");
   if (typeof checkStreakWarning === "function") checkStreakWarning();
   if (typeof updateNotifBell === "function") updateNotifBell();
-  if (typeof startGlobalChatListener === "function") startGlobalChatListener();
-  // Sync data lên cloud sau khi login (1s delay để đợi loadData hoàn tất)
-  setTimeout(() => { if (typeof syncDataNow === "function") syncDataNow(); }, 1000);
 }
 function attemptLogin() {
   const username = document.getElementById("loginUsername").value.trim();
@@ -3180,7 +3177,6 @@ function attemptLogin() {
 }
 async function doLogout() {
   // Force sync trước khi logout
-  if (typeof syncDataNow === "function") await syncDataNow();
   finalizeSession();
   clearSession();
   if (auth) {
@@ -3208,7 +3204,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (appEl) appEl.style.display = "block";
     applyRoleUI();
     startSessionTracking();
-    if (typeof startGlobalChatListener === "function") startGlobalChatListener();
   } else if (typeof TEST_OPEN_ACCESS !== "undefined" && TEST_OPEN_ACCESS) {
     // Bản test mở: không chờ Firebase và không hiển thị màn hình đăng nhập.
     if (proAuth) proAuth.style.display = "none";
@@ -3284,7 +3279,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("beforeunload", () => {
     if (CURRENT_USER) {
       if (typeof finalizeSession === "function") finalizeSession();
-      if (typeof syncDataNow === "function") syncDataNow();
     }
   });
 
