@@ -7,7 +7,7 @@
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
   const PARTS = [
-    'pinyin-phonetics.part-01.js?v=segmental-20260820-v3',
+    'pinyin-phonetics.part-01.js?v=segmental-20260820-v4',
     'pinyin-phonetics.part-02.js?v=audio-setting-20260819-v1',
     'pinyin-phonetics.part-03.js',
     'pinyin-phonetics.part-04.js',
@@ -72,6 +72,22 @@
     });
   }
 
+  function hideOverviewHistory() {
+    const host = getRoot();
+    const shadow = host && host.shadowRoot;
+    if (!shadow) return;
+    const candidates = [...shadow.querySelectorAll('div,section')].filter((el) => {
+      const text = (el.textContent || '').trim();
+      return text.includes('Lịch sử phát âm') && text.includes('Xóa lịch sử');
+    }).sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
+    const panel = candidates[0];
+    if (panel) {
+      panel.style.display = 'none';
+      panel.setAttribute('aria-hidden', 'true');
+      panel.setAttribute('data-pandahan-overview-history-hidden', 'true');
+    }
+  }
+
   function installPinyinLayoutFix() {
     const host = getRoot();
     const shadow = host && host.shadowRoot;
@@ -87,6 +103,9 @@
         :host h2 { line-height:1.25 !important; }
         :host p { line-height:1.6 !important; }
         :host button { font-family:inherit; }
+        [data-pandahan-overview-history-hidden="true"] { display:none !important; }
+        :host > .animate-slide-up > div { box-sizing:border-box; }
+
         .pinyin-sticky-nav {
           position:sticky !important;
           bottom:12px;
@@ -121,8 +140,8 @@
     if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
     const shadow=host.shadowRoot;
     let timer=0;
-    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();installPinyinLayoutFix();},120)};
-    hideQuizAnswerMeanings();installPinyinLayoutFix();
+    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();},120)};
+    hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();
     host.__pinyinUiObserver=new MutationObserver(refresh);
     host.__pinyinUiObserver.observe(shadow,{childList:true,subtree:true});
   }
