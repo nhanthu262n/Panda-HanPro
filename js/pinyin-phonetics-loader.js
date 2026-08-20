@@ -7,7 +7,7 @@
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
   const PARTS = [
-    'pinyin-phonetics.part-01.js?v=segmental-20260820-v4',
+    'pinyin-phonetics.part-01.js?v=segmental-20260820-v5',
     'pinyin-phonetics.part-02.js?v=audio-setting-20260819-v1',
     'pinyin-phonetics.part-03.js',
     'pinyin-phonetics.part-04.js',
@@ -76,11 +76,12 @@
     const host = getRoot();
     const shadow = host && host.shadowRoot;
     if (!shadow) return;
-    const candidates = [...shadow.querySelectorAll('div,section')].filter((el) => {
+    const hasHistory = (el) => {
       const text = (el.textContent || '').trim();
       return text.includes('Lịch sử phát âm') && text.includes('Xóa lịch sử');
-    }).sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
-    const panel = candidates[0];
+    };
+    const panel = [...shadow.querySelectorAll('section')].find(hasHistory)
+      || [...shadow.querySelectorAll('div')].filter(hasHistory).sort((a, b) => (b.textContent || '').length - (a.textContent || '').length)[0];
     if (panel) {
       panel.style.display = 'none';
       panel.setAttribute('aria-hidden', 'true');
