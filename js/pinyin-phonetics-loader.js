@@ -81,7 +81,12 @@
       const style = document.createElement('style');
       style.setAttribute('data-pandahan-layout-fix', 'true');
       style.textContent = `
-        :host { display:block; width:100%; min-width:0; }
+        :host { display:block; width:100%; min-width:0; color:#374151; font-family:'Nunito','Segoe UI',system-ui,sans-serif; }
+        :host > .animate-slide-up { width:100%; max-width:1100px !important; margin:0 auto !important; padding:clamp(18px,3vw,32px) !important; box-sizing:border-box; background:rgba(255,255,255,.94); border:1px solid rgba(236,72,153,.14); border-radius:24px; box-shadow:0 8px 30px rgba(157,23,77,.08); line-height:1.5; }
+        :host h1 { font-size:clamp(22px,2.4vw,32px) !important; line-height:1.2 !important; margin-bottom:8px !important; }
+        :host h2 { line-height:1.25 !important; }
+        :host p { line-height:1.6 !important; }
+        :host button { font-family:inherit; }
         .pinyin-sticky-nav {
           position:sticky !important;
           bottom:12px;
@@ -115,8 +120,8 @@
     const host=getRoot();
     if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
     const shadow=host.shadowRoot;
-    let queued=false;
-    const refresh=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;hideQuizAnswerMeanings();installPinyinLayoutFix();});};
+    let timer=0;
+    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();installPinyinLayoutFix();},120)};
     hideQuizAnswerMeanings();installPinyinLayoutFix();
     host.__pinyinUiObserver=new MutationObserver(refresh);
     host.__pinyinUiObserver.observe(shadow,{childList:true,subtree:true});
