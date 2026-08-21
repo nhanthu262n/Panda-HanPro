@@ -21,7 +21,7 @@
     const authUser = window.firebase?.auth?.().currentUser;
     if (authUser?.uid) return authUser.uid;
     try {
-      if (typeof CURRENT_USER !== "undefined" && CURRENT_USER?.uid) return CURRENT_USER.uid;
+      if (typeof CURRENT_USER !== "undefined" && CURRENT_USER?.uid && !CURRENT_USER.isGuest) return CURRENT_USER.uid;
     } catch (_) {}
     return null;
   }
