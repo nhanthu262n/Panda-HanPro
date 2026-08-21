@@ -172,6 +172,12 @@
         return text;
       }));
 
+      // Nhường một nhịp cho trình duyệt trước khi nối/eval bundle lớn để tránh khựng giao diện.
+      await new Promise((resolve) => {
+        const resume = () => resolve();
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(resume, { timeout: 120 });
+        else window.setTimeout(resume, 0);
+      });
       // Nối đúng thứ tự part-01 → part-05 rồi chạy bundle nguyên bản một lần.
       (0, eval)(texts.join(''));
       if (typeof window.__PANDAHAN_PHONETICS_MOUNT__ !== 'function') {
