@@ -35,15 +35,6 @@
     return null;
   }
 
-  function todayVietnam() {
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-  }
-
   function timestamp() {
     return window.firebase.database.ServerValue.TIMESTAMP;
   }
@@ -82,7 +73,7 @@
       curriculum_day_id: String(day.day_number),
       day_number: Number(day.day_number),
       sequence_index: Number(day.day_number),
-      scheduled_date: first ? todayVietnam() : null,
+      scheduled_date: first ? window.PandaHanScheduleCore.todayVietnam() : null,
       status: first ? "unlocked" : "locked",
       attempt_count: 0,
       best_score: null,
