@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    function isTeacher() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['teacher', 'master_teacher'];
+    }
+    function canAccessUser(uid) { return isSelf(uid) || isTeacher(); }
+
+    match /users/{uid} {
+      allow read: if canAccessUser(uid) || signedIn();
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid) || isTeacher();
+      allow delete: if isTeacher();
+    }
+
+    match /progress/{uid} {
+      allow read, write: if canAccessUser(uid);
+    }
+
+    match /notifications/{uid} {
+      allow read, update: if isSelf(uid) || isTeacher();
+      allow create: if isTeacher();
+      allow delete: if isSelf(uid) || isTeacher();
+    }
+
+    match /chats/{chatId} {
+      allow create: if signedIn() && request.auth.uid in request.resource.data.participants;
+      allow read, update, delete: if signedIn() && request.auth.uid in resource.data.participants;
+      match /messages/{messageId} {
+        allow read, write: if signedIn() && (
+          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+        );
+      }
+    }
+
+    match /quizResults/{uid} {
+      allow read, write: if canAccessUser(uid);
+    }
+
+    match /studentProgress/{uid} {
+      allow read, write: if canAccessUser(uid);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
