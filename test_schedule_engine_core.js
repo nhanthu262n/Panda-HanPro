@@ -1,8 +1,8 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
-const core = require("./full_offline/PandaHan_GitHubPages_Optimized/js/schedule-engine-core.js");
-const curriculum = JSON.parse(fs.readFileSync(path.join(__dirname, "full_offline/PandaHan_GitHubPages_Optimized/assets/curriculum_days.json"), "utf8")).curriculum_days;
+const core = require("./js/schedule-engine-core.js");
+const curriculum = JSON.parse(fs.readFileSync(path.join(__dirname, "assets/curriculum_days.json"), "utf8")).curriculum_days;
 
 const today = "2026-08-21";
 
