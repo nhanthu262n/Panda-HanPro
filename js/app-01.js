@@ -79,137 +79,79 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
  * ═══════════════════════════════════════════════════════════════════
  */
 
-// Chế độ host tối ưu: chỉ dùng dữ liệu cục bộ, không khởi tạo SDK cloud.
-const MASTER_EMAILS=[];
-const GOOGLE_CLIENT_ID="";
-const auth=null;
-const db=null;
-const offlineAuth=null;
-const offlineDb=null;
-const offlineCloud={firestore:{FieldValue:{serverTimestamp:()=>Date.now()}}};
-let CURRENT_USER=null;
-let USER_ROLE="student";
-const TEST_OPEN_ACCESS=true;
-const TEST_GUEST_USER={uid:"guest",username:"guest",email:"",name:"Học viên khách",displayName:"Học viên khách",role:"student",isGuest:true};
-function startOfflineGuest(){if(CURRENT_USER)return;CURRENT_USER={...TEST_GUEST_USER};USER_ROLE="student";if(typeof completeLogin==="function")completeLogin(CURRENT_USER);}
-function initGoogleSignIn() {
-  if (typeof google === "undefined") return;
-  const container = document.getElementById("fbGoogleBtnPro");
-  if (!container) return;
-  
-    google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: async (res) => {
-      const cred = offlineCloud.offlineAuth.GoogleAuthProvider.credential(res.credential);
-      try {
-          await offlineAuth.signInWithCredential(cred);
-          // Redirect handled by onAuthStateChanged
-      } catch (e) {
-          console.error("Google Auth Error:", e);
-          const errEl = document.getElementById('proError');
-          if (errEl) {
-              errEl.textContent = "Lỗi đăng nhập: " + e.message;
-              errEl.style.display = "block";
-          }
-      }
-    }
-  });
-  google.accounts.id.renderButton(container, { 
-    theme: "outline", 
-    size: "large", 
-    shape: "pill",
-    width: 280 
-  });
+// Firebase-backed authentication and cloud sync restored for GitHub Pages.
+const firebaseConfig = {
+  apiKey: "AIzaSyBhjivYJd16vazp4Mi5XSv4Hp_N3Jd14Q4",
+  authDomain: "pandahanpro.firebaseapp.com",
+  databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pandahanpro",
+  storageBucket: "pandahanpro.firebasestorage.app",
+  messagingSenderId: "897241491720",
+  appId: "1:897241491720:web:43e654aeadc08668cf64bd",
+  measurementId: "G-1JRBVDYFED"
+};
+const MASTER_EMAILS = ["teacher@gmail.com", "nhanthu262n@gmail.com"];
+const GOOGLE_CLIENT_ID = "";
+if (window.firebase && typeof window.firebase.initializeApp === "function" && !window.firebase.apps.length) {
+  window.firebase.initializeApp(firebaseConfig);
 }
-
-async function proGoogleLogin() {
-    // Đăng nhập Google → tự động vào thẳng (test mode, không chờ duyệt)
-    try {
-        const provider = new offlineCloud.offlineAuth.GoogleAuthProvider();
-        await offlineAuth.signInWithPopup(provider);
-    } catch (e) {
-        console.error("Popup failed, trying redirect:", e);
-        try {
-            const provider = new offlineCloud.offlineAuth.GoogleAuthProvider();
-            await offlineAuth.signInWithRedirect(provider);
-        } catch (e2) {
-            const errEl = document.getElementById('proError');
-            if (errEl) {
-                errEl.textContent = "Lỗi: " + e2.message;
-                errEl.style.display = "block";
-            }
-        }
-    }
+const auth = window.firebase && typeof window.firebase.auth === "function" ? window.firebase.auth() : null;
+const db = window.firebase && typeof window.firebase.firestore === "function" ? window.firebase.firestore() : null;
+const offlineAuth = auth;
+const offlineDb = db;
+const offlineCloud = { firestore: { FieldValue: { serverTimestamp: () => window.firebase?.firestore?.FieldValue?.serverTimestamp?.() || Date.now() } } };
+let CURRENT_USER = null;
+let USER_ROLE = "student";
+const TEST_OPEN_ACCESS = false;
+const TEST_GUEST_USER = { uid: "guest", username: "guest", email: "", name: "Học viên khách", displayName: "Học viên khách", role: "student", isGuest: true };
+function startOfflineGuest() {
+  if (CURRENT_USER) return;
+  CURRENT_USER = { ...TEST_GUEST_USER };
+  USER_ROLE = "student";
+  if (typeof completeLogin === "function") completeLogin(CURRENT_USER);
 }
-
-async function proLogin() {
-  const email = document.getElementById("proEmail").value;
-  const pass = document.getElementById("proPass").value;
+function showAuthError(message) {
   const errEl = document.getElementById("proError");
-  
-  if (!email || !pass) {
-    if (errEl) {
-        errEl.textContent = "Vui lòng nhập đầy đủ email và mật khẩu.";
-        errEl.style.display = "block";
-    }
-    return;
-  }
-  
-  try {
-    await offlineAuth.signInWithEmailAndPassword(email, pass);
-    if (errEl) errEl.style.display = "none";
-  } catch (e) {
-    if (errEl) {
-        errEl.textContent = "Lỗi: " + e.message;
-        errEl.style.display = "block";
-    }
-  }
+  if (errEl) { errEl.textContent = message || "Có lỗi xác thực."; errEl.style.display = "block"; }
 }
-
+function initGoogleSignIn() { return; }
+async function proGoogleLogin() {
+  if (!auth) return showAuthError("Firebase Auth chưa sẵn sàng. Bạn có thể tiếp tục Offline.");
+  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch (e) { showAuthError("Đăng nhập Google thất bại: " + (e.message || e)); }
+}
+async function proLogin() {
+  const email = (document.getElementById("proEmail")?.value || "").trim();
+  const pass = document.getElementById("proPass")?.value || "";
+  if (!email || !pass) return showAuthError("Vui lòng nhập đầy đủ email và mật khẩu.");
+  if (!auth) return showAuthError("Firebase Auth chưa sẵn sàng. Kiểm tra kết nối rồi thử lại.");
+  try { await auth.signInWithEmailAndPassword(email, pass); document.getElementById("proError").style.display = "none"; }
+  catch (e) { showAuthError("Đăng nhập thất bại: " + (e.message || e)); }
+}
+async function proRegister() {
+  const name = (document.getElementById("proName")?.value || "").trim() || "Học viên";
+  const email = (document.getElementById("proEmail")?.value || "").trim();
+  const pass = document.getElementById("proPass")?.value || "";
+  if (!email || pass.length < 6) return showAuthError("Nhập email và mật khẩu tối thiểu 6 ký tự để đăng ký.");
+  if (!auth) return showAuthError("Firebase Auth chưa sẵn sàng. Kiểm tra kết nối rồi thử lại.");
+  try {
+    const result = await auth.createUserWithEmailAndPassword(email, pass);
+    if (result.user && typeof result.user.updateProfile === "function") await result.user.updateProfile({ displayName: name });
+    if (window.PandaHanAuth && result.user) await window.PandaHanAuth.ensureStudentProfile(result.user);
+    document.getElementById("proError").style.display = "none";
+  }
+  catch (e) { showAuthError("Đăng ký thất bại: " + (e.message || e)); }
+}
 function closeProAuth() {
-    const overlay = document.getElementById('proAuthOverlay');
-    const appEl = document.getElementById('app');
-    if (overlay) overlay.style.display = "none";
-    if (appEl) appEl.style.display = "block";
+  startOfflineGuest();
+  const overlay = document.getElementById("proAuthOverlay");
+  if (overlay) overlay.style.display = "none";
 }
-
-// Xử lý kết quả sau khi Redirect quay lại
 function handleRedirectResult() {
-    offlineAuth.getRedirectResult().then((result) => {
-        if (result.user) {
-            console.log("Đăng nhập thành công sau redirect");
-        }
-    }).catch((error) => {
-        const errEl = document.getElementById('proError');
-        if(errEl) {
-            errEl.textContent = "Lỗi Google: " + error.message;
-            errEl.style.display = "block";
-        }
-    });
+  if (auth) auth.getRedirectResult().catch((e) => showAuthError("Lỗi Google: " + (e.message || e)));
 }
-
-// Chạy khi trang load
-window.addEventListener('load', () => {
-    handleRedirectResult();
-    // initGoogleSignIn sẽ được gọi 1 lần duy nhất bởi DOMContentLoaded
-    // KHÔNG gọi lại ở đây để tránh jitter trên F5
-});
-
-async function handleLogin() {
-  const email = document.getElementById("loginEmail").value;
-  const pass = document.getElementById("loginPassword").value;
-  
-  // Hỗ trợ đăng nhập nhanh cho Teacher nếu bạn đã tạo tài khoản này trong Firebase
-  let targetEmail = email;
-  if (email === "teacher") targetEmail = "teacher@gmail.com"; 
-  
-  try {
-    await offlineAuth.signInWithEmailAndPassword(targetEmail, pass);
-  } catch (e) {
-    document.getElementById("authError").textContent = "Lỗi: " + e.message;
-    document.getElementById("authError").style.display = "block";
-  }
-}
+window.addEventListener("load", handleRedirectResult);
+async function handleLogin() { return proLogin(); }
 
 // startApp logic merged into completeLogin
 
