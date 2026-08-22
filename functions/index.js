@@ -30,8 +30,9 @@ async function extendOneStudent(uid, today) {
   }
 
   if (result.changed) {
-    const notification = db.ref(`notifications/${uid}`).push();
-    const log = db.ref(`reviewLogs/${uid}`).push();
+    const eventKey = `schedule_extended_${today}_${result.sourceDayNumber}`;
+    const notification = db.ref(`notifications/${uid}/${eventKey}`);
+    const log = db.ref(`reviewLogs/${uid}/${eventKey}`);
     await Promise.all([
       notification.set({
         type: "schedule_extended",
@@ -60,7 +61,8 @@ async function publishDailyPlan(uid, today, schedule) {
   const days = Array.isArray(schedule?.days) ? schedule.days : [];
   const current = days.find((day) => day.status === "unlocked" && Number(day.sequence_index) === Math.min(...days.filter((item) => item.status === "unlocked").map((item) => Number(item.sequence_index)))) || days.find((day) => day.status === "unlocked");
   if (!current) return;
-  await db.ref(`notifications/${uid}`).push({
+  const notificationId = `daily_plan_${today}_${Number(current.sequence_index)}`;
+  await db.ref(`notifications/${uid}/${notificationId}`).set({
     type: "daily_plan",
     title: `Kế hoạch học ngày ${current.sequence_index}`,
     body: `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
