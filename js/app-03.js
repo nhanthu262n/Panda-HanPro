@@ -3,6 +3,52 @@
    NGỮ ÂM — 10 BUỔI HỌC PHONICS
    ═══════════════════════════════════════════════════════════ */
 
+function pvI18n(vi, en) {
+  return window.PandaHanI18n?.t ? window.PandaHanI18n.t(vi, en) : vi;
+}
+const PV_MEANING_EN = {
+  "mẹ":"mother", "gai":"sesame", "ngựa":"horse", "mắng":"scold", "tám":"eight", "nhổ":"pull out", "cái":"object marker", "bố":"father",
+  "à":"ah", "ồ":"oh", "đói":"hungry", "một":"one", "năm":"five", "cá":"fish", "yêu":"love", "ê":"hey",
+  "leo":"climb", "tóc":"hair", "sóng":"wave", "bà":"grandmother", "mô hình":"model", "Phật":"Buddha",
+  "to":"big", "anh ấy":"he", "đó":"that", "kéo":"pull", "đất":"earth", "móng":"hoof", "bạn":"you", "sức":"strength",
+  "anh":"older brother", "có thể":"can", "uống":"drink", "thung lũng":"valley", "kho":"warehouse", "râu":"beard", "nước":"country", "tốt":"good",
+  "gà":"chicken", "đứng dậy":"stand up", "hy vọng":"hope", "nhà":"home", "dưới":"below", "vàng":"gold", "tim":"heart", "tiền":"money",
+  "biết":"know", "ăn":"eat", "là":"be", "mặt trời":"sun", "sống":"live", "ra":"go out", "sách":"book", "người":"person",
+  "chữ":"character", "từ":"word", "bốn":"four", "làm":"do", "sai":"wrong", "khóa":"lock", "khen":"praise", "ba":"three",
+  "Úc":"Australia", "thỉnh thoảng":"occasionally", "lá":"leaf", "ngói":"tile", "tôi":"I/me", "vị trí":"position",
+  "yên":"peaceful", "ân":"kindness", "ngẩng":"raise one’s head", "âm":"sound", "Anh":"England", "ấm":"warm", "không":"empty/no"
+};
+function pvCardMeaning(card) {
+  try {
+    const vocab = typeof VOCAB_BY_CHAR !== "undefined" ? VOCAB_BY_CHAR[card.hanzi] : null;
+    return window.PandaHanI18n?.isEnglish?.() ? (vocab?.meaning_en || card.meaningEn || PV_MEANING_EN[card.viet] || card.viet) : card.viet;
+  } catch (_) { return card.viet; }
+}
+const PV_SESSION_EN = {
+  1: { title: '4 Tones', sub: 'The most important foundation' },
+  2: { title: 'Simple Finals (a o e)', sub: 'Basic single vowels' },
+  3: { title: 'Initials b p m f', sub: 'Labial initials' },
+  4: { title: 'Initials d t n l', sub: 'Front-tongue initials' },
+  5: { title: 'Initials g k h', sub: 'Velar initials' },
+  6: { title: 'Initials j q x', sub: 'Alveolo-palatal initials' },
+  7: { title: 'Initials zh ch sh r', sub: 'Retroflex initials' },
+  8: { title: 'Initials z c s', sub: 'Dental initials' },
+  9: { title: 'Compound Finals', sub: 'Compound vowels (ai ei ao ou...)' },
+  10: { title: 'Nasal Finals', sub: 'Nasal sounds (an en ang eng...)' },
+};
+function pvSessionLabel(session, field) {
+  return pvI18n(session[field], PV_SESSION_EN[session.id]?.[field] || session[field]);
+}
+const PV_TONE_GUIDE_EN = {
+  1: { name: 'Tone 1 — High level', viet: 'High and level — like holding an “a...” sound during a throat exam', tip: 'Open the mouth, relax the jaw, and keep the pitch high and level' },
+  2: { name: 'Tone 2 — Rising', viet: 'Rising — like asking “Huh?” in surprise with the pitch going up', tip: 'Start at mid pitch, then raise it high' },
+  3: { name: 'Tone 3 — Falling-rising', viet: 'Falling then rising — like a hesitant “uh...” that dips low and rises', tip: 'Fall low and hold it low before rising' },
+  4: { name: 'Tone 4 — Falling', viet: 'Sharp and short falling tone — like a firm command “No!”', tip: 'Start high and drop quickly — short and strong' },
+};
+function pvToneLabel(guide, field) {
+  return pvI18n(guide[field], PV_TONE_GUIDE_EN[guide.tone]?.[field] || guide[field]);
+}
+
 const PV_TONE_MARKS = {
   a:['\u0101','\u00e1','\u01ce','\u00e0','a'],
   e:['\u0113','\u00e9','\u011b','\u00e8','e'],
@@ -187,8 +233,8 @@ function renderSessionList(container) {
   let html = `<div class="pv-container">
     <div class="pv-header">
       <div>
-        <div class="pv-title">🎵 Ngữ âm — <span>10 Buổi Học</span></div>
-        <div class="pv-sub">Flashcard → Game → Bài tập · Đạt ≥80% để mở khóa buổi tiếp</div>
+        <div class="pv-title">${pvI18n("🎵 Ngữ âm", "🎵 Phonics")} — <span>10 ${pvI18n("Buổi Học", "Lessons")}</span></div>
+        <div class="pv-sub">${pvI18n("Flashcard → Game → Bài tập · Đạt ≥80% để mở khóa buổi tiếp", "Flashcard → Game → Practice · Score ≥80% to unlock the next lesson")}</div>
       </div>
     </div>
     <div class="pv-stats">
@@ -198,7 +244,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#f97316;background:#fff7ed;padding:2px 8px;border-radius:8px">30 max</span>
         </div>
         <div class="pv-stat-num">${totalStars}</div>
-        <div class="pv-stat-label">Tổng sao</div>
+        <div class="pv-stat-label">${pvI18n("Tổng sao", "Total stars")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(totalStars/30)*100}%"></div></div>
       </div>
       <div class="pv-stat-card" style="border-color:#bbf7d0">
@@ -207,7 +253,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#22c55e;background:#f0fdf4;padding:2px 8px;border-radius:8px">10 max</span>
         </div>
         <div class="pv-stat-num" style="color:#22c55e">${doneCount}</div>
-        <div class="pv-stat-label">Buổi hoàn thành</div>
+        <div class="pv-stat-label">${pvI18n("Buổi hoàn thành", "Lessons completed")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(doneCount/10)*100}%;background:#22c55e"></div></div>
       </div>
       <div class="pv-stat-card" style="border-color:#ddd6fe">
@@ -216,7 +262,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#8b5cf6;background:#f5f3ff;padding:2px 8px;border-radius:8px">10 max</span>
         </div>
         <div class="pv-stat-num" style="color:#8b5cf6">${unlockedCount}</div>
-        <div class="pv-stat-label">Buổi đã mở</div>
+        <div class="pv-stat-label">${pvI18n("Buổi đã mở", "Lessons unlocked")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(unlockedCount/10)*100}%;background:#8b5cf6"></div></div>
       </div>
     </div>
@@ -231,9 +277,9 @@ function renderSessionList(container) {
       <div class="pv-session-body">
         <div class="pv-session-emoji">${unlocked ? s.emoji : '🔒'}</div>
         <div class="pv-session-info">
-          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">Buổi ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
-          <div class="pv-session-title">${s.title}</div>
-          <div class="pv-session-sub">${s.sub}</div>
+          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">${pvI18n("Buổi", "Lesson")} ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
+          <div class="pv-session-title">${pvSessionLabel(s, "title")}</div>
+          <div class="pv-session-sub">${pvSessionLabel(s, "sub")}</div>
           ${done ? `<div style="margin-top:6px;height:4px;background:#f3f4f6;border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;width:${(p.bestScore/10)*100}%;background:linear-gradient(to right,${s.color},#a855f7)"></div></div>` : ''}
         </div>
         ${unlocked ? `<div class="pv-session-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="${done ? '#fff' : s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>` : ''}
@@ -255,14 +301,14 @@ function renderSessionDetail(container) {
 
   let html = `<div class="pv-container pv-detail">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid #fbcfe8;margin-bottom:8px">
-      <button class="pv-back-btn" onclick="pvBackToList()" style="color:${session.color}">← Quay lại</button>
-      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;color:#1e1b4b">${session.emoji} ${session.title}</div>
+      <button class="pv-back-btn" onclick="pvBackToList()" style="color:${session.color}">← ${pvI18n("Quay lại", "Back")}</button>
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;color:#1e1b4b">${session.emoji} ${pvSessionLabel(session, "title")}</div>
       <div style="font-size:16px">${'⭐'.repeat(progress.stars)}${'☆'.repeat(3-progress.stars)}</div>
     </div>`;
 
   if (phase !== 'result') {
-    const phases = ['flash','game','quiz'];
-    const labels = ['🃏 Flashcard','🎮 Game','📝 Bài tập'];
+      const phases = ['flash','game','quiz'];
+    const labels = [`🃏 ${pvI18n("Flashcard", "Flashcards")}`, `🎮 ${pvI18n("Game", "Game")}`, `📝 ${pvI18n("Bài tập", "Practice")}`];
     html += '<div class="pv-phases">';
     phases.forEach((p, i) => {
       const isActive = phase === p || (phase === 'intro' && p === 'flash');
@@ -295,23 +341,23 @@ function renderSessionDetail(container) {
 function renderIntro(session) {
   let html = `<div class="pv-intro">
     <div class="pv-intro-emoji">${session.emoji}</div>
-    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem;color:#1e1b4b;margin-bottom:4px">${session.title}</h2>
-    <p style="color:#9ca3af;font-weight:600;margin-bottom:20px">${session.sub}</p>
+    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem;color:#1e1b4b;margin-bottom:4px">${pvSessionLabel(session, "title")}</h2>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:20px">${pvSessionLabel(session, "sub")}</p>
     <div class="pv-intro-grid">`;
   session.cards.forEach(c => {
     html += `<div class="pv-intro-card">
       <div class="ic-py">${pvApplyTone(c.pinyin, c.tone)}</div>
       <div class="ic-hz">${c.hanzi}</div>
-      <div class="ic-vi">${c.viet}</div>
+      <div class="ic-vi">${pvCardMeaning(c)}</div>
     </div>`;
   });
   html += `</div>
     <div style="color:#9ca3af;font-weight:600;font-size:.82rem;margin-bottom:18px">
-      📌 3 giai đoạn: Flashcard → Game → Bài tập<br/>
-      🎯 Cần ≥80% (8/10) để qua buổi
+      📌 ${pvI18n("3 giai đoạn: Flashcard → Game → Bài tập", "3 stages: Flashcard → Game → Practice")}<br/>
+      🎯 ${pvI18n("Cần ≥80% (8/10) để qua buổi", "Score ≥80% (8/10) to pass")}
     </div>
     <button class="pv-start-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);box-shadow:0 6px 20px ${session.color}44" onclick="pvSetPhase('flash')">
-      Bắt đầu học 🚀
+      ${pvI18n("Bắt đầu học 🚀", "Start learning 🚀")}
     </button>
   </div>`;
   return html;
@@ -323,7 +369,7 @@ function renderToneGuide(tone) {
   if (!g) return '';
   return `<div class="pv-tone-guide" style="background:${g.bg};border-color:${g.border}">
     <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px">
-      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">CAO</div>
+      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">${pvI18n("CAO", "HIGH")}</div>
       <svg class="pv-tone-svg" width="90" height="70" viewBox="0 0 100 80">
         <line x1="5" y1="15" x2="95" y2="15" stroke="#f1f5f9" stroke-width="1"/>
         <line x1="5" y1="30" x2="95" y2="30" stroke="#f1f5f9" stroke-width="1"/>
@@ -333,12 +379,12 @@ function renderToneGuide(tone) {
         <polyline points="${g.path.replace('M','').replace(/L/g,' ').trim()}" fill="none" stroke="${g.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="pv-tone-line" style="filter:drop-shadow(0 2px 4px ${g.color}55)"/>
         <text x="50" y="78" text-anchor="middle" font-size="11" font-weight="800" fill="${g.color}" font-family="'Nunito',sans-serif">${tone}声</text>
       </svg>
-      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">THẤP</div>
+      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">${pvI18n("THẤP", "LOW")}</div>
     </div>
     <div class="tg-info">
-      <div class="tg-name" style="color:${g.color}">${g.name}</div>
-      <div class="tg-viet">${g.viet}</div>
-      <div class="tg-tip" style="background:${g.color}15;color:${g.color}">💡 ${g.tip}</div>
+      <div class="tg-name" style="color:${g.color}">${pvToneLabel(g, "name")}</div>
+      <div class="tg-viet">${pvToneLabel(g, "viet")}</div>
+      <div class="tg-tip" style="background:${g.color}15;color:${g.color}">💡 ${pvToneLabel(g, "tip")}</div>
     </div>
   </div>`;
 }
@@ -371,7 +417,7 @@ function renderFlash(session) {
     html += `<div class="pv-flash-dot" style="width:${w}px;height:6px;border-radius:4px;background:${bg}"></div>`;
   });
   html += `</div>
-    <p style="color:#9ca3af;font-weight:700;font-size:.85rem;text-align:center;margin-bottom:14px">Thẻ ${idx+1}/${session.cards.length}</p>
+    <p style="color:#9ca3af;font-weight:700;font-size:.85rem;text-align:center;margin-bottom:14px">${pvI18n("Thẻ", "Card")} ${idx+1}/${session.cards.length}</p>
     <div class="pv-flash-card${flipped ? ' flipped' : ''}" onclick="pvFlipCard()">
       <div class="pv-flash-front">
         <div class="pv-flash-pinyin" style="font-size:3rem">${pvApplyTone(card.pinyin, card.tone)}</div>
@@ -382,16 +428,16 @@ function renderFlash(session) {
   });
   html += `</div>
         <button class="pv-flash-btn" style="margin-top:14px;background:${speaking ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};color:${speaking ? '#fff' : '#ec4899'};box-shadow:${speaking ? '0 4px 14px rgba(236,72,153,.4)' : 'none'}" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
-          ${speaking ? '🔊 Đang đọc...' : '🔊 Nghe giáo viên'}
+          ${speaking ? pvI18n('🔊 Đang đọc...', '🔊 Speaking...') : pvI18n('🔊 Nghe giáo viên', '🔊 Listen to teacher')}
         </button>
-        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:11px;animation:pvPulse 2s ease infinite">nhấn thẻ để xem chữ ↗</div>
+        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:11px;animation:pvPulse 2s ease infinite">${pvI18n("nhấn thẻ để xem chữ ↗", "tap the card to reveal the character ↗")}</div>
       </div>
       <div class="pv-flash-back">
         <div class="pv-flash-hanzi" style="font-size:4.5rem">${card.hanzi}</div>
         <div class="pv-flash-pinyin" style="font-size:1.4rem;margin-top:6px">${pvApplyTone(card.pinyin, card.tone)}</div>
-        <div class="pv-flash-viet" style="font-size:.95rem;margin-top:2px">${card.viet}</div>
+        <div class="pv-flash-viet" style="font-size:.95rem;margin-top:2px">${pvCardMeaning(card)}</div>
         <button class="pv-flash-btn" style="margin-top:10px;background:rgba(255,255,255,.7);color:#ec4899;border:2px solid #fbcfe8" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
-          🔊 Nghe lại
+          ${pvI18n("🔊 Nghe lại", "🔊 Listen again")}
         </button>
       </div>
     </div>`;
@@ -402,9 +448,9 @@ function renderFlash(session) {
 
   const isLast = idx >= session.cards.length - 1;
   html += `<div class="pv-action-row">
-    <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvTeacherSpeak('${card.hanzi}')">🔊 Nghe lại</button>
+    <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvTeacherSpeak('${card.hanzi}')">${pvI18n("🔊 Nghe lại", "🔊 Listen again")}</button>
     <button class="pv-action-btn" style="background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(236,72,153,.35)" onclick="pvFlashNext()">
-      ${isLast ? 'Vào Game 🎮' : 'Tiếp theo →'}
+      ${isLast ? pvI18n('Vào Game 🎮', 'Go to Game 🎮') : pvI18n('Tiếp theo →', 'Next →')}
     </button>
   </div>
   </div>`;
@@ -436,17 +482,17 @@ function renderGame(session) {
   let html = `<div class="pv-game-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
       <div class="pv-game-score">⭐ ${score}</div>
-      ${streak >= 2 ? `<div style="padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#fbbf24)">🔥 ${streak} liên tiếp!</div>` : ''}
+      ${streak >= 2 ? `<div style="padding:4px 10px;border-radius:12px;font-size:.72rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#f97316,#fbbf24)">🔥 ${streak} ${pvI18n("liên tiếp!", "in a row!")}</div>` : ''}
       <div style="color:#9ca3af;font-weight:700;font-size:.82rem">${round+1}/${ROUNDS}</div>
     </div>
     <div style="width:100%;height:8px;background:#fce7f3;border-radius:6px;overflow:hidden;margin-bottom:24px;border:1px solid #fbcfe8">
       <div style="height:100%;border-radius:6px;width:${(round/ROUNDS)*100}%;background:linear-gradient(to right,#ec4899,#a855f7);transition:width .5s"></div>
     </div>
     <div class="pv-game-question">
-      <p style="color:#9ca3af;font-weight:700;font-size:.82rem;margin-bottom:10px">Chọn pinyin đúng cho âm vừa nghe</p>
+      <p style="color:#9ca3af;font-weight:700;font-size:.82rem;margin-bottom:10px">${pvI18n("Chọn pinyin đúng cho âm vừa nghe", "Choose the correct pinyin for the sound you heard")}</p>
       <button onclick="pvSpeak('${correct.hanzi}')" style="font-size:2.8rem;background:none;border:none;cursor:pointer">🔊</button>
       <div style="font-size:1.8rem;font-weight:700;color:#1e1b4b;font-family:'Noto Serif SC',serif;margin-top:6px">${correct.hanzi}</div>
-      <div style="color:#6b7280;font-size:.82rem;font-weight:600;margin-top:2px">${correct.viet}</div>
+      <div style="color:#6b7280;font-size:.82rem;font-weight:600;margin-top:2px">${pvCardMeaning(correct)}</div>
     </div>
     <div class="pv-game-opts">`;
 
@@ -466,7 +512,7 @@ function renderGame(session) {
   if (chosen !== null) {
     const ok = chosen === correctIdx;
     html += `<div style="margin-top:12px;text-align:center;font-weight:800;font-size:.95rem;animation:pvPop .4s ease;color:${ok ? '#22c55e' : '#ef4444'}">
-      ${ok ? '🎉 Chính xác!' : '❌ Đáp án: ' + pvApplyTone(correct.pinyin, correct.tone)}
+      ${ok ? pvI18n('🎉 Chính xác!', '🎉 Correct!') : pvI18n('❌ Đáp án: ', '❌ Answer: ') + pvApplyTone(correct.pinyin, correct.tone)}
     </div>`;
   }
 
@@ -495,7 +541,7 @@ function renderQuiz(session) {
   const chosen = pvState.quizChosen;
   const answers = pvState.quizAnswers;
   const q = questions[qIdx];
-  if (!q) return '<div>Đang tải...</div>';
+  if (!q) return `<div>${pvI18n("Đang tải...", "Loading...")}</div>`;
 
   // Auto-speak
   if (!pvState._quizSpeakingTriggered || pvState._quizSpeakingTriggered !== qIdx) {
@@ -517,15 +563,15 @@ function renderQuiz(session) {
 
   if (q.type === 'pinyin2hanzi') {
     html += `<div class="pv-quiz-card">
-      <p style="color:#9ca3af;font-weight:700;font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:2px">Chọn chữ Hán đúng</p>
+      <p style="color:#9ca3af;font-weight:700;font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:2px">${pvI18n("Chọn chữ Hán đúng", "Choose the correct Hanzi")}</p>
       <button onclick="pvSpeak('${q.correct.hanzi}')" style="font-size:2.2rem;background:none;border:none;cursor:pointer">🔊</button>
       <div style="font-size:1.3rem;font-weight:800;color:${session.color};font-family:'Noto Sans SC',sans-serif">${pvApplyTone(q.correct.pinyin, q.correct.tone)}</div>
     </div>`;
   } else {
     html += `<div class="pv-quiz-card">
-      <p style="color:#9ca3af;font-weight:700;font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:2px">Chọn pinyin đúng</p>
+      <p style="color:#9ca3af;font-weight:700;font-size:.72rem;margin-bottom:10px;text-transform:uppercase;letter-spacing:2px">${pvI18n("Chọn pinyin đúng", "Choose the correct pinyin")}</p>
       <div style="font-size:3rem;font-weight:700;font-family:'Noto Serif SC',serif;color:#1e1b4b">${q.correct.hanzi}</div>
-      <div style="color:#6b7280;font-weight:600;font-size:.85rem;margin-top:4px">${q.correct.viet}</div>
+      <div style="color:#6b7280;font-weight:600;font-size:.85rem;margin-top:4px">${pvCardMeaning(q.correct)}</div>
     </div>`;
   }
 
@@ -568,8 +614,8 @@ function renderResult(session) {
   const dashLen = pct * 2.64;
   let html = `<div class="pv-result">
     <div style="font-size:3.5rem;margin-bottom:12px">${isPass ? '🎉' : '😊'}</div>
-    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.5rem;color:#1e1b4b;margin-bottom:4px">${isPass ? 'Xuất sắc! Qua buổi học! 🏆' : 'Cố lên! Thử lại nhé 💪'}</h2>
-    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? 'Đạt 80% — mở khóa buổi tiếp theo!' : 'Cần ≥80% (8/10) để qua buổi.'}</p>
+    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.5rem;color:#1e1b4b;margin-bottom:4px">${isPass ? pvI18n('Xuất sắc! Qua buổi học! 🏆', 'Excellent! Lesson passed! 🏆') : pvI18n('Cố lên! Thử lại nhé 💪', 'Keep going! Try again 💪')}</h2>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? pvI18n('Đạt 80% — mở khóa buổi tiếp theo!', '80% achieved — next lesson unlocked!') : pvI18n('Cần ≥80% (8/10) để qua buổi.', 'Score ≥80% (8/10) to pass this lesson.')}</p>
     <svg viewBox="0 0 100 100" style="width:120px;height:120px;transform:rotate(-90deg)">
       <circle cx="50" cy="50" r="42" fill="none" stroke="#fce7f3" stroke-width="10"/>
       <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round"
@@ -584,8 +630,8 @@ function renderResult(session) {
       ${[1,2,3].map(i => `<span style="opacity:${i<=stars?1:.25};transform:${i<=stars?'scale(1.1)':'none'}">⭐</span>`).join('')}
     </div>
     <div class="pv-action-row">
-      <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvRetryQuiz()">🔄 Làm lại</button>
-      ${isPass ? `<button class="pv-action-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px ${session.color}44" onclick="pvNextSession()">Buổi tiếp →</button>` : ''}
+      <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvRetryQuiz()">${pvI18n("🔄 Làm lại", "🔄 Try again")}</button>
+      ${isPass ? `<button class="pv-action-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px ${session.color}44" onclick="pvNextSession()">${pvI18n("Buổi tiếp →", "Next lesson →")}</button>` : ''}
     </div>
   </div>`;
   return html;
@@ -781,7 +827,7 @@ function pvNextSession() {
   async function initChatSystem() {
     const contactListEl = document.getElementById("chatContactList");
     if (!contactListEl) return;
-    contactListEl.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px;">Đang tải danh sách...</div>';
+    contactListEl.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px;">' + pvI18n("Đang tải danh sách...", "Loading contact list...") + '</div>';
 
     const broadcastBtn = document.getElementById("chatBroadcastBtn");
     if (broadcastBtn) {
@@ -812,7 +858,7 @@ function pvNextSession() {
     if (contacts.length === 0) {
       const empty = document.createElement("div");
       empty.style.cssText = "font-size:12px;color:var(--text-light);padding:8px;";
-      empty.textContent = isTeacherRole() ? "Chưa có liên hệ nào." : "Chưa có giáo viên nào để nhắn tin.";
+      empty.textContent = isTeacherRole() ? pvI18n("Chưa có liên hệ nào.", "No contacts yet.") : pvI18n("Chưa có giáo viên nào để nhắn tin.", "No teachers available for messaging.");
       contactListEl.appendChild(empty);
       return;
     }
@@ -822,7 +868,7 @@ function pvNextSession() {
       const div = document.createElement("div");
       div.className = "chat-contact";
       div.dataset.uid = uid;
-      const roleLabel = (u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 Giáo viên" : "🎓 Học viên";
+      const roleLabel = (u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 " + pvI18n("Giáo viên", "Teacher") : "🎓 " + pvI18n("Học viên", "Student");
       const roleColor = (u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)";
 
       div.innerHTML = '<div class="cc-avatar">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
@@ -858,7 +904,7 @@ function pvNextSession() {
   // Calling api.anthropic.com directly from the browser never works outside
   // Claude.ai's own artifact sandbox — no key, and the API blocks browser
   // CORS requests anyway.
-  async function callClaudeAI(){return "AI Chat Box bản tối ưu đang chạy ở chế độ nội bộ; hãy chọn chủ đề HSK để luyện hội thoại mẫu.";}
+  async function callClaudeAI(){return pvI18n("AI Chat Box bản tối ưu đang chạy ở chế độ nội bộ; hãy chọn chủ đề HSK để luyện hội thoại mẫu.","The optimized AI Chat Box is running in local mode; choose an HSK topic to practise a sample conversation.");}
 
   const CHAT_FILE_MAX_MB = 15;
   const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
@@ -903,10 +949,10 @@ function pvNextSession() {
     row.className = "chat-msg-row " + (isMe ? "me" : "them") + (isBroadcast ? " broadcast" : "");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble2";
-    const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Vừa xong";
+    const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : pvI18n("Vừa xong", "Just now");
 
     let inner = "";
-    if (isBroadcast) inner += '<div style="font-size:9.5px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 Thông báo chung</div>';
+    if (isBroadcast) inner += '<div style="font-size:9.5px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 ' + pvI18n("Thông báo chung", "Broadcast") + '</div>';
     if (m.fileUrl) {
       if (m.isImage) {
         inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener">' +
@@ -935,14 +981,14 @@ function pvNextSession() {
     activeChatId = getChatId(myUid, otherUid);
     
     const titleEl = document.getElementById("activeChatTitle");
-    if (titleEl) titleEl.textContent = "Đang chat với: " + otherName;
+    if (titleEl) titleEl.textContent = pvI18n("Đang chat với:", "Chatting with:") + " " + otherName;
 
     clearPendingChatFile();
 
     if (chatUnsubscribe) chatUnsubscribe();
 
     const msgArea = document.getElementById("chatMessagesArea");
-    if (msgArea) msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;">Đang tải tin nhắn...</div>';
+    if (msgArea) msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;">' + pvI18n("Đang tải tin nhắn...", "Loading messages...") + '</div>';
 
     try {
       const chatRef = db.collection("chats").doc(activeChatId);
@@ -957,7 +1003,7 @@ function pvNextSession() {
       chatUnsubscribe = chatRef.collection("messages").orderBy("createdAt", "asc").onSnapshot(snapshot => {
         msgArea.innerHTML = "";
         if (snapshot.empty) {
-          msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">Chưa có tin nhắn nào. Hãy gửi lời chào!</div>';
+          msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">' + pvI18n("Chưa có tin nhắn nào. Hãy gửi lời chào!", "No messages yet. Say hello!") + '</div>';
           return;
         }
         snapshot.forEach(doc => {
@@ -969,7 +1015,7 @@ function pvNextSession() {
       });
     } catch(e) {
       console.error("Chat error:", e);
-      if (msgArea) msgArea.innerHTML = '<div style="color:red;font-size:12px;text-align:center;">Lỗi tải tin nhắn (Kiểm tra Firestore Rules).</div>';
+      if (msgArea) msgArea.innerHTML = '<div style="color:red;font-size:12px;text-align:center;">' + pvI18n("Lỗi tải tin nhắn (Kiểm tra Firestore Rules).", "Could not load messages (check Firestore Rules).") + '</div>';
     }
   }
 
@@ -983,17 +1029,17 @@ function pvNextSession() {
     overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;";
     overlay.innerHTML = `
       <div style="background:#fff;color:#2d2a3a;border-radius:16px;padding:20px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <h3 style="font-size:16px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 Gửi thông báo cho tất cả học viên</h3>
-        <p style="font-size:11.5px;color:#6b6478;margin-bottom:12px;">Tin nhắn sẽ tự động xuất hiện trong khung chat riêng giữa bạn và từng học viên.</p>
-        <textarea id="broadcastText" rows="4" placeholder="Nhập nội dung thông báo..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
+        <h3 style="font-size:16px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 ${pvI18n("Gửi thông báo cho tất cả học viên", "Notify all students")}</h3>
+        <p style="font-size:11.5px;color:#6b6478;margin-bottom:12px;">${pvI18n("Tin nhắn sẽ tự động xuất hiện trong khung chat riêng giữa bạn và từng học viên.", "The message will appear automatically in a private chat with each student.")}</p>
+        <textarea id="broadcastText" rows="4" placeholder="${pvI18n("Nhập nội dung thông báo...", "Enter the notification text...")}" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <input type="file" id="broadcastFileInput" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" />
-          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 Đính kèm file</button>
+          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 ${pvI18n("Đính kèm file", "Attach file")}</button>
           <span id="broadcastFileName" style="font-size:11px;color:#6b6478;"></span>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:12.5px;">Hủy</button>
-          <button type="button" id="broadcastSendBtn" class="btn btn-pink" style="padding:8px 16px;font-size:12.5px;">Gửi cho tất cả</button>
+          <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:12.5px;">${pvI18n("Hủy", "Cancel")}</button>
+          <button type="button" id="broadcastSendBtn" class="btn btn-pink" style="padding:8px 16px;font-size:12.5px;">${pvI18n("Gửi cho tất cả", "Send to all")}</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -1018,10 +1064,10 @@ function pvNextSession() {
 
     document.getElementById("broadcastSendBtn").onclick = async () => {
       const text = document.getElementById("broadcastText").value.trim();
-      if (!text && !broadcastFile) { alert("Vui lòng nhập nội dung hoặc đính kèm file."); return; }
+      if (!text && !broadcastFile) { alert(pvI18n("Vui lòng nhập nội dung hoặc đính kèm file.", "Please enter text or attach a file.")); return; }
       const sendBtn = document.getElementById("broadcastSendBtn");
       sendBtn.disabled = true;
-      sendBtn.textContent = "Đang gửi...";
+      sendBtn.textContent = pvI18n("Đang gửi...", "Sending...");
       try {
         let fileMeta = null;
         if (broadcastFile) fileMeta = await uploadChatFile(broadcastFile, "chat_files/broadcast");
@@ -1029,9 +1075,9 @@ function pvNextSession() {
         close();
       } catch (e) {
         console.error("Broadcast send error:", e);
-        alert("Không thể gửi thông báo: " + e.message);
+        alert(pvI18n("Không thể gửi thông báo: ", "Could not send the notification: ") + e.message);
         sendBtn.disabled = false;
-        sendBtn.textContent = "Gửi cho tất cả";
+        sendBtn.textContent = pvI18n("Gửi cho tất cả", "Send to all");
       }
     };
   }
@@ -1040,7 +1086,7 @@ function pvNextSession() {
     const myUid = CURRENT_USER.uid || CURRENT_USER.username;
     const all = await fetchAllUsers();
     const students = all.filter(u => u.role === "student" && (u.uid || u.username) !== myUid);
-    if (!students.length) { alert("Chưa có học viên nào để gửi thông báo."); return; }
+    if (!students.length) { alert(pvI18n("Chưa có học viên nào để gửi thông báo.", "No students available for notification.")); return; }
 
     let sent = 0;
     for (const st of students) {
@@ -1072,7 +1118,7 @@ function pvNextSession() {
         console.error("Broadcast to " + otherUid + " failed:", e);
       }
     }
-    alert(`Đã gửi thông báo cho ${sent}/${students.length} học viên.`);
+    alert(`${pvI18n("Đã gửi thông báo cho", "Notification sent to")} ${sent}/${students.length} ${pvI18n("học viên", "students")}.`);
     // Nếu đang mở đúng cuộc trò chuyện với một trong các học viên đó thì tin
     // nhắn mới sẽ tự cập nhật qua onSnapshot ở trên, không cần làm gì thêm.
   }
@@ -1132,7 +1178,7 @@ function pvNextSession() {
           triggerAutomaticEmailNotification(activeChatUserId, "Bạn có tin nhắn mới từ " + (CURRENT_USER.name || "Thành viên"), notifBody);
         } catch(e) {
           console.error("Send message error:", e);
-          alert("Không thể gửi tin nhắn: " + e.message);
+          alert(pvI18n("Không thể gửi tin nhắn: ", "Could not send the message: ") + e.message);
         } finally {
           sendBtn.disabled = false;
           sendBtn.textContent = "➤";
