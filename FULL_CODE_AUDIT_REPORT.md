@@ -88,3 +88,16 @@ Module `js/global-language.js` dùng dictionary có kiểm soát, giữ nguyên 
 Các kế hoạch ngày và nhắc học từ Cloud Functions hiện có thêm `title_vi/title_en`, `body_vi/body_en` và `text_vi/text_en`. Renderer chuông Thông báo và chat chọn bản English khi người dùng bật English; tin nhắn người dùng tự nhập vẫn giữ nguyên. Việc chạy nhắc học/cron vẫn cần deploy riêng Firebase Functions; bản local chưa ghi dữ liệu production.
 
 Kiểm thử sau tích hợp: i18n global 20/20 PASS; full verifier 45/45 PASS; adaptive schedule giữ nguyên PASS; JavaScript syntax PASS. Browser regression đã xác nhận Auth overlay English, sidebar không mất nút đăng xuất, Từ điển giữ dữ liệu, dropdown loại từ chuyển English và Practice hiển thị `antonym · Dialogue reordering`. Phần Ngữ âm/Quest đã có bridge runtime và lớp dịch nội bộ; cần mở lại trên GitHub Pages sau deploy để kiểm tra asset tải đủ trong môi trường thực tế.
+
+
+## Deep i18n audit — 22/08/2026
+
+Đã rà soát lại các ảnh giao diện English và phát hiện cơ chế dịch trước đó còn để sót nhiều chuỗi trong các vùng render động. Các lỗi chính gồm nhãn Progress bị ghép như “Reinforcing luyện” và “Familiar vững”, mô tả Activity history còn câu tiếng Việt, module Phonics còn tiêu đề/mô tả/session card tiếng Việt, cùng các trạng thái chat và broadcast chưa được dịch tại thời điểm render.
+
+Bản sửa lần này đã xử lý tại nguồn thay vì chỉ phụ thuộc vào text walker: renderer Progress/Rubric dùng trực tiếp trường `en/descEn`; Activity history có bộ chuyển đổi cho Quiz/Review/completion; module Phonics có dictionary shadow-root mở rộng cho intro, pronunciation cards, session cards, loading/error, history và trạng thái; flashcard Ngữ âm có fallback English theo nghĩa của từng thẻ; app-03 dùng helper song ngữ cho chat, broadcast, loading, empty state và errors; offline enhancements dịch kết quả ghi âm và các nhãn AI. Các module vừa sửa trong `index.html` được thêm query cache-bust `i18n-deep-20260822-v2` để GitHub Pages không giữ JavaScript cũ.
+
+Nội dung tiếng Trung, audio, bundle Quest/Ngữ âm, curriculum và thuật toán học không bị thay đổi. Các trường nghĩa tiếng Việt trong dữ liệu học chỉ được dùng làm fallback khi chưa có `meaning_en`; khi có `meaning_en` hoặc mapping English, giao diện English ưu tiên bản English.
+
+Kiểm thử cuối: JavaScript syntax PASS cho toàn bộ module sửa; i18n regression cũ 20/20 PASS; i18n deep regression 15/15 PASS; adaptive schedule 7/7 PASS. Browser trước khi cache-bust đã chứng minh lỗi tồn tại trong loader cũ; sau cache-bust, loader mới được kiểm tra tĩnh và các mapping còn sót trong DOM đã được bổ sung theo đúng chuỗi thực tế.
+
+Giới hạn còn lại: các tin nhắn do người dùng hoặc giáo viên tự nhập không bị tự động dịch vì đó là dữ liệu cá nhân; nội dung nghĩa tiếng Việt có chủ đích trong chế độ học ngôn ngữ có thể vẫn xuất hiện nếu bản ghi không có `meaning_en`; cron Firebase vẫn cần được deploy riêng nếu muốn chạy production.
