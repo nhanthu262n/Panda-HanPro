@@ -30,46 +30,50 @@
     return { sequence_index: 1, day_number: 1, topic: "bài học khởi động" };
   }
 
+  function tx(vi, en) {
+    return window.PandaHanI18n?.t ? window.PandaHanI18n.t(vi, en) : vi;
+  }
+
   function buildSteps() {
     const current = getScheduleContext();
     const day = Number(current.day_number || current.sequence_index || 1);
     const topic = current.topic || "nội dung theo lộ trình";
     return [
       {
-        kicker: "BẮT ĐẦU CÙNG PANDAHÁN",
-        title: "Chào mừng bạn đến với lớp học",
-        body: "Trợ lý sẽ chỉ bạn cách học đúng thứ tự trong lộ trình 120 ngày. Bạn chỉ cần hoàn thành buổi đang mở; những buổi sau sẽ tự khóa để không bị học vượt.",
+        kicker: tx("BẮT ĐẦU CÙNG PANDAHÁN", "START WITH PANDAHÁN"),
+        title: tx("Chào mừng bạn đến với lớp học", "Welcome to your learning journey"),
+        body: tx("Trợ lý sẽ chỉ bạn cách học đúng thứ tự trong lộ trình 120 ngày. Bạn chỉ cần hoàn thành buổi đang mở; những buổi sau sẽ tự khóa để không bị học vượt.", "This guide will show you the correct order for the 120-day programme. Complete the lesson that is open; later lessons stay locked so you do not skip ahead."),
         action: null,
       },
       {
-        kicker: "BƯỚC 1 · LỘ TRÌNH",
-        title: `Hôm nay bắt đầu ở ngày ${day}`,
-        body: `Buổi đang mở là ngày ${day}: ${topic}. Vào mục Tiến độ để xem bài đang mở, điểm yêu cầu và các ngày review. Khi đạt ngưỡng, buổi kế tiếp mới được mở.`,
-        action: { label: "Mở Tiến độ", tab: "dashboard" },
+        kicker: tx("BƯỚC 1 · LỘ TRÌNH", "STEP 1 · YOUR PLAN"),
+        title: tx(`Hôm nay bắt đầu ở ngày ${day}`, `Today starts at Day ${day}`),
+        body: tx(`Buổi đang mở là ngày ${day}: ${topic}. Vào mục Tiến độ để xem bài đang mở, điểm yêu cầu và các ngày review. Khi đạt ngưỡng, buổi kế tiếp mới được mở.`, `Your open lesson is Day ${day}: ${topic}. Open Progress to see the active lesson, required score and review days. The next lesson opens after you meet the threshold.`),
+        action: { label: tx("Mở Tiến độ", "Open Progress"), tab: "dashboard" },
       },
       {
-        kicker: "BƯỚC 2 · NGỮ ÂM",
-        title: "Học phát âm trước để nói đúng",
-        body: "Mở mục Ngữ âm để luyện thanh điệu, pinyin, nghe mẫu và ghi âm so sánh. Đây là phần nền tảng, nên học theo thứ tự các buổi đang mở.",
-        action: { label: "Mở Ngữ âm", tab: "pinyin" },
+        kicker: tx("BƯỚC 2 · NGỮ ÂM", "STEP 2 · PHONETICS"),
+        title: tx("Học phát âm trước để nói đúng", "Build correct pronunciation first"),
+        body: tx("Mở mục Ngữ âm để luyện thanh điệu, pinyin, nghe mẫu và ghi âm so sánh. Đây là phần nền tảng, nên học theo thứ tự các buổi đang mở.", "Open Phonics to practise tones and Pinyin, listen to models and compare your recording. This is the foundation, so follow the lessons that are open."),
+        action: { label: tx("Mở Ngữ âm", "Open Phonics"), tab: "pinyin" },
       },
       {
-        kicker: "BƯỚC 3 · LUYỆN TẬP",
-        title: "Làm bài để hệ thống ghi nhận tiến độ",
-        body: "Sau khi học nội dung, vào Luyện tập để làm quiz, nghe và phản xạ. Điểm chưa đạt sẽ tạo bài học lại; không cần tự mở ngày kế tiếp.",
-        action: { label: "Mở Luyện tập", tab: "practice" },
+        kicker: tx("BƯỚC 3 · LUYỆN TẬP", "STEP 3 · PRACTICE"),
+        title: tx("Làm bài để hệ thống ghi nhận tiến độ", "Practise so the system can track progress"),
+        body: tx("Sau khi học nội dung, vào Luyện tập để làm quiz, nghe và phản xạ. Điểm chưa đạt sẽ tạo bài học lại; không cần tự mở ngày kế tiếp.", "After studying the lesson, open Practice for quizzes, listening and response drills. A score below the threshold creates a repeat lesson; you do not need to unlock the next day yourself."),
+        action: { label: tx("Mở Luyện tập", "Open Practice"), tab: "practice" },
       },
       {
-        kicker: "BƯỚC 4 · QUEST",
-        title: "Quest là phần luyện thêm có khóa tiến độ",
-        body: "Trong Luyện tập, Pinyin Tone Quest chỉ mở đúng buổi được phép. Hãy hoàn thành ngày 1 trước; ngày sau sẽ mở theo tiến độ, không mở đồng loạt.",
-        action: { label: "Xem Luyện tập", tab: "practice" },
+        kicker: tx("BƯỚC 4 · QUEST", "STEP 4 · QUEST"),
+        title: tx("Quest là phần luyện thêm có khóa tiến độ", "Quest is extra practice with progression gates"),
+        body: tx("Trong Luyện tập, Pinyin Tone Quest chỉ mở đúng buổi được phép. Hãy hoàn thành ngày 1 trước; ngày sau sẽ mở theo tiến độ, không mở đồng loạt.", "In Practice, Pinyin Tone Quest opens only for permitted lessons. Complete Day 1 first; later days unlock with progress instead of opening all at once."),
+        action: { label: tx("Xem Luyện tập", "View Practice"), tab: "practice" },
       },
       {
-        kicker: "BƯỚC 5 · NHẮC HỌC",
-        title: "Đừng bỏ lỡ kế hoạch hôm nay",
-        body: "Cuối ngày, nếu buổi học vẫn chưa hoàn thành, hệ thống sẽ gửi nhắc trong chuông Thông báo và tin nhắn Giáo viên. Nếu bỏ lỡ qua 00:00, bài chưa xong sẽ được kéo dài sang ngày tiếp theo.",
-        action: { label: "Mở Thông báo", tab: "notifications" },
+        kicker: tx("BƯỚC 5 · NHẮC HỌC", "STEP 5 · REMINDERS"),
+        title: tx("Đừng bỏ lỡ kế hoạch hôm nay", "Do not miss today's plan"),
+        body: tx("Cuối ngày, nếu buổi học vẫn chưa hoàn thành, hệ thống sẽ gửi nhắc trong chuông Thông báo và tin nhắn Giáo viên. Nếu bỏ lỡ qua 00:00, bài chưa xong sẽ được kéo dài sang ngày tiếp theo.", "At the end of the day, if the lesson is not complete, the system sends a reminder to Notifications and a Teacher message. If it passes 00:00, unfinished work moves to the next day."),
+        action: { label: tx("Mở Thông báo", "Open Notifications"), tab: "notifications" },
       },
     ];
   }
@@ -93,8 +97,10 @@
     }
     const prev = root.querySelector("[data-guide-prev]");
     const next = root.querySelector("[data-guide-next]");
-    if (prev) prev.style.visibility = stepIndex ? "visible" : "hidden";
-    if (next) next.textContent = stepIndex === steps.length - 1 ? "Hoàn tất" : "Tiếp theo";
+    if (prev) { prev.style.visibility = stepIndex ? "visible" : "hidden"; prev.textContent = tx("Quay lại", "Back"); }
+    if (next) next.textContent = stepIndex === steps.length - 1 ? tx("Hoàn tất", "Finish") : tx("Tiếp theo", "Next");
+    root.querySelector("[data-guide-close]").textContent = tx("Đóng", "Close");
+    root.querySelector("[data-guide-skip]").textContent = tx("Bỏ qua hướng dẫn", "Skip guide");
   }
 
   function close(markSeen = true) {
@@ -154,7 +160,11 @@
     window.setTimeout(() => open(false), 900);
   }
 
-  window.PandaHanFirstTimeGuide = { open: () => open(true), close };
+  window.PandaHanFirstTimeGuide = {
+    open: () => open(true),
+    close,
+    refreshLanguage: () => { if (modal()?.style.display === "flex") { steps = buildSteps(); render(); } },
+  };
   document.addEventListener("DOMContentLoaded", () => {
     bind();
     try {
