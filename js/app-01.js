@@ -140,7 +140,10 @@ auth.onAuthStateChanged(async (user) => {
   } else {
     CURRENT_USER = null;
     const appEl = document.getElementById("app");
+    const overlay = document.getElementById("proAuthOverlay");
     if (appEl) appEl.style.display = "none";
+    // Bắt buộc hiện lại trang đăng nhập khi logout, F5 hoặc người dùng mới truy cập.
+    if (overlay) overlay.style.display = "flex";
   }
 });
 
