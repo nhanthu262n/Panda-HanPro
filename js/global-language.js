@@ -431,9 +431,6 @@
   });
   function observeMountedPhonetics() {
     const host = document.getElementById("pinyin-phonetics-root");
-    // Pinyin Phonics owns its React shadow DOM and must translate from raw originals.
-    // Letting the global observer run first can capture a partially translated node.
-    if (host?.id === "pinyin-phonetics-root") return;
     if (host?.shadowRoot) observeShadowRoot(host.shadowRoot);
   }
   let documentObserver = null;
