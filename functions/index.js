@@ -94,11 +94,12 @@ async function publishTeacherPlan(uid, today, schedule) {
   const chatId = [uid, teacherUid].sort().join("_");
   const messageId = `daily_plan_${today}_${Number(unlocked.sequence_index)}`;
   const text = `Kế hoạch hôm nay: học ngày ${Number(unlocked.day_number)}${unlocked.topic ? ` — ${unlocked.topic}` : ""}. Hãy hoàn thành bài và đạt ngưỡng để mở buổi tiếp theo.`;
+  const textEn = `Today's plan: study Day ${Number(unlocked.day_number)}${unlocked.topic ? ` — ${unlocked.topic}` : ""}. Complete the lesson and meet the threshold to unlock the next one.`;
   const chatRef = firestore.collection("chats").doc(chatId);
   const messageRef = chatRef.collection("messages").doc(messageId);
   const batch = firestore.batch();
   batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastSenderId: "system" }, { merge: true });
-  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, isBroadcast: true, planDate: today, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, text_vi: text, text_en: textEn, isBroadcast: true, planDate: today, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
   await batch.commit();
   return { sent: true, teacherUid, chatId, messageId };
 }
@@ -117,10 +118,16 @@ async function publishIncompleteReminder(uid, today, schedule) {
   const dayNumber = Number(current.day_number);
   const notificationId = `study_reminder_${today}_${sequence}`;
   const body = `Bạn chưa hoàn thành buổi học ngày ${dayNumber}. Hãy quay lại học trước 00:00 để giữ tiến độ; nếu bỏ lỡ, hệ thống sẽ đưa phần chưa xong sang ngày tiếp theo.`;
+  const titleEn = `Study reminder: Day ${dayNumber} is still open`;
+  const bodyEn = `You have not completed Day ${dayNumber} yet. Return before 00:00 to stay on track; if missed, unfinished work moves to the next day.`;
   await db.ref(`notifications/${uid}/${notificationId}`).set({
     type: "study_reminder",
     title: `Nhắc học: còn buổi ngày ${dayNumber}`,
+    title_vi: `Nhắc học: còn buổi ngày ${dayNumber}`,
+    title_en: titleEn,
     body,
+    body_vi: body,
+    body_en: bodyEn,
     day_number: dayNumber,
     sequence_index: sequence,
     date: today,
@@ -134,11 +141,12 @@ async function publishIncompleteReminder(uid, today, schedule) {
   const chatId = [uid, teacherUid].sort().join("_");
   const messageId = `study_reminder_${today}_${sequence}`;
   const text = `Nhắc học: học sinh chưa hoàn thành buổi ngày ${dayNumber}${current.topic ? ` — ${current.topic}` : ""}. Vui lòng hoàn thành trước 00:00 để tránh kéo dài lộ trình.`;
+  const textEn = `Study reminder: the learner has not completed Day ${dayNumber}${current.topic ? ` — ${current.topic}` : ""}. Please complete it before 00:00 to avoid extending the plan.`;
   const chatRef = firestore.collection("chats").doc(chatId);
   const messageRef = chatRef.collection("messages").doc(messageId);
   const batch = firestore.batch();
   batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastSenderId: "system" }, { merge: true });
-  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, text_vi: text, text_en: textEn, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
   await batch.commit();
   return { notified: true, teacherMessage: true, teacherUid, chatId, messageId };
 }
