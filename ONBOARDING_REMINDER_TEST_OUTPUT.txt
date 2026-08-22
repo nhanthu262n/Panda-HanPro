@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "checks": [
+    "first_learner_guide_markup",
+    "guide_covers_120_days_phonetics_quest",
+    "guide_seen_state_persists",
+    "guide_has_no_client_api_key",
+    "20h_vietnam_reminder_cron",
+    "rtdb_study_notification",
+    "firestore_teacher_reminder",
+    "deterministic_reminder_id"
+  ]
+}
