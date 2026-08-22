@@ -44,17 +44,22 @@
     }, "*");
   }
 
+  function sendLanguageToQuest(mode) {
+    if (activeFrameWindow) activeFrameWindow.postMessage({ type: "PANDAHAN_QUEST_LANGUAGE", mode: mode === "en" ? "en" : "vi" }, "*");
+  }
+
   async function refreshQuestGate() { sendGateToQuest(await getScheduleForQuest()); }
 
   async function handleQuestMessage(event) {
     const target = frame();
     if (!target || event.source !== target.contentWindow) return;
     const data = event.data || {};
-    if (data.type === "PANDAHAN_QUEST_READY") {
-      activeFrameWindow = target.contentWindow;
-      await refreshQuestGate();
-      return;
-    }
+      if (data.type === "PANDAHAN_QUEST_READY") {
+        activeFrameWindow = target.contentWindow;
+        sendLanguageToQuest(window.PandaHanI18n?.mode?.() || localStorage.getItem("pandahan_lang") || "vi");
+        await refreshQuestGate();
+        return;
+      }
     if (data.type !== "PANDAHAN_QUEST_DAY_RESULT") return;
     const day = Number(data.day);
     const score = Math.max(0, Math.min(100, Number(data.scorePercent)));
@@ -73,6 +78,7 @@
   const GATE_SCRIPT = `<script>(function(){
     var gate={unlockedDays:[1],completedDays:[]};
     var resultSent={};
+    var questLang='vi';
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
       document.querySelectorAll('[data-day]').forEach(function(btn){
@@ -81,15 +87,21 @@
         btn.classList.toggle('ph-locked',!ok); btn.title=ok?'Mở buổi học':'Hoàn thành buổi trước để mở buổi này';
       });
       var start=document.getElementById('oh-start-day'); if(start){var ok=allowed(1);start.disabled=!ok;start.setAttribute('aria-disabled',String(!ok));}
+      translateUi(questLang);
     }
     function reportResult(){
       var exam=document.getElementById('exam'); if(!exam||!exam.classList.contains('visible'))return;
-      var title=exam.innerText||''; var m=title.match(/Hoàn thành Ngày\\s+(\\d+)/i); if(!m)return;
+      var title=exam.innerText||''; var m=title.match(/(?:Hoàn thành Ngày|Completed Day)\\s+(\\d+)/i);if(!m)return;
       var day=Number(m[1]); var p=title.match(/(\\d+)\\s*%/); if(!p)return;
       var token=String(day)+':'+String(p[1]); if(resultSent[token])return; resultSent[token]=1;
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:Number(p[1]),resultToken:token},'*');
     }
-    window.addEventListener('message',function(e){var d=e.data||{};if(d.type!=='PANDAHAN_QUEST_GATE')return;gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();});
+    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_LANGUAGE'){questLang=d.mode==='en'?'en':'vi';document.documentElement.setAttribute('data-pandahan-lang',questLang);translateUi(questLang);return;}if(d.type!=='PANDAHAN_QUEST_GATE')return;gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();});
+    function translateUi(mode){
+      var map={'Bắt đầu':'Start','Tiếp tục':'Continue','Quay lại':'Back','Nộp bài':'Submit','Hoàn thành':'Completed','Điểm':'Score','Ngày':'Day','Tuần':'Week','Tháng':'Month','Mở buổi học':'Open lesson','Hoàn thành buổi trước để mở buổi này':'Complete the previous lesson to unlock this one','Hãy hoàn thành buổi học trước để mở buổi này.':'Complete the previous lesson to unlock this one.','Đang tải':'Loading','Kết quả':'Results','Thử lại':'Try again'};
+      var walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);var nodes=[],n;while(n=walker.nextNode())nodes.push(n);nodes.forEach(function(t){if(!t.__phOrig)t.__phOrig=t.nodeValue;var s=t.__phOrig;if(mode==='en')Object.keys(map).forEach(function(v){s=s.split(v).join(map[v]);});t.nodeValue=s;});
+      document.querySelectorAll('button,[title]').forEach(function(el){if(el.title){if(!el.__phTitle)el.__phTitle=el.title;var title=el.__phTitle;if(mode==='en')Object.keys(map).forEach(function(v){title=title.split(v).join(map[v]);});el.title=title;}});
+    }
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(b&&b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');}},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
@@ -128,7 +140,7 @@
     return loadPromise;
   }
 
-  window.PandaHanQuestParts = { parts: PARTS.slice(), loadQuestOffline, refreshQuestGate };
+  window.PandaHanQuestParts = { parts: PARTS.slice(), loadQuestOffline, refreshQuestGate, setLanguage: sendLanguageToQuest };
   window.addEventListener("message", handleQuestMessage);
   window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
   document.addEventListener("DOMContentLoaded", () => {
