@@ -22,17 +22,19 @@
     return document.getElementById('pinyin-phonetics-root');
   }
 
+  function pinyinT(vi, en) { return (window.PandaHanI18n?.isEnglish?.() || localStorage.getItem("pandahan_lang") === "en") ? en : vi; }
+
   function showLoading(done) {
     const root = getRoot();
     if (!root) return;
     const pct = Math.round((done / PARTS.length) * 100);
     root.innerHTML = `<div style="padding:28px;text-align:center;color:#9ca3af;font-weight:700">
-      <div style="font-size:18px;margin-bottom:8px">Đang tải Ngữ âm Pinyin…</div>
-      <div style="font-size:13px;margin-bottom:12px">Lần đầu cần tải dữ liệu âm thanh và flashcard.</div>
+      <div style="font-size:18px;margin-bottom:8px">${pinyinT("Đang tải Ngữ âm Pinyin…", "Loading Pinyin phonetics…")}</div>
+      <div style="font-size:13px;margin-bottom:12px">${pinyinT("Lần đầu cần tải dữ liệu âm thanh và flashcard.", "The first load fetches audio data and flashcards.")}</div>
       <div style="height:8px;background:#fce7f3;border-radius:99px;overflow:hidden">
         <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ec4899,#a855f7);transition:width .25s"></div>
       </div>
-      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} phần đã tải</div>
+      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} ${pinyinT("phần đã tải", "parts loaded")}</div>
     </div>`;
   }
 
@@ -42,20 +44,35 @@
     if (!root) return;
     const isFetchError = error instanceof TypeError || /fetch|cors|network/i.test(String(error?.message || error));
     const detail = isFetchError
-      ? 'AI Teacher cần backend cho phép CORS từ GitHub Pages. Vui lòng thử lại sau khi backend được cấu hình.'
-      : 'Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.';
+      ? pinyinT('AI Teacher cần backend cho phép CORS từ GitHub Pages. Vui lòng thử lại sau khi backend được cấu hình.', 'AI Teacher needs a backend that allows CORS from GitHub Pages. Try again after configuring the backend.')
+      : pinyinT('Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.', 'Check your network, then press Ctrl + F5 to try again.');
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
-      <strong>Không tải được module Ngữ âm.</strong><br>${detail}
+      <strong>${pinyinT('Không tải được module Ngữ âm.', 'Could not load the Phonics module.')}</strong><br>${detail}
     </div>`;
   }
 
   const PHONETICS_LANGUAGE_PAIRS = [
-    ["Ngữ âm", "Phonics"], ["Giai đoạn", "Phase"], ["nền tảng", "foundation"], ["mở từng chữ để dùng mẫu rồi luyện Flashcard", "open each item to use the model and practise with Flashcards"],
-    ["Luyện nhóm i đặc biệt", "Practise the special i group"], ["Nghe mẫu", "Play model"], ["không bật hơi", "unaspirated"], ["bật hơi", "aspirated"], ["âm xát", "fricative"],
-    ["Tổng số sao", "Total stars"], ["Buổi hoàn thành", "Lessons completed"], ["Buổi đã mở", "Lessons unlocked"], ["Lịch sử phát âm", "Pronunciation history"],
-    ["Chưa có lần thu âm nào", "No recordings yet"], ["Xóa lịch sử", "Clear history"], ["Tất cả", "All"], ["Phát âm đúng", "Correct pronunciation"], ["Phát âm sai", "Incorrect pronunciation"],
-    ["Buổi", "Lesson"], ["Tuần", "Week"], ["Thanh Điệu", "Tones"], ["Nguyên Âm", "Vowels"], ["Phụ Âm", "Initials"], ["Âm Cuộn Lưỡi", "Retroflex Sounds"],
-    ["Vận Mẫu Mũi", "Nasal Finals"], ["Biến Điệu", "Tone Sandhi"], ["Ôn Tập Tuần", "Weekly Review"], ["Tổng Ôn + Thi Thử", "Final Review + Mock Test"],
+    ["Giai đoạn 0 · Ngữ âm nền tảng · mở từng chữ để nghe đúng mẫu rồi luyện Flashcard → Game → Quiz", "Phase 0 · Phonetics foundation · open each item to hear the model, then practise with Flashcards → Game → Quiz"],
+    ["Trong chi/shi/ri, chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong ci/si, chữ i là nguyên âm đầu lưỡi trước; không quặt lưỡi thành “ư”.", "In chi/shi/ri, i is a special retroflex vowel, similar to “ü” but not the Vietnamese “ư” and not the long “i” sound. In ci/si, i is a front dental vowel; do not curl the tongue into “ü”."],
+    ["Chưa có lần thu âm nào. Mở một ô Pinyin, bấm Record rồi xem kết quả ở đây.", "No recordings yet. Open a Pinyin card, press Record, then view the result here."],
+    ["Trong zhi/chi/shi/ri, chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong zi/ci/si, chữ i là nguyên âm đầu lưỡi trước, không quặt lưỡi thành “ư”.", "In zhi/chi/shi/ri, i is a special retroflex vowel, similar to “ü” but not the Vietnamese “ư” and not the long “i” sound. In zi/ci/si, i is a front dental vowel; do not curl the tongue into “ü”."],
+    ["Chưa có lần thu âm nào. Mở một ô Pinyin, bấm Ghi âm rồi xem kết quả ở đây.", "No recordings yet. Open a Pinyin card, press Record, then view the result here."],
+    ["mở từng chữ để nghe đúng mẫu rồi luyện Flashcard → Game → Quiz", "open each item to hear the model, then practise with Flashcards → Game → Quiz"],
+    ["4 Thanh Điệu + Nguyên Âm", "4 Tones + Vowels"], ["Phụ Âm b/p/m/f · d/t/n/l", "Initials b/p/m/f · d/t/n/l"], ["Phụ Âm j / q / x", "Initials j / q / x"],
+    ["Âm Cuộn Lưỡi zh/ch/sh/r · z/c/s", "Retroflex sounds zh/ch/sh/r · z/c/s"], ["Vận Mẫu Mũi -n và -ng", "Nasal finals -n and -ng"], ["Biến Điệu — Tone Sandhi", "Tone sandhi"], ["Ôn Tập Tuần 1", "Weekly review 1"],
+    ["Tổng Ôn + Thi Thử Đọc", "Final review + reading mock test"], ["Phân biệt kết thúc mũi trước (-n) vs mũi sau (-ng)", "Distinguish the front nasal ending (-n) from the back nasal ending (-ng)"], ["Phân biệt uốn lưỡi (zh/ch/sh/r) vs không uốn (z/c/s)", "Distinguish retroflex sounds (zh/ch/sh/r) from non-retroflex sounds (z/c/s)"],
+    ["Nhóm âm môi + nhóm âm đầu lưỡi", "Labial initials + front-tongue initials"], ["Âm mặt lưỡi — dễ nhầm với zh/ch/sh", "Alveolo-palatal sounds — easily confused with zh/ch/sh"], ["Thanh 3+3 · 不 biến điệu · 一 biến điệu", "Third-tone sandhi · 不 tone change · 一 tone change"],
+    ["iu=iou · ui=uei · un=uen", "iu=iou · ui=uei · un=uen"], ["Trợ từ khinh thanh: 吗 呢 吧 的 — Erhua 儿化", "Neutral-tone particles: 吗 呢 吧 的 — Erhua 儿化"], ["Kiểm tra toàn bộ Pinyin Bootcamp — Giai đoạn 0", "Full Pinyin Bootcamp test — Phase 0"],
+    ["Nền tảng: 4 thanh cơ bản + a o e i u", "Foundation: 4 basic tones + a o e i u"],
+    ["Check tổng hợp buổi 1–6", "Review lessons 1–6"], ["Kiểm tra tổng hợp buổi 1–6", "Review lessons 1–6"],
+    ["Âm Tiết Co Rút", "Contracted syllables"], ["Khinh Thanh & Âm Nhi", "Neutral Tone & Erhua"], ["Trợ từ khinh thanh", "Neutral-tone particles"],
+    ["không uốn", "non-retroflex"], ["không quặt lưỡi", "do not curl the tongue"], ["biến điệu", "tone change"], ["Không bật hơi", "Unaspirated"],
+ ["Đưa thanh điệu · HSK 1", "Tone drills · HSK 1"], ["Boss nghe tuần · HSK 1", "Weekly listening boss · HSK 1"], ["Chạm để bắt đầu", "Tap to start"], ["30max", "30 max"], ["10max", "10 max"],
+    ["Ngữ âm", "Phonics"], ["Giai đoạn", "Phase"], ["nền tảng", "foundation"], ["Luyện nhóm i đặc biệt", "Practise the special i group"], ["Nghe mẫu", "Play model"], ["không bật hơi", "unaspirated"], ["bật hơi", "aspirated"], ["âm xát", "fricative"],
+    ["Tổng số sao", "Total stars"], ["Tổng sao", "Total stars"], ["Buổi hoàn thành", "Lessons completed"], ["Lesson hoàn thành", "Lessons completed"], ["Buổi đã mở", "Lessons unlocked"], ["Lesson đã mở", "Lessons unlocked"], ["Lịch sử phát âm", "Pronunciation history"],
+    ["Xóa lịch sử", "Clear history"], ["Phát âm đúng", "Correct pronunciation"], ["Phát âm sai/cần luyện lại", "Incorrect pronunciation / needs practice"], ["Phát âm sai", "Incorrect pronunciation"], ["Tất cả", "All"], ["Buổi", "Lesson"], ["Tuần", "Week"],
+    ["Thanh Điệu", "Tones"], ["Nguyên Âm", "Vowels"], ["Phụ Âm", "Initials"], ["Âm Cuộn Lưỡi", "Retroflex Sounds"], ["Vận Mẫu Mũi", "Nasal Finals"], ["Biến Điệu", "Tone Sandhi"], ["Ôn Tập Tuần", "Weekly Review"], ["Tổng Ôn + Thi Thử", "Final Review + Mock Test"],
+    ["Gần “trư”; giữ lưỡi cong, không phì hơi.", "Similar to “tr”; keep the tongue curled and do not puff air."], ["Gần “trư”; bật một luồng hơi rõ sau âm tắc-xát.", "Similar to “tr”; release a clear puff of air after the affricate."], ["Gần “sư”; lưỡi cong và hơi đi liên tục.", "Similar to “s”; curl the tongue and maintain continuous airflow."],
     ["Nền tảng: 4 thanh cơ bản", "Foundation: 4 basic tones"], ["Kiểm tra toàn bộ Pinyin Bootcamp", "Full Pinyin Bootcamp test"], ["Gần", "Similar to"], ["giữ lưỡi cong", "keep the tongue curled"], ["bật một luồng hơi rõ", "release a clear puff of air"], ["lưỡi cong và hơi đi liên tục", "curl the tongue with continuous airflow"],
   ];
   function applyPhoneticsLanguage() {
