@@ -2065,11 +2065,11 @@ function renderDashboard() {
   let barsHtml = "";
   [1, 2, 3].forEach(level => {
     const levelWords = VOCAB.filter(w => w.hsk === level);
-    barsHtml += `<h4 style="font-size:12.5px;color:var(--text-light);margin:10px 0 4px;">HSK ${level} (${levelWords.length} từ)</h4>`;
+    barsHtml += `<h4 style="font-size:12.5px;color:var(--text-light);margin:10px 0 4px;">HSK ${level} (${levelWords.length} ${L("từ", "words")})</h4>`;
     for (let t = 0; t <= 4; t++) {
       const count = levelWords.filter(w => getTier(w.char) === t).length;
       const pctT = levelWords.length ? Math.round((count / levelWords.length) * 100) : 0;
-      barsHtml += `<div class="tier-bar-row"><span class="lbl">${RUBRIC[t].name}</span>
+      barsHtml += `<div class="tier-bar-row"><span class="lbl">${L(RUBRIC[t].name, RUBRIC[t].en)}</span>
         <div class="bar-bg"><div class="bar-fill" style="width:${pctT}%;background:${RUBRIC[t].color};"></div></div>
         <span class="val">${count}</span></div>`;
     }
@@ -2078,7 +2078,7 @@ function renderDashboard() {
 
   document.getElementById("rubricList").innerHTML = RUBRIC.map(r =>
     `<div class="rubric-row"><span class="dot" style="background:${r.color};"></span>
-      <div><b>${r.name} / ${r.en}</b>${r.desc}<span class="en">${r.descEn}</span></div></div>`).join("");
+      <div><b>${L(r.name, r.en)}</b><span>${L(r.desc, r.descEn)}</span></div></div>`).join("");
 
   renderActivityChart(dashChartRange);
   renderMonthCalendar();
@@ -2621,6 +2621,19 @@ function updateNotifBell() {
   const reviewBtn = document.getElementById("notifReviewBtn");
   if (reviewBtn) reviewBtn.addEventListener("click", () => { document.getElementById("notifDropdown").style.display = "none"; switchTab("review"); });
 }
+function translateActivityText(text) {
+  if (!window.PandaHanI18n?.isEnglish?.()) return text;
+  return String(text || "")
+    .replace("📝 Trắc nghiệm:", "📝 Quiz:")
+    .replace("đúng", "correct")
+    .replace("🎯 Ôn tập:", "🎯 Review:")
+    .replace("nhớ tốt", "good recall")
+    .replace("cần ôn lại", "needs review")
+    .replace("🔀 Hoàn thành bài sắp xếp câu", "🔀 Completed sentence-ordering exercise")
+    .replace("câu", "items")
+    .replace("🎓 Hoàn thành", "🎓 Completed")
+    .replace("Chào mừng đến với PandaHán Pro! / Welcome to PandaHán Pro!", "Welcome to PandaHán Pro!");
+}
 function renderMergedHistory() {
   const el = document.getElementById("mergedHistoryList");
   if (!el) return;
@@ -2643,7 +2656,7 @@ function renderMergedHistory() {
     html += `<div style="border:1px solid var(--hsk2-light);border-radius:10px;padding:8px 10px;margin-bottom:8px;">
       <div style="font-weight:700;font-size:12px;">⏱️ ${startD.toLocaleDateString("vi-VN")} · ${fmtTime(startD)} → ${s.ongoing ? L("đang mở", "ongoing") : fmtTime(endD)} <span style="color:var(--text-light);font-weight:400;">(${mins} ${L("phút", "min")})</span></div>
       ${acts.length
-        ? `<ul style="list-style:none;padding:0;margin-top:5px;">` + acts.map(a => `<li style="padding:2px 0 2px 14px;font-size:12px;color:var(--text-light);">• ${esc(a.text)}</li>`).join("") + `</ul>`
+        ? `<ul style="list-style:none;padding:0;margin-top:5px;">` + acts.map(a => `<li style="padding:2px 0 2px 14px;font-size:12px;color:var(--text-light);">• ${esc(translateActivityText(a.text))}</li>`).join("") + `</ul>`
         : `<div style="font-size:11.5px;color:var(--text-light);margin-top:3px;padding-left:14px;">${L("Không có hoạt động ghi nhận", "No recorded activity")}</div>`}
     </div>`;
   });
@@ -2724,7 +2737,7 @@ async function renderTeacherDashboard() {
   const list = document.getElementById("teacherStudentList");
   if (!list) return;
   
-  list.innerHTML = `<div style="text-align:center;padding:20px;">⌛ Đang tải danh sách người dùng...</div>`;
+  list.innerHTML = `<div style="text-align:center;padding:20px;">⌛ ${L("Đang tải danh sách người dùng...", "Loading user list...")}</div>`;
   
   const isMaster = (USER_ROLE === "master_teacher") || MASTER_EMAILS.includes(CURRENT_USER.email);
   
@@ -2736,8 +2749,8 @@ async function renderTeacherDashboard() {
       
       // ─── HEADER: Phân cấp vai trò ───
       html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:14px 18px;margin-bottom:14px;color:#fff;">
-        <div style="font-weight:700;font-size:15px;">${isMaster ? '🏛️ Trung tâm quản lý' : '👨‍🏫 Bảng điều khiển Giáo viên'}</div>
-        <div style="font-size:12px;opacity:.9;margin-top:3px;">${isMaster ? 'Quản lý lớp học, giáo viên và dữ liệu học viên' : 'Xem tiến độ và quản lý học viên'}</div>
+        <div style="font-weight:700;font-size:15px;">${isMaster ? L('🏛️ Trung tâm quản lý','🏛️ Center management') : L('👨‍🏫 Bảng điều khiển Giáo viên','👨‍🏫 Teacher dashboard')}</div>
+        <div style="font-size:12px;opacity:.9;margin-top:3px;">${isMaster ? L('Quản lý lớp học, giáo viên và dữ liệu học viên','Manage classes, teachers and student data') : L('Xem tiến độ và quản lý học viên','View progress and manage students')}</div>
       </div>`;
       
       // ─── Đọc progress từ Firestore cho từng học sinh ───
@@ -2754,10 +2767,10 @@ async function renderTeacherDashboard() {
       
       // ─── HỌC SINH (Giáo viên và Master đều thấy) ───
       if (students.length > 0 || (isMaster && (teachers.length > 0 || masters.length > 0))) {
-        html += `<h3 style="font-size:15px;margin:14px 0 10px;color:var(--hsk2);">🎓 Học viên (${students.length})</h3>`;
+        html += `<h3 style="font-size:15px;margin:14px 0 10px;color:var(--hsk2);">🎓 ${L('Học viên','Students')} (${students.length})</h3>`;
         
         if (students.length === 0 && isMaster) {
-            html += `<p style="font-size:12.5px;color:#888;padding:8px;">Chưa có học viên nào.</p>`;
+            html += `<p style="font-size:12.5px;color:#888;padding:8px;">${L('Chưa có học viên nào.','No students yet.')}</p>`;
         }
         
         html += students.map(u => {
@@ -2786,10 +2799,10 @@ async function renderTeacherDashboard() {
               <div>
                 <div style="font-weight:700;">${esc(u.name)} <span class="role-badge role-student" style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:11px;">🎓 HS</span></div>
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
-                <div style="font-size:11px;color:var(--pink);margin-top:3px;">📚 ${learnedCount} từ đã học${lastSeenLabel !== "–" ? " · Cập nhật: " + lastSeenLabel : ""}</div>
+                <div style="font-size:11px;color:var(--pink);margin-top:3px;">📚 ${learnedCount} ${L('từ đã học','words studied')}${lastSeenLabel !== "–" ? " · " + L('Cập nhật','Updated') + ": " + lastSeenLabel : ""}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 Chi tiết</button>
+                <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 ${L('Chi tiết','Details')}</button>
                 <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Xóa</button>
                 ${changeRoleBtns}
               </div>
@@ -2799,7 +2812,7 @@ async function renderTeacherDashboard() {
       
       // ─── GIÁO VIÊN (Chỉ Master thấy) ───
       if (isMaster && teachers.length > 0) {
-          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:var(--hsk3);">👨‍🏫 Giáo viên (${teachers.length})</h3>`;
+          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:var(--hsk3);">👨‍🏫 ${L('Giáo viên','Teachers')} (${teachers.length})</h3>`;
           html += teachers.map(u => {
             // Đếm số học sinh của giáo viên này (dựa vào shared data)
             return `<div style="background:#fffbeb;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #fde68a;margin-bottom:8px;">
@@ -2817,7 +2830,7 @@ async function renderTeacherDashboard() {
       
       // ─── MASTER / TRUNG TÂM (Chỉ Master thấy) ───
       if (isMaster && masters.length > 0) {
-          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:#7c3aed;">🏛️ Trung tâm / Master (${masters.length})</h3>`;
+          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:#7c3aed;">🏛️ ${L('Trung tâm / Master','Center / Master')} (${masters.length})</h3>`;
           html += masters.map(u => {
             return `<div style="background:#f5f3ff;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #e0d4fc;margin-bottom:8px;">
               <div>
@@ -2880,33 +2893,33 @@ async function viewStudentProgress(uid, name) {
             lastUpdatedStr = d.toLocaleString("vi-VN");
         }
 
-        document.getElementById("teacherDetailName").textContent = `Tiến độ của ${name}`;
+        document.getElementById("teacherDetailName").textContent = L(`Tiến độ của ${name}`, `Progress for ${name}`);
         document.getElementById("teacherDetailStats").innerHTML = `
-            <div style="margin-bottom:14px;font-size:11px;color:var(--text-light);">Cập nhật lần cuối: ${lastUpdatedStr}</div>
+            <div style="margin-bottom:14px;font-size:11px;color:var(--text-light);">${L("Cập nhật lần cuối", "Last updated")}: ${lastUpdatedStr}</div>
             <div class="time-grid" style="grid-template-columns:1fr 1fr;">
-              <div class="time-box"><div class="num">${learned}</div><div class="lbl">Từ đã học</div></div>
-              <div class="time-box"><div class="num">${mastered}</div><div class="lbl">Từ thành thạo</div></div>
-              <div class="time-box"><div class="num">${quizAccuracy}%</div><div class="lbl">Tỉ lệ đúng quiz</div></div>
-              <div class="time-box"><div class="num">${totalQuizAttempts}</div><div class="lbl">Tổng lượt quiz</div></div>
+              <div class="time-box"><div class="num">${learned}</div><div class="lbl">${L("Từ đã học", "Words studied")}</div></div>
+              <div class="time-box"><div class="num">${mastered}</div><div class="lbl">${L("Từ thành thạo", "Words mastered")}</div></div>
+              <div class="time-box"><div class="num">${quizAccuracy}%</div><div class="lbl">${L("Tỉ lệ đúng quiz", "Quiz accuracy")}</div></div>
+              <div class="time-box"><div class="num">${totalQuizAttempts}</div><div class="lbl">${L("Tổng lượt quiz", "Total quiz attempts")}</div></div>
             </div>
             <div style="margin-top:14px;">
-              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Tiến độ tổng: ${pct}%</div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${L("Tiến độ tổng", "Overall progress")}: ${pct}%</div>
               <div style="background:var(--hsk2-light);border-radius:30px;height:9px;overflow:hidden;">
                 <div class="fill" style="height:100%;border-radius:30px;width:${pct}%;background:linear-gradient(90deg,var(--hsk1),var(--pink));transition:width 0.6s ease;"></div>
               </div>
             </div>
             <table class="time-table" style="margin-top:14px;">
-              <thead><tr><th>Mức độ</th><th>Số từ</th></tr></thead>
+              <thead><tr><th>${L("Mức độ", "Tier")}</th><th>${L("Số từ", "Word count")}</th></tr></thead>
               <tbody>
-                <tr><td>⚪ Chưa học</td><td>${tierCounts[0]}</td></tr>
-                <tr><td>🔴 Mới học</td><td>${tierCounts[1]}</td></tr>
-                <tr><td>🟡 Đang ôn luyện</td><td>${tierCounts[2]}</td></tr>
-                <tr><td>🟢 Đã nắm vững</td><td>${tierCounts[3]}</td></tr>
-                <tr><td>🐼 Thành thạo</td><td>${tierCounts[4]}</td></tr>
+                <tr><td>⚪ ${L("Chưa học", "Not studied")}</td><td>${tierCounts[0]}</td></tr>
+                <tr><td>🔴 ${L("Mới học", "New")}</td><td>${tierCounts[1]}</td></tr>
+                <tr><td>🟡 ${L("Đang ôn luyện", "Reinforcing")}</td><td>${tierCounts[2]}</td></tr>
+                <tr><td>🟢 ${L("Đã nắm vững", "Familiar")}</td><td>${tierCounts[3]}</td></tr>
+                <tr><td>🐼 ${L("Thành thạo", "Mastered")}</td><td>${tierCounts[4]}</td></tr>
               </tbody>
             </table>
             <div style="margin-top:20px; font-size:13px; color:var(--text-light);">
-                <i>Dữ liệu được lấy trực tiếp từ Firebase Firestore.</i>
+                <i>${L("Dữ liệu được lấy trực tiếp từ Firebase Firestore.", "Data is read directly from Firebase Firestore.")}</i>
             </div>
         `;
         showScreen("teacherDetail");
