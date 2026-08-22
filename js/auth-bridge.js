@@ -64,8 +64,8 @@
       if (dropdown && dropdown.dataset.rendered !== "open") {
         dropdown.innerHTML = items.length ? items.slice(0, 12).map((item) => `
           <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}">
-            <div>${String(item.title || item.subject || "Thông báo học tập")}</div>
-            <div style="font-size:11px;font-weight:400;margin-top:3px;">${String(item.body || item.message || "")}</div>
+            <div>${String(window.PandaHanI18n?.messageText(item, "title") || item.subject || "Thông báo học tập")}</div>
+            <div style="font-size:11px;font-weight:400;margin-top:3px;">${String(window.PandaHanI18n?.messageText(item, "body") || item.message || "")}</div>
           </div>`).join("") : "<div style='padding:10px;color:#64748b;'>Chưa có thông báo mới.</div>";
       }
     }, (error) => console.warn("Notification listener:", error.message || error));
