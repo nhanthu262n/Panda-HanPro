@@ -3210,6 +3210,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (appEl) appEl.style.display = "block";
   } else {
     if (appEl) appEl.style.display = "none";
+    // Trạng thái chưa xác thực: hiển thị Auth overlay, không để trang chỉ còn nền hoa.
+    if (proAuth) proAuth.style.display = "flex";
   }
   
   const loginBtn = document.getElementById("loginSubmitBtn");
