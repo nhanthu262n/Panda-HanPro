@@ -61,3 +61,11 @@ Tài khoản chỉ có Google provider phải đăng nhập bằng nút Google. 
 ## Kết luận
 
 Bản sau sửa ổn định hơn đáng kể và không còn lỗi API key/config mismatch trong các file kiểm tra, lỗi ghi RTDB path không tồn tại, side effect cron push trùng, collection progress/quiz thiếu Rules hoặc asset icon 404. Có thể dùng để kiểm thử và deploy có kiểm soát; trước production nên xử lý thêm quyền ghi schedule bằng server-side function và xác thực Rules bằng Firebase Emulator.
+
+## Bổ sung kiểm tra Auth overlay sau logout/F5
+
+Audit tiếp theo phát hiện một lỗi giao diện trong nhánh chưa xác thực: CSS đặt `#proAuthOverlay` ở `display:none`, trong khi `app-01.js` chỉ ẩn `#app` khi `onAuthStateChanged` nhận `user === null` mà không bật lại overlay. `app-02.js` cũng chỉ ẩn app trong nhánh khởi tạo chưa xác thực. Kết quả là người dùng mới hoặc người vừa đăng xuất chỉ nhìn thấy nền hoa.
+
+Đã sửa tối thiểu hai vị trí: nhánh `user === null` trong `app-01.js` nay đặt overlay thành `display:flex`, và nhánh chưa xác thực trong `DOMContentLoaded` của `app-02.js` cũng đặt overlay thành `display:flex`. Không sửa nội dung học tập, Practice, Quest, Ngữ âm hoặc schedule.
+
+Kiểm tra local sau sửa xác nhận `overlayDisplay: "flex"`, `overlayVisibility: "visible"`, `appDisplay: "none"` và `firebase.auth().currentUser: null`. Trang login hiển thị đúng với người dùng mới.
