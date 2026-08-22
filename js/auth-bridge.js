@@ -81,26 +81,18 @@
     if (Object.keys(updates).length) await rtdb.ref("notifications/" + uid).update(updates);
   }
 
-  async function onUser(user) {
-    if (!user) {
-      window.CURRENT_USER = null;
-      setAuthVisible(true);
-      return;
-    }
+  // app-01.js owns the single profile/completeLogin Auth listener.
+  // This bridge only attaches notifications and schedule services, preventing
+  // duplicate Firestore writes and competing overlay state changes.
+  async function onUserServices(user) {
+    if (!user) return;
     try {
-      const profile = await ensureStudentProfile(user);
-      window.CURRENT_USER = profile;
-      window.USER_ROLE = profile.role || "student";
-      setAuthVisible(false);
-      if (typeof window.completeLogin === "function") window.completeLogin(profile);
       await attachNotifications(user.uid);
       if (window.PandaHanSchedule && typeof window.PandaHanSchedule.initScheduleIfNeeded === "function") {
-        window.PandaHanSchedule.initScheduleIfNeeded().catch((e) => console.warn("Schedule init:", e.message || e));
+        await window.PandaHanSchedule.initScheduleIfNeeded();
       }
     } catch (error) {
-      console.error("Auth/profile bootstrap:", error);
-      showError("Đăng nhập được nhưng chưa tải được hồ sơ: " + (error.message || error));
-      setAuthVisible(true);
+      console.warn("Auth service bootstrap:", error.message || error);
     }
   }
 
@@ -114,12 +106,7 @@
     showError
   };
 
-  auth.onAuthStateChanged(onUser);
-  window.addEventListener("beforeunload", () => {
-    const user = auth.currentUser;
-    if (user && rtdb) rtdb.ref("studentProfiles/" + user.uid).update({ lastSeen: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
-  });
-
+  auth.onAuthStateChanged(onUserServices);
   const bell = document.getElementById("notifBellBtn");
   if (bell) bell.addEventListener("click", () => {
     const uid = auth.currentUser?.uid;
