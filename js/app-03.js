@@ -898,6 +898,7 @@ function pvNextSession() {
 
   function renderMessageBubble(m, isMe) {
     const isBroadcast = !!m.isBroadcast;
+    const messageText = window.PandaHanI18n?.messageText ? window.PandaHanI18n.messageText(m, "text") : (m.text || "");
     const row = document.createElement("div");
     row.className = "chat-msg-row " + (isMe ? "me" : "them") + (isBroadcast ? " broadcast" : "");
     const bubble = document.createElement("div");
@@ -917,9 +918,9 @@ function pvNextSession() {
       if (m.driveDownloadUrl) {
         inner += '<br><a href="' + m.driveDownloadUrl + '" target="_blank" rel="noopener" class="chat-dl-link">⬇ Tải xuống / Download</a>';
       }
-      if (m.text) inner += '<div style="margin-top:4px;">' + escapeHtml(m.text) + '</div>';
-    } else if (m.text) {
-      inner += '<div>' + escapeHtml(m.text) + '</div>';
+      if (messageText) inner += '<div style="margin-top:4px;">' + escapeHtml(messageText) + '</div>';
+    } else if (messageText) {
+      inner += '<div>' + escapeHtml(messageText) + '</div>';
     }
     inner += '<div class="chat-msg-time">' + timeStr + '</div>';
     bubble.innerHTML = inner;
