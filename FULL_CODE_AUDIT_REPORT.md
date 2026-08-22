@@ -101,19 +101,3 @@ Nội dung tiếng Trung, audio, bundle Quest/Ngữ âm, curriculum và thuật 
 Kiểm thử cuối: JavaScript syntax PASS cho toàn bộ module sửa; i18n regression cũ 20/20 PASS; i18n deep regression 15/15 PASS; adaptive schedule 7/7 PASS. Browser trước khi cache-bust đã chứng minh lỗi tồn tại trong loader cũ; sau cache-bust, loader mới được kiểm tra tĩnh và các mapping còn sót trong DOM đã được bổ sung theo đúng chuỗi thực tế.
 
 Giới hạn còn lại: các tin nhắn do người dùng hoặc giáo viên tự nhập không bị tự động dịch vì đó là dữ liệu cá nhân; nội dung nghĩa tiếng Việt có chủ đích trong chế độ học ngôn ngữ có thể vẫn xuất hiện nếu bản ghi không có `meaning_en`; cron Firebase vẫn cần được deploy riêng nếu muốn chạy production.
-
-## Final Quest/Phonics English validation — 22/08/2026
-Đã sửa cơ chế dịch theo hướng giữ nguyên text gốc trong từng text node và khôi phục lại khi chuyển English ↔ Tiếng Việt. Global observer không còn quét shadow root `#pinyin-phonetics-root`; loader Ngữ âm là lớp duy nhất dịch vùng React này, tránh bắt nhầm text đã bị dịch một phần. Các map một từ chỉ thay khi toàn bộ node là nhãn tương ứng; các cụm nhiều từ rõ ràng được phép thay inline. Vì vậy các từ English như `practise` không bị thay nhầm bởi khóa ngắn tiếng Việt như `ra`.
-
-Phonics đã được bổ sung mapping cho overview, special-group explanation, zhi/chi/shi/ri, unaspirated/aspirated/fricative, pronunciation history, filters, tuần/buổi, 10 lesson cards, lesson detail, Study/Reading practice/Practice, flashcard, Record/Playing/Mic, game, quiz và result. Quest iframe giữ nguyên asset/audio/curriculum, nhận mode qua `PANDAHAN_QUEST_LANGUAGE`, có mapping cho hero, roadmap 120 ngày, gate/ngày học, source set, dimensions, Phase 0–3, review, quiz/result và khôi phục Vietnamese.
-
-| Kiểm tra final | Kết quả |
-|---|---:|
-| i18n global regression | 20/20 PASS |
-| i18n deep regression | 25/25 PASS |
-| Adaptive schedule regression | 7/7 PASS |
-| Full static verifier | 45/45 PASS |
-| JavaScript syntax và joined Phonics bundle | PASS |
-| File offline lớn nhất | 39,000,000 bytes; không file nào vượt 100 MB |
-
-Browser local đã xác nhận Auth/Offline flow, English overview Phonics, các nhãn mixed-node chính và không còn hiện tượng corruption `practise` sau short-key guard. Một số lần browser sandbox tự reset về `about:blank` trước khi mở sâu lesson/Quest, nên kết quả browser được phân biệt với static regression; không dùng điều đó làm bằng chứng đã deploy production. Bản final dùng cache-bust `i18n-deep-20260822-final`, `i18n-quest-deep-20260822-final` và `i18n-phonics-deep-20260822-final`.
