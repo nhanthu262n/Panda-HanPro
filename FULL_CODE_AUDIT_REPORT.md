@@ -69,3 +69,11 @@ Audit tiếp theo phát hiện một lỗi giao diện trong nhánh chưa xác t
 Đã sửa tối thiểu hai vị trí: nhánh `user === null` trong `app-01.js` nay đặt overlay thành `display:flex`, và nhánh chưa xác thực trong `DOMContentLoaded` của `app-02.js` cũng đặt overlay thành `display:flex`. Không sửa nội dung học tập, Practice, Quest, Ngữ âm hoặc schedule.
 
 Kiểm tra local sau sửa xác nhận `overlayDisplay: "flex"`, `overlayVisibility: "visible"`, `appDisplay: "none"` và `firebase.auth().currentUser: null`. Trang login hiển thị đúng với người dùng mới.
+## Bổ sung trợ lý người mới và nhắc học cuối ngày
+Đã thêm `js/first-time-guide.js` và vùng giao diện `#firstLearnerGuide`. Trợ lý hoạt động offline, không chứa API key, tự hiển thị lần đầu theo từng tài khoản hoặc khách Offline, có nút bỏ qua/đóng/mở lại và hướng dẫn sáu bước: lộ trình 120 ngày, buổi đang mở, Ngữ âm, Luyện tập, Pinyin Tone Quest và chuông Thông báo/tin nhắn Giáo viên. Trợ lý đọc schedule hiện tại để hiển thị đúng ngày và chủ đề đang mở; trạng thái đã xem được lưu theo user scope trong localStorage.
+
+Đã thêm `dailyIncompleteStudyReminder` trong `functions/index.js`, chạy lúc 20:00 theo `Asia/Ho_Chi_Minh`. Function tìm sequence đang `unlocked` chưa hoàn thành, ghi một notification cố định `study_reminder_<date>_<sequence>` vào RTDB và, nếu có quan hệ `studentTeachers/{uid}`, ghi một message cố định cùng ID vào Firestore chat. Cách đặt ID này giúp retry không tạo nhiều tin nhắn trùng. Job 00:00 hiện có tiếp tục xử lý extension/gia hạn và kế hoạch ngày mới.
+
+Kiểm thử mới `test_onboarding_reminders.js` đạt PASS cho markup, nội dung hướng dẫn 120 ngày/Ngữ âm/Quest, trạng thái đã xem, không có API key phía client, cron 20:00 Việt Nam, RTDB notification, Firestore teacher reminder và deterministic reminder ID. Browser local cũng xác nhận modal hiển thị ở chế độ Offline, bước 2 lấy đúng ngày 1/chủ đề Pinyin hiện tại và nút `Mở Tiến độ` điều hướng đúng tab.
+
+Tính năng nhắc tự động chỉ chạy khi Firebase Functions được deploy riêng; GitHub Pages không tự chạy được cron. Việc deploy production chưa được thực hiện và không có dữ liệu Firebase production nào được ghi trong quá trình audit.
