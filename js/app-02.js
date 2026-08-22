@@ -14,6 +14,7 @@ function setLangMode(mode) {
   const detailEl = document.getElementById("detailView");
   if (currentDetailChar && detailEl && detailEl.classList.contains("visible")) openDetail(currentDetailChar);
   if (typeof showStudyReminder === "function" && getDueCount() > 0) showStudyReminder();
+  window.dispatchEvent(new CustomEvent("pandahan-language-changed", { detail: { mode } }));
 }
 
 /* ---------- Gentle "ting" sound effects ---------- */
