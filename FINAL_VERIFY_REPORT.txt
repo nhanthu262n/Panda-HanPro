@@ -10,6 +10,7 @@ PASS | JS syntax js/firebase-boot.js
 PASS | JS syntax js/offline-enhancements.js
 PASS | JS syntax js/pinyin-phonetics-loader.js
 PASS | JS syntax js/schedule-engine-core.js
+PASS | JS syntax js/first-time-guide.js
 PASS | JS syntax functions/index.js
 PASS | JS syntax functions/schedule-engine-core.js
 PASS | joined phonetics bundle syntax
@@ -28,8 +29,12 @@ PASS | Firestore includes legacy progress collections
 PASS | cron timezone
 PASS | cron deterministic daily id
 PASS | cron deterministic extension id
+PASS | incomplete study reminder cron
+PASS | study reminder notification/chat id
+PASS | first learner guide present
+PASS | guide stores seen state without client API key
 PASS | Quest gate present
 PASS | Practice has two intended cards
 PASS | removed icon reference
 PASS | no embedded localhost
-RESULT | 34/34 checks passed
+RESULT | 39/39 checks passed
