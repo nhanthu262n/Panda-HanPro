@@ -1,0 +1,21 @@
+PASS | global script loaded with cache bust
+PASS | language state persisted
+PASS | language change event wired
+PASS | English UI term: Dictionary
+PASS | English UI term: Practice
+PASS | English UI term: Progress
+PASS | English UI term: Phonics
+PASS | English UI term: Messages
+PASS | English UI term: New learner guide
+PASS | English UI term: Dialogue reordering
+PASS | English UI term: Noun
+PASS | English UI term: Measure word
+PASS | dynamic DOM observer present
+PASS | Quest language postMessage present
+PASS | Quest can restore Vietnamese
+PASS | Quest result supports English title
+PASS | phonetics shadow language bridge present
+PASS | notification has dual title/body
+PASS | chat has dual text renderer
+PASS | audio and curriculum files not embedded in i18n module
+RESULT | 20/20 checks passed
