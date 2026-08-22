@@ -103,6 +103,65 @@ async function publishTeacherPlan(uid, today, schedule) {
   return { sent: true, teacherUid, chatId, messageId };
 }
 
+function currentUnlockedDay(schedule) {
+  const days = Array.isArray(schedule?.days) ? schedule.days : [];
+  return days
+    .filter((day) => day.status === "unlocked")
+    .sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0] || null;
+}
+
+async function publishIncompleteReminder(uid, today, schedule) {
+  const current = currentUnlockedDay(schedule);
+  if (!current) return { notified: false, reason: "no_unlocked_day" };
+  const sequence = Number(current.sequence_index);
+  const dayNumber = Number(current.day_number);
+  const notificationId = `study_reminder_${today}_${sequence}`;
+  const body = `Bạn chưa hoàn thành buổi học ngày ${dayNumber}. Hãy quay lại học trước 00:00 để giữ tiến độ; nếu bỏ lỡ, hệ thống sẽ đưa phần chưa xong sang ngày tiếp theo.`;
+  await db.ref(`notifications/${uid}/${notificationId}`).set({
+    type: "study_reminder",
+    title: `Nhắc học: còn buổi ngày ${dayNumber}`,
+    body,
+    day_number: dayNumber,
+    sequence_index: sequence,
+    date: today,
+    read: false,
+    created_at: admin.database.ServerValue.TIMESTAMP,
+  });
+
+  const relation = await db.ref(`studentTeachers/${uid}`).once("value");
+  const teacherUid = extractTeacherUid(relation.val());
+  if (!teacherUid) return { notified: true, teacherMessage: false, reason: "no_teacher_relation" };
+  const chatId = [uid, teacherUid].sort().join("_");
+  const messageId = `study_reminder_${today}_${sequence}`;
+  const text = `Nhắc học: học sinh chưa hoàn thành buổi ngày ${dayNumber}${current.topic ? ` — ${current.topic}` : ""}. Vui lòng hoàn thành trước 00:00 để tránh kéo dài lộ trình.`;
+  const chatRef = firestore.collection("chats").doc(chatId);
+  const messageRef = chatRef.collection("messages").doc(messageId);
+  const batch = firestore.batch();
+  batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastSenderId: "system" }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await batch.commit();
+  return { notified: true, teacherMessage: true, teacherUid, chatId, messageId };
+}
+
+exports.dailyIncompleteStudyReminder = onSchedule(
+  {
+    schedule: "0 20 * * *",
+    timeZone: "Asia/Ho_Chi_Minh",
+    region: "asia-southeast1",
+    retryCount: 3,
+    maxInstances: 1,
+  },
+  async () => {
+    const today = todayVietnam();
+    const snapshot = await db.ref("studentSchedules").once("value");
+    const schedules = snapshot.val() || {};
+    const results = await Promise.all(Object.keys(schedules).map((uid) =>
+      publishIncompleteReminder(uid, today, schedules[uid])
+    ));
+    console.log("dailyIncompleteStudyReminder", { date: today, count: results.length, results });
+  }
+);
+
 exports.dailyScheduleExtension = onSchedule(
   {
     schedule: "0 0 * * *",
