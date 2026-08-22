@@ -53,34 +53,9 @@
 
   const PHONETICS_LANGUAGE_PAIRS = [
     ["Giai đoạn 0 · Ngữ âm nền tảng · mở từng chữ để nghe đúng mẫu rồi luyện Flashcard → Game → Quiz", "Phase 0 · Phonetics foundation · open each item to hear the model, then practise with Flashcards → Game → Quiz"],
-    ["Học", "Study"], ["Đọc luyện", "Reading practice"], ["Luyện đọc", "Reading practice"], ["Bài tập", "Practice"],
-    ["Phase 0 · Phonics nền tảng · open each item to hear the model, then practise with Flashcards → Game → Quiz", "Phase 0 · Phonics foundation · open each item to hear the model, then practise with Flashcards → Game → Quiz"],
-    ["zh + i · [ʐ̩] · không bật hơi", "zh + i · [ʐ̩] · unaspirated"], ["ch + i · [ʈʂʰ̩] · bật hơi", "ch + i · [ʈʂʰ̩] · aspirated"], ["sh + i · [ʂ̩] · âm xát", "sh + i · [ʂ̩] · fricative"],
-    ["Trong chi/shi/ri, chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài.", "In chi/shi/ri, i is a special retroflex vowel, similar to “ü” but not the Vietnamese “ư” and not the long “i” sound."],
-    ["Trong ci/si, chữ i là nguyên âm đầu lưỡi trước;", "In ci/si, i is a front dental vowel;"], ["thành “ư”.", "into “ü”."],
-    ["✅ Phát âm đúng", "✅ Correct pronunciation"], ["❌ Phát âm sai", "❌ Incorrect pronunciation"], ["Tuần 1", "Week 1"], ["Tuần 2", "Week 2"],
-    ["Âm Tiết Co Rút", "Contracted syllables"], ["Particle khinh thanh:", "Neutral-tone particles:"], ["Check toàn bộ Pinyin Bootcamp — Phase 0", "Full Pinyin Bootcamp test — Phase 0"],
-    ["ch/sh/r) vs không uốn (z/c/s)", "ch/sh/r) vs non-retroflex (z/c/s)"], ["Foundation: 4 threesic bignes + a o e i u", "Foundation: 4 basic tones + a o e i u"],
-    ["FLASHCARD ĐANG HỌC", "STUDYING FLASHCARD"], ["Hình riêng", "Custom image"], ["VIETNAMESE MEANING", "ENGLISH MEANING"], ["Nghĩa tiếng Việt", "English meaning"],
-    ["Đọc trơn âm tiết, chú ý đường tones rồi luyện lại bằng giọng của bạn.", "Read the syllable smoothly, pay attention to the tone contour, then practise with your own voice."],
-    ["Đang phát...", "Playing..."], ["Play model → thu âm → nghe lại → nhận xét theo rubric phát âm", "Play model → record → listen again → review using the pronunciation rubric"],
-    ["Dùng mic laptop", "Use laptop mic"], ["Tải lại", "Reload"], ["Kiểm tra mic", "Check microphone"], ["Chưa chọn mic", "No microphone selected"],
-    ["thu âm", "record"], ["Ghi âm", "Record"], ["Nghe lại", "Listen again"], ["Đang đọc...", "Speaking..."], ["nhấn thẻ để xem chữ", "tap the card to reveal the character"],
-    ["mẹ", "mother"], ["gai", "sesame"], ["ngựa", "horse"], ["mắng", "scold"], ["tám", "eight"], ["nhổ", "pull out"], ["cái", "object marker"], ["bố", "father"],
-    ["à", "ah"], ["ồ", "oh"], ["đói", "hungry"], ["một", "one"], ["năm", "five"], ["cá", "fish"], ["yêu", "love"], ["ê", "hey"],
-    ["leo", "climb"], ["tóc", "hair"], ["sóng", "wave"], ["bà", "grandmother"], ["mô hình", "model"], ["Phật", "Buddha"], ["to", "big"], ["anh ấy", "he"],
-    ["đó", "that"], ["kéo", "pull"], ["đất", "earth"], ["móng", "hoof"], ["bạn", "you"], ["sức", "strength"], ["anh", "older brother"], ["có thể", "can"],
-    ["uống", "drink"], ["thung lũng", "valley"], ["kho", "warehouse"], ["râu", "beard"], ["nước", "country"], ["tốt", "good"], ["gà", "chicken"], ["đứng dậy", "stand up"],
-    ["hy vọng", "hope"], ["nhà", "home"], ["dưới", "below"], ["vàng", "gold"], ["tim", "heart"], ["tiền", "money"], ["biết", "know"], ["ăn", "eat"],
-    ["là", "be"], ["mặt trời", "sun"], ["sống", "live"], ["ra", "go out"], ["sách", "book"], ["người", "person"], ["chữ", "character"], ["từ", "word"], ["bốn", "four"],
-    ["làm", "do"], ["sai", "wrong"], ["khóa", "lock"], ["khen", "praise"], ["ba", "three"], ["Úc", "Australia"], ["thỉnh thoảng", "occasionally"], ["lá", "leaf"],
-    ["ngói", "tile"], ["tôi", "I/me"], ["vị trí", "position"], ["yên", "peaceful"], ["ân", "kindness"], ["ngẩng", "raise one’s head"], ["âm", "sound"], ["ấm", "warm"], ["không", "empty/no"],
     ["Trong chi/shi/ri, chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong ci/si, chữ i là nguyên âm đầu lưỡi trước; không quặt lưỡi thành “ư”.", "In chi/shi/ri, i is a special retroflex vowel, similar to “ü” but not the Vietnamese “ư” and not the long “i” sound. In ci/si, i is a front dental vowel; do not curl the tongue into “ü”."],
     ["Chưa có lần thu âm nào. Mở một ô Pinyin, bấm Record rồi xem kết quả ở đây.", "No recordings yet. Open a Pinyin card, press Record, then view the result here."],
     ["Trong zhi/chi/shi/ri, chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong zi/ci/si, chữ i là nguyên âm đầu lưỡi trước, không quặt lưỡi thành “ư”.", "In zhi/chi/shi/ri, i is a special retroflex vowel, similar to “ü” but not the Vietnamese “ư” and not the long “i” sound. In zi/ci/si, i is a front dental vowel; do not curl the tongue into “ü”."],
-    ["Trong zhi/chi/shi/ri, chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong", "In zhi/chi/shi/ri, i is a special retroflex vowel, similar to “ü” but not the Vietnamese “ư” and not the long “i” sound. In"],
-    [", chữ i là nguyên âm đầu lưỡi trước; do not curl the tongue into “ü”.", ", i is a front dental vowel; do not curl the tongue into “ü”."],
-    ["Theo dõi từng lần thu, điểm gần nhất và mức tiến bộ theo Pinyin/thanh điệu.", "Track every recording, the latest score, and progress by Pinyin and tone."],
     ["Chưa có lần thu âm nào. Mở một ô Pinyin, bấm Ghi âm rồi xem kết quả ở đây.", "No recordings yet. Open a Pinyin card, press Record, then view the result here."],
     ["mở từng chữ để nghe đúng mẫu rồi luyện Flashcard → Game → Quiz", "open each item to hear the model, then practise with Flashcards → Game → Quiz"],
     ["4 Thanh Điệu + Nguyên Âm", "4 Tones + Vowels"], ["Phụ Âm b/p/m/f · d/t/n/l", "Initials b/p/m/f · d/t/n/l"], ["Phụ Âm j / q / x", "Initials j / q / x"],
@@ -112,17 +87,7 @@
     nodes.forEach((textNode) => {
       if (!textNode.__pandahanPhoneticsOriginal) textNode.__pandahanPhoneticsOriginal = textNode.nodeValue || "";
       let value = textNode.__pandahanPhoneticsOriginal;
-      if (mode === "en") sorted.forEach(([vi, en]) => {
-        // Short labels/meanings must match the whole text node; otherwise a key such as “ra”
-        // would corrupt English words such as “practise”. Longer sentence mappings may replace inline.
-        if (vi.length <= 14 && !/[\s·/()[\]—+]/.test(vi)) {
-          // Single-word keys are exact-only to avoid corrupting words such as “practise”.
-          if (value.trim() === vi) value = value.replace(vi, en);
-        } else {
-          // Multi-word UI labels can safely occur inside mixed text nodes.
-          value = value.split(vi).join(en);
-        }
-      });
+      if (mode === "en") sorted.forEach(([vi, en]) => { value = value.split(vi).join(en); });
       textNode.nodeValue = value;
     });
   }
