@@ -83,7 +83,7 @@ const VOCAB_RAW = [{"char": "爱", "pinyin": "ài", "hanviet": "Ái", "pos": "Đ
 // CẤU HÌNH FIREBASE (BẮT BUỘC THAY THẾ)
 // ============================================
 const firebaseConfig = {
-  apiKey: "AIzaSyBhjivYJd16vazp4Mi5XSv4Hp_N3Jd14Q4",
+  apiKey: "AIzaSyBhjivJYd16vazp4Mi5XSv4Hp_N3Jd14Q4",
   authDomain: "pandahanpro.firebaseapp.com",
   databaseURL: "https://pandahanpro-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "pandahanpro",
