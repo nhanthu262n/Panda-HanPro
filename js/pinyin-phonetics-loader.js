@@ -2,6 +2,7 @@
   'use strict';
 
   const loaderScript = document.currentScript;
+  window.addEventListener("pandahan-language-changed", () => setTimeout(applyPhoneticsLanguage, 0));
   const baseUrl = new URL('./', loaderScript.src);
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
@@ -46,6 +47,32 @@
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
       <strong>Không tải được module Ngữ âm.</strong><br>${detail}
     </div>`;
+  }
+
+  const PHONETICS_LANGUAGE_PAIRS = [
+    ["Ngữ âm", "Phonics"], ["Giai đoạn", "Phase"], ["nền tảng", "foundation"], ["mở từng chữ để dùng mẫu rồi luyện Flashcard", "open each item to use the model and practise with Flashcards"],
+    ["Luyện nhóm i đặc biệt", "Practise the special i group"], ["Nghe mẫu", "Play model"], ["không bật hơi", "unaspirated"], ["bật hơi", "aspirated"], ["âm xát", "fricative"],
+    ["Tổng số sao", "Total stars"], ["Buổi hoàn thành", "Lessons completed"], ["Buổi đã mở", "Lessons unlocked"], ["Lịch sử phát âm", "Pronunciation history"],
+    ["Chưa có lần thu âm nào", "No recordings yet"], ["Xóa lịch sử", "Clear history"], ["Tất cả", "All"], ["Phát âm đúng", "Correct pronunciation"], ["Phát âm sai", "Incorrect pronunciation"],
+    ["Buổi", "Lesson"], ["Tuần", "Week"], ["Thanh Điệu", "Tones"], ["Nguyên Âm", "Vowels"], ["Phụ Âm", "Initials"], ["Âm Cuộn Lưỡi", "Retroflex Sounds"],
+    ["Vận Mẫu Mũi", "Nasal Finals"], ["Biến Điệu", "Tone Sandhi"], ["Ôn Tập Tuần", "Weekly Review"], ["Tổng Ôn + Thi Thử", "Final Review + Mock Test"],
+    ["Nền tảng: 4 thanh cơ bản", "Foundation: 4 basic tones"], ["Kiểm tra toàn bộ Pinyin Bootcamp", "Full Pinyin Bootcamp test"], ["Gần", "Similar to"], ["giữ lưỡi cong", "keep the tongue curled"], ["bật một luồng hơi rõ", "release a clear puff of air"], ["lưỡi cong và hơi đi liên tục", "curl the tongue with continuous airflow"],
+  ];
+  function applyPhoneticsLanguage() {
+    const host = getRoot();
+    const shadow = host && host.shadowRoot;
+    if (!shadow) return;
+    const mode = window.PandaHanI18n?.mode?.() || localStorage.getItem("pandahan_lang") || "vi";
+    const sorted = PHONETICS_LANGUAGE_PAIRS.slice().sort((a, b) => b[0].length - a[0].length);
+    const walker = document.createTreeWalker(shadow, NodeFilter.SHOW_TEXT);
+    const nodes = []; let node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach((textNode) => {
+      if (!textNode.__pandahanPhoneticsOriginal) textNode.__pandahanPhoneticsOriginal = textNode.nodeValue || "";
+      let value = textNode.__pandahanPhoneticsOriginal;
+      if (mode === "en") sorted.forEach(([vi, en]) => { value = value.split(vi).join(en); });
+      textNode.nodeValue = value;
+    });
   }
 
   // Chỉ ẩn dòng dịch nghĩa trong các nút đáp án của Trắc nghiệm.
@@ -141,10 +168,14 @@
     if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
     const shadow=host.shadowRoot;
     let timer=0;
-    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();},120)};
-    hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();
+    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();applyPhoneticsLanguage();},120)};
+    hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();applyPhoneticsLanguage();
     host.__pinyinUiObserver=new MutationObserver(refresh);
     host.__pinyinUiObserver.observe(shadow,{childList:true,subtree:true});
+    if (!host.__pinyinLanguageListener) {
+      host.__pinyinLanguageListener = () => applyPhoneticsLanguage();
+      window.addEventListener("pandahan-language-changed", host.__pinyinLanguageListener);
+    }
   }
 
   window.loadPinyinPhonetics = function () {
@@ -187,7 +218,9 @@
       const mountRoot = getRoot();
       if (!mountRoot) throw new Error('Không tìm thấy vùng Ngữ âm.');
       window.__PANDAHAN_PHONETICS_ROOT__ = mountRoot;
-      window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
+      window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);
+      window.dispatchEvent(new Event("pinyin-mounted"));
+      window.dispatchEvent(new Event("pandahan-phonetics-mounted"));
       mounted = true;
 
       setTimeout(installPinyinObservers, 0);
