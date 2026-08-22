@@ -77,3 +77,14 @@ Kiểm tra local sau sửa xác nhận `overlayDisplay: "flex"`, `overlayVisibil
 Kiểm thử mới `test_onboarding_reminders.js` đạt PASS cho markup, nội dung hướng dẫn 120 ngày/Ngữ âm/Quest, trạng thái đã xem, không có API key phía client, cron 20:00 Việt Nam, RTDB notification, Firestore teacher reminder và deterministic reminder ID. Browser local cũng xác nhận modal hiển thị ở chế độ Offline, bước 2 lấy đúng ngày 1/chủ đề Pinyin hiện tại và nút `Mở Tiến độ` điều hướng đúng tab.
 
 Tính năng nhắc tự động chỉ chạy khi Firebase Functions được deploy riêng; GitHub Pages không tự chạy được cron. Việc deploy production chưa được thực hiện và không có dữ liệu Firebase production nào được ghi trong quá trình audit.
+
+
+## Bổ sung: chuyển ngôn ngữ toàn trang Việt/English
+
+Đã mở rộng cơ chế ngôn ngữ từ phạm vi Từ điển sang lớp i18n chung cho các nhãn HTML tĩnh, nội dung render động, Practice, Tiến độ, Ngữ âm, Quest, hướng dẫn người mới, notification và chat hệ thống. Chế độ English được lưu ở `localStorage` với khóa `pandahan_lang`; event `pandahan-language-changed` cập nhật các vùng đang mở. Text tiếng Trung, audio, curriculum và dữ liệu học không bị thay đổi.
+
+Module `js/global-language.js` dùng dictionary có kiểm soát, giữ nguyên giá trị ô tìm kiếm, không ghi đè cấu trúc sidebar và tự áp dụng cho các node DOM mới render. Module Ngữ âm có lớp dịch trong shadow root; Quest nhận `PANDAHAN_QUEST_LANGUAGE` qua `postMessage` và hỗ trợ khôi phục lại tiếng Việt. Bộ nhận diện kết quả Quest chấp nhận cả tiêu đề tiếng Việt và English để không ảnh hưởng submit tiến độ.
+
+Các kế hoạch ngày và nhắc học từ Cloud Functions hiện có thêm `title_vi/title_en`, `body_vi/body_en` và `text_vi/text_en`. Renderer chuông Thông báo và chat chọn bản English khi người dùng bật English; tin nhắn người dùng tự nhập vẫn giữ nguyên. Việc chạy nhắc học/cron vẫn cần deploy riêng Firebase Functions; bản local chưa ghi dữ liệu production.
+
+Kiểm thử sau tích hợp: i18n global 20/20 PASS; full verifier 45/45 PASS; adaptive schedule giữ nguyên PASS; JavaScript syntax PASS. Browser regression đã xác nhận Auth overlay English, sidebar không mất nút đăng xuất, Từ điển giữ dữ liệu, dropdown loại từ chuyển English và Practice hiển thị `antonym · Dialogue reordering`. Phần Ngữ âm/Quest đã có bridge runtime và lớp dịch nội bộ; cần mở lại trên GitHub Pages sau deploy để kiểm tra asset tải đủ trong môi trường thực tế.
