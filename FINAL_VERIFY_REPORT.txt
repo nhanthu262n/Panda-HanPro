@@ -11,6 +11,7 @@ PASS | JS syntax js/offline-enhancements.js
 PASS | JS syntax js/pinyin-phonetics-loader.js
 PASS | JS syntax js/schedule-engine-core.js
 PASS | JS syntax js/first-time-guide.js
+PASS | JS syntax js/global-language.js
 PASS | JS syntax functions/index.js
 PASS | JS syntax functions/schedule-engine-core.js
 PASS | joined phonetics bundle syntax
@@ -33,8 +34,13 @@ PASS | incomplete study reminder cron
 PASS | study reminder notification/chat id
 PASS | first learner guide present
 PASS | guide stores seen state without client API key
+PASS | global i18n module loaded
+PASS | global i18n covers app/Practice labels
+PASS | phonetics English bridge present
+PASS | Quest English bridge present
+PASS | dual-language system notification/chat fields
 PASS | Quest gate present
 PASS | Practice has two intended cards
 PASS | removed icon reference
 PASS | no embedded localhost
-RESULT | 39/39 checks passed
+RESULT | 45/45 checks passed
