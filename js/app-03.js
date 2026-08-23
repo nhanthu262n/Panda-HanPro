@@ -862,7 +862,10 @@ function pvNextSession() {
     return "pandahan_ai_coach_timeline_" + ns.replace(/[^a-zA-Z0-9_-]/g, "_");
   }
   function loadAiCoachTimeline() {
-    try { const value = JSON.parse(localStorage.getItem(aiCoachTimelineKey()) || "[]"); return Array.isArray(value) ? value : []; } catch (_) { return []; }
+    try {
+      const value = JSON.parse(localStorage.getItem(aiCoachTimelineKey()) || "[]");
+      return Array.isArray(value) ? value.filter((entry) => entry?.type === "daily_plan" || entry?.verified === true) : [];
+    } catch (_) { return []; }
   }
   function saveAiCoachTimeline(items) {
     try { localStorage.setItem(aiCoachTimelineKey(), JSON.stringify(items.slice(0, 80))); } catch (_) {}
@@ -875,9 +878,10 @@ function pvNextSession() {
     const score = Number.isFinite(Number(d.scorePercent)) ? Number(d.scorePercent) : (Number.isFinite(Number(d.score)) ? Number(d.score) : null);
     const date = String(d.date || d.evaluatedAt || new Date().toISOString());
     const id = String(d.id || `${type}_${day}_${taskId}_${score == null ? "na" : score}_${date.slice(0, 10)}`);
-    return { id, type, dayNumber: day, taskId, scorePercent: score, threshold: Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : null, passed: typeof d.passed === "boolean" ? d.passed : null, action: String(d.action || ""), missingTaskIds: Array.isArray(d.missingTaskIds) ? d.missingTaskIds.slice(0, 10) : [], requiredTaskIds: Array.isArray(d.requiredTaskIds) ? d.requiredTaskIds.slice(0, 10) : [], topic: String(d.topic || ""), date, source: String(d.source || type), createdAt: Number(d.evaluatedAt || Date.now()) };
+    return { id, type, verified: d.verified === true, dayNumber: day, taskId, scorePercent: score, threshold: Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : null, passed: typeof d.passed === "boolean" ? d.passed : null, action: String(d.action || ""), missingTaskIds: Array.isArray(d.missingTaskIds) ? d.missingTaskIds.slice(0, 10) : [], requiredTaskIds: Array.isArray(d.requiredTaskIds) ? d.requiredTaskIds.slice(0, 10) : [], topic: String(d.topic || ""), date, source: String(d.source || type), rawSource: String(d.rawSource || ""), evidenceType: String(d.evidenceType || ""), attempts: Number.isFinite(Number(d.attempts)) ? Number(d.attempts) : null, correct: Number.isFinite(Number(d.correct)) ? Number(d.correct) : null, total: Number.isFinite(Number(d.total)) ? Number(d.total) : null, durationSeconds: Number.isFinite(Number(d.durationSeconds)) ? Number(d.durationSeconds) : null, components: d.components && typeof d.components === "object" ? d.components : null, details: Array.isArray(d.details) ? d.details.slice(0, 6) : [], createdAt: Number(d.evaluatedAt || Date.now()) };
   }
   function recordAiCoachTimeline(detail, type = "evaluation") {
+    if (type !== "daily_plan" && detail?.verified !== true) return;
     const item = aiCoachTimelineItem(detail, type);
     if (!item) return;
     const items = [item, ...loadAiCoachTimeline().filter((entry) => entry.id !== item.id)].sort((a, b) => b.createdAt - a.createdAt).slice(0, 80);
@@ -886,27 +890,31 @@ function pvNextSession() {
     if (activeChatUserId === "__pandahan_ai__" && area) renderAiCoachTimeline(area);
   }
   function aiCoachTaskLabel(taskId) {
-    return ({ quest: "Pinyin Quest", listening: "Nghe", speaking: "Nói", reading_writing: "Đọc/Viết", srs: "SRS" })[taskId] || taskId || "nhiệm vụ";
+    return ({ quest: "Pinyin Quest", vocabulary: "Từ vựng", sentence_unscramble: "Sắp xếp câu", tone_practice: "Luyện thanh điệu", advanced_reading: "Đọc nâng cao", practice: "Bài luyện", listening: "Nghe", speaking: "Nói / phát âm", reading_writing: "Đọc / Viết", srs: "SRS" })[taskId] || taskId || "nhiệm vụ";
   }
   function renderAiCoachTimeline(area) {
     if (!area) return;
     area.querySelector("[data-ai-coach-timeline]")?.remove();
-    const items = loadAiCoachTimeline();
+    const allTimelineItems = loadAiCoachTimeline();
+    const items = allTimelineItems.filter((item) => item.verified === true);
+    const latestPlan = allTimelineItems.find((item) => item.type === "daily_plan");
     const section = document.createElement("section");
     section.setAttribute("data-ai-coach-timeline", "true");
     section.style.cssText = "margin-top:12px;padding:10px 11px;border:1px solid #e9d5ff;border-radius:12px;background:#faf5ff;";
     const title = window.LANG_MODE === "en" ? "Review timeline from your real activity" : "Lịch sử review từ hoạt động thực tế";
+    const planNote = latestPlan ? `<div style="font-size:11.5px;color:#64748b;margin-top:5px;padding-bottom:6px;border-bottom:1px dashed #ddd6fe;">${window.LANG_MODE === "en" ? "Today's plan has been assigned. It is not a learning score until real activity is recorded." : "Kế hoạch hôm nay đã được giao. Đây chưa phải điểm đánh giá cho đến khi có hoạt động học thật."}</div>` : "";
     if (!items.length) {
-      section.innerHTML = `<b>${title}</b><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${window.LANG_MODE === "en" ? "Your scores and task confirmations will appear here." : "Điểm và xác nhận nhiệm vụ sẽ xuất hiện ở đây sau khi bạn thực sự hoàn thành."}</div>`;
+      section.innerHTML = `<b>${title}</b>${planNote}<div style="font-size:11.5px;color:#64748b;margin-top:5px;">${window.LANG_MODE === "en" ? "Only verified activity data will appear here; no self-confirmation is used." : "Chỉ dữ liệu hoạt động đã xác minh mới xuất hiện ở đây; không dùng xác nhận tự khai."}</div>`;
     } else {
       const rows = items.slice(0, 12).map((item) => {
         const score = item.scorePercent == null ? (window.LANG_MODE === "en" ? "score pending" : "chưa có điểm tổng") : `${item.scorePercent}%${item.threshold != null ? ` / ${item.threshold}%` : ""}`;
         const outcome = item.passed === true ? (window.LANG_MODE === "en" ? "passed" : "đạt") : item.action === "incomplete_day_requirements" ? (window.LANG_MODE === "en" ? "requirements incomplete" : "chưa đủ nhiệm vụ") : item.passed === false ? (window.LANG_MODE === "en" ? "review required" : "cần ôn lại") : (window.LANG_MODE === "en" ? "recorded" : "đã ghi nhận");
         const missing = item.missingTaskIds.length ? ` · ${window.LANG_MODE === "en" ? "still needed" : "còn thiếu"}: ${item.missingTaskIds.map(aiCoachTaskLabel).join(", ")}` : "";
-        const source = item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "task" || item.source === "practice" ? "Practice" : "AI Coach";
-        return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>Ngày ${item.dayNumber}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}</span></div>`;
+        const source = item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "phonetics-pronunciation" || item.source === "phonetics-listening" || item.source === "phonetics" ? "Ngữ âm" : item.source === "practice" ? "Từ vựng/Practice" : item.source === "task" ? "Verified task" : "AI Coach";
+        const metrics = [item.attempts != null ? `${item.attempts} lần` : "", item.correct != null && item.total != null ? `${item.correct}/${item.total} đúng` : "", item.durationSeconds != null ? `${Math.round(item.durationSeconds)}s` : ""].filter(Boolean).join(" · ");
+        return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>Ngày ${item.dayNumber}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}${metrics ? ` · ${metrics}` : ""}</span></div>`;
       }).join("");
-      section.innerHTML = `<b>${title}</b>${rows}`;
+      section.innerHTML = `<b>${title}</b>${planNote}${rows}`;
     }
     area.appendChild(section);
     area.scrollTop = area.scrollHeight;
@@ -937,7 +945,10 @@ function pvNextSession() {
 
   window.openAiCoachChat = openAiCoachChat;
   window.PandaHanAiCoach = { recordTimeline: recordAiCoachTimeline, renderTimeline: renderAiCoachTimeline, getTimeline: loadAiCoachTimeline };
-  window.addEventListener("pandahan-learning-evaluation", (event) => recordAiCoachTimeline(event.detail || {}, "evaluation"));
+  window.addEventListener("pandahan-learning-evaluation", (event) => {
+    if (event.detail?.verified !== true) return;
+    recordAiCoachTimeline(event.detail || {}, "evaluation");
+  });
   window.addEventListener("pandahan-daily-plan", (event) => recordAiCoachTimeline(event.detail || {}, "daily_plan"));
 
   async function sendAiCoachMessage(text) {
