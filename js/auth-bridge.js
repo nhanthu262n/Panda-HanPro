@@ -77,23 +77,11 @@
     const dropdown = document.getElementById("notifDropdown");
     if (!dropdown || dropdown.dataset.rendered === "open") return;
     const items = Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [];
-    const latestDailyPlan = items.find((item) => item && item.type === "daily_plan");
-    const latestEvaluation = items.find((item) => item && ["quest_score_saved", "learning_evaluation"].includes(item.type));
-    const visibleItems = [latestDailyPlan, latestEvaluation, ...items.filter((item) => item && !["daily_plan", "quest_score_saved", "learning_evaluation"].includes(item.type))].filter(Boolean).slice(0, 8);
-    const actionable = visibleItems.some((item) => ["daily_plan", "quest_score_saved", "learning_evaluation"].includes(item.type));
-    dropdown.innerHTML = visibleItems.length ? visibleItems.map((item) => `
-      <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}overflow-wrap:anywhere;white-space:normal;">
+    dropdown.innerHTML = items.length ? items.slice(0, 12).map((item) => `
+      <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}">
         <div>${notificationTitle(item)}</div>
-        <div class="notif-body" style="font-size:11px;font-weight:400;margin-top:3px;line-height:1.45;">${notificationBody(item)}</div>
-      </div>`).join("") + (actionable ? `<button type="button" id="notifBridgeAiBtn" style="display:block;width:100%;margin-top:8px;padding:7px 9px;border:0;border-radius:8px;background:#8b5cf6;color:#fff;font-size:11px;font-weight:800;white-space:normal;overflow-wrap:anywhere;cursor:pointer;">💬 ${window.LANG_MODE === "en" ? "Open AI Coach for guidance" : "Mở AI Coach để được hướng dẫn"}</button>` : "") : `<div style="padding:10px;color:#64748b;">${window.LANG_MODE === "en" ? "No new notifications." : "Chưa có thông báo mới."}</div>`;
-    const aiButton = document.getElementById("notifBridgeAiBtn");
-    if (aiButton) aiButton.addEventListener("click", (event) => {
-      event.stopPropagation();
-      dropdown.style.display = "none";
-      dropdown.dataset.rendered = "";
-      if (typeof window.openAiCoachChat === "function") window.openAiCoachChat();
-      else if (typeof window.switchTab === "function") window.switchTab("chat");
-    });
+        <div style="font-size:11px;font-weight:400;margin-top:3px;">${notificationBody(item)}</div>
+      </div>`).join("") : `<div style="padding:10px;color:#64748b;">${window.LANG_MODE === "en" ? "No new notifications." : "Chưa có thông báo mới."}</div>`;
   }
 
   async function attachNotifications(uid) {
@@ -163,50 +151,6 @@
       body_en: `Today: study day ${day}${detail.topic ? `: ${detail.topic}` : ""}. Complete the lesson to unlock the next session.`,
       read: false,
       created_at: Date.now(),
-    };
-    saveLocalNotification(item);
-    window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
-    const badge = document.getElementById("notifBadge");
-    if (badge) { badge.textContent = String(window.PandaHanNotifications.filter((n) => !n.read).length); badge.style.display = "inline-block"; }
-    renderNotificationDropdown();
-  });
-
-  window.addEventListener("pandahan-learning-evaluation", (event) => {
-    const detail = event.detail || {};
-    const day = Number(detail.dayNumber || 0);
-    const score = Number(detail.scorePercent || 0);
-    if (!day || !Number.isFinite(score)) return;
-    const threshold = Number(detail.threshold || 80);
-    const source = String(detail.source || "practice");
-    const labels = {
-      quiz: ["Trắc nghiệm", "Multiple choice"],
-      unscramble: ["Sắp xếp câu", "Sentence unscramble"],
-      match: ["Ghép chữ · nghĩa", "Match Hanzi · meaning"],
-      write: ["Viết nghĩa", "Write the meaning"],
-      "tone-race": ["Đua xe thanh điệu", "Tone Race"],
-      flashcards: ["Flashcard", "Flashcards"],
-      quest: ["Pinyin Tone Quest", "Pinyin Tone Quest"]
-    };
-    const label = labels[source] || [source, source];
-    const levelVi = score >= 90 ? "Làm rất tốt" : score >= threshold ? "Đã đạt mục tiêu" : score >= 60 ? "Đang tiến bộ" : "Cần ôn thêm";
-    const levelEn = score >= 90 ? "Excellent work" : score >= threshold ? "Target reached" : score >= 60 ? "Progressing" : "More review needed";
-    const adviceVi = score >= threshold ? "Tiếp tục bài kế tiếp và giữ lại các câu sai để ôn ngắn." : "Hãy mở AI Coach để xem phần cần cải thiện rồi làm lại nhóm bài này trước khi mở nội dung mới.";
-    const adviceEn = score >= threshold ? "Continue to the next task and keep incorrect items for a short review." : "Open AI Coach to see what to improve, then repeat this task group before new content unlocks.";
-    const item = {
-      id: `learning_eval_${day}_${source}_${score}`,
-      type: "learning_evaluation",
-      title_vi: `${label[0]} ngày ${day}: ${score}% — ${levelVi}`,
-      title_en: `${label[1]} day ${day}: ${score}% — ${levelEn}`,
-      body_vi: `Đánh giá từ kết quả thật: ngưỡng ${threshold}%. ${adviceVi}`,
-      body_en: `Evaluation from your recorded result: ${threshold}% threshold. ${adviceEn}`,
-      read: false,
-      created_at: Number(detail.evaluatedAt || Date.now()),
-      day_number: day,
-      score_percent: score,
-      threshold,
-      source,
-      passed: !!detail.passed,
-      repeat_count: Number(detail.repeatCount || 0)
     };
     saveLocalNotification(item);
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
