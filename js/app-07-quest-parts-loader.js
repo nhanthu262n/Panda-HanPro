@@ -27,10 +27,15 @@
     node.style.color = isError ? "#b42318" : "#6d4a7c";
     node.style.borderColor = isError ? "#f3b4b4" : "#ddd6fe";
   }
+  function renderReviewCount(count) {
+    const node = document.getElementById("questReviewErrorCount");
+    if (node) node.textContent = String(Math.max(0, Number(count) || 0));
+  }
   function showPersistedSummary() {
     try {
       const summary = JSON.parse(localStorage.getItem(parentProgressKey()) || "null");
       if (!summary) return;
+      renderReviewCount(summary.mistakesCount);
       outerStatus(`Quest đã lưu: ${Number(summary.completedCount || 0)}/120 ngày · ${Number(summary.mistakesCount || 0)} câu trong sổ ôn`);
     } catch (_) {}
   }
@@ -83,11 +88,13 @@
       const summary = {
         completedCount: Number(data.completedCount || 0),
         mistakesCount: Number(data.mistakesCount || 0),
+        mistakes: Array.isArray(data.mistakes) ? data.mistakes.slice(-120) : [],
         lastDay: Number(data.lastDay || 0),
         lastScorePercent: Number(data.lastScorePercent || 0),
         updatedAt: Number(data.updatedAt || Date.now()),
       };
       try { localStorage.setItem(parentProgressKey(), JSON.stringify(summary)); } catch (_) {}
+      renderReviewCount(summary.mistakesCount);
       outerStatus(`Quest đã lưu: ${summary.completedCount}/120 ngày · ${summary.mistakesCount} câu trong sổ ôn`);
       return;
     }
@@ -121,11 +128,11 @@
     }
   }
 
-  const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();<\\/script>`;
+  const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();</script>`;
   const GATE_SCRIPT = `<script>(function(){
     var gate={unlockedDays:[1],completedDays:[]};
     function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
-    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:Array.isArray(p.mistakes)?p.mistakes.length:0,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
+    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
     setInterval(reportProgress,700);
     var resultSent={}; var lastStartedDay=0;
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
@@ -147,13 +154,13 @@
       var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
-    window.addEventListener('message',function(e){var d=e.data||{};if(d.type!=='PANDAHAN_QUEST_GATE')return;gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();});
+    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
     var style=document.createElement('style');style.textContent='.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}';document.head.appendChild(style);
     parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
-  })();<\\/script>`;
+  })();</script>`;
 
   async function loadQuestOffline() {
     const target = frame();
@@ -192,6 +199,17 @@
 
   window.PandaHanQuestParts = { parts: PARTS.slice(), loadQuestOffline, refreshQuestGate };
   window.addEventListener("message", handleQuestMessage);
+  document.addEventListener("DOMContentLoaded", () => {
+    const reviewButton = document.getElementById("questReviewErrorsBtn");
+    if (reviewButton) reviewButton.addEventListener("click", () => {
+      const target = frame();
+      if (!target || !activeFrameWindow) {
+        outerStatus("Hãy mở Pinyin Tone Quest trước để tải sổ ôn.", true);
+        return;
+      }
+      activeFrameWindow.postMessage({ type: "PANDAHAN_QUEST_OPEN_REVIEW" }, "*");
+    });
+  });
   window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
   document.addEventListener("DOMContentLoaded", () => {
     const card = document.getElementById("pCardPinyinQuest");
