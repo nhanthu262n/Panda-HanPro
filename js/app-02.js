@@ -507,8 +507,13 @@ function setPracticeSaveStatus(message, isError = false) {
   setPracticeSaveStatus.timer = setTimeout(() => { el.style.display = "none"; }, 7000);
 }
 function practiceTaskId(source) {
-  const map = { quest: "quest", "pinyin-tone-quest": "quest", "tone-race": "listening", listening: "listening", speaking: "speaking", srs: "srs", flashcards: "srs", quiz: "reading_writing", match: "reading_writing", write: "reading_writing", unscramble: "reading_writing", advanced: "reading_writing", practice: "reading_writing" };
-  return map[String(source || "").toLowerCase()] || "reading_writing";
+  // Chỉ các hoạt động có bằng chứng đúng loại mới hoàn thành task Excel bắt buộc.
+  const map = { quest: "quest", "pinyin-tone-quest": "quest", speaking: "speaking", srs: "srs", flashcards: "srs", write: "reading_writing" };
+  return map[String(source || "").toLowerCase()] || "";
+}
+function practiceEvidenceTaskId(source) {
+  const map = { quiz: "vocabulary", match: "vocabulary", unscramble: "sentence_unscramble", "tone-race": "tone_practice", advanced: "advanced_reading", practice: "practice" };
+  return map[String(source || "").toLowerCase()] || practiceTaskId(source) || "practice";
 }
 function practiceMissingText(result) {
   const missing = Array.isArray(result?.result?.missingTaskIds) ? result.result.missingTaskIds : [];
@@ -534,25 +539,28 @@ async function savePracticeCompletion(score, source = "practice") {
       }
       const today = typeof api.todayVietnam === "function" ? api.todayVietnam() : new Date().toISOString().slice(0, 10);
       const taskId = practiceTaskId(source);
+      const evidenceTaskId = practiceEvidenceTaskId(source);
       const numericScore = Math.max(0, Math.min(100, Number(score) || 0));
-      const key = practiceSaveKey(current.day_number, today) + "_" + taskId + "_" + numericScore;
+      const key = practiceSaveKey(current.day_number, today) + "_" + (taskId || evidenceTaskId) + "_" + numericScore;
       if (localStorage.getItem(key) === "1") {
-        setPracticeSaveStatus(`✅ Nhiệm vụ ${taskId} với điểm ${numericScore}% của ngày ${current.day_number} đã được lưu.`, false);
-        return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number), taskId, score: numericScore };
+        setPracticeSaveStatus(`✅ Kết quả ${evidenceTaskId} với điểm ${numericScore}% của ngày ${current.day_number} đã được lưu.`, false);
+        return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number), taskId, evidenceTaskId, score: numericScore };
       }
-      const result = await api.submitDayResult(Number(current.day_number), numericScore, { taskId, source });
+      const result = taskId
+        ? await api.submitDayResult(Number(current.day_number), numericScore, { taskId, source })
+        : { result: { dayNumber: Number(current.day_number), score: numericScore, threshold: null, passed: false, action: "evidence_recorded", missingTaskIds: [], requiredTaskIds: [] }, evidenceOnly: true };
       localStorage.setItem(key, "1");
       const passed = result?.result?.passed === true;
       const missingText = practiceMissingText(result);
-      let status = `✅ Đã lưu ${taskId} ngày ${current.day_number} (${numericScore}%).`;
+      let status = `✅ Đã lưu ${evidenceTaskId} ngày ${current.day_number} (${numericScore}%).`;
       if (passed) status += " Đã đủ điều kiện và mở buổi tiếp theo.";
       else if (missingText) status += ` Còn cần: ${missingText}.`;
       else status += " Điểm chưa đạt, cần ôn lại ngày này.";
       setPracticeSaveStatus(status, false);
-      const evaluation = { source: "practice", taskId, dayNumber: Number(current.day_number), scorePercent: numericScore, ...result.result, evaluatedAt: Date.now() };
-      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: numericScore, result, taskId } }));
+      const evaluation = { source: "practice", taskId: evidenceTaskId, scheduleTaskId: taskId || null, rawSource: source, evidenceType: "objective_practice_result", verified: true, dayNumber: Number(current.day_number), scorePercent: numericScore, ...result.result, evaluatedAt: Date.now() };
+      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: numericScore, result, taskId, evidenceTaskId } }));
       window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: evaluation }));
-      return { committed: true, source, taskId, result };
+      return { committed: true, source, taskId, evidenceTaskId, result };
     } catch (error) {
       console.error("Practice progress save:", error);
       const suffix = error.code === "INCOMPLETE_DAY_REQUIREMENTS" ? " Bài vẫn được lưu; hãy hoàn thành đủ nhiệm vụ Excel trong AI Coach." : "";
