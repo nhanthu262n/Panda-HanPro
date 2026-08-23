@@ -108,6 +108,15 @@
     return [...exact, ...due, ...fallback].slice(0, 12);
   }
 
+  function questModeToTask(mode) {
+    const value = String(mode || "");
+    if (/Đua thanh điệu|tone/i.test(value)) return "tone-race";
+    if (/Ghép từ|match/i.test(value)) return "match";
+    if (/Nước rút từ vựng|vocabulary/i.test(value)) return "quiz";
+    if (/Boss nghe|boss/i.test(value)) return "quest";
+    return "quest";
+  }
+
   function buildTasks(day) {
     const stage = day.stage_code;
     const review = day.day_type === "review";
@@ -118,9 +127,18 @@
         : stage === "stage_2"
           ? (review ? ["quest", "flashcards", "quiz", "unscramble", "tone-race"] : ["quest", "quiz", "unscramble", "match", "write"])
           : (review ? ["quest", "flashcards", "quiz", "unscramble", "advanced"] : ["quest", "quiz", "unscramble", "write", "match", ...(Number(day.day_number) >= 75 ? ["advanced"] : [])]);
-    return types.map((type, index) => {
+    const workbookPrimary = questModeToTask(day.quest_main_mode);
+    const ordered = [workbookPrimary, ...types.filter((type) => type !== workbookPrimary)];
+    return ordered.map((type, index) => {
       const meta = TASK_META[type];
-      return { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1 };
+      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook" };
+      if (type === "quest") {
+        task.titleVi = day.quest_main_mode && day.quest_main_mode !== "-" ? `Pinyin Quest · ${day.quest_main_mode}` : task.titleVi;
+        task.instructionVi = [day.quest_daily_task, day.quest_activity_chain].filter((value) => value && value !== "-").join(" ");
+        task.instructionEn = "Follow the workbook Quest sequence and complete the saved checkpoint.";
+        task.minutes = Math.max(8, Number(day.xp_target || 60) >= 100 ? 18 : 12);
+      }
+      return task;
     });
   }
 
@@ -135,6 +153,10 @@
       stageCode: day.stage_code, stage: day.stage, dayType: day.day_type, topic: day.topic || "",
       requiredScore: Number(day.required_score || 80), newVocab: words,
       curriculum: day, tasks,
+      questStation: day.quest_station || "-", questMainMode: day.quest_main_mode || "-",
+      questActivityChain: day.quest_activity_chain || "-", questDailyTask: day.quest_daily_task || "-",
+      questCompletionCondition: day.quest_completion_condition || "-", questCheckpointQuestion: day.quest_checkpoint_question || "-",
+      xpTarget: Number(day.xp_target || 0),
       totalMinutes: tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
     };
   }
@@ -191,8 +213,10 @@
     const c = m.curriculum;
     const langEn = window.LANG_MODE === "en";
     const stageLabel = langEn ? (m.stageCode === "stage_0" ? "Pinyin Bootcamp" : m.stageCode === "stage_1" ? "HSK 1 foundation" : m.stageCode === "stage_2" ? "HSK 2 development" : "HSK 3 communication") : (m.stage || m.stageCode);
-    const taskRows = m.tasks.map((task) => `<button type="button" data-mission-task="${task.type}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #f3d5e5;border-radius:11px;background:#fff;padding:8px 10px;margin-top:6px;cursor:pointer;"><span style="font-size:20px;">${task.icon}</span><span style="flex:1;"><b>${langEn ? task.titleEn : task.titleVi}</b><br><small style="color:#64748b;">${langEn ? task.instructionEn : task.instructionVi}</small></span><small style="color:#a855f7;font-weight:800;">${task.minutes} min</small></button>`).join("");
-    container.innerHTML = `<div style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan" : "Kế hoạch học với AI"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · ${stageLabel}`}</h3><div style="font-weight:700;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${compact ? "" : `<div style="font-size:12px;margin-top:9px;padding-top:8px;border-top:1px dashed #e9c8dc;"><b>${langEn ? "How to study today" : "Hôm nay nên học"}</b><br>${esc(langEn ? (c.listening_task || "Listen to the model audio.") : (c.listening_task || "Nghe audio mẫu."))}<br>${esc(langEn ? (c.speaking_task || "Record and compare.") : (c.speaking_task || "Ghi âm và tự so sánh."))}</div>`}<div style="margin-top:9px;">${taskRows}</div></div>`;
+    const taskRows = m.tasks.map((task) => `<button type="button" data-mission-task="${task.type}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #f3d5e5;border-radius:11px;background:#fff;padding:8px 10px;margin-top:6px;cursor:pointer;"><span style="font-size:20px;">${task.icon}</span><span style="flex:1;min-width:0;"><b>${langEn ? task.titleEn : task.titleVi}</b><br><small style="color:#64748b;overflow-wrap:anywhere;">${esc(langEn ? task.instructionEn : task.instructionVi)}</small></span><small style="color:#a855f7;font-weight:800;white-space:nowrap;">${task.minutes} min</small></button>`).join("");
+    const workbookPlan = compact ? "" : `<div style="font-size:12px;margin-top:9px;padding-top:8px;border-top:1px dashed #e9c8dc;"><b>${langEn ? "Workbook tasks for today" : "Nhiệm vụ theo file Excel hôm nay"}</b><div style="margin-top:5px;line-height:1.55;"><div>🎧 ${esc(c.listening_task || "-")}</div><div>🗣️ ${esc(c.speaking_task || "-")}</div><div>📖 ${esc(c.reading_writing_task || "-")}</div><div>🔁 ${esc(c.srs_review_task || "-")}</div></div></div>`;
+    const questPlan = compact ? "" : `<div style="margin-top:9px;padding:8px 9px;border-radius:10px;background:#fff;border:1px solid #ddd6fe;font-size:11.5px;line-height:1.5;"><b>🎯 ${esc(m.questStation)} · ${esc(m.questMainMode)}</b><div>${esc(m.questActivityChain)}</div><div>${esc(m.questDailyTask)}</div><div><b>${langEn ? "XP" : "XP mục tiêu"}:</b> ${m.xpTarget} · <b>${langEn ? "Checkpoint" : "Điều kiện"}:</b> ${esc(m.questCompletionCondition)}</div><div><b>${langEn ? "Checkpoint question" : "Câu hỏi chốt"}:</b> ${esc(m.questCheckpointQuestion)}</div></div>`;
+    container.innerHTML = `<div style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel source" : "Kế hoạch học với AI · Nguồn Excel"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · Week ${m.weekNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${workbookPlan}${questPlan}<div style="margin-top:9px;">${taskRows}</div></div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
   }
 
@@ -203,7 +227,8 @@
     if (/trắc nghiệm|quiz|multiple/.test(q)) return en ? `Start Multiple choice for Day ${m.dayNumber}. Focus on the words and context from: ${m.topic}.` : `Bạn hãy bấm Trắc nghiệm. Nội dung lấy từ ngày ${m.dayNumber}: ${m.topic}.`;
     if (/sắp xếp|unscramble|câu/.test(q)) return en ? `Use Sentence unscramble next. Read the example aloud, then arrange the sentence and review the correction.` : "Tiếp theo hãy làm Sắp xếp câu. Đọc câu mẫu thành tiếng, xếp lại câu rồi xem phần giải thích.";
     if (/ghép|match|nghĩa/.test(q)) return en ? `Use Match Hanzi · meaning for a short warm-up. It covers today's ${m.newVocab.length} target words.` : `Hãy làm Ghép chữ · nghĩa để khởi động. Bài lấy ${m.newVocab.length} từ mục tiêu của ngày hôm nay.`;
-    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest for Day ${m.dayNumber}. Finish the unlocked Quest day; its percentage is saved and used with the ${m.requiredScore}% gate.` : `Hãy mở Pinyin Tone Quest ngày ${m.dayNumber}. Hoàn thành buổi Quest đang mở; phần trăm sẽ được lưu và dùng cùng ngưỡng ${m.requiredScore}% để xét mở ngày tiếp theo.`;
+    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest ${m.questStation} for Day ${m.dayNumber}. Main mode: ${m.questMainMode}. Follow: ${m.questActivityChain}. The score is saved and used with the ${m.requiredScore}% gate.` : `Hãy mở Pinyin Tone Quest ${m.questStation} của ngày ${m.dayNumber}. Chế độ chính: ${m.questMainMode}. Làm theo chuỗi: ${m.questActivityChain}. Điểm sẽ được lưu và dùng cùng ngưỡng ${m.requiredScore}% để xét mở ngày tiếp theo.`;
+    if (/nghe|listen|nói|speak|đọc|viết|read|write|srs|ôn/.test(q)) return en ? `Today's workbook tasks are: Listen — ${m.curriculum.listening_task}; Speak — ${m.curriculum.speaking_task}; Read/Write — ${m.curriculum.reading_writing_task}; SRS — ${m.curriculum.srs_review_task}.` : `Nhiệm vụ theo file hôm nay gồm: Nghe — ${m.curriculum.listening_task}; Nói — ${m.curriculum.speaking_task}; Đọc/Viết — ${m.curriculum.reading_writing_task}; SRS — ${m.curriculum.srs_review_task}.`;
     if (/viết|write/.test(q)) return en ? "Use Write the meaning after the recognition tasks. Try from memory before revealing the reference answer." : "Hãy làm Viết nghĩa sau các bài nhận diện. Cố nhớ trước rồi mới xem phần đáp án tham khảo.";
     if (/xong|hoàn thành|done|next|tiếp/.test(q)) return en ? `After all tasks, aim for at least ${m.requiredScore}%. If you miss the target, review the same day instead of unlocking new content.` : `Sau khi làm xong, hãy đạt ít nhất ${m.requiredScore}%. Nếu chưa đạt, ôn lại đúng ngày này thay vì mở nội dung mới.`;
     return en ? `Today's plan is Day ${m.dayNumber}: ${m.topic}. Start with ${m.tasks[0]?.titleEn || "the first task"}, then continue in order. Ask me about any task.` : `Kế hoạch hôm nay là ngày ${m.dayNumber}: ${m.topic}. Hãy bắt đầu với ${m.tasks[0]?.titleVi || "bài đầu tiên"}, rồi làm lần lượt. Bạn có thể hỏi tôi về từng bài.`;
