@@ -529,18 +529,11 @@ async function savePracticeCompletion(score, source = "practice") {
         setPracticeSaveStatus(`✅ Tiến độ ngày ${current.day_number} đã được lưu.`, false);
         return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number) };
       }
-      const normalizedScore = Math.max(0, Math.min(100, Number(score) || 0));
-      const result = await api.submitDayResult(Number(current.day_number), normalizedScore);
+      const result = await api.submitDayResult(Number(current.day_number), Math.max(0, Math.min(100, Number(score) || 0)));
       localStorage.setItem(key, "1");
       const passed = result?.result?.passed === true;
-      const threshold = Number(result?.result?.threshold || 80);
       setPracticeSaveStatus(`✅ Đã lưu tiến độ ngày ${current.day_number}${passed ? " và mở buổi tiếp theo." : "; hệ thống đã tạo phần ôn lại."}`);
-      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: normalizedScore, result } }));
-      window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: {
-        source, dayNumber: Number(current.day_number), scorePercent: normalizedScore,
-        passed, threshold, action: result?.result?.action || "review",
-        repeatCount: Number(result?.result?.repeatCount || 0), evaluatedAt: Date.now()
-      }}));
+      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score, result } }));
       return { committed: true, source, result };
     } catch (error) {
       console.error("Practice progress save:", error);
@@ -2675,29 +2668,13 @@ function updateNotifBell() {
   const pendingStreak = computeStreak(yesterday);
   const hour = new Date().getHours();
   const streakAtRisk = pendingStreak > 0 && !hasActivityToday() && hour >= STREAK_WARNING_HOUR;
-  const planNotificationCount = (Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [])
-    .filter((item) => item && (item.type === "daily_plan" || item.type === "quest_score_saved" || item.type === "learning_evaluation") && item.read !== true).length;
-  const count = due + (streakAtRisk ? 1 : 0) + Math.min(planNotificationCount, 2);
+  const count = due + (streakAtRisk ? 1 : 0);
   const badge = document.getElementById("notifBadge");
   if (badge) { badge.style.display = count > 0 ? "block" : "none"; badge.textContent = count > 9 ? "9+" : String(count); }
 
   const dd = document.getElementById("notifDropdown");
   if (!dd) return;
   let html = "";
-  const allPlanItems = (Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [])
-    .filter((item) => item && (item.type === "daily_plan" || item.type === "quest_score_saved" || item.type === "learning_evaluation"));
-  const planItems = [
-    allPlanItems.find((item) => item.type === "daily_plan"),
-    allPlanItems.find((item) => item.type === "quest_score_saved" || item.type === "learning_evaluation")
-  ].filter(Boolean);
-  if (planItems.length) {
-    const planCards = planItems.map((item) => {
-      const title = LANG_MODE === "en" ? (item.title_en || item.title || "Study plan") : (item.title_vi || item.title || "Kế hoạch học tập");
-      const body = LANG_MODE === "en" ? (item.body_en || item.body || "") : (item.body_vi || item.body || "");
-      return `<div style="padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07);overflow-wrap:anywhere;"><b>📚 ${esc(title)}</b><div class="notif-body" style="margin-top:3px;font-size:11px;line-height:1.4;">${esc(body)}</div></div>`;
-    }).join("");
-    html += `<div style="background:#faf5ff;border:1px solid #eadcff;border-radius:9px;padding:8px 10px;margin-bottom:8px;max-width:100%;box-sizing:border-box;"><b>🤖 ${L("Kế hoạch học tập", "Study plan")}</b>${planCards}<div style="margin-top:7px;"><button id="notifAiCoachBtn" style="font-size:11px;padding:5px 9px;border:none;border-radius:7px;background:#8b5cf6;color:#fff;cursor:pointer;max-width:100%;white-space:normal;">💬 ${L("Mở AI Coach để được hướng dẫn", "Open AI Coach for guidance")}</button></div></div>`;
-  }
   if (streakAtRisk) {
     html += `<div style="background:#fee2e2;border-radius:8px;padding:8px 10px;margin-bottom:8px;">
       <b>⚠️ ${L(`Streak ${pendingStreak} ngày sắp mất!`, `${pendingStreak}-day streak at risk!`)}</b>
@@ -2723,7 +2700,7 @@ function updateNotifBell() {
       <div style="margin-top:4px;"><button id="notifReviewBtn" style="font-size:11px;padding:4px 8px;border:none;border-radius:6px;background:var(--pink);color:#fff;cursor:pointer;">🎯 ${L("Ôn ngay", "Review now")}</button></div>
     </div>`;
   }
-  if (!streakAtRisk && due === 0 && !planItems.length) {
+  if (!streakAtRisk && due === 0) {
     html += `<div style="color:var(--text-light);text-align:center;padding:10px 0;">✅ ${L("Không có gì cần nhắc lúc này!", "Nothing to remind you of right now!")}</div>`;
   }
   dd.innerHTML = html;
@@ -2731,13 +2708,6 @@ function updateNotifBell() {
   if (playBtn) playBtn.addEventListener("click", (e) => { e.stopPropagation(); playReminderAudio().catch(() => {}); });
   const reviewBtn = document.getElementById("notifReviewBtn");
   if (reviewBtn) reviewBtn.addEventListener("click", () => { document.getElementById("notifDropdown").style.display = "none"; switchTab("review"); });
-  const aiCoachBtn = document.getElementById("notifAiCoachBtn");
-  if (aiCoachBtn) aiCoachBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    document.getElementById("notifDropdown").style.display = "none";
-    if (typeof window.openAiCoachChat === "function") window.openAiCoachChat();
-    else switchTab("chat");
-  });
 }
 function renderMergedHistory() {
   const el = document.getElementById("mergedHistoryList");
