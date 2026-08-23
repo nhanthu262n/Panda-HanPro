@@ -21,14 +21,8 @@
 
 <style id="pandahan-quest-integration-css">
 .pinyin-tone-quest-view{display:none;background:#fafcfe;border-radius:16px;padding:12px;border:2px solid #c4b5fd;margin-top:10px;overflow:hidden;}
-.pinyin-tone-quest-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:2px 2px 8px;color:#6d4a7c;font-size:12px;font-weight:700;}
-	#pinyinToneQuestFrame{display:block;width:100%;height:920px;min-height:720px;border:0;border-radius:18px;background:#fff;}
-	.pinyin-quest-result-status{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px;padding:10px 12px;border:1px solid #ddd6fe;border-radius:12px;background:linear-gradient(90deg,#faf5ff,#fff);color:#4c1d95;font-size:12px;line-height:1.45;box-shadow:0 2px 8px rgba(124,58,237,.08);}
-	.pinyin-quest-result-status .quest-score{font-size:22px;font-weight:900;color:#7c3aed;white-space:nowrap;}
-	.pinyin-quest-result-status .quest-result-copy{min-width:0;flex:1;overflow-wrap:anywhere;}
-	.pinyin-quest-result-status .quest-result-action{font-weight:800;color:#166534;}
-	.pinyin-quest-result-status.is-review{border-color:#fed7aa;background:#fff7ed;color:#9a3412;}
-	.pinyin-quest-result-status.is-review .quest-score{color:#ea580c;}
+.pinyin-tone-quest-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:2px 2px 8px;color:#6d4a7c;font-size:12px;font-weight:700;}#questProgressSyncStatus{display:inline-flex;align-items:center;max-width:min(100%,520px);padding:6px 9px;border:1px solid #ddd6fe;border-radius:999px;background:#fff;color:#6d4a7c;font-size:11px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
+#pinyinToneQuestFrame{display:block;width:100%;height:920px;min-height:720px;border:0;border-radius:18px;background:#fff;}
 @media(max-width:700px){.pinyin-tone-quest-view{padding:8px;border-radius:14px;}#pinyinToneQuestFrame{height:860px;min-height:660px;border-radius:14px;}}
     /* --- Professional Auth UI --- */
     #proAuthOverlay { position:fixed; inset:0; z-index:10000; background:linear-gradient(135deg,#f0f7ff 0%,#fce4ec 100%); display:none; align-items:center; justify-content:center; }
@@ -54,14 +48,7 @@
     .first-guide-step { margin-left:auto; font-size:12px; color:#9ca3af; }
     @media(max-width:520px){ .first-guide-card{border-radius:18px;} .first-guide-head,.first-guide-body,.first-guide-actions{padding-left:18px;padding-right:18px;} .first-guide-title{font-size:20px;} }
 </style>
-<style id="notification-layout-fix">
-#notifDropdown{width:min(360px,calc(100vw - 32px))!important;max-width:calc(100vw - 24px)!important;max-height:min(54vh,360px)!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain;word-break:break-word;white-space:normal;}
-#notifDropdown>div{max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;white-space:normal;line-height:1.45;}
-#notifDropdown .notif-body{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;max-height:4.35em;}
-#notifDropdown #notifBridgeAiBtn{position:sticky;bottom:0;box-shadow:0 -4px 10px rgba(255,255,255,.9);}
-#notifDropdown button{max-width:100%;white-space:normal;overflow-wrap:anywhere;}
-@media(max-width:600px){#notifDropdown{right:-8px!important;width:min(320px,calc(100vw - 24px))!important;max-width:calc(100vw - 16px)!important;max-height:52vh!important;font-size:12px!important;}}
-</style></head>
+</head>
 <body>
     <div id="proAuthOverlay">
         <div class="pro-auth-card">
@@ -402,9 +389,8 @@
     <div class="pinyin-tone-quest-view" id="pinyinToneQuestView">
       <div class="pinyin-tone-quest-toolbar">
         <button class="btn btn-outline" style="padding:4px 14px;font-size:11px;" id="pinyinToneQuestBack" type="button">← Về luyện tập / Back</button>
-        <span>Pinyin Tone Quest · Offline</span>
+        <span id="questProgressSyncStatus">Ôn tập, sổ lỗi và kết quả được lưu theo tài khoản</span>
       </div>
-      <div id="pinyinQuestResultStatus" class="pinyin-quest-result-status" role="status" aria-live="polite" style="display:none;"></div>
       <iframe id="pinyinToneQuestFrame" title="Pinyin Tone Quest" src="about:blank" data-quest-parts="assets/pinyin-tone-quest.part-00,assets/pinyin-tone-quest.part-01,assets/pinyin-tone-quest.part-02" loading="lazy" allow="autoplay"></iframe>
     </div>
   </div>
@@ -644,18 +630,18 @@
   <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
   
 <script defer src="js/app-01.js"></script>
-<script defer src="js/app-02.js?v=notif-quest-progress-20260823-final2"></script>
-<script defer src="js/app-03.js?v=notif-quest-progress-20260823-final2"></script>
+<script defer src="js/app-02.js?v=excel-curriculum-20260823-final1"></script>
+<script defer src="js/app-03.js?v=excel-curriculum-20260823-final1"></script>
 <script defer src="js/firebase-boot.js"></script>
-<script defer src="js/auth-bridge.js?v=notif-quest-progress-20260823-final2"></script>
+<script defer src="js/auth-bridge.js?v=excel-curriculum-20260823-final1"></script>
 <script defer src="js/schedule-engine-core.js"></script>
-<script defer src="js/app-04-adaptive-schedule.js?v=notif-quest-progress-20260823-final2"></script>
-<script defer src="js/daily-missions.js?v=missions-notif-quest-progress-20260823-final2"></script>
+<script defer src="js/app-04-adaptive-schedule.js?v=excel-curriculum-20260823-final1"></script>
+<script defer src="js/daily-missions.js?v=missions-excel-curriculum-20260823-final1"></script>
 <script defer src="js/app-05-rtdb-block1.js"></script>
-<script defer src="js/app-06-quest-ui.js?v=quest-result-progress-20260823-final2"></script>
-<script defer src="js/app-07-quest-parts-loader.js?v=quest-result-progress-20260823-final2"></script>
+<script defer src="js/app-06-quest-ui.js"></script>
+<script defer src="js/app-07-quest-parts-loader.js?v=quest-source-review-20260823-final1"></script>
 <script defer src="js/pinyin-phonetics-loader.js"></script>
-<script defer src="js/offline-enhancements.js?v=notif-quest-progress-20260823-final2"></script>
-<script defer src="js/first-time-guide.js?v=notif-quest-progress-20260823-final2"></script>
+<script defer src="js/offline-enhancements.js?v=excel-curriculum-20260823-final1"></script>
+<script defer src="js/first-time-guide.js?v=excel-curriculum-20260823-final1"></script>
 </body>
 </html>
