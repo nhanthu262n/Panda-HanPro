@@ -21,7 +21,7 @@
 
 <style id="pandahan-quest-integration-css">
 .pinyin-tone-quest-view{display:none;background:#fafcfe;border-radius:16px;padding:12px;border:2px solid #c4b5fd;margin-top:10px;overflow:hidden;}
-.pinyin-tone-quest-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:2px 2px 8px;color:#6d4a7c;font-size:12px;font-weight:700;}#questProgressSyncStatus{display:inline-flex;align-items:center;max-width:min(100%,520px);padding:6px 9px;border:1px solid #ddd6fe;border-radius:999px;background:#fff;color:#6d4a7c;font-size:11px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;}
+.pinyin-tone-quest-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:2px 2px 8px;color:#6d4a7c;font-size:12px;font-weight:700;}#questProgressSyncStatus{display:inline-flex;align-items:center;max-width:min(100%,520px);padding:6px 9px;border:1px solid #ddd6fe;border-radius:999px;background:#fff;color:#6d4a7c;font-size:11px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;}.quest-review-toggle{display:inline-flex;align-items:center;gap:4px;border:1px solid #8b5cf6;border-radius:999px;padding:6px 10px;background:#f5f3ff;color:#6d28d9;font-size:11px;font-weight:800;cursor:pointer;}.quest-review-toggle:hover{background:#ede9fe;}
 #pinyinToneQuestFrame{display:block;width:100%;height:920px;min-height:720px;border:0;border-radius:18px;background:#fff;}
 @media(max-width:700px){.pinyin-tone-quest-view{padding:8px;border-radius:14px;}#pinyinToneQuestFrame{height:860px;min-height:660px;border-radius:14px;}}
     /* --- Professional Auth UI --- */
@@ -389,7 +389,7 @@
     <div class="pinyin-tone-quest-view" id="pinyinToneQuestView">
       <div class="pinyin-tone-quest-toolbar">
         <button class="btn btn-outline" style="padding:4px 14px;font-size:11px;" id="pinyinToneQuestBack" type="button">← Về luyện tập / Back</button>
-        <span id="questProgressSyncStatus">Ôn tập, sổ lỗi và kết quả được lưu theo tài khoản</span>
+        <span id="questProgressSyncStatus">Ôn tập, sổ lỗi và kết quả được lưu theo tài khoản</span><button class="quest-review-toggle" id="questReviewErrorsBtn" type="button">📒 Ôn câu sai (<b id="questReviewErrorCount">0</b>)</button>
       </div>
       <iframe id="pinyinToneQuestFrame" title="Pinyin Tone Quest" src="about:blank" data-quest-parts="assets/pinyin-tone-quest.part-00,assets/pinyin-tone-quest.part-01,assets/pinyin-tone-quest.part-02" loading="lazy" allow="autoplay"></iframe>
     </div>
@@ -634,14 +634,14 @@
 <script defer src="js/app-03.js?v=excel-curriculum-20260823-final1"></script>
 <script defer src="js/firebase-boot.js"></script>
 <script defer src="js/auth-bridge.js?v=excel-curriculum-20260823-final1"></script>
-<script defer src="js/schedule-engine-core.js"></script>
-<script defer src="js/app-04-adaptive-schedule.js?v=excel-curriculum-20260823-final1"></script>
+<script defer src="js/schedule-engine-core.js?v=schedule-review-20260823-final2"></script>
+<script defer src="js/app-04-adaptive-schedule.js?v=excel-curriculum-20260823-final2"></script>
 <script defer src="js/daily-missions.js?v=missions-excel-curriculum-20260823-final1"></script>
 <script defer src="js/app-05-rtdb-block1.js"></script>
 <script defer src="js/app-06-quest-ui.js"></script>
-<script defer src="js/app-07-quest-parts-loader.js?v=quest-source-review-20260823-final1"></script>
+<script defer src="js/app-07-quest-parts-loader.js?v=quest-source-review-20260823-final3"></script>
 <script defer src="js/pinyin-phonetics-loader.js"></script>
-<script defer src="js/offline-enhancements.js?v=excel-curriculum-20260823-final1"></script>
-<script defer src="js/first-time-guide.js?v=excel-curriculum-20260823-final1"></script>
+<script defer src="js/offline-enhancements.js?v=excel-curriculum-20260823-final2"></script>
+<script defer src="js/first-time-guide.js?v=excel-curriculum-20260823-final2"></script>
 </body>
 </html>
