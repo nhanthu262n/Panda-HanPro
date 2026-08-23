@@ -30,6 +30,7 @@
     day.required_tasks = Array.from(new Set(existing.map(String)));
     day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
     day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
+    day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
     return day;
   }
 
@@ -74,6 +75,7 @@
         required_tasks: getMandatoryTaskIds(item),
         completed_tasks: {},
         task_events: [],
+        task_scores: {},
       })),
     };
   }
@@ -114,6 +116,10 @@
         scheduled_date: index === 0 ? today : null,
         is_repeat_of: failedDay.day_number,
         repeat_reason: reason,
+        required_tasks: Array.isArray(failedDay.required_tasks) ? failedDay.required_tasks.slice() : ["quest"],
+        completed_tasks: {},
+        task_events: [],
+        task_scores: {},
       });
     }
     schedule.days.push(...repeats);
@@ -204,10 +210,13 @@
     }
     const reviewType = reviewTypeFor(day, schedule);
     const threshold = reviewThreshold(reviewType, day);
-    day.attempt_count = Number(day.attempt_count || 0) + 1;
-    day.best_score = Math.max(Number(day.best_score || 0), numericScore);
-    day.last_score = numericScore;
-    day.last_review_type = reviewType;
+    day.task_scores[taskId || "overall"] = numericScore;
+    if (!taskId || taskId === "quest") {
+      day.attempt_count = Number(day.attempt_count || 0) + 1;
+      day.best_score = Math.max(Number(day.best_score || 0), numericScore);
+      day.last_score = numericScore;
+      day.last_review_type = reviewType;
+    }
     const evaluation = finishDayIfReady(schedule, day, today);
     return {
       schedule,
@@ -220,7 +229,7 @@
     };
   }
 
-  function recordTaskCompletion(scheduleInput, dayNumber, taskId, today = todayVietnam(), source = "learner_confirmation") {
+  function recordTaskCompletion(scheduleInput, dayNumber, taskId, today = todayVietnam(), source = "unverified") {
     const schedule = clone(scheduleInput);
     const day = schedule.days.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
     if (!day) {
