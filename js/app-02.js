@@ -492,6 +492,60 @@ function recordQuizResult(char, correct) {
   gradeWord(char, correct ? 4 : 2);
 }
 
+/* ---------- Practice completion -> adaptive 120-day schedule ---------- */
+let practiceSaveInFlight = null;
+function practiceSaveKey(dayNumber, date) {
+  return `pandahan_practice_saved_${storageNamespace()}_${date}_${Number(dayNumber)}`;
+}
+function setPracticeSaveStatus(message, isError = false) {
+  const el = document.getElementById("practiceSaveStatus");
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#b91c1c" : "#166534";
+  el.style.display = "block";
+  clearTimeout(setPracticeSaveStatus.timer);
+  setPracticeSaveStatus.timer = setTimeout(() => { el.style.display = "none"; }, 7000);
+}
+async function savePracticeCompletion(score, source = "practice") {
+  const api = window.PandaHanSchedule;
+  if (!api || typeof api.submitDayResult !== "function") {
+    setPracticeSaveStatus("⚠️ Chưa sẵn sàng lưu lộ trình; bài luyện vẫn đã lưu ở thiết bị.", true);
+    return { committed: false, reason: "schedule_api_unavailable", source };
+  }
+  if (practiceSaveInFlight) return practiceSaveInFlight;
+  practiceSaveInFlight = (async () => {
+    try {
+      const schedule = typeof api.getScheduleAsync === "function" ? await api.getScheduleAsync() : api.getSchedule?.();
+      const days = Array.isArray(schedule?.days) ? schedule.days : [];
+      const current = days.filter((d) => d.status === "unlocked")
+        .sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
+      if (!current) {
+        setPracticeSaveStatus("⚠️ Không tìm thấy buổi đang mở; bài luyện vẫn đã lưu ở thiết bị.", true);
+        return { committed: false, reason: "no_unlocked_day", source };
+      }
+      const today = typeof api.todayVietnam === "function" ? api.todayVietnam() : new Date().toISOString().slice(0, 10);
+      const key = practiceSaveKey(current.day_number, today);
+      if (localStorage.getItem(key) === "1") {
+        setPracticeSaveStatus(`✅ Tiến độ ngày ${current.day_number} đã được lưu.`, false);
+        return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number) };
+      }
+      const result = await api.submitDayResult(Number(current.day_number), Math.max(0, Math.min(100, Number(score) || 0)));
+      localStorage.setItem(key, "1");
+      const passed = result?.result?.passed === true;
+      setPracticeSaveStatus(`✅ Đã lưu tiến độ ngày ${current.day_number}${passed ? " và mở buổi tiếp theo." : "; hệ thống đã tạo phần ôn lại."}`);
+      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score, result } }));
+      return { committed: true, source, result };
+    } catch (error) {
+      console.error("Practice progress save:", error);
+      setPracticeSaveStatus("❌ Không lưu được tiến độ lên Firebase. Bài luyện vẫn được giữ trên thiết bị; hãy thử lại khi có mạng.", true);
+      return { committed: false, reason: error.code || error.message || "save_failed", source };
+    } finally {
+      practiceSaveInFlight = null;
+    }
+  })();
+  return practiceSaveInFlight;
+}
+
 /* ---------- Teacher-designed mastery rubric (5 tiers), based on SRS metrics ---------- */
 const RUBRIC = [
   { tier: 0, name: "Chưa học", en: "Not studied", color: "var(--t0)", light: "var(--t0-light)",
@@ -1223,11 +1277,11 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(checkStreakWarning, 5 * 60 * 1000);
   const treasureBtn = document.getElementById("treasureReviewBtn");
   if (treasureBtn) treasureBtn.addEventListener("click", startTreasureReview);
-  document.getElementById("certBackBtn").addEventListener("click", () => switchTab("dashboard"));
-  document.getElementById("calPrevBtn").addEventListener("click", () => navigateCalMonth(-1));
-  document.getElementById("calNextBtn").addEventListener("click", () => navigateCalMonth(1));
-  document.getElementById("chatFab").addEventListener("click", toggleChatPanel);
-  document.getElementById("chatCloseBtn").addEventListener("click", toggleChatPanel);
+  safeAdd("certBackBtn", "click", () => switchTab("dashboard"));
+  safeAdd("calPrevBtn", "click", () => navigateCalMonth(-1));
+  safeAdd("calNextBtn", "click", () => navigateCalMonth(1));
+  safeAdd("chatFab", "click", toggleChatPanel);
+  safeAdd("chatCloseBtn", "click", toggleChatPanel);
   const aiToolbar = document.getElementById("aiToolbar");
   const aiToolbarToggle = document.getElementById("aiToolbarToggle");
   if (aiToolbar && aiToolbarToggle) {
@@ -1243,15 +1297,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-  document.getElementById("chatSendBtn").addEventListener("click", sendChatMessage);
-  document.getElementById("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChatMessage(); });
-  document.getElementById("chatTopicSelect").addEventListener("change", onChatTopicChange);
-  document.getElementById("openAddWordBtn").addEventListener("click", () => {
+  safeAdd("chatSendBtn", "click", () => { sendChatMessage().catch((error) => console.error("AI chat send:", error)); });
+  safeAdd("chatInput", "keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendChatMessage().catch((error) => console.error("AI chat send:", error)); } });
+  document.addEventListener("click", (e) => {
+    const button = e.target && e.target.closest ? e.target.closest("#chatSendBtn") : null;
+    if (button && !button.dataset.pandaDelegated) {
+      button.dataset.pandaDelegated = "true";
+      if (!button.disabled) sendChatMessage().catch((error) => console.error("AI chat delegated send:", error));
+    }
+  });
+  safeAdd("chatTopicSelect", "change", onChatTopicChange);
+  safeAdd("openAddWordBtn", "click", () => {
     renderAddWordForm();
     renderCustomWordsList();
     showScreen("addWord");
   });
-  document.getElementById("addWordBack").addEventListener("click", () => switchTab("teacher"));
+  safeAdd("addWordBack", "click", () => switchTab("teacher"));
   wireFlagBtn("qFlagBtn");
   wireFlagBtn("uFlagBtn");
   wireFlagBtn("fcFlagBtn");
@@ -1262,7 +1323,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showScreen("wordList");
     });
   });
-  document.getElementById("wordListBack").addEventListener("click", () => switchTab("dashboard"));
+  safeAdd("wordListBack", "click", () => switchTab("dashboard"));
   initTextLookup();
   if (notifBtn) {
     notifBtn.addEventListener("click", () => {
@@ -1757,6 +1818,7 @@ function showQuizResult() {
   const goingToReview = postQuizGoToReview && pendingFlashcardQueue && pendingFlashcardQueue.length;
   const goingToDialogue = pendingDialogueQueue && pendingDialogueQueue.length;
   let btnHtml, noteHtml = "";
+  if (!inAdvancedSetMode) savePracticeCompletion(pct, "quiz");
   if (goingToDialogue) {
     btnHtml = `<button class="btn btn-hsk3" id="qContinueDialogueBtn" style="margin-top:14px;">➡️ ${L("Tiếp tục: Sắp xếp hội thoại", "Continue: Dialogue Reorder")}</button>`;
     noteHtml = `<p style="font-size:12.5px;color:var(--text-light);">${L("Phần 1 (trắc nghiệm) xong! Còn phần 2: sắp xếp hội thoại.", "Part 1 (multiple choice) done! Part 2: dialogue reordering next.")}</p>`;
@@ -1895,6 +1957,7 @@ function endFlashcards() {
   document.getElementById("fcEndCorrect").textContent = fcCorrect;
   document.getElementById("fcEndWrong").textContent = fcWrong;
   logActivity(`🎯 Ôn tập: ${fcCorrect} nhớ tốt, ${fcWrong} cần ôn lại`);
+  savePracticeCompletion(fcQueue.length ? Math.round((fcCorrect / fcQueue.length) * 100) : 0, "flashcards");
   fcStreak = 0;
   if (fcCorrect > 0 && fcCorrect >= fcWrong) {
     playFanfare();
@@ -1904,6 +1967,7 @@ function endFlashcards() {
 
 /* ===================== SENTENCE UNSCRAMBLE ===================== */
 let uQueue = [], uIdx = 0, uSelected = [], uCurrentQ = null;
+let uCorrectCount = 0, uAnsweredCount = 0;
 function startUnscrambleForWord(char) {
   const w = VOCAB_BY_CHAR[char];
   uQueue = w.unscramble.map(q => ({ ...q, char }));
@@ -1920,6 +1984,8 @@ function startUnscrambleLevel(level) {
 }
 function runUnscramble() {
   uIdx = 0;
+  uCorrectCount = 0;
+  uAnsweredCount = 0;
   showScreen("unscramble");
   document.getElementById("uTotal").textContent = uQueue.length;
   showUnscrambleQuestion();
@@ -1935,6 +2001,7 @@ function showUnscrambleQuestion() {
     document.getElementById("uNextBtn").style.display = "none";
     document.getElementById("uFeedback").textContent = "";
     logActivity(`🔀 Hoàn thành bài sắp xếp câu (${uQueue.length} câu)`);
+    if (currentAdvancedSetId === null) savePracticeCompletion(uQueue.length ? Math.round((uCorrectCount / uQueue.length) * 100) : 0, "unscramble");
     if (currentAdvancedSetId !== null) { showAdvancedSetCertificate(); currentAdvancedSetId = null; }
     return;
   }
@@ -2012,6 +2079,8 @@ function checkUnscramble() {
     fb.className = "unscramble-feedback bad";
   }
   recordQuizResult(uCurrentQ.char, correct);
+  uAnsweredCount += 1;
+  if (correct) uCorrectCount += 1;
   if (currentAdvancedSetId !== null) {
     advancedDlgTotal++;
     if (correct) advancedDlgScore++;
@@ -2276,6 +2345,8 @@ function saveChatHistory() {
 }
 function renderChatMessages() {
   const el = document.getElementById("chatMessages");
+  if (!el) return;
+  if (!Array.isArray(chatHistory)) chatHistory = [];
   if (!chatHistory.length) {
     el.innerHTML = `<div class="chat-bubble bot"><div class="zh">你好！我是熊猫老师 🐼</div><div class="vi">${L("Xin chào! Mình là gấu trúc giáo viên. Cùng trò chuyện bằng tiếng Trung nhé — mình chỉ dùng đúng những từ bạn đã học trong từ điển thôi! (Bạn có thể gõ bằng tiếng Việt, tiếng Anh, hoặc tiếng Trung.)", "Hi! I'm the panda teacher. Let's practice chatting in Chinese — I'll only use words you've already learned in the dictionary! (You can type in Vietnamese, English, or Chinese.)")}</div></div>`;
     return;
@@ -2318,26 +2389,42 @@ function toggleChatPanel() {
 }
 async function sendChatMessage() {
   const input = document.getElementById("chatInput");
-  const text = input.value.trim();
-  if (!text) return;
+  const sendBtn = document.getElementById("chatSendBtn");
+  const typing = document.getElementById("chatTyping");
+  if (!input) return { sent: false, reason: "input_missing" };
+  const text = String(input.value || "").trim();
+  if (!text) return { sent: false, reason: "empty_message" };
   input.value = "";
-  chatHistory.push({ role: "user", zh: text });
+  if (!Array.isArray(chatHistory)) chatHistory = [];
+  chatHistory.push({ role: "user", zh: text, text });
   renderChatMessages();
   saveChatHistory();
-  const typing = document.getElementById("chatTyping");
-  typing.style.display = "block";
+  if (typing) typing.style.display = "block";
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.setAttribute("aria-busy", "true"); }
 
-  // 100% miễn phí — KHÔNG gọi bất kỳ AI trả phí nào. Gấu trúc phản hồi bằng
-  // cách chọn câu mẫu phù hợp từ chính kho hội thoại + câu ví dụ HSK1-3 đã
-  // có sẵn trong app (theo đúng chủ đề đang chọn, hoặc ngẫu nhiên nếu đang
-  // trò chuyện tự do). Không cần cấu hình API key, không tốn phí.
-  setTimeout(() => {
-    const reply = pickLocalChatReply(text);
-    chatHistory.push({ role: "bot", zh: reply.zh, vi: reply.vi, en: reply.en });
-    typing.style.display = "none";
+  // Offline-first AI practice: the reply is generated from the curated HSK
+  // dialogue bank, so the feature works without exposing an API key or
+  // requiring a backend. The adapter below keeps the interaction reliable even
+  // if a topic has incomplete translation data.
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  try {
+    const reply = pickLocalChatReply(text) || {
+      zh: "我们继续练习吧！",
+      vi: "Mình tiếp tục luyện tập nhé!",
+      en: "Let's keep practicing!",
+    };
+    chatHistory.push({ role: "bot", zh: reply.zh || "我们继续练习吧！", vi: reply.vi || "Mình tiếp tục luyện tập nhé!", en: reply.en || "Let's keep practicing!" });
+  } catch (error) {
+    console.warn("AI chat reply fallback:", error);
+    chatHistory.push({ role: "bot", zh: "我们继续练习吧！", vi: "Mình tiếp tục luyện tập nhé!", en: "Let's keep practicing!" });
+  } finally {
+    if (typing) typing.style.display = "none";
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.removeAttribute("aria-busy"); }
     renderChatMessages();
     saveChatHistory();
-  }, 450 + Math.random() * 350); // small delay so it feels like a real reply, not instant
+    input.focus();
+  }
+  return { sent: true };
 }
 
 // ── Free, local reply picker (no AI / no API key needed) ──────────────────
@@ -3544,6 +3631,7 @@ function showAdvancedSetCertificate() {
   });
   document.getElementById("certDoneBtn").addEventListener("click", () => switchTab("practice"));
   logActivity(`🎓 Hoàn thành ${L(rec.setTitle, rec.setTitleEn)} — ${pct}% (${gradeBandFromPct(pct).grade})`);
+  savePracticeCompletion(pct, "advanced-set");
 }
 function getSavedCertificates() {
   try { return JSON.parse(localStorage.getItem("pandahan_certs_v1_" + storageNamespace())) || []; }
@@ -3647,6 +3735,7 @@ function answerToneRace(tone,button,q){
 function renderToneRaceResult(){
   const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState)return;
   const total=toneRaceState.queue.length; const correct=toneRaceState.correctCount; const best=Math.max(Number(localStorage.getItem("pandahanToneRaceBest")||0),toneRaceState.score);localStorage.setItem("pandahanToneRaceBest",String(best));
+  savePracticeCompletion(total ? Math.round((correct / total) * 100) : 0, "tone-race");
   gc.innerHTML=`<div class="tone-race-shell"><div class="tone-race-result"><div class="result-emoji">🏆🚗</div><h3>Hoàn thành đường đua!</h3><p>Bạn đạt <b>${toneRaceState.score} điểm</b> trong ${total} câu. Kỷ lục hiện tại: <b>${best} điểm</b>.<br>${correct>=Math.ceil(total*.8)?"Tuyệt vời! Bạn đã kiểm soát thanh điệu rất tốt.":"Hãy chơi lại một lượt để củng cố các thanh điệu còn nhầm lẫn."}</p><div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceBack" type="button">← Về luyện tập</button><button class="btn btn-pink" id="toneRaceReplay" type="button">🚗 Chơi lại</button></div></div></div>`;
   document.getElementById("toneRaceBack").addEventListener("click",exitToneRace);document.getElementById("toneRaceReplay").addEventListener("click",startToneRaceGame);
 }
@@ -3689,7 +3778,10 @@ function startMatchGame() {
         selectedChar.disabled = true; selectedMeaning.disabled = true;
         recordQuizResult(pool.find(w => String(w.id) === selectedChar.dataset.id).char, true);
         matched++;
-        if (matched === pool.length) document.getElementById("matchStatus").textContent = "🎉 Hoàn thành! / Completed!";
+        if (matched === pool.length) {
+          document.getElementById("matchStatus").textContent = "🎉 Hoàn thành! / Completed!";
+          savePracticeCompletion(100, "match");
+        }
       } else {
         selectedChar.classList.add("wrong"); selectedMeaning.classList.add("wrong");
         setTimeout(() => { selectedChar.classList.remove("btn-pink", "wrong"); selectedMeaning.classList.remove("btn-pink", "wrong"); }, 500);
@@ -3731,6 +3823,7 @@ function renderWriteGameShell() {
     const body = document.getElementById("wgBody");
     if (idx >= finalQueue.length) {
       body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")} ${correct}/${finalQueue.length} ${L("đúng", "correct")}</h3>`;
+      savePracticeCompletion(finalQueue.length ? Math.round((correct / finalQueue.length) * 100) : 0, "write");
       return;
     }
     const item = finalQueue[idx];
