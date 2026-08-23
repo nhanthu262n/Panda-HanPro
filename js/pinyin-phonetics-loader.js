@@ -178,8 +178,12 @@
         if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(resume, { timeout: 120 });
         else window.setTimeout(resume, 0);
       });
-      // Nối đúng thứ tự part-01 → part-05 rồi chạy bundle nguyên bản một lần.
-      (0, eval)(texts.join(''));
+      // Nối đúng thứ tự part-01 → part-05; namespace lịch sử ghi âm theo tài khoản.
+      // Bundle vẫn giữ nguyên UI/chấm điểm, chỉ thay khóa lưu để không trộn người học.
+      const owner = (() => { try { return typeof window.storageNamespace === "function" ? String(window.storageNamespace() || "guest") : String(window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest"); } catch (_) { return "guest"; } })().replace(/[^a-zA-Z0-9_-]/g, "_");
+      const recordingKey = `pinyin-recording-history_${owner}`;
+      const namespacedBundle = texts.join("").replace(/pinyin-recording-history/g, recordingKey);
+      (0, eval)(namespacedBundle);
       if (typeof window.__PANDAHAN_PHONETICS_MOUNT__ !== 'function') {
         throw new Error('Bundle thiếu hàm mount Pinyin.');
       }
