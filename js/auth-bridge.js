@@ -77,11 +77,14 @@
     const dropdown = document.getElementById("notifDropdown");
     if (!dropdown || dropdown.dataset.rendered === "open") return;
     const items = Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [];
-    const actionable = items.some((item) => item && ["daily_plan", "quest_score_saved", "learning_evaluation"].includes(item.type));
-    dropdown.innerHTML = items.length ? items.slice(0, 12).map((item) => `
+    const latestDailyPlan = items.find((item) => item && item.type === "daily_plan");
+    const latestEvaluation = items.find((item) => item && ["quest_score_saved", "learning_evaluation"].includes(item.type));
+    const visibleItems = [latestDailyPlan, latestEvaluation, ...items.filter((item) => item && !["daily_plan", "quest_score_saved", "learning_evaluation"].includes(item.type))].filter(Boolean).slice(0, 8);
+    const actionable = visibleItems.some((item) => ["daily_plan", "quest_score_saved", "learning_evaluation"].includes(item.type));
+    dropdown.innerHTML = visibleItems.length ? visibleItems.map((item) => `
       <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}overflow-wrap:anywhere;white-space:normal;">
         <div>${notificationTitle(item)}</div>
-        <div style="font-size:11px;font-weight:400;margin-top:3px;line-height:1.45;">${notificationBody(item)}</div>
+        <div class="notif-body" style="font-size:11px;font-weight:400;margin-top:3px;line-height:1.45;">${notificationBody(item)}</div>
       </div>`).join("") + (actionable ? `<button type="button" id="notifBridgeAiBtn" style="display:block;width:100%;margin-top:8px;padding:7px 9px;border:0;border-radius:8px;background:#8b5cf6;color:#fff;font-size:11px;font-weight:800;white-space:normal;overflow-wrap:anywhere;cursor:pointer;">💬 ${window.LANG_MODE === "en" ? "Open AI Coach for guidance" : "Mở AI Coach để được hướng dẫn"}</button>` : "") : `<div style="padding:10px;color:#64748b;">${window.LANG_MODE === "en" ? "No new notifications." : "Chưa có thông báo mới."}</div>`;
     const aiButton = document.getElementById("notifBridgeAiBtn");
     if (aiButton) aiButton.addEventListener("click", (event) => {
