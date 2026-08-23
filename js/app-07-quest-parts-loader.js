@@ -20,6 +20,44 @@
     target.style.opacity = isError ? "0.35" : "0.7";
   }
 
+  function questResultStorageKey() {
+    const user = typeof CURRENT_USER !== "undefined" && CURRENT_USER ? CURRENT_USER : null;
+    const identity = user && (user.uid || user.username || user.email) ? (user.uid || user.username || user.email) : "guest";
+    return "pandahan_quest_last_result_v1_" + String(identity).replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+
+  function renderQuestResultStatus(detail) {
+    const box = document.getElementById("pinyinQuestResultStatus");
+    if (!box || !detail) return;
+    const score = Math.max(0, Math.min(100, Number(detail.scorePercent || 0)));
+    const threshold = Number(detail.threshold || 80);
+    const passed = detail.passed === true;
+    const action = String(detail.action || (passed ? "advance" : "review"));
+    const repeatCount = Number(detail.repeatCount || 0);
+    const sourceText = detail.source === "quest" || detail.source === "pinyin-tone-quest" ? "Pinyin Tone Quest" : "bài luyện";
+    const actionText = passed
+      ? "✅ Đã đạt ngưỡng — buổi tiếp theo được xét mở."
+      : `🔁 Chưa đạt ngưỡng — hệ thống giữ gate và tạo ${repeatCount || 1} buổi ôn lại.`;
+    box.classList.toggle("is-review", !passed);
+    box.style.display = "flex";
+    box.innerHTML = `<span class="quest-score">${score}%</span><div class="quest-result-copy"><b>Đã lưu kết quả ${sourceText} · Ngày ${Number(detail.dayNumber || 0)}</b><div>Ngưỡng: ${threshold}% · Hành động: ${action}</div><div class="quest-result-action">${actionText}</div></div>`;
+  }
+
+  function restoreQuestResultStatus() {
+    try {
+      const raw = localStorage.getItem(questResultStorageKey());
+      if (raw) renderQuestResultStatus(JSON.parse(raw));
+    } catch (_) {}
+  }
+
+  function publishQuestResult(detail) {
+    const normalized = { ...detail, source: "quest", evaluatedAt: Date.now() };
+    try { localStorage.setItem(questResultStorageKey(), JSON.stringify(normalized)); } catch (_) {}
+    renderQuestResultStatus(normalized);
+    window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: normalized }));
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: normalized }));
+  }
+
   async function getScheduleForQuest() {
     try {
       const api = window.PandaHanSchedule;
@@ -66,15 +104,16 @@
           ? window.PandaHanSchedule.submitQuestResult(day, score, data.resultToken)
           : window.PandaHanSchedule.submitDayResult(day, score));
         await refreshQuestGate();
-        window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: {
+        publishQuestResult({
           dayNumber: day,
           scorePercent: score,
           passed: !!result?.result?.passed,
           threshold: Number(result?.result?.threshold || 80),
           reviewType: result?.result?.reviewType || "daily",
           repeatCount: Number(result?.result?.repeatCount || 0),
-          action: result?.result?.action || "advance"
-        }}));
+          action: result?.result?.action || "advance",
+          resultToken: String(data.resultToken || "")
+        });
       }
     } catch (error) {
       console.warn("Quest result was not committed to schedule:", error.message || error);
@@ -146,7 +185,8 @@
   window.addEventListener("message", handleQuestMessage);
   window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
   document.addEventListener("DOMContentLoaded", () => {
+    restoreQuestResultStatus();
     const card = document.getElementById("pCardPinyinQuest");
-    if (card) card.addEventListener("click", () => loadQuestOffline().catch(() => {}));
+    if (card) card.addEventListener("click", () => { restoreQuestResultStatus(); loadQuestOffline().catch(() => {}); });
   });
 })();
