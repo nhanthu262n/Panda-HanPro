@@ -1,5 +1,5 @@
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const core = require("./schedule-engine-core");
 
@@ -37,7 +37,11 @@ async function extendOneStudent(uid, today) {
       notification.set({
         type: "schedule_extended",
         title: "Lộ trình được gia hạn",
+        title_vi: "Lộ trình được gia hạn",
+        title_en: "Learning path extended",
         body: `Ngày ${result.sourceDayNumber} chưa hoàn thành; đã thêm ngày ôn ${result.newSequenceIndex}.`,
+        body_vi: `Ngày ${result.sourceDayNumber} chưa hoàn thành; đã thêm ngày ôn ${result.newSequenceIndex}.`,
+        body_en: `Day ${result.sourceDayNumber} was not completed; review day ${result.newSequenceIndex} has been added.`,
         source_day_number: result.sourceDayNumber,
         new_sequence_index: result.newSequenceIndex,
         date: today,
@@ -54,7 +58,56 @@ async function extendOneStudent(uid, today) {
       }),
     ]);
   }
-  return { uid, changed: result.changed, reason: result.reason };
+  return {
+    uid,
+    changed: result.changed,
+    reason: result.reason,
+    sourceDayNumber: result.sourceDayNumber || null,
+    newSequenceIndex: result.newSequenceIndex || null,
+  };
+}
+
+async function publishPostMidnightMissedNotice(uid, today, extensionResult) {
+  if (!extensionResult?.changed || !extensionResult.sourceDayNumber) return { sent: false, reason: "no_extension" };
+  const sourceDay = Number(extensionResult.sourceDayNumber);
+  const newSequence = Number(extensionResult.newSequenceIndex || 0);
+  const notificationId = `missed_day_after_midnight_${today}_${sourceDay}`;
+  const titleVi = "Bài chưa hoàn thành đã được chuyển sang ngày mới";
+  const titleEn = "Incomplete work moved to the new day";
+  const bodyVi = `Ngày ${sourceDay} chưa hoàn thành trước 00:00. Hệ thống đã tạo buổi ôn ngày ${newSequence} để bạn tiếp tục mà không mất tiến độ.`;
+  const bodyEn = `Day ${sourceDay} was not completed before midnight. A review sequence ${newSequence} was created so you can continue without losing progress.`;
+  await db.ref(`notifications/${uid}/${notificationId}`).set({
+    type: "missed_day_after_midnight",
+    title: titleVi,
+    title_vi: titleVi,
+    title_en: titleEn,
+    body: bodyVi,
+    body_vi: bodyVi,
+    body_en: bodyEn,
+    source_day_number: sourceDay,
+    new_sequence_index: newSequence,
+    date: today,
+    read: false,
+    created_at: admin.database.ServerValue.TIMESTAMP,
+  });
+
+  const relation = await db.ref(`studentTeachers/${uid}`).once("value");
+  const teacherUid = extractTeacherUid(relation.val());
+  if (!teacherUid) return { sent: true, teacherMessage: false };
+  const chatId = [uid, teacherUid].sort().join("_");
+  const messageId = notificationId;
+  const textVi = `Sau 00:00, hệ thống ghi nhận học sinh chưa hoàn thành ngày ${sourceDay} và đã chuyển phần ôn sang sequence ${newSequence}.`;
+  const textEn = `After midnight, the system recorded that day ${sourceDay} was incomplete and moved the review to sequence ${newSequence}.`;
+  const chatRef = firestore.collection("chats").doc(chatId);
+  const batch = firestore.batch();
+  batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: textVi, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
+  batch.set(chatRef.collection("messages").doc(messageId), {
+    senderId: "system", senderName: "PandaHán Pro", text: textVi, text_vi: textVi, text_en: textEn,
+    isBroadcast: true, reminderDate: today, sourceDayNumber: sourceDay, newSequenceIndex: newSequence,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+  return { sent: true, teacherMessage: true, teacherUid, chatId, messageId };
 }
 
 async function publishDailyPlan(uid, today, schedule) {
@@ -65,7 +118,11 @@ async function publishDailyPlan(uid, today, schedule) {
   await db.ref(`notifications/${uid}/${notificationId}`).set({
     type: "daily_plan",
     title: `Kế hoạch học ngày ${current.sequence_index}`,
+    title_vi: `Kế hoạch học ngày ${current.sequence_index}`,
+    title_en: `Study plan for day ${current.sequence_index}`,
     body: `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
+    body_vi: `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
+    body_en: `Today: study curriculum day ${current.day_number}: ${current.topic || "the assigned lesson"}. Complete it and meet the threshold to unlock the next lesson.`,
     day_number: Number(current.day_number),
     sequence_index: Number(current.sequence_index),
     date: today,
@@ -94,11 +151,12 @@ async function publishTeacherPlan(uid, today, schedule) {
   const chatId = [uid, teacherUid].sort().join("_");
   const messageId = `daily_plan_${today}_${Number(unlocked.sequence_index)}`;
   const text = `Kế hoạch hôm nay: học ngày ${Number(unlocked.day_number)}${unlocked.topic ? ` — ${unlocked.topic}` : ""}. Hãy hoàn thành bài và đạt ngưỡng để mở buổi tiếp theo.`;
+  const textEn = `Today's plan: study day ${Number(unlocked.day_number)}${unlocked.topic ? ` — ${unlocked.topic}` : ""}. Complete the lesson and meet the threshold to unlock the next session.`;
   const chatRef = firestore.collection("chats").doc(chatId);
   const messageRef = chatRef.collection("messages").doc(messageId);
   const batch = firestore.batch();
-  batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastSenderId: "system" }, { merge: true });
-  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, isBroadcast: true, planDate: today, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, text_vi: text, text_en: textEn, isBroadcast: true, planDate: today, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
   await batch.commit();
   return { sent: true, teacherUid, chatId, messageId };
 }
@@ -120,7 +178,11 @@ async function publishIncompleteReminder(uid, today, schedule) {
   await db.ref(`notifications/${uid}/${notificationId}`).set({
     type: "study_reminder",
     title: `Nhắc học: còn buổi ngày ${dayNumber}`,
+    title_vi: `Nhắc học: còn buổi ngày ${dayNumber}`,
+    title_en: `Study reminder: day ${dayNumber} is incomplete`,
     body,
+    body_vi: body,
+    body_en: `Day ${dayNumber} is not complete yet. Return to the lesson before midnight; if it is missed, the unfinished work will be moved to the next sequence.`,
     day_number: dayNumber,
     sequence_index: sequence,
     date: today,
@@ -134,11 +196,12 @@ async function publishIncompleteReminder(uid, today, schedule) {
   const chatId = [uid, teacherUid].sort().join("_");
   const messageId = `study_reminder_${today}_${sequence}`;
   const text = `Nhắc học: học sinh chưa hoàn thành buổi ngày ${dayNumber}${current.topic ? ` — ${current.topic}` : ""}. Vui lòng hoàn thành trước 00:00 để tránh kéo dài lộ trình.`;
+  const textEn = `Study reminder: the learner has not completed day ${dayNumber}${current.topic ? ` — ${current.topic}` : ""}. Please complete it before midnight to avoid extending the learning path.`;
   const chatRef = firestore.collection("chats").doc(chatId);
   const messageRef = chatRef.collection("messages").doc(messageId);
   const batch = firestore.batch();
-  batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastSenderId: "system" }, { merge: true });
-  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, text_vi: text, text_en: textEn, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
   await batch.commit();
   return { notified: true, teacherMessage: true, teacherUid, chatId, messageId };
 }
@@ -177,6 +240,7 @@ exports.dailyScheduleExtension = onSchedule(
     const results = await Promise.all(
       Object.keys(schedules).map(async (uid) => {
         const result = await extendOneStudent(uid, today);
+        if (result.changed) await publishPostMidnightMissedNotice(uid, today, result);
         const latest = await db.ref(`studentSchedules/${uid}`).once("value");
         await publishDailyPlan(uid, today, latest.val());
         await publishTeacherPlan(uid, today, latest.val());
