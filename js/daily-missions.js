@@ -31,6 +31,11 @@
       instructionVi: "Ôn lại các mục cần nhớ trước khi làm bài mới.",
       instructionEn: "Review due items before starting new work."
     },
+    quest: {
+      titleVi: "Pinyin Tone Quest", titleEn: "Pinyin Tone Quest", icon: "🎯", minutes: 12,
+      instructionVi: "Làm buổi Quest đang mở; điểm phần trăm sẽ được lưu để xét mở ngày tiếp theo.",
+      instructionEn: "Complete the unlocked Quest day; the percentage score is saved for the next-day gate."
+    },
     advanced: {
       titleVi: "Đề HSK3 3.0", titleEn: "HSK3 3.0 set", icon: "🚀", minutes: 20,
       instructionVi: "Chỉ mở khi đã có đủ nền tảng; luyện đọc hiểu và sắp xếp hội thoại.",
@@ -107,12 +112,12 @@
     const stage = day.stage_code;
     const review = day.day_type === "review";
     const types = stage === "stage_0"
-      ? (review ? ["tone-race", "quiz", "flashcards"] : ["tone-race", "quiz", "write"])
+      ? (review ? ["quest", "tone-race", "quiz", "flashcards"] : ["quest", "tone-race", "quiz", "write"])
       : stage === "stage_1"
-        ? (review ? ["flashcards", "quiz", "match", "write"] : ["quiz", "match", "write", "unscramble"])
+        ? (review ? ["quest", "flashcards", "quiz", "match", "write"] : ["quest", "quiz", "match", "write", "unscramble"])
         : stage === "stage_2"
-          ? (review ? ["flashcards", "quiz", "unscramble", "tone-race"] : ["quiz", "unscramble", "match", "write"])
-          : (review ? ["flashcards", "quiz", "unscramble", "advanced"] : ["quiz", "unscramble", "write", "match", ...(Number(day.day_number) >= 75 ? ["advanced"] : [])]);
+          ? (review ? ["quest", "flashcards", "quiz", "unscramble", "tone-race"] : ["quest", "quiz", "unscramble", "match", "write"])
+          : (review ? ["quest", "flashcards", "quiz", "unscramble", "advanced"] : ["quest", "quiz", "unscramble", "write", "match", ...(Number(day.day_number) >= 75 ? ["advanced"] : [])]);
     return types.map((type, index) => {
       const meta = TASK_META[type];
       return { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1 };
@@ -163,7 +168,10 @@
     else if (type === "match") window.startMatchGame?.();
     else if (type === "write") window.startWriteGame?.();
     else if (type === "tone-race") window.startToneRaceGame?.();
-    else if (type === "advanced") {
+    else if (type === "quest") {
+      window.switchTab?.("practice");
+      setTimeout(() => document.getElementById("pCardPinyinQuest")?.click(), 80);
+    } else if (type === "advanced") {
       document.getElementById("advancedSetsView")?.style && (document.getElementById("advancedSetsView").style.display = "block");
       window.renderAdvancedSetsList?.();
     } else if (type === "flashcards") {
@@ -195,7 +203,8 @@
     if (/trắc nghiệm|quiz|multiple/.test(q)) return en ? `Start Multiple choice for Day ${m.dayNumber}. Focus on the words and context from: ${m.topic}.` : `Bạn hãy bấm Trắc nghiệm. Nội dung lấy từ ngày ${m.dayNumber}: ${m.topic}.`;
     if (/sắp xếp|unscramble|câu/.test(q)) return en ? `Use Sentence unscramble next. Read the example aloud, then arrange the sentence and review the correction.` : "Tiếp theo hãy làm Sắp xếp câu. Đọc câu mẫu thành tiếng, xếp lại câu rồi xem phần giải thích.";
     if (/ghép|match|nghĩa/.test(q)) return en ? `Use Match Hanzi · meaning for a short warm-up. It covers today's ${m.newVocab.length} target words.` : `Hãy làm Ghép chữ · nghĩa để khởi động. Bài lấy ${m.newVocab.length} từ mục tiêu của ngày hôm nay.`;
-    if (/viết|write/.test(q)) return en ? "Use Write the meaning after the recognition tasks. Try from memory before revealing the reference answer." : "Hãy làm Viết nghĩa sau các bài nhận diện. Cố nhớ trước rồi mới xem đáp án tham khảo.";
+    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest for Day ${m.dayNumber}. Finish the unlocked Quest day; its percentage is saved and used with the ${m.requiredScore}% gate.` : `Hãy mở Pinyin Tone Quest ngày ${m.dayNumber}. Hoàn thành buổi Quest đang mở; phần trăm sẽ được lưu và dùng cùng ngưỡng ${m.requiredScore}% để xét mở ngày tiếp theo.`;
+    if (/viết|write/.test(q)) return en ? "Use Write the meaning after the recognition tasks. Try from memory before revealing the reference answer." : "Hãy làm Viết nghĩa sau các bài nhận diện. Cố nhớ trước rồi mới xem phần đáp án tham khảo.";
     if (/xong|hoàn thành|done|next|tiếp/.test(q)) return en ? `After all tasks, aim for at least ${m.requiredScore}%. If you miss the target, review the same day instead of unlocking new content.` : `Sau khi làm xong, hãy đạt ít nhất ${m.requiredScore}%. Nếu chưa đạt, ôn lại đúng ngày này thay vì mở nội dung mới.`;
     return en ? `Today's plan is Day ${m.dayNumber}: ${m.topic}. Start with ${m.tasks[0]?.titleEn || "the first task"}, then continue in order. Ask me about any task.` : `Kế hoạch hôm nay là ngày ${m.dayNumber}: ${m.topic}. Hãy bắt đầu với ${m.tasks[0]?.titleVi || "bài đầu tiên"}, rồi làm lần lượt. Bạn có thể hỏi tôi về từng bài.`;
   }
