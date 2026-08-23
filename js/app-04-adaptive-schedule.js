@@ -180,6 +180,26 @@
     return result;
   }
 
+  function publishLocalDailyPlan(schedule) {
+    const days = Array.isArray(schedule?.days) ? schedule.days : [];
+    const current = days.filter((day) => day.status === "unlocked")
+      .sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
+    if (!current) return;
+    const today = core.todayVietnam();
+    const uid = getUid() || "guest";
+    const key = `pandahan_local_daily_plan_${uid}_${today}_${Number(current.sequence_index)}`;
+    if (localStorage.getItem(key) === "1") return;
+    localStorage.setItem(key, "1");
+    window.dispatchEvent(new CustomEvent("pandahan-daily-plan", {
+      detail: {
+        dayNumber: Number(current.day_number),
+        sequenceIndex: Number(current.sequence_index),
+        topic: current.topic || "",
+        date: today,
+      },
+    }));
+  }
+
   async function runCatchUpCheck() {
     const uid = getUid();
     const today = core.todayVietnam();
@@ -189,6 +209,8 @@
       if (!local) return { changed: false, reason: "no_schedule" };
       const result = core.applyDailyExtension(local, today);
       saveLocal(result.schedule);
+      if (result.changed) window.dispatchEvent(new CustomEvent("pandahan-schedule-missed", { detail: result }));
+      window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
       return result;
     }
     const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
@@ -209,6 +231,7 @@
         newSequenceIndex: extensionResult.newSequenceIndex,
         date: today,
       });
+      window.dispatchEvent(new CustomEvent("pandahan-schedule-missed", { detail: extensionResult }));
     }
     window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: extensionResult }));
     return extensionResult;
@@ -241,14 +264,18 @@
   if (window.firebase && typeof window.firebase.auth === "function") {
     window.firebase.auth().onAuthStateChanged((user) => {
       if (!user) return;
-      initScheduleIfNeeded().then(() => runCatchUpCheck()).catch((error) => {
+      initScheduleIfNeeded().then(() => runCatchUpCheck()).then(() => {
+        publishLocalDailyPlan(window.PandaHanSchedule.getSchedule?.());
+      }).catch((error) => {
         console.warn("PandaHan schedule auth sync:", error);
       });
     });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    initScheduleIfNeeded().then(() => runCatchUpCheck()).catch((error) => {
+    initScheduleIfNeeded().then(() => runCatchUpCheck()).then(() => {
+      publishLocalDailyPlan(window.PandaHanSchedule.getSchedule?.());
+    }).catch((error) => {
       console.warn("PandaHan schedule init:", error);
     });
   });
