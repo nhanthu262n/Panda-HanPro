@@ -94,9 +94,10 @@
   }
 
   function reviewTypeFor(day, schedule) {
-    const completedCount = completedOriginalDays(schedule).length + 1;
-    if (completedCount % 20 === 0) return "monthly";
-    if (day.day_type === "review") return "weekly";
+    if (day.day_type === "review") {
+      const weekNumber = Number(day.week_number || 0);
+      return weekNumber > 0 && weekNumber % 4 === 0 ? "monthly" : "weekly";
+    }
     return "daily";
   }
 
@@ -107,7 +108,7 @@
   }
 
   function evaluateReview(schedule, reviewType) {
-    const limit = reviewType === "monthly" ? 20 : 7;
+    const limit = reviewType === "monthly" ? 28 : 7;
     const threshold = reviewType === "monthly" ? 75 : 70;
     const recent = completedOriginalDays(schedule).slice(-limit);
     if (!recent.length) return { reviewType, threshold, average: 0, pass: false, recentDays: [] };
