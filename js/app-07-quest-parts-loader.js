@@ -163,9 +163,29 @@
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
-    var style=document.createElement('style');style.textContent='.oh-sidebar,.oh-header{display:none!important}.oh-app{display:block!important;min-height:auto!important}.oh-main{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.oh-launcher,.oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}body{overflow-x:hidden!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}';document.head.appendChild(style);
+    document.documentElement.classList.add('ph-content-only');
     parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
   })();</script>`;
+
+  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
+
+  function extractQuestContentOnlyHtml(html) {
+    const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
+    const main = parsed.querySelector("main.oh-main");
+    const gameData = parsed.getElementById("game-data");
+    const runtime = Array.from(parsed.body.querySelectorAll(":scope > script:not(#game-data)"));
+    if (!main || !gameData || !runtime.length) throw new Error("Quest source thiếu main, game-data hoặc runtime.");
+    const output = document.implementation.createHTMLDocument("Pinyin Tone Quest");
+    output.head.innerHTML = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pinyin Tone Quest</title>${CONTENT_ONLY_STYLE}${Array.from(parsed.head.querySelectorAll("style")).map((style) => style.outerHTML).join("")}`;
+    const app = output.createElement("div");
+    app.className = "oh-app ph-content-only";
+    app.appendChild(main.cloneNode(true));
+    output.body.appendChild(app);
+    output.body.appendChild(gameData.cloneNode(true));
+    runtime.forEach((script) => output.body.appendChild(script.cloneNode(true)));
+    output.body.insertAdjacentHTML("beforeend", STORAGE_BOOTSTRAP + GATE_SCRIPT);
+    return "<!doctype html>" + output.documentElement.outerHTML;
+  }
 
   async function loadQuestOffline() {
     const target = frame();
@@ -182,13 +202,10 @@
       const total = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
       const bytes = new Uint8Array(total); let offset = 0;
       buffers.forEach((buffer) => { bytes.set(new Uint8Array(buffer), offset); offset += buffer.byteLength; });
-      let html = decoder.decode(bytes);
-      const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
-      html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
-      html = html.replace(/<\/head>/i, STORAGE_BOOTSTRAP + '</head>');
-      const insertion = html.search(/<\/body>/i);
-      if (insertion >= 0) html = html.slice(0, insertion) + GATE_SCRIPT + html.slice(insertion);
-      else html += GATE_SCRIPT;
+        let html = decoder.decode(bytes);
+        const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
+        html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
+        html = extractQuestContentOnlyHtml(html);
       objectUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
       target.onload = () => { activeFrameWindow = target.contentWindow; refreshQuestGate(); };
       target.src = objectUrl; target.style.opacity = "1";
@@ -202,7 +219,7 @@
     return loadPromise;
   }
 
-  window.PandaHanQuestParts = { parts: PARTS.slice(), loadQuestOffline, refreshQuestGate };
+  window.PandaHanQuestParts = { parts: PARTS.slice(), loadQuestOffline, refreshQuestGate, extractQuestContentOnlyHtml };
   window.addEventListener("message", handleQuestMessage);
   document.addEventListener("DOMContentLoaded", () => {
     const reviewButton = document.getElementById("questReviewErrorsBtn");
