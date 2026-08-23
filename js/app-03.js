@@ -800,8 +800,9 @@ function pvNextSession() {
 
       // Học viên chỉ được thấy Giáo viên trong danh sách liên hệ — không nhắn
       // tin trực tiếp được với học viên khác.
-      if (!isTeacherRole()) {
+        if (!isTeacherRole()) {
         contacts = contacts.filter(u => u.role === "teacher" || u.role === "master_teacher");
+        contacts.unshift({ uid: "__pandahan_ai__", name: "PandaHán AI Coach", role: "ai", isAi: true });
       }
     } catch (e) {
       console.error("initChatSystem error:", e);
@@ -822,10 +823,11 @@ function pvNextSession() {
       const div = document.createElement("div");
       div.className = "chat-contact";
       div.dataset.uid = uid;
-      const roleLabel = (u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 Giáo viên" : "🎓 Học viên";
-      const roleColor = (u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)";
+      const isAi = !!u.isAi;
+      const roleLabel = isAi ? "🤖 Trợ lý lộ trình 120 ngày" : ((u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 Giáo viên" : "🎓 Học viên");
+      const roleColor = isAi ? "var(--pink)" : ((u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)");
 
-      div.innerHTML = '<div class="cc-avatar">' + (u.name || "U").charAt(0).toUpperCase() + '</div>' +
+      div.innerHTML = '<div class="cc-avatar">' + (isAi ? "🤖" : (u.name || "U").charAt(0).toUpperCase()) + '</div>' +
         '<div class="cc-meta">' +
           '<div class="cc-name">' + escapeHtml(u.name || u.username) + '</div>' +
           '<div class="cc-role" style="color:' + roleColor + ';">' + roleLabel + '</div>' +
@@ -834,10 +836,55 @@ function pvNextSession() {
         document.querySelectorAll(".chat-contact").forEach(el => el.classList.remove("active"));
         div.classList.add("active");
         document.getElementById("chatWrap").classList.add("chat-open"); // mobile: slide to chat view
-        openChatWith(uid, u.name || u.username);
+        if (isAi) openAiCoachChat();
+        else openChatWith(uid, u.name || u.username);
       };
       contactListEl.appendChild(div);
     });
+  }
+
+  function renderAiCoachMessage(text, role) {
+    const area = document.getElementById("chatMessagesArea");
+    if (!area) return;
+    const row = document.createElement("div");
+    row.className = "chat-msg-row " + (role === "user" ? "me" : "them");
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble2";
+    bubble.innerHTML = escapeHtml(String(text || "")).replace(/\n/g, "<br>");
+    row.appendChild(bubble);
+    area.appendChild(row);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function openAiCoachChat() {
+    activeChatUserId = "__pandahan_ai__";
+    activeChatId = "__pandahan_ai__";
+    const title = document.getElementById("activeChatTitle");
+    if (title) title.textContent = "🤖 PandaHán AI Coach · Lộ trình 120 ngày";
+    document.getElementById("chatWrap")?.classList.add("chat-open");
+    const area = document.getElementById("chatMessagesArea");
+    if (!area) return;
+    if (window.PandaHanMission?.renderCoach) {
+      window.PandaHanMission.renderCoach(area);
+      const intro = window.LANG_MODE === "en"
+        ? "I will assign today's tasks in order and explain which lesson to study next. You can ask me about any exercise."
+        : "Tôi sẽ giao nhiệm vụ hôm nay theo thứ tự và hướng dẫn bạn nên học phần nào tiếp theo. Bạn có thể hỏi tôi về từng bài.";
+      const introBox = document.createElement("div");
+      introBox.style.cssText = "margin-top:10px;padding:9px 11px;border-radius:10px;background:#fff7fb;color:#5b4964;font-size:12px;";
+      introBox.textContent = intro;
+      area.appendChild(introBox);
+    } else {
+      area.innerHTML = "<div style=\"padding:12px;\">AI Coach đang tải kế hoạch hôm nay...</div>";
+    }
+  }
+
+  async function sendAiCoachMessage(text) {
+    const area = document.getElementById("chatMessagesArea");
+    if (!area || !text) return;
+    renderAiCoachMessage(text, "user");
+    const reply = window.PandaHanMission?.replyTo ? window.PandaHanMission.replyTo(text) : "Kế hoạch hôm nay đang được tải. Hãy thử lại sau một chút.";
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    renderAiCoachMessage(reply, "bot");
   }
 
   function getChatId(uid1, uid2) {
@@ -1108,7 +1155,15 @@ function pvNextSession() {
     if (sendBtn && msgInput) {
       const doSend = async () => {
         const text = msgInput.value.trim();
-        if ((!text && !pendingChatFile) || !activeChatId || !CURRENT_USER) return;
+        if ((!text && !pendingChatFile)) return;
+        if (activeChatUserId === "__pandahan_ai__") {
+          if (!text || pendingChatFile) return;
+          msgInput.value = "";
+          sendBtn.disabled = true;
+          try { await sendAiCoachMessage(text); } finally { sendBtn.disabled = false; }
+          return;
+        }
+        if (!CURRENT_USER || !activeChatId) return;
         const myUid = CURRENT_USER.uid || CURRENT_USER.username;
 
         sendBtn.disabled = true;
