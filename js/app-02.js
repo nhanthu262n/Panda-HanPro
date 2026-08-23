@@ -2677,21 +2677,24 @@ function updateNotifBell() {
   const streakAtRisk = pendingStreak > 0 && !hasActivityToday() && hour >= STREAK_WARNING_HOUR;
   const planNotificationCount = (Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [])
     .filter((item) => item && (item.type === "daily_plan" || item.type === "quest_score_saved" || item.type === "learning_evaluation") && item.read !== true).length;
-  const count = due + (streakAtRisk ? 1 : 0) + Math.min(planNotificationCount, 3);
+  const count = due + (streakAtRisk ? 1 : 0) + Math.min(planNotificationCount, 2);
   const badge = document.getElementById("notifBadge");
   if (badge) { badge.style.display = count > 0 ? "block" : "none"; badge.textContent = count > 9 ? "9+" : String(count); }
 
   const dd = document.getElementById("notifDropdown");
   if (!dd) return;
   let html = "";
-  const planItems = (Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [])
-    .filter((item) => item && (item.type === "daily_plan" || item.type === "quest_score_saved" || item.type === "learning_evaluation"))
-    .slice(0, 3);
+  const allPlanItems = (Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [])
+    .filter((item) => item && (item.type === "daily_plan" || item.type === "quest_score_saved" || item.type === "learning_evaluation"));
+  const planItems = [
+    allPlanItems.find((item) => item.type === "daily_plan"),
+    allPlanItems.find((item) => item.type === "quest_score_saved" || item.type === "learning_evaluation")
+  ].filter(Boolean);
   if (planItems.length) {
     const planCards = planItems.map((item) => {
       const title = LANG_MODE === "en" ? (item.title_en || item.title || "Study plan") : (item.title_vi || item.title || "Kế hoạch học tập");
       const body = LANG_MODE === "en" ? (item.body_en || item.body || "") : (item.body_vi || item.body || "");
-      return `<div style="padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07);overflow-wrap:anywhere;"><b>📚 ${esc(title)}</b><div style="margin-top:3px;font-size:11px;line-height:1.4;">${esc(body)}</div></div>`;
+      return `<div style="padding:7px 0;border-bottom:1px solid rgba(0,0,0,.07);overflow-wrap:anywhere;"><b>📚 ${esc(title)}</b><div class="notif-body" style="margin-top:3px;font-size:11px;line-height:1.4;">${esc(body)}</div></div>`;
     }).join("");
     html += `<div style="background:#faf5ff;border:1px solid #eadcff;border-radius:9px;padding:8px 10px;margin-bottom:8px;max-width:100%;box-sizing:border-box;"><b>🤖 ${L("Kế hoạch học tập", "Study plan")}</b>${planCards}<div style="margin-top:7px;"><button id="notifAiCoachBtn" style="font-size:11px;padding:5px 9px;border:none;border-radius:7px;background:#8b5cf6;color:#fff;cursor:pointer;max-width:100%;white-space:normal;">💬 ${L("Mở AI Coach để được hướng dẫn", "Open AI Coach for guidance")}</button></div></div>`;
   }
