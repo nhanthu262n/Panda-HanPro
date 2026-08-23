@@ -857,6 +857,7 @@ function pvNextSession() {
   }
 
   function openAiCoachChat() {
+    if (typeof window.switchTab === "function") window.switchTab("chat");
     activeChatUserId = "__pandahan_ai__";
     activeChatId = "__pandahan_ai__";
     const title = document.getElementById("activeChatTitle");
