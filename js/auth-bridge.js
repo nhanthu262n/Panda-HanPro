@@ -49,6 +49,24 @@
     return { ...existing, ...profile, uid: user.uid, email: profile.email, role };
   }
 
+  function localNotificationKey() {
+    const uid = window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest";
+    return `pandahan_local_notifications_${uid}`;
+  }
+  function readLocalNotifications() {
+    try { return JSON.parse(localStorage.getItem(localNotificationKey()) || "[]"); } catch (_) { return []; }
+  }
+  function saveLocalNotification(item) {
+    const list = [item, ...readLocalNotifications().filter((n) => n.id !== item.id)].slice(0, 30);
+    localStorage.setItem(localNotificationKey(), JSON.stringify(list));
+    return list;
+  }
+  function mergeLocalNotifications(remote) {
+    const remoteIds = new Set(remote.map((item) => item.id));
+    return [...remote, ...readLocalNotifications().filter((item) => !remoteIds.has(item.id))]
+      .sort((a, b) => Number(b.created_at || b.createdAt || 0) - Number(a.created_at || a.createdAt || 0)).slice(0, 30);
+  }
+
   async function attachNotifications(uid) {
     if (!rtdb || !uid) return;
     const ref = rtdb.ref("notifications/" + uid).limitToLast(30);
@@ -56,8 +74,8 @@
       const raw = snap.val() || {};
       const items = Object.entries(raw).map(([id, value]) => ({ id, ...(value || {}) }))
         .sort((a, b) => Number(b.created_at || b.createdAt || 0) - Number(a.created_at || a.createdAt || 0));
-      window.PandaHanNotifications = items;
-      const unread = items.filter((item) => item.read !== true && item.is_read !== true).length;
+      window.PandaHanNotifications = mergeLocalNotifications(items);
+      const unread = window.PandaHanNotifications.filter((item) => item.read !== true && item.is_read !== true).length;
       const badge = document.getElementById("notifBadge");
       if (badge) { badge.textContent = String(unread); badge.style.display = unread ? "inline-block" : "none"; }
       const dropdown = document.getElementById("notifDropdown");
@@ -110,6 +128,7 @@
       read: false,
       created_at: Date.now(),
     };
+    saveLocalNotification(item);
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
     const badge = document.getElementById("notifBadge");
     if (badge) { badge.textContent = String(window.PandaHanNotifications.filter((n) => !n.read).length); badge.style.display = "inline-block"; }
@@ -136,6 +155,7 @@
       read: false,
       created_at: Date.now(),
     };
+    saveLocalNotification(item);
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
     const badge = document.getElementById("notifBadge");
     if (badge) { badge.textContent = String(window.PandaHanNotifications.filter((n) => !n.read).length); badge.style.display = "inline-block"; }
