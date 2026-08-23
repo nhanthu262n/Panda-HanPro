@@ -835,7 +835,7 @@ function closeDictLookup() {
 
 /* ---------- AI-teacher fallback: when a looked-up word isn't in the HSK1-3
    dictionary, ask Claude to author an entry in the SAME style as the app's
-   604 curated words (radical breakdown + cultural mnemonic story), then let
+   2,254 curated words (radical breakdown + cultural mnemonic story), then let
    the student save it — from there it's a normal word, tracked by SM-2 just
    like everything else. ---------- */
 async function generateWordExplanation(text) {
@@ -1182,9 +1182,9 @@ function updateHeaderStats() {
   const elL = document.getElementById("hdrLearned");
   const elD = document.getElementById("hdrDue");
   
-  if (el1) el1.textContent = VOCAB.filter(w => w.hsk === 1 && getTier(w.char) > 0).length + "/149";
-  if (el2) el2.textContent = VOCAB.filter(w => w.hsk === 2 && getTier(w.char) > 0).length + "/136";
-  if (el3) el3.textContent = VOCAB.filter(w => w.hsk === 3 && getTier(w.char) > 0).length + "/319";
+  if (el1) el1.textContent = VOCAB.filter(w => w.hsk === 1 && getTier(w.char) > 0).length + "/" + VOCAB.filter(w => w.hsk === 1).length;
+  if (el2) el2.textContent = VOCAB.filter(w => w.hsk === 2 && getTier(w.char) > 0).length + "/" + VOCAB.filter(w => w.hsk === 2).length;
+  if (el3) el3.textContent = VOCAB.filter(w => w.hsk === 3 && getTier(w.char) > 0).length + "/" + VOCAB.filter(w => w.hsk === 3).length;
   if (elL) elL.textContent = VOCAB.filter(w => getTier(w.char) > 0).length;
   if (elD) elD.textContent = VOCAB.filter(w => isDue(w.char)).length;
 }
@@ -2290,7 +2290,7 @@ function getSessions() {
 // beforeunload listener moved to DOMContentLoaded (line ~4584) - combined with syncDataNow
 
 /* ═══ Panda conversation chatbox — practices Chinese using ONLY the
-   604-word HSK1-3 dictionary the student already has, so nothing said
+   2,254-word HSK1-3 dictionary the student already has, so nothing said
    is beyond what they've actually been taught. ═══ */
 let chatHistory = [];
 let currentChatTopicId = 0; // 0 = free conversation, no fixed topic
@@ -2940,8 +2940,8 @@ async function viewStudentProgress(uid, name) {
         const prog = await db.collection("progress").doc(uid).get();
         const stats = prog.exists ? prog.data().stats : {};
         
-        // Tổng số từ HSK 1-3 là 604 (cố định)
-        const totalWords = 604;
+        // Tổng số từ HSK 1-3 lấy trực tiếp từ payload VOCAB đang chạy.
+        const totalWords = typeof VOCAB !== "undefined" && Array.isArray(VOCAB) ? VOCAB.length : 0;
         
         // Chỉ đếm những từ có repetitions > 0 mới tính là "đã học"
         let learned = 0;
