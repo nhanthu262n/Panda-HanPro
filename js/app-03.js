@@ -858,7 +858,14 @@ function pvNextSession() {
   // Calling api.anthropic.com directly from the browser never works outside
   // Claude.ai's own artifact sandbox — no key, and the API blocks browser
   // CORS requests anyway.
-  async function callClaudeAI(){return "AI Chat Box bản tối ưu đang chạy ở chế độ nội bộ; hãy chọn chủ đề HSK để luyện hội thoại mẫu.";}
+  async function callClaudeAI(prompt){
+    // Offline-safe adapter. It deliberately returns a structured unavailable
+    // response for dictionary-generation prompts instead of throwing a
+    // ReferenceError or exposing an API key in the static client.
+    if (/JSON|mục từ điển|câu ví dụ/i.test(String(prompt || ""))) return JSON.stringify({ error: "offline_unavailable" });
+    return "AI Chat Box bản tối ưu đang chạy ở chế độ nội bộ; hãy chọn chủ đề HSK để luyện hội thoại mẫu.";
+  }
+  window.callClaudeAI = callClaudeAI;
 
   const CHAT_FILE_MAX_MB = 15;
   const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
@@ -897,6 +904,7 @@ function pvNextSession() {
   async function uploadChatFile(){throw new Error("Tải tệp cloud đã tắt trong bản tối ưu host.");}
 
   function renderMessageBubble(m, isMe) {
+    const messageText = window.LANG_MODE === "en" ? (m.text_en || m.text || m.text_vi || "") : (m.text_vi || m.text || m.text_en || "");
     const isBroadcast = !!m.isBroadcast;
     const row = document.createElement("div");
     row.className = "chat-msg-row " + (isMe ? "me" : "them") + (isBroadcast ? " broadcast" : "");
@@ -917,9 +925,9 @@ function pvNextSession() {
       if (m.driveDownloadUrl) {
         inner += '<br><a href="' + m.driveDownloadUrl + '" target="_blank" rel="noopener" class="chat-dl-link">⬇ Tải xuống / Download</a>';
       }
-      if (m.text) inner += '<div style="margin-top:4px;">' + escapeHtml(m.text) + '</div>';
-    } else if (m.text) {
-      inner += '<div>' + escapeHtml(m.text) + '</div>';
+      if (messageText) inner += '<div style="margin-top:4px;">' + escapeHtml(messageText) + '</div>';
+    } else if (messageText) {
+      inner += '<div>' + escapeHtml(messageText) + '</div>';
     }
     inner += '<div class="chat-msg-time">' + timeStr + '</div>';
     bubble.innerHTML = inner;
