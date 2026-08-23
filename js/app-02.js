@@ -506,6 +506,15 @@ function setPracticeSaveStatus(message, isError = false) {
   clearTimeout(setPracticeSaveStatus.timer);
   setPracticeSaveStatus.timer = setTimeout(() => { el.style.display = "none"; }, 7000);
 }
+function practiceTaskId(source) {
+  const map = { quest: "quest", "pinyin-tone-quest": "quest", "tone-race": "listening", listening: "listening", speaking: "speaking", srs: "srs", flashcards: "srs", quiz: "reading_writing", match: "reading_writing", write: "reading_writing", unscramble: "reading_writing", advanced: "reading_writing", practice: "reading_writing" };
+  return map[String(source || "").toLowerCase()] || "reading_writing";
+}
+function practiceMissingText(result) {
+  const missing = Array.isArray(result?.result?.missingTaskIds) ? result.result.missingTaskIds : [];
+  const labels = { listening: "Nghe", speaking: "Nói", reading_writing: "Đọc/Viết", srs: "SRS", quest: "Pinyin Quest" };
+  return missing.map((id) => labels[id] || id).join(", ");
+}
 async function savePracticeCompletion(score, source = "practice") {
   const api = window.PandaHanSchedule;
   if (!api || typeof api.submitDayResult !== "function") {
@@ -524,20 +533,30 @@ async function savePracticeCompletion(score, source = "practice") {
         return { committed: false, reason: "no_unlocked_day", source };
       }
       const today = typeof api.todayVietnam === "function" ? api.todayVietnam() : new Date().toISOString().slice(0, 10);
-      const key = practiceSaveKey(current.day_number, today);
+      const taskId = practiceTaskId(source);
+      const numericScore = Math.max(0, Math.min(100, Number(score) || 0));
+      const key = practiceSaveKey(current.day_number, today) + "_" + taskId + "_" + numericScore;
       if (localStorage.getItem(key) === "1") {
-        setPracticeSaveStatus(`✅ Tiến độ ngày ${current.day_number} đã được lưu.`, false);
-        return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number) };
+        setPracticeSaveStatus(`✅ Nhiệm vụ ${taskId} với điểm ${numericScore}% của ngày ${current.day_number} đã được lưu.`, false);
+        return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number), taskId, score: numericScore };
       }
-      const result = await api.submitDayResult(Number(current.day_number), Math.max(0, Math.min(100, Number(score) || 0)));
+      const result = await api.submitDayResult(Number(current.day_number), numericScore, { taskId, source });
       localStorage.setItem(key, "1");
       const passed = result?.result?.passed === true;
-      setPracticeSaveStatus(`✅ Đã lưu tiến độ ngày ${current.day_number}${passed ? " và mở buổi tiếp theo." : "; hệ thống đã tạo phần ôn lại."}`);
-      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score, result } }));
-      return { committed: true, source, result };
+      const missingText = practiceMissingText(result);
+      let status = `✅ Đã lưu ${taskId} ngày ${current.day_number} (${numericScore}%).`;
+      if (passed) status += " Đã đủ điều kiện và mở buổi tiếp theo.";
+      else if (missingText) status += ` Còn cần: ${missingText}.`;
+      else status += " Điểm chưa đạt, cần ôn lại ngày này.";
+      setPracticeSaveStatus(status, false);
+      const evaluation = { source: "practice", taskId, dayNumber: Number(current.day_number), scorePercent: numericScore, ...result.result, evaluatedAt: Date.now() };
+      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: numericScore, result, taskId } }));
+      window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: evaluation }));
+      return { committed: true, source, taskId, result };
     } catch (error) {
       console.error("Practice progress save:", error);
-      setPracticeSaveStatus("❌ Không lưu được tiến độ lên Firebase. Bài luyện vẫn được giữ trên thiết bị; hãy thử lại khi có mạng.", true);
+      const suffix = error.code === "INCOMPLETE_DAY_REQUIREMENTS" ? " Bài vẫn được lưu; hãy hoàn thành đủ nhiệm vụ Excel trong AI Coach." : "";
+      setPracticeSaveStatus("❌ Không lưu được tiến độ lên Firebase." + suffix, true);
       return { committed: false, reason: error.code || error.message || "save_failed", source };
     } finally {
       practiceSaveInFlight = null;
@@ -2663,51 +2682,36 @@ function checkStreakWarning() {
    dropdown) — a more standard, professional notification pattern. ---------- */
 function updateNotifBell() {
   if (!CURRENT_USER) return;
-  const due = getDueCount();
+  const due = typeof getDueCount === "function" ? Number(getDueCount() || 0) : 0;
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-  const pendingStreak = computeStreak(yesterday);
+  const pendingStreak = typeof computeStreak === "function" ? computeStreak(yesterday) : 0;
   const hour = new Date().getHours();
   const streakAtRisk = pendingStreak > 0 && !hasActivityToday() && hour >= STREAK_WARNING_HOUR;
-  const count = due + (streakAtRisk ? 1 : 0);
+  const notices = Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [];
+  const unread = notices.filter((item) => item && item.read !== true && item.is_read !== true).length;
+  const count = Math.max(unread, due + (streakAtRisk ? 1 : 0));
   const badge = document.getElementById("notifBadge");
-  if (badge) { badge.style.display = count > 0 ? "block" : "none"; badge.textContent = count > 9 ? "9+" : String(count); }
-
+  if (badge) {
+    badge.style.display = count > 0 ? "inline-block" : "none";
+    badge.textContent = count > 9 ? "9+" : String(count);
+  }
   const dd = document.getElementById("notifDropdown");
-  if (!dd) return;
-  let html = "";
-  if (streakAtRisk) {
-    html += `<div style="background:#fee2e2;border-radius:8px;padding:8px 10px;margin-bottom:8px;">
-      <b>⚠️ ${L(`Streak ${pendingStreak} ngày sắp mất!`, `${pendingStreak}-day streak at risk!`)}</b>
-      <div style="margin-top:4px;"><button id="notifPlayBtn" style="font-size:11px;padding:4px 8px;border:none;border-radius:6px;background:#dc2626;color:#fff;cursor:pointer;">🔊 ${L("Nghe nhắc", "Play")}</button></div>
-    </div>`;
-  }
-  if (due > 0) {
-    const dueWords = VOCAB.filter(w => isDue(w.char))
-      .map(w => ({ w, overdue: Math.max(0, Math.floor((Date.now() - getStat(w.char).nextReview) / 86400000)) }))
-      .sort((a, b) => b.overdue - a.overdue);
-    const topList = dueWords.slice(0, 6).map(({ w, overdue }) => {
-      const urgent = overdue >= 3;
-      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:11.5px;">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(w.char)} <span style="color:var(--text-light);">${esc(w.pinyin)}</span></span>
-        <span style="flex:none;color:${urgent ? '#dc2626' : '#a45a7a'};font-weight:${urgent ? '800' : '600'};">${overdue > 0 ? L(`quá hạn ${overdue}n`, `${overdue}d late`) : L('đến hạn', 'due today')}</span>
-      </div>`;
-    }).join("");
-    const moreText = dueWords.length > 6 ? `<div style="font-size:10.5px;color:var(--text-light);text-align:center;margin-top:4px;">${L(`+ ${dueWords.length - 6} từ khác`, `+ ${dueWords.length - 6} more`)}</div>` : "";
-    html += `<div style="background:var(--pink-light);border-radius:8px;padding:8px 10px;margin-bottom:8px;">
-      <b>📅 ${L(`${due} từ cần ôn`, `${due} words due`)}</b>
-      <div style="margin:6px 0;border-top:1px solid rgba(0,0,0,.06);padding-top:4px;max-height:130px;overflow-y:auto;">${topList}</div>
-      ${moreText}
-      <div style="margin-top:4px;"><button id="notifReviewBtn" style="font-size:11px;padding:4px 8px;border:none;border-radius:6px;background:var(--pink);color:#fff;cursor:pointer;">🎯 ${L("Ôn ngay", "Review now")}</button></div>
-    </div>`;
-  }
-  if (!streakAtRisk && due === 0) {
-    html += `<div style="color:var(--text-light);text-align:center;padding:10px 0;">✅ ${L("Không có gì cần nhắc lúc này!", "Nothing to remind you of right now!")}</div>`;
-  }
-  dd.innerHTML = html;
-  const playBtn = document.getElementById("notifPlayBtn");
-  if (playBtn) playBtn.addEventListener("click", (e) => { e.stopPropagation(); playReminderAudio().catch(() => {}); });
-  const reviewBtn = document.getElementById("notifReviewBtn");
-  if (reviewBtn) reviewBtn.addEventListener("click", () => { document.getElementById("notifDropdown").style.display = "none"; switchTab("review"); });
+  if (!dd || dd.dataset.rendered === "open") return;
+  const summary = count > 0
+    ? L(`${count} cập nhật học tập đang chờ xem`, `${count} learning update${count === 1 ? "" : "s"} to review`)
+    : L("Kế hoạch và nhận xét nằm trong AI Coach", "Your plan and feedback are in AI Coach");
+  dd.innerHTML = `<div style="padding:4px 0 10px;text-align:center;color:#5b4964;line-height:1.45;">🔔 <b>${summary}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${L("Xem kế hoạch, điểm và phần cần ôn trong một nơi.", "View your plan, scores and review items in one place.")}</div></div><button type="button" id="notifAiCoachBtn" style="display:block;width:100%;border:0;border-radius:9px;padding:8px 10px;background:var(--pink,#ec4899);color:#fff;font-weight:800;cursor:pointer;">💬 ${L("Mở AI Coach", "Open AI Coach")}</button>`;
+  const coachBtn = document.getElementById("notifAiCoachBtn");
+  if (coachBtn) coachBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    dd.style.display = "none";
+    dd.dataset.rendered = "";
+    if (typeof switchTab === "function") switchTab("chat");
+    setTimeout(() => {
+      if (typeof window.openAiCoachChat === "function") window.openAiCoachChat();
+      else document.querySelector('.chat-contact[data-ai="true"]')?.click();
+    }, 60);
+  });
 }
 function renderMergedHistory() {
   const el = document.getElementById("mergedHistoryList");
