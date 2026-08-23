@@ -12,50 +12,35 @@
   let activeFrameWindow = null;
   let lastQuestResultKey = null;
 
+  function userNamespace() {
+    try {
+      if (typeof window.storageNamespace === "function") return String(window.storageNamespace() || "guest");
+      const uid = window.CURRENT_USER?.uid || window.CURRENT_USER?.username;
+      return String(uid || "guest").replace(/[^a-zA-Z0-9_-]/g, "_");
+    } catch (_) { return "guest"; }
+  }
+  function parentProgressKey() { return `pandahan_quest_progress_summary_${userNamespace()}`; }
+  function outerStatus(text, isError = false) {
+    const node = document.getElementById("questProgressSyncStatus");
+    if (!node) return;
+    node.textContent = text;
+    node.style.color = isError ? "#b42318" : "#6d4a7c";
+    node.style.borderColor = isError ? "#f3b4b4" : "#ddd6fe";
+  }
+  function showPersistedSummary() {
+    try {
+      const summary = JSON.parse(localStorage.getItem(parentProgressKey()) || "null");
+      if (!summary) return;
+      outerStatus(`Quest đã lưu: ${Number(summary.completedCount || 0)}/120 ngày · ${Number(summary.mistakesCount || 0)} câu trong sổ ôn`);
+    } catch (_) {}
+  }
+
   function frame() { return document.getElementById("pinyinToneQuestFrame"); }
   function setStatus(message, isError = false) {
     const target = frame();
     if (!target) return;
     target.title = message;
     target.style.opacity = isError ? "0.35" : "0.7";
-  }
-
-  function questResultStorageKey() {
-    const user = typeof CURRENT_USER !== "undefined" && CURRENT_USER ? CURRENT_USER : null;
-    const identity = user && (user.uid || user.username || user.email) ? (user.uid || user.username || user.email) : "guest";
-    return "pandahan_quest_last_result_v1_" + String(identity).replace(/[^a-zA-Z0-9_-]/g, "_");
-  }
-
-  function renderQuestResultStatus(detail) {
-    const box = document.getElementById("pinyinQuestResultStatus");
-    if (!box || !detail) return;
-    const score = Math.max(0, Math.min(100, Number(detail.scorePercent || 0)));
-    const threshold = Number(detail.threshold || 80);
-    const passed = detail.passed === true;
-    const action = String(detail.action || (passed ? "advance" : "review"));
-    const repeatCount = Number(detail.repeatCount || 0);
-    const sourceText = detail.source === "quest" || detail.source === "pinyin-tone-quest" ? "Pinyin Tone Quest" : "bài luyện";
-    const actionText = passed
-      ? "✅ Đã đạt ngưỡng — buổi tiếp theo được xét mở."
-      : `🔁 Chưa đạt ngưỡng — hệ thống giữ gate và tạo ${repeatCount || 1} buổi ôn lại.`;
-    box.classList.toggle("is-review", !passed);
-    box.style.display = "flex";
-    box.innerHTML = `<span class="quest-score">${score}%</span><div class="quest-result-copy"><b>Đã lưu kết quả ${sourceText} · Ngày ${Number(detail.dayNumber || 0)}</b><div>Ngưỡng: ${threshold}% · Hành động: ${action}</div><div class="quest-result-action">${actionText}</div></div>`;
-  }
-
-  function restoreQuestResultStatus() {
-    try {
-      const raw = localStorage.getItem(questResultStorageKey());
-      if (raw) renderQuestResultStatus(JSON.parse(raw));
-    } catch (_) {}
-  }
-
-  function publishQuestResult(detail) {
-    const normalized = { ...detail, source: "quest", evaluatedAt: Date.now() };
-    try { localStorage.setItem(questResultStorageKey(), JSON.stringify(normalized)); } catch (_) {}
-    renderQuestResultStatus(normalized);
-    window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: normalized }));
-    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: normalized }));
   }
 
   async function getScheduleForQuest() {
@@ -91,6 +76,19 @@
     if (data.type === "PANDAHAN_QUEST_READY") {
       activeFrameWindow = target.contentWindow;
       await refreshQuestGate();
+      showPersistedSummary();
+      return;
+    }
+    if (data.type === "PANDAHAN_QUEST_PROGRESS") {
+      const summary = {
+        completedCount: Number(data.completedCount || 0),
+        mistakesCount: Number(data.mistakesCount || 0),
+        lastDay: Number(data.lastDay || 0),
+        lastScorePercent: Number(data.lastScorePercent || 0),
+        updatedAt: Number(data.updatedAt || Date.now()),
+      };
+      try { localStorage.setItem(parentProgressKey(), JSON.stringify(summary)); } catch (_) {}
+      outerStatus(`Quest đã lưu: ${summary.completedCount}/120 ngày · ${summary.mistakesCount} câu trong sổ ôn`);
       return;
     }
     if (data.type !== "PANDAHAN_QUEST_DAY_RESULT") return;
@@ -104,24 +102,31 @@
           ? window.PandaHanSchedule.submitQuestResult(day, score, data.resultToken)
           : window.PandaHanSchedule.submitDayResult(day, score));
         await refreshQuestGate();
-        publishQuestResult({
+        const evaluation = {
           dayNumber: day,
           scorePercent: score,
           passed: !!result?.result?.passed,
           threshold: Number(result?.result?.threshold || 80),
           reviewType: result?.result?.reviewType || "daily",
           repeatCount: Number(result?.result?.repeatCount || 0),
-          action: result?.result?.action || "advance",
-          resultToken: String(data.resultToken || "")
-        });
+          action: result?.result?.action || "advance"
+        };
+        outerStatus(`Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`);
+        window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
+        window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", ...evaluation, evaluatedAt: Date.now() } }));
       }
     } catch (error) {
+      outerStatus("Chưa đồng bộ được kết quả Quest vào lộ trình; dữ liệu ôn tập offline vẫn được giữ.", true);
       console.warn("Quest result was not committed to schedule:", error.message || error);
     }
   }
 
+  const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();<\\/script>`;
   const GATE_SCRIPT = `<script>(function(){
     var gate={unlockedDays:[1],completedDays:[]};
+    function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
+    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:Array.isArray(p.mistakes)?p.mistakes.length:0,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
+    setInterval(reportProgress,700);
     var resultSent={}; var lastStartedDay=0;
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
@@ -147,8 +152,8 @@
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
     var style=document.createElement('style');style.textContent='.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}';document.head.appendChild(style);
-    parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply();
-  })();<\/script>`;
+    parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
+  })();<\\/script>`;
 
   async function loadQuestOffline() {
     const target = frame();
@@ -166,12 +171,16 @@
       const bytes = new Uint8Array(total); let offset = 0;
       buffers.forEach((buffer) => { bytes.set(new Uint8Array(buffer), offset); offset += buffer.byteLength; });
       let html = decoder.decode(bytes);
+      const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
+      html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
+      html = html.replace(/<\/head>/i, STORAGE_BOOTSTRAP + '</head>');
       const insertion = html.search(/<\/body>/i);
       if (insertion >= 0) html = html.slice(0, insertion) + GATE_SCRIPT + html.slice(insertion);
       else html += GATE_SCRIPT;
       objectUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
       target.onload = () => { activeFrameWindow = target.contentWindow; refreshQuestGate(); };
       target.src = objectUrl; target.style.opacity = "1";
+      outerStatus("Quest đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản");
       return objectUrl;
     }).catch((error) => {
       loadPromise = null; target.style.opacity = "1";
@@ -185,8 +194,8 @@
   window.addEventListener("message", handleQuestMessage);
   window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
   document.addEventListener("DOMContentLoaded", () => {
-    restoreQuestResultStatus();
     const card = document.getElementById("pCardPinyinQuest");
-    if (card) card.addEventListener("click", () => { restoreQuestResultStatus(); loadQuestOffline().catch(() => {}); });
+    if (card) card.addEventListener("click", () => loadQuestOffline().catch(() => {}));
+    showPersistedSummary();
   });
 })();
