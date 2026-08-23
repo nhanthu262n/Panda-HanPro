@@ -105,18 +105,25 @@
   async function initScheduleIfNeeded() {
     const uid = getUid();
     const server = await readServerSchedule(uid).catch(() => null);
-    if (server) return server;
+    if (server) {
+      publishLocalDailyPlan(server);
+      return server;
+    }
     const local = loadLocal();
     if (local) {
       if (uid) await writeServerSchedule(uid, local).catch(() => {});
+      publishLocalDailyPlan(local);
       return local;
     }
     const schedule = core.createInitialSchedule(await loadCurriculumDays(), core.todayVietnam());
     saveLocal(schedule);
     if (uid) {
       const result = await writeServerSchedule(uid, schedule);
-      return result.schedule || schedule;
+      const finalSchedule = result.schedule || schedule;
+      publishLocalDailyPlan(finalSchedule);
+      return finalSchedule;
     }
+    publishLocalDailyPlan(schedule);
     return schedule;
   }
 
@@ -216,7 +223,6 @@
     const today = core.todayVietnam();
     const uid = getUid() || "guest";
     const key = `pandahan_local_daily_plan_${uid}_${today}_${Number(current.sequence_index)}`;
-    if (localStorage.getItem(key) === "1") return;
     localStorage.setItem(key, "1");
     window.dispatchEvent(new CustomEvent("pandahan-daily-plan", {
       detail: {
