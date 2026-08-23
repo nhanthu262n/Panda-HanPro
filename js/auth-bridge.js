@@ -140,6 +140,33 @@
     }
   });
 
+  window.addEventListener("pandahan-quest-score-saved", (event) => {
+    const detail = event.detail || {};
+    const day = Number(detail.dayNumber || 0);
+    const score = Number(detail.scorePercent || 0);
+    if (!day) return;
+    const passed = !!detail.passed;
+    const item = {
+      id: `quest_score_${day}_${score}`,
+      type: "quest_score_saved",
+      title_vi: passed ? `Pinyin Tone Quest ngày ${day}: đạt ${score}%` : `Pinyin Tone Quest ngày ${day}: ${score}% — cần ôn lại`,
+      title_en: passed ? `Pinyin Tone Quest day ${day}: ${score}% passed` : `Pinyin Tone Quest day ${day}: ${score}% — review required`,
+      body_vi: passed ? `Bạn đã đạt ngưỡng ${Number(detail.threshold || 80)}%. Ngày học tiếp theo đã được xét mở theo lộ trình.` : `Bạn chưa đạt ngưỡng ${Number(detail.threshold || 80)}%. Hệ thống giữ gate và tạo ${Number(detail.repeatCount || 1)} buổi ôn trước khi mở nội dung mới.`,
+      body_en: passed ? `You met the ${Number(detail.threshold || 80)}% threshold. The next learning day was evaluated for unlock.` : `You did not meet the ${Number(detail.threshold || 80)}% threshold. The gate stays in place and ${Number(detail.repeatCount || 1)} review session(s) were created before new content unlocks.`,
+      read: false,
+      created_at: Date.now(),
+      day_number: day,
+      score_percent: score,
+      passed,
+      threshold: Number(detail.threshold || 80),
+      repeat_count: Number(detail.repeatCount || 0)
+    };
+    saveLocalNotification(item);
+    window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
+    const badge = document.getElementById("notifBadge");
+    if (badge) { badge.textContent = String(window.PandaHanNotifications.filter((n) => !n.read).length); badge.style.display = "inline-block"; }
+  });
+
   window.addEventListener("pandahan-schedule-missed", (event) => {
     const detail = event.detail || {};
     const day = Number(detail.sourceDayNumber || 0);
