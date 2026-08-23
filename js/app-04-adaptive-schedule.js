@@ -31,8 +31,44 @@
     return window.firebase.database();
   }
 
+  function hydrateScheduleSync(schedule) {
+    if (!schedule || !Array.isArray(schedule.days)) return schedule;
+    let curriculum = [];
+    try { curriculum = JSON.parse(localStorage.getItem(CURRICULUM_CACHE_KEY) || "[]"); } catch (_) { curriculum = []; }
+    const byDay = new Map((Array.isArray(curriculum) ? curriculum : []).map((item) => [Number(item.day_number), item]));
+    schedule.days.forEach((day) => {
+      const item = byDay.get(Number(day.day_number));
+      if (item) {
+        if (!Array.isArray(day.required_tasks) || !day.required_tasks.length) day.required_tasks = core.getMandatoryTaskIds(item);
+        day.topic = day.topic || item.topic || "";
+        day.week_number = day.week_number || item.week_number || null;
+        day.day_type = day.day_type || item.day_type || "new_content";
+        day.required_score = Number(day.required_score || item.required_score || 80);
+      }
+      day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
+      day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
+    });
+    // Legacy schedules may have marked a day completed from score alone. Do
+    // not let that legacy flag unlock later content: the learner must repeat
+    // the first day lacking real task evidence.
+    let gateBroken = false;
+    const ordered = schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0));
+    ordered.forEach((day) => {
+      const isComplete = Array.isArray(day.required_tasks) && day.required_tasks.every((id) => day.completed_tasks[id]);
+      if (!gateBroken && day.status === "completed" && !isComplete) {
+        day.status = "unlocked";
+        day.completed_at = null;
+        gateBroken = true;
+      } else if (gateBroken && day.status === "unlocked") {
+        day.status = "locked";
+        day.scheduled_date = null;
+      }
+    });
+    return schedule;
+  }
+
   function loadLocal() {
-    try { return JSON.parse(localStorage.getItem(SCHEDULE_KEY())) || null; }
+    try { return hydrateScheduleSync(JSON.parse(localStorage.getItem(SCHEDULE_KEY())) || null); }
     catch (_) { return null; }
   }
 
@@ -75,7 +111,7 @@
     const rtdb = getRtdb();
     if (!rtdb || !uid) return null;
     const snapshot = await rtdb.ref(`${SCHEDULE_PATH}/${uid}`).once("value");
-    const schedule = normalizeSchedule(snapshot.val());
+    const schedule = hydrateScheduleSync(normalizeSchedule(snapshot.val()));
     if (schedule) saveLocal(schedule);
     return schedule;
   }
@@ -103,6 +139,7 @@
   }
 
   async function initScheduleIfNeeded() {
+    await loadCurriculumDays().catch((error) => console.warn("Curriculum preload:", error.message || error));
     const uid = getUid();
     const server = await readServerSchedule(uid).catch(() => null);
     if (server) {
@@ -143,12 +180,12 @@
     });
   }
 
-  async function submitWithRtdb(dayNumber, score, today) {
+  async function submitWithRtdb(dayNumber, score, today, options = {}) {
     const uid = getUid();
     const rtdb = getRtdb();
     if (!uid || !rtdb) {
       const local = loadLocal() || await initScheduleIfNeeded();
-      const result = core.applySubmit(local, dayNumber, score, today);
+      const result = core.applySubmit(local, dayNumber, score, today, options);
       saveLocal(result.schedule);
       return result;
     }
@@ -157,9 +194,9 @@
     let error = null;
     const transaction = await ref.transaction((current) => {
       try {
-        const schedule = normalizeSchedule(current) || loadLocal();
+        const schedule = hydrateScheduleSync(normalizeSchedule(current) || loadLocal());
         if (!schedule) throw new Error("Chưa khởi tạo lộ trình.");
-        output = core.applySubmit(schedule, dayNumber, score, today);
+        output = core.applySubmit(schedule, dayNumber, score, today, options);
         output.schedule._meta = { ...(output.schedule._meta || {}), version: Number(schedule._meta?.version || 0) + 1 };
         return output.schedule;
       } catch (caught) {
@@ -181,8 +218,8 @@
     return output;
   }
 
-  async function submitDayResult(dayNumber, score) {
-    const result = await submitWithRtdb(dayNumber, score, core.todayVietnam());
+  async function submitDayResult(dayNumber, score, options = {}) {
+    const result = await submitWithRtdb(dayNumber, score, core.todayVietnam(), options);
     window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
     return result;
   }
@@ -221,7 +258,7 @@
     let result = null;
     let submitError = null;
     try {
-      result = await submitDayResult(dayNumber, score);
+      result = await submitDayResult(dayNumber, score, { taskId: "quest", source: "pinyin-tone-quest" });
     } catch (error) {
       submitError = error;
       try {
@@ -229,7 +266,7 @@
         if (!local) local = await initScheduleIfNeeded();
         const active = local?.days?.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
         if (active) {
-          const applied = core.applySubmit(local, dayNumber, score, core.todayVietnam());
+          const applied = core.applySubmit(local, dayNumber, score, core.todayVietnam(), { taskId: "quest", source: "pinyin-tone-quest" });
           saveLocal(applied.schedule);
           result = { ...applied, offlineFallback: true };
           window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
@@ -251,6 +288,8 @@
       reviewType: result?.result?.reviewType || "daily",
       repeatCount: Number(result?.result?.repeatCount || 0),
       action: result?.result?.action || "advance",
+      missingTaskIds: Array.isArray(result?.result?.missingTaskIds) ? result.result.missingTaskIds : [],
+      requiredTaskIds: Array.isArray(result?.result?.requiredTaskIds) ? result.result.requiredTaskIds : [],
       offlineFallback: !!result?.offlineFallback,
       resultToken: String(resultToken || ""),
       createdAt: new Date().toISOString()
@@ -267,6 +306,44 @@
       }
     }
     return result;
+  }
+
+  async function completeTask(dayNumber, taskId, source = "coach_confirmation") {
+    const today = core.todayVietnam();
+    const uid = getUid();
+    const rtdb = getRtdb();
+    let output = null;
+    if (!uid || !rtdb) {
+      const local = loadLocal() || await initScheduleIfNeeded();
+      output = core.recordTaskCompletion(local, dayNumber, taskId, today, source);
+      saveLocal(output.schedule);
+    } else {
+      const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
+      let error = null;
+      const transaction = await ref.transaction((current) => {
+        try {
+          const schedule = hydrateScheduleSync(normalizeSchedule(current) || loadLocal());
+          if (!schedule) throw new Error("Chưa khởi tạo lộ trình.");
+          output = core.recordTaskCompletion(schedule, dayNumber, taskId, today, source);
+          output.schedule._meta = { ...(output.schedule._meta || {}), version: Number(schedule._meta?.version || 0) + 1 };
+          return output.schedule;
+        } catch (caught) { error = caught; return; }
+      });
+      if (error) throw error;
+      if (!transaction.committed || !output) throw new Error("Không ghi được completion task vào schedule RTDB.");
+      saveLocal(output.schedule);
+      await writeReviewLog(uid, output.result.reviewType || "daily", {
+        dayNumber: Number(dayNumber), taskId: String(taskId), source,
+        action: output.result.action, missingTaskIds: output.result.missingTaskIds || [], date: today,
+      });
+    }
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: output }));
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: {
+      source: "task", dayNumber: Number(dayNumber), taskId: String(taskId), action: output.result.action,
+      passed: !!output.result.passed, scorePercent: output.result.score, threshold: output.result.threshold,
+      missingTaskIds: output.result.missingTaskIds || [], requiredTaskIds: output.result.requiredTaskIds || [], evaluatedAt: Date.now(),
+    }}));
+    return output;
   }
 
   function publishLocalDailyPlan(schedule) {
@@ -304,7 +381,7 @@
     const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
     let extensionResult = null;
     const transaction = await ref.transaction((current) => {
-      const schedule = normalizeSchedule(current) || loadLocal();
+      const schedule = hydrateScheduleSync(normalizeSchedule(current) || loadLocal());
       if (!schedule) return;
       extensionResult = core.applyDailyExtension(schedule, today);
       extensionResult.schedule._meta = { ...(extensionResult.schedule._meta || {}), version: Number(schedule._meta?.version || 0) + 1 };
@@ -341,6 +418,7 @@
     initScheduleIfNeeded,
     submitDayResult,
     submitQuestResult,
+    completeTask,
     runCatchUpCheck,
     computeWeeklyReview,
     computeMonthlyReview,
