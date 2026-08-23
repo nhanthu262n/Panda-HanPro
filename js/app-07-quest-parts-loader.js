@@ -11,6 +11,7 @@
   let objectUrl = null;
   let activeFrameWindow = null;
   let lastQuestResultKey = null;
+  let questResultInFlight = null;
 
   function userNamespace() {
     try {
@@ -101,8 +102,9 @@
     if (data.type !== "PANDAHAN_QUEST_DAY_RESULT") return;
     const day = Number(data.day);
     const score = Math.max(0, Math.min(100, Number(data.scorePercent)));
-    if (!day || !Number.isFinite(score) || lastQuestResultKey === `${day}:${score}:${data.resultToken || ""}`) return;
-    lastQuestResultKey = `${day}:${score}:${data.resultToken || ""}`;
+    const resultKey = `${day}:${score}:${data.resultToken || ""}`;
+    if (!day || !Number.isFinite(score) || lastQuestResultKey === resultKey || questResultInFlight === resultKey) return;
+    questResultInFlight = resultKey;
     try {
       if (window.PandaHanSchedule?.submitDayResult) {
         const result = await (window.PandaHanSchedule.submitQuestResult
@@ -121,10 +123,13 @@
         outerStatus(`Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`);
         window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
         window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", ...evaluation, evaluatedAt: Date.now() } }));
+        lastQuestResultKey = resultKey;
       }
     } catch (error) {
       outerStatus("Chưa đồng bộ được kết quả Quest vào lộ trình; dữ liệu ôn tập offline vẫn được giữ.", true);
       console.warn("Quest result was not committed to schedule:", error.message || error);
+    } finally {
+      questResultInFlight = null;
     }
   }
 
