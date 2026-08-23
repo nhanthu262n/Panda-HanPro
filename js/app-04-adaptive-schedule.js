@@ -180,6 +180,34 @@
     return result;
   }
 
+  async function submitQuestResult(dayNumber, score, resultToken) {
+    const result = await submitDayResult(dayNumber, score);
+    const record = {
+      source: "pinyin-tone-quest",
+      dayNumber: Number(dayNumber),
+      scorePercent: Number(score),
+      passed: !!result?.result?.passed,
+      threshold: Number(result?.result?.threshold || 80),
+      reviewType: result?.result?.reviewType || "daily",
+      repeatCount: Number(result?.result?.repeatCount || 0),
+      resultToken: String(resultToken || ""),
+      createdAt: new Date().toISOString()
+    };
+    const uid = getUid();
+    const rtdb = getRtdb();
+    if (uid && rtdb) {
+      const key = `quest_${record.dayNumber}_${record.scorePercent}_${String(resultToken || "").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+      await rtdb.ref(`${REVIEW_LOG_PATH}/${uid}/${key}`).set({ review_type: "quest", ...record, created_at: firebase.database.ServerValue.TIMESTAMP });
+    } else {
+      const key = "pandahan_quest_results_" + storageNamespace();
+      let history = [];
+      try { history = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) { history = []; }
+      history = [record, ...history.filter((item) => item.resultToken !== record.resultToken)].slice(0, 60);
+      localStorage.setItem(key, JSON.stringify(history));
+    }
+    return result;
+  }
+
   function publishLocalDailyPlan(schedule) {
     const days = Array.isArray(schedule?.days) ? schedule.days : [];
     const current = days.filter((day) => day.status === "unlocked")
@@ -252,6 +280,7 @@
   window.PandaHanSchedule = {
     initScheduleIfNeeded,
     submitDayResult,
+    submitQuestResult,
     runCatchUpCheck,
     computeWeeklyReview,
     computeMonthlyReview,
