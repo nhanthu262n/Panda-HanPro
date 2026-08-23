@@ -856,6 +856,62 @@ function pvNextSession() {
     area.scrollTop = area.scrollHeight;
   }
 
+  function aiCoachTimelineKey() {
+    let ns = "guest";
+    try { ns = typeof window.storageNamespace === "function" ? String(window.storageNamespace() || "guest") : String(window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest"); } catch (_) {}
+    return "pandahan_ai_coach_timeline_" + ns.replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+  function loadAiCoachTimeline() {
+    try { const value = JSON.parse(localStorage.getItem(aiCoachTimelineKey()) || "[]"); return Array.isArray(value) ? value : []; } catch (_) { return []; }
+  }
+  function saveAiCoachTimeline(items) {
+    try { localStorage.setItem(aiCoachTimelineKey(), JSON.stringify(items.slice(0, 80))); } catch (_) {}
+  }
+  function aiCoachTimelineItem(detail, type = "evaluation") {
+    const d = detail || {};
+    const day = Number(d.dayNumber || d.day_number || 0);
+    if (!day) return null;
+    const taskId = String(d.taskId || d.task_id || "");
+    const score = Number.isFinite(Number(d.scorePercent)) ? Number(d.scorePercent) : (Number.isFinite(Number(d.score)) ? Number(d.score) : null);
+    const date = String(d.date || d.evaluatedAt || new Date().toISOString());
+    const id = String(d.id || `${type}_${day}_${taskId}_${score == null ? "na" : score}_${date.slice(0, 10)}`);
+    return { id, type, dayNumber: day, taskId, scorePercent: score, threshold: Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : null, passed: typeof d.passed === "boolean" ? d.passed : null, action: String(d.action || ""), missingTaskIds: Array.isArray(d.missingTaskIds) ? d.missingTaskIds.slice(0, 10) : [], requiredTaskIds: Array.isArray(d.requiredTaskIds) ? d.requiredTaskIds.slice(0, 10) : [], topic: String(d.topic || ""), date, source: String(d.source || type), createdAt: Number(d.evaluatedAt || Date.now()) };
+  }
+  function recordAiCoachTimeline(detail, type = "evaluation") {
+    const item = aiCoachTimelineItem(detail, type);
+    if (!item) return;
+    const items = [item, ...loadAiCoachTimeline().filter((entry) => entry.id !== item.id)].sort((a, b) => b.createdAt - a.createdAt).slice(0, 80);
+    saveAiCoachTimeline(items);
+    const area = document.getElementById("chatMessagesArea");
+    if (activeChatUserId === "__pandahan_ai__" && area) renderAiCoachTimeline(area);
+  }
+  function aiCoachTaskLabel(taskId) {
+    return ({ quest: "Pinyin Quest", listening: "Nghe", speaking: "Nói", reading_writing: "Đọc/Viết", srs: "SRS" })[taskId] || taskId || "nhiệm vụ";
+  }
+  function renderAiCoachTimeline(area) {
+    if (!area) return;
+    area.querySelector("[data-ai-coach-timeline]")?.remove();
+    const items = loadAiCoachTimeline();
+    const section = document.createElement("section");
+    section.setAttribute("data-ai-coach-timeline", "true");
+    section.style.cssText = "margin-top:12px;padding:10px 11px;border:1px solid #e9d5ff;border-radius:12px;background:#faf5ff;";
+    const title = window.LANG_MODE === "en" ? "Review timeline from your real activity" : "Lịch sử review từ hoạt động thực tế";
+    if (!items.length) {
+      section.innerHTML = `<b>${title}</b><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${window.LANG_MODE === "en" ? "Your scores and task confirmations will appear here." : "Điểm và xác nhận nhiệm vụ sẽ xuất hiện ở đây sau khi bạn thực sự hoàn thành."}</div>`;
+    } else {
+      const rows = items.slice(0, 12).map((item) => {
+        const score = item.scorePercent == null ? (window.LANG_MODE === "en" ? "score pending" : "chưa có điểm tổng") : `${item.scorePercent}%${item.threshold != null ? ` / ${item.threshold}%` : ""}`;
+        const outcome = item.passed === true ? (window.LANG_MODE === "en" ? "passed" : "đạt") : item.action === "incomplete_day_requirements" ? (window.LANG_MODE === "en" ? "requirements incomplete" : "chưa đủ nhiệm vụ") : item.passed === false ? (window.LANG_MODE === "en" ? "review required" : "cần ôn lại") : (window.LANG_MODE === "en" ? "recorded" : "đã ghi nhận");
+        const missing = item.missingTaskIds.length ? ` · ${window.LANG_MODE === "en" ? "still needed" : "còn thiếu"}: ${item.missingTaskIds.map(aiCoachTaskLabel).join(", ")}` : "";
+        const source = item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "task" || item.source === "practice" ? "Practice" : "AI Coach";
+        return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>Ngày ${item.dayNumber}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}</span></div>`;
+      }).join("");
+      section.innerHTML = `<b>${title}</b>${rows}`;
+    }
+    area.appendChild(section);
+    area.scrollTop = area.scrollHeight;
+  }
+
   function openAiCoachChat() {
     activeChatUserId = "__pandahan_ai__";
     activeChatId = "__pandahan_ai__";
@@ -873,10 +929,16 @@ function pvNextSession() {
       introBox.style.cssText = "margin-top:10px;padding:9px 11px;border-radius:10px;background:#fff7fb;color:#5b4964;font-size:12px;";
       introBox.textContent = intro;
       area.appendChild(introBox);
+      renderAiCoachTimeline(area);
     } else {
       area.innerHTML = "<div style=\"padding:12px;\">AI Coach đang tải kế hoạch hôm nay...</div>";
     }
   }
+
+  window.openAiCoachChat = openAiCoachChat;
+  window.PandaHanAiCoach = { recordTimeline: recordAiCoachTimeline, renderTimeline: renderAiCoachTimeline, getTimeline: loadAiCoachTimeline };
+  window.addEventListener("pandahan-learning-evaluation", (event) => recordAiCoachTimeline(event.detail || {}, "evaluation"));
+  window.addEventListener("pandahan-daily-plan", (event) => recordAiCoachTimeline(event.detail || {}, "daily_plan"));
 
   async function sendAiCoachMessage(text) {
     const area = document.getElementById("chatMessagesArea");
