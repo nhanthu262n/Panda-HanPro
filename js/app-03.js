@@ -878,6 +878,20 @@ function pvNextSession() {
     }
   }
 
+  window.openAiCoachChat = openAiCoachChat;
+  window.addEventListener("pandahan-learning-evaluation", (event) => {
+    const detail = event.detail || {};
+    if (activeChatUserId !== "__pandahan_ai__" || !detail.dayNumber) return;
+    const score = Number(detail.scorePercent || 0);
+    const threshold = Number(detail.threshold || 80);
+    const en = window.LANG_MODE === "en";
+    const source = String(detail.source || "practice");
+    const message = en
+      ? `Live evaluation — Day ${Number(detail.dayNumber)} / ${source}: ${score}%. ${score >= threshold ? "Good work. Continue to the next task and review incorrect items briefly." : "The target was not reached yet. Review the incorrect items and repeat this task group before unlocking new content."}`
+      : `Đánh giá realtime — ngày ${Number(detail.dayNumber)} / ${source}: ${score}%. ${score >= threshold ? "Bạn làm tốt. Hãy tiếp tục nhiệm vụ kế tiếp và ôn nhanh các câu sai." : "Bạn chưa đạt mục tiêu. Hãy xem lại câu sai và làm lại nhóm bài này trước khi mở nội dung mới."}`;
+    renderAiCoachMessage(message, "bot");
+  });
+
   async function sendAiCoachMessage(text) {
     const area = document.getElementById("chatMessagesArea");
     if (!area || !text) return;
