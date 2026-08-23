@@ -1698,7 +1698,8 @@ function startQuizForWord(char) {
   runQuiz();
 }
 function startQuizLevel(level) {
-  let pool = VOCAB.filter(w => level === "all" || w.hsk === Number(level));
+  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
+  let pool = missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level));
   pool = shuffle(pool).slice(0, 15);
   quizQueue = [];
   pool.forEach(w => {
@@ -1975,7 +1976,8 @@ function startUnscrambleForWord(char) {
   runUnscramble();
 }
 function startUnscrambleLevel(level) {
-  let pool = VOCAB.filter(w => level === "all" || w.hsk === Number(level));
+  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
+  let pool = missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level));
   pool = shuffle(pool).slice(0, 10);
   uQueue = [];
   pool.forEach(w => { if (w.unscramble.length) uQueue.push({ ...shuffle(w.unscramble)[0], char: w.char }); });
@@ -3699,7 +3701,10 @@ function startToneRaceGame(){
   gc.classList.add("visible"); gc.style.display="block"; window.scrollTo({top:0,behavior:"instant"});
   const level=document.getElementById("practiceHskFilter");
   const selected=level ? level.value : "all";
-  let pool=TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
+  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
+  const missionChars = new Set(missionPool.map(w => w.char));
+  let pool = missionChars.size ? TONE_RACE_BANK.filter(q => missionChars.has(q.char)) : [];
+  if(pool.length < 4) pool = TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
   if(pool.length<4) pool=TONE_RACE_BANK.slice();
   toneRaceState={queue:shuffle(pool).slice(0,Math.min(8,pool.length)),index:0,score:0,correctCount:0,streak:0,answered:false};
   renderToneRaceQuestion();
@@ -3752,7 +3757,8 @@ function startMatchGame() {
   const gc = document.getElementById("gameContainer"); gc.classList.add("visible"); gc.style.display = "block";
   window.scrollTo({ top: 0, behavior: "instant" });
   const level = document.getElementById("practiceHskFilter").value;
-  let pool = shuffle(VOCAB.filter(w => level === "all" || w.hsk === Number(level))).slice(0, 6);
+  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
+  let pool = shuffle(missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level))).slice(0, 6);
   let matched = 0, selectedChar = null, selectedMeaning = null;
   const chars = shuffle(pool.map(w => ({ char: w.char, id: w.id })));
   const meanings = shuffle(pool.map(w => ({ meaning: L(w.meaning, w.meaning_en), id: w.id })));
@@ -3806,8 +3812,10 @@ function startWriteGame() {
    reveal the reference) since auto-grading full translations isn't reliable. */
 function renderWriteGameShell() {
   const level = document.getElementById("practiceHskFilter").value;
-  const wordPool = shuffle(VOCAB.filter(w => level === "all" || w.hsk === Number(level)));
-  const sentencePool = shuffle(VOCAB.filter(w => (level === "all" || w.hsk === Number(level)) && w.examples && w.examples.length));
+  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
+  const sourcePool = missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level));
+  const wordPool = shuffle(sourcePool);
+  const sentencePool = shuffle(sourcePool.filter(w => w.examples && w.examples.length));
   const queue = [];
   const wordCount = Math.min(5, wordPool.length);
   const sentCount = Math.min(5, sentencePool.length);
