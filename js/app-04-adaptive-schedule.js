@@ -308,7 +308,12 @@
     return result;
   }
 
-  async function completeTask(dayNumber, taskId, source = "coach_confirmation") {
+  async function completeTask(dayNumber, taskId, source = "unverified", evidence = {}) {
+    if (!/^verified:/.test(String(source || ""))) {
+      const error = new Error("Chỉ hoạt động đã xác minh mới được ghi nhận; không dùng xác nhận thủ công.");
+      error.code = "UNVERIFIED_TASK_EVIDENCE";
+      throw error;
+    }
     const today = core.todayVietnam();
     const uid = getUid();
     const rtdb = getRtdb();
@@ -333,14 +338,16 @@
       if (!transaction.committed || !output) throw new Error("Không ghi được completion task vào schedule RTDB.");
       saveLocal(output.schedule);
       await writeReviewLog(uid, output.result.reviewType || "daily", {
-        dayNumber: Number(dayNumber), taskId: String(taskId), source,
+        dayNumber: Number(dayNumber), taskId: String(taskId), source, evidence,
         action: output.result.action, missingTaskIds: output.result.missingTaskIds || [], date: today,
       });
     }
     window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: output }));
     window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: {
-      source: "task", dayNumber: Number(dayNumber), taskId: String(taskId), action: output.result.action,
-      passed: !!output.result.passed, scorePercent: output.result.score, threshold: output.result.threshold,
+      source: String(source).replace(/^verified:/, ""), rawSource: source, evidenceType: evidence.evidenceType || "verified_task_evidence", verified: true,
+      dayNumber: Number(dayNumber), taskId: String(taskId), action: output.result.action,
+      passed: !!output.result.passed, scorePercent: Number.isFinite(Number(evidence.scorePercent)) ? Number(evidence.scorePercent) : output.result.score, threshold: output.result.threshold,
+      attempts: evidence.attempts, correct: evidence.correct, total: evidence.total, durationSeconds: evidence.durationSeconds, components: evidence.components, details: evidence.details,
       missingTaskIds: output.result.missingTaskIds || [], requiredTaskIds: output.result.requiredTaskIds || [], evaluatedAt: Date.now(),
     }}));
     return output;
