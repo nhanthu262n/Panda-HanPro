@@ -62,8 +62,19 @@
     lastQuestResultKey = `${day}:${score}:${data.resultToken || ""}`;
     try {
       if (window.PandaHanSchedule?.submitDayResult) {
-        await window.PandaHanSchedule.submitDayResult(day, score);
+        const result = await (window.PandaHanSchedule.submitQuestResult
+          ? window.PandaHanSchedule.submitQuestResult(day, score, data.resultToken)
+          : window.PandaHanSchedule.submitDayResult(day, score));
         await refreshQuestGate();
+        window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: {
+          dayNumber: day,
+          scorePercent: score,
+          passed: !!result?.result?.passed,
+          threshold: Number(result?.result?.threshold || 80),
+          reviewType: result?.result?.reviewType || "daily",
+          repeatCount: Number(result?.result?.repeatCount || 0),
+          action: result?.result?.action || "advance"
+        }}));
       }
     } catch (error) {
       console.warn("Quest result was not committed to schedule:", error.message || error);
@@ -72,7 +83,7 @@
 
   const GATE_SCRIPT = `<script>(function(){
     var gate={unlockedDays:[1],completedDays:[]};
-    var resultSent={};
+    var resultSent={}; var lastStartedDay=0;
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
       document.querySelectorAll('[data-day]').forEach(function(btn){
@@ -84,13 +95,16 @@
     }
     function reportResult(){
       var exam=document.getElementById('exam'); if(!exam||!exam.classList.contains('visible'))return;
-      var title=exam.innerText||''; var m=title.match(/Hoàn thành Ngày\\s+(\\d+)/i); if(!m)return;
-      var day=Number(m[1]); var p=title.match(/(\\d+)\\s*%/); if(!p)return;
-      var token=String(day)+':'+String(p[1]); if(resultSent[token])return; resultSent[token]=1;
-      parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:Number(p[1]),resultToken:token},'*');
+      var title=exam.innerText||'';
+      var m=title.match(/(?:Hoàn thành|Complete|Completed|Finished)\\s+(?:Ngày|Day)\\s*#?\\s*(\\d+)/i) || title.match(/(?:Ngày|Day)\\s*#?\\s*(\\d+)/i);
+      var day=m?Number(m[1]):Number(lastStartedDay||0); if(!day)return;
+      var p=title.match(/(\\d+(?:[.,]\\d+)?)\\s*%/); if(!p)return;
+      var score=Math.max(0,Math.min(100,Math.round(Number(String(p[1]).replace(',','.')))));
+      var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
+      parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
     window.addEventListener('message',function(e){var d=e.data||{};if(d.type!=='PANDAHAN_QUEST_GATE')return;gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();});
-    document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(b&&b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');}},true);
+    document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
     var style=document.createElement('style');style.textContent='.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}';document.head.appendChild(style);
