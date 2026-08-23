@@ -48,7 +48,12 @@
     .first-guide-step { margin-left:auto; font-size:12px; color:#9ca3af; }
     @media(max-width:520px){ .first-guide-card{border-radius:18px;} .first-guide-head,.first-guide-body,.first-guide-actions{padding-left:18px;padding-right:18px;} .first-guide-title{font-size:20px;} }
 </style>
-</head>
+<style id="notification-layout-fix">
+#notifDropdown{width:min(360px,calc(100vw - 32px))!important;max-width:calc(100vw - 24px)!important;max-height:min(62vh,430px)!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain;word-break:break-word;white-space:normal;}
+#notifDropdown>div{max-width:100%;box-sizing:border-box;overflow-wrap:anywhere;white-space:normal;line-height:1.45;}
+#notifDropdown button{max-width:100%;white-space:normal;overflow-wrap:anywhere;}
+@media(max-width:600px){#notifDropdown{right:-8px!important;width:min(320px,calc(100vw - 24px))!important;max-width:calc(100vw - 16px)!important;max-height:58vh!important;font-size:12px!important;}}
+</style></head>
 <body>
     <div id="proAuthOverlay">
         <div class="pro-auth-card">
@@ -630,18 +635,18 @@
   <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
   
 <script defer src="js/app-01.js"></script>
-<script defer src="js/app-02.js?v=notif-day-20260823-final"></script>
-<script defer src="js/app-03.js?v=notif-day-20260823-final"></script>
+<script defer src="js/app-02.js?v=notif-layout-ai-20260823-final"></script>
+<script defer src="js/app-03.js?v=notif-layout-ai-20260823-final"></script>
 <script defer src="js/firebase-boot.js"></script>
-<script defer src="js/auth-bridge.js?v=notif-day-20260823-final"></script>
+<script defer src="js/auth-bridge.js?v=notif-layout-ai-20260823-final"></script>
 <script defer src="js/schedule-engine-core.js"></script>
-<script defer src="js/app-04-adaptive-schedule.js?v=notif-day-20260823-final"></script>
-<script defer src="js/daily-missions.js?v=missions-notif-day-20260823-final"></script>
+<script defer src="js/app-04-adaptive-schedule.js?v=notif-layout-ai-20260823-final"></script>
+<script defer src="js/daily-missions.js?v=missions-notif-layout-ai-20260823-final"></script>
 <script defer src="js/app-05-rtdb-block1.js"></script>
 <script defer src="js/app-06-quest-ui.js"></script>
 <script defer src="js/app-07-quest-parts-loader.js"></script>
 <script defer src="js/pinyin-phonetics-loader.js"></script>
-<script defer src="js/offline-enhancements.js?v=notif-day-20260823-final"></script>
-<script defer src="js/first-time-guide.js?v=notif-day-20260823-final"></script>
+<script defer src="js/offline-enhancements.js?v=notif-layout-ai-20260823-final"></script>
+<script defer src="js/first-time-guide.js?v=notif-layout-ai-20260823-final"></script>
 </body>
 </html>
