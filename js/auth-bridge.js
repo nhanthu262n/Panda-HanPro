@@ -67,21 +67,26 @@
       .sort((a, b) => Number(b.created_at || b.createdAt || 0) - Number(a.created_at || a.createdAt || 0)).slice(0, 30);
   }
 
-  function notificationTitle(item) {
-    return String(window.LANG_MODE === "en" ? (item.title_en || item.title || item.subject || "Study notification") : (item.title_vi || item.title || item.subject || "Thông báo học tập"));
-  }
-  function notificationBody(item) {
-    return String(window.LANG_MODE === "en" ? (item.body_en || item.body || item.message || "") : (item.body_vi || item.body || item.message || ""));
-  }
   function renderNotificationDropdown() {
     const dropdown = document.getElementById("notifDropdown");
     if (!dropdown || dropdown.dataset.rendered === "open") return;
     const items = Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [];
-    dropdown.innerHTML = items.length ? items.slice(0, 12).map((item) => `
-      <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}">
-        <div>${notificationTitle(item)}</div>
-        <div style="font-size:11px;font-weight:400;margin-top:3px;">${notificationBody(item)}</div>
-      </div>`).join("") : `<div style="padding:10px;color:#64748b;">${window.LANG_MODE === "en" ? "No new notifications." : "Chưa có thông báo mới."}</div>`;
+    const unread = items.filter((item) => item.read !== true && item.is_read !== true).length;
+    const summary = unread > 0
+      ? (window.LANG_MODE === "en" ? `${unread} learning update${unread === 1 ? "" : "s"} to review` : `${unread} cập nhật học tập đang chờ xem`)
+      : (window.LANG_MODE === "en" ? "Your plan and feedback are in AI Coach" : "Kế hoạch và nhận xét nằm trong AI Coach");
+    dropdown.innerHTML = `<div style="padding:4px 0 10px;text-align:center;color:#5b4964;line-height:1.45;"><b>🔔 ${summary}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${window.LANG_MODE === "en" ? "Scores, review items and next steps are kept in one place." : "Điểm, phần cần ôn và bước tiếp theo được lưu trong một nơi."}</div></div><button type="button" id="notifAiCoachBtn" style="display:block;width:100%;border:0;border-radius:9px;padding:8px 10px;background:var(--pink,#ec4899);color:#fff;font-weight:800;cursor:pointer;">💬 ${window.LANG_MODE === "en" ? "Open AI Coach" : "Mở AI Coach"}</button>`;
+    const coachBtn = document.getElementById("notifAiCoachBtn");
+    if (coachBtn) coachBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      dropdown.style.display = "none";
+      dropdown.dataset.rendered = "";
+      if (typeof window.switchTab === "function") window.switchTab("chat");
+      setTimeout(() => {
+        if (typeof window.openAiCoachChat === "function") window.openAiCoachChat();
+        else document.querySelector('.chat-contact[data-ai="true"]')?.click();
+      }, 60);
+    });
   }
 
   async function attachNotifications(uid) {
@@ -205,12 +210,7 @@
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
     const badge = document.getElementById("notifBadge");
     if (badge) { badge.textContent = String(window.PandaHanNotifications.filter((n) => !n.read).length); badge.style.display = "inline-block"; }
-    const dropdown = document.getElementById("notifDropdown");
-    if (dropdown && dropdown.dataset.rendered !== "open") {
-      const title = window.LANG_MODE === "en" ? item.title_en : item.title_vi;
-      const body = window.LANG_MODE === "en" ? item.body_en : item.body_vi;
-      dropdown.innerHTML = `<div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;font-weight:700;"><div>${title}</div><div style="font-size:11px;font-weight:400;margin-top:3px;">${body}</div></div>` + dropdown.innerHTML;
-    }
+    renderNotificationDropdown();
   });
 
   window.PandaHanAuth = {
