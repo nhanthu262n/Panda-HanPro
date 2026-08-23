@@ -128,13 +128,17 @@
     if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) {
       throw new Error("Điểm phải nằm trong khoảng 0–100.");
     }
-    const day = schedule.days.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
+    const candidates = schedule.days
+      .filter((item) => Number(item.day_number) === Number(dayNumber))
+      .sort((left, right) => (left.status === "unlocked" ? 0 : 1) - (right.status === "unlocked" ? 0 : 1));
+    const day = candidates.find((item) => ["unlocked", "completed", "failed_review", "extended"].includes(item.status));
     if (!day) {
-      const exists = schedule.days.some((item) => Number(item.day_number) === Number(dayNumber));
+      const exists = candidates.length > 0;
       const error = new Error(exists ? "Bài chưa được mở khóa." : `Không tìm thấy ngày ${dayNumber}.`);
       error.code = exists ? "LOCKED_DAY" : "DAY_NOT_FOUND";
       throw error;
     }
+    const wasCompleted = day.status === "completed";
 
     const reviewType = reviewTypeFor(day, schedule);
     const threshold = reviewThreshold(reviewType, day);
@@ -149,7 +153,10 @@
     if (passed) {
       day.status = "completed";
       day.completed_at = today;
-      unlockNextDay(schedule, day.sequence_index, today);
+      if (!wasCompleted) unlockNextDay(schedule, day.sequence_index, today);
+    } else if (wasCompleted) {
+      day.status = "completed";
+      action = "review_logged";
     } else {
       day.status = "failed_review";
       action = "repeat_assigned";
