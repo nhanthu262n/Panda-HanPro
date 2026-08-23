@@ -163,7 +163,7 @@
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
-    var style=document.createElement('style');style.textContent='.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}';document.head.appendChild(style);
+    var style=document.createElement('style');style.textContent='.oh-sidebar,.oh-header{display:none!important}.oh-app{display:block!important;min-height:auto!important}.oh-main{grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.oh-launcher,.oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}body{overflow-x:hidden!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}';document.head.appendChild(style);
     parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
   })();</script>`;
 
