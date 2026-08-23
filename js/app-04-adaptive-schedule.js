@@ -187,61 +187,8 @@
     return result;
   }
 
-  function saveQuestHistoryLocal(record) {
-    const key = "pandahan_quest_results_" + storageNamespace();
-    let history = [];
-    try { history = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) { history = []; }
-    history = [record, ...history.filter((item) => item.resultToken !== record.resultToken)].slice(0, 60);
-    localStorage.setItem(key, JSON.stringify(history));
-  }
-
-  function makeExistingQuestResult(schedule, dayNumber, score) {
-    const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber));
-    if (!day) return null;
-    const threshold = Number(day.required_score || (day.day_type === "review" ? 70 : 80));
-    const passed = Number(score) >= threshold;
-    const alreadyCompleted = day.status === "completed";
-    return {
-      schedule,
-      result: {
-        dayNumber: Number(dayNumber),
-        score: Number(score),
-        threshold,
-        reviewType: day.last_review_type || (day.day_type === "review" ? "weekly" : "daily"),
-        passed: alreadyCompleted || passed,
-        action: alreadyCompleted ? "already_completed" : (passed ? "advance" : "repeat_assigned"),
-        repeatCount: Number(day.repeat_count || 0),
-      },
-      offlineFallback: true,
-      alreadyCompleted,
-    };
-  }
-
   async function submitQuestResult(dayNumber, score, resultToken) {
-    let result = null;
-    let submitError = null;
-    try {
-      result = await submitDayResult(dayNumber, score);
-    } catch (error) {
-      submitError = error;
-      try {
-        let local = loadLocal();
-        if (!local) local = await initScheduleIfNeeded();
-        const active = local?.days?.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
-        if (active) {
-          const applied = core.applySubmit(local, dayNumber, score, core.todayVietnam());
-          saveLocal(applied.schedule);
-          result = { ...applied, offlineFallback: true };
-          window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
-        } else {
-          result = makeExistingQuestResult(local, dayNumber, score);
-        }
-      } catch (fallbackError) {
-        console.warn("Quest local fallback failed:", fallbackError.message || fallbackError);
-      }
-      if (!result) throw submitError;
-    }
-
+    const result = await submitDayResult(dayNumber, score);
     const record = {
       source: "pinyin-tone-quest",
       dayNumber: Number(dayNumber),
@@ -250,21 +197,20 @@
       threshold: Number(result?.result?.threshold || 80),
       reviewType: result?.result?.reviewType || "daily",
       repeatCount: Number(result?.result?.repeatCount || 0),
-      action: result?.result?.action || "advance",
-      offlineFallback: !!result?.offlineFallback,
       resultToken: String(resultToken || ""),
       createdAt: new Date().toISOString()
     };
-    saveQuestHistoryLocal(record);
     const uid = getUid();
     const rtdb = getRtdb();
-    if (uid && rtdb && !result?.offlineFallback) {
-      try {
-        const key = `quest_${record.dayNumber}_${record.scorePercent}_${String(resultToken || "").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
-        await rtdb.ref(`${REVIEW_LOG_PATH}/${uid}/${key}`).set({ review_type: "quest", ...record, created_at: firebase.database.ServerValue.TIMESTAMP });
-      } catch (error) {
-        console.warn("Quest RTDB review log fallback:", error.message || error);
-      }
+    if (uid && rtdb) {
+      const key = `quest_${record.dayNumber}_${record.scorePercent}_${String(resultToken || "").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+      await rtdb.ref(`${REVIEW_LOG_PATH}/${uid}/${key}`).set({ review_type: "quest", ...record, created_at: firebase.database.ServerValue.TIMESTAMP });
+    } else {
+      const key = "pandahan_quest_results_" + storageNamespace();
+      let history = [];
+      try { history = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) { history = []; }
+      history = [record, ...history.filter((item) => item.resultToken !== record.resultToken)].slice(0, 60);
+      localStorage.setItem(key, JSON.stringify(history));
     }
     return result;
   }
