@@ -11,7 +11,6 @@
   let objectUrl = null;
   let activeFrameWindow = null;
   let lastQuestResultKey = null;
-  let questResultInFlight = null;
 
   function userNamespace() {
     try {
@@ -85,16 +84,38 @@
       showPersistedSummary();
       return;
     }
+    if (data.type === "PANDAHAN_QUEST_PROGRESS_PERSIST") {
+      try {
+        const raw = String(data.raw || '');
+        if (raw) {
+          const progress = JSON.parse(raw) || {};
+          const dayProgress = progress.dayProgress && typeof progress.dayProgress === 'object' ? progress.dayProgress : {};
+          const mistakes = Array.isArray(progress.mistakes) ? progress.mistakes.slice(-120) : [];
+          const completed = Object.values(dayProgress).filter((record) => record && record.completed).length;
+          const summary = { completedCount: completed, mistakesCount: mistakes.length, mistakes, progress, lastDay: 0, lastScorePercent: 0, updatedAt: Date.now() };
+          const key = 'pinyin-tone-quest-offline-progress-v2_' + userNamespace().replace(/[^a-zA-Z0-9_-]/g, '_');
+          localStorage.setItem(key, JSON.stringify(progress));
+          localStorage.setItem(parentProgressKey(), JSON.stringify(summary));
+          renderReviewCount(summary.mistakesCount);
+          outerStatus(`Quest đã lưu: ${summary.completedCount}/120 ngày · ${summary.mistakesCount} câu trong sổ ôn`);
+        }
+      } catch (_) {}
+      return;
+    }
     if (data.type === "PANDAHAN_QUEST_PROGRESS") {
       const summary = {
         completedCount: Number(data.completedCount || 0),
         mistakesCount: Number(data.mistakesCount || 0),
         mistakes: Array.isArray(data.mistakes) ? data.mistakes.slice(-120) : [],
+        progress: data.progress && typeof data.progress === 'object' ? data.progress : null,
         lastDay: Number(data.lastDay || 0),
         lastScorePercent: Number(data.lastScorePercent || 0),
         updatedAt: Number(data.updatedAt || Date.now()),
       };
-      try { localStorage.setItem(parentProgressKey(), JSON.stringify(summary)); } catch (_) {}
+      try {
+        localStorage.setItem(parentProgressKey(), JSON.stringify(summary));
+        if (summary.progress) localStorage.setItem('pinyin-tone-quest-offline-progress-v2_' + userNamespace().replace(/[^a-zA-Z0-9_-]/g, '_'), JSON.stringify(summary.progress));
+      } catch (_) {}
       renderReviewCount(summary.mistakesCount);
       outerStatus(`Quest đã lưu: ${summary.completedCount}/120 ngày · ${summary.mistakesCount} câu trong sổ ôn`);
       return;
@@ -102,9 +123,8 @@
     if (data.type !== "PANDAHAN_QUEST_DAY_RESULT") return;
     const day = Number(data.day);
     const score = Math.max(0, Math.min(100, Number(data.scorePercent)));
-    const resultKey = `${day}:${score}:${data.resultToken || ""}`;
-    if (!day || !Number.isFinite(score) || lastQuestResultKey === resultKey || questResultInFlight === resultKey) return;
-    questResultInFlight = resultKey;
+    if (!day || !Number.isFinite(score) || lastQuestResultKey === `${day}:${score}:${data.resultToken || ""}`) return;
+    lastQuestResultKey = `${day}:${score}:${data.resultToken || ""}`;
     try {
       if (window.PandaHanSchedule?.submitDayResult) {
         const result = await (window.PandaHanSchedule.submitQuestResult
@@ -123,23 +143,20 @@
         outerStatus(`Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`);
         window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
         window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", ...evaluation, evaluatedAt: Date.now() } }));
-        lastQuestResultKey = resultKey;
       }
     } catch (error) {
       outerStatus("Chưa đồng bộ được kết quả Quest vào lộ trình; dữ liệu ôn tập offline vẫn được giữ.", true);
       console.warn("Quest result was not committed to schedule:", error.message || error);
-    } finally {
-      questResultInFlight = null;
     }
   }
 
-  const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();</script>`;
+  const STORAGE_BOOTSTRAP = (bootstrapRaw) => `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';var bootstrap=${JSON.stringify(bootstrapRaw || 'null')};window.__PANDAHAN_QUEST_PROGRESS_BOOTSTRAP__=bootstrap;if(!localStorage.getItem(key)){var raw=localStorage.getItem(old)||bootstrap;if(raw)localStorage.setItem(key,raw);}}catch(_){}})();</script>`;
   const GATE_SCRIPT = `<script>(function(){
     var gate={unlockedDays:[1],completedDays:[]};
     function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
-    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
+    function reportProgress(){try{var raw=localStorage.getItem(progressKey())||window.__PANDAHAN_QUEST_PROGRESS_BOOTSTRAP__||'null';var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',progress:p,completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){} }
     setInterval(reportProgress,700);
-    var resultSent={}; var lastStartedDay=0;
+    var lastResultToken=''; var lastStartedDay=0;
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
       document.querySelectorAll('[data-day]').forEach(function(btn){
@@ -150,13 +167,14 @@
       var start=document.getElementById('oh-start-day'); if(start){var ok=allowed(1);start.disabled=!ok;start.setAttribute('aria-disabled',String(!ok));}
     }
     function reportResult(){
-      var exam=document.getElementById('exam'); if(!exam||!exam.classList.contains('visible'))return;
+      var exam=document.getElementById('exam'); if(!exam||!exam.classList.contains('visible')){lastResultToken='';return;}
       var title=exam.innerText||'';
-      var m=title.match(/(?:Hoàn thành|Complete|Completed|Finished)\\s+(?:Ngày|Day)\\s*#?\\s*(\\d+)/i) || title.match(/(?:Ngày|Day)\\s*#?\\s*(\\d+)/i);
-      var day=m?Number(m[1]):Number(lastStartedDay||0); if(!day)return;
-      var p=title.match(/(\\d+(?:[.,]\\d+)?)\\s*%/); if(!p)return;
+      var m=title.match(/(?:Hoàn thành|Complete|Completed|Finished)\s+(?:Ngày|Day)\s*#?\s*(\d+)/i) || title.match(/(?:Ngày|Day)\s*#?\s*(\d+)/i);
+      var day=m?Number(m[1]):Number(lastStartedDay||0); if(!day){lastResultToken='';return;}
+      var p=title.match(/(\d+(?:[.,]\d+)?)\s*%/); if(!p){lastResultToken='';return;}
       var score=Math.max(0,Math.min(100,Math.round(Number(String(p[1]).replace(',','.')))));
-      var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
+      var baseToken=String(day)+':'+String(score); if(lastResultToken===baseToken)return; lastResultToken=baseToken;
+      var token=baseToken+':'+String(Date.now());
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
     window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
@@ -183,9 +201,17 @@
       const bytes = new Uint8Array(total); let offset = 0;
       buffers.forEach((buffer) => { bytes.set(new Uint8Array(buffer), offset); offset += buffer.byteLength; });
       let html = decoder.decode(bytes);
-      const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
+      const namespace = userNamespace().replace(/[^a-zA-Z0-9_-]/g, '_');
+      const questStorageKey = 'pinyin-tone-quest-offline-progress-v2_' + namespace;
+      let bootstrapRaw = null;
+      try { bootstrapRaw = localStorage.getItem(questStorageKey) || localStorage.getItem('pinyin-tone-quest-offline-progress-v2') || null; } catch (_) {}
+      const storageDeclaration = "const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2_" + namespace + "';";
+      const progressFallback = "const loadOfflineProgress = () => { try { const raw = localStorage.getItem(OFFLINE_STORAGE_KEY) || window.__PANDAHAN_QUEST_PROGRESS_BOOTSTRAP__ || 'null'; const stored = JSON.parse(raw); return stored && typeof stored === 'object' ? { dayProgress: stored.dayProgress || {}, mistakes: Array.isArray(stored.mistakes) ? stored.mistakes.slice(-120) : [] } : makeProgress(); } catch (_) { try { const stored = JSON.parse(window.__PANDAHAN_QUEST_PROGRESS_BOOTSTRAP__ || 'null'); return stored && typeof stored === 'object' ? { dayProgress: stored.dayProgress || {}, mistakes: Array.isArray(stored.mistakes) ? stored.mistakes.slice(-120) : [] } : makeProgress(); } catch (_) { return makeProgress(); } } };";
+      const persistBridge = "const persistOfflineProgress = () => { const raw = JSON.stringify(offlineProgress); try { localStorage.setItem(OFFLINE_STORAGE_KEY, raw); } catch (_) {} try { window.parent.postMessage({ type: 'PANDAHAN_QUEST_PROGRESS_PERSIST', raw: raw }, '*'); } catch (_) {} };";
       html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
-      html = html.replace(/<\/head>/i, STORAGE_BOOTSTRAP + '</head>');
+      html = html.replace(/const loadOfflineProgress = .*?;\s*let offlineProgress/s, progressFallback + ' let offlineProgress');
+      html = html.replace(/const persistOfflineProgress = .*?;\s*const dayRecord/s, persistBridge + ' const dayRecord');
+      html = html.replace(/<\/head>/i, STORAGE_BOOTSTRAP(bootstrapRaw) + '</head>');
       const insertion = html.search(/<\/body>/i);
       if (insertion >= 0) html = html.slice(0, insertion) + GATE_SCRIPT + html.slice(insertion);
       else html += GATE_SCRIPT;
