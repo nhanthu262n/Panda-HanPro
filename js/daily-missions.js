@@ -207,6 +207,25 @@
     return String(value || "").replace(/[&<>\"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
   }
 
+  function requiredTaskLabel(taskId, langEn) {
+    const labels = { quest: "Pinyin Tone Quest", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS" };
+    return labels[taskId] || taskId;
+  }
+  function renderRequiredChecklist(m, langEn) {
+    const c = m.curriculum || {};
+    const core = window.PandaHanScheduleCore;
+    const required = core?.getMandatoryTaskIds ? core.getMandatoryTaskIds(c) : ["quest", "listening", "speaking", "reading_writing"].filter((id) => id === "quest" || (id === "listening" && c.listening_task && c.listening_task !== "-") || (id === "speaking" && c.speaking_task && c.speaking_task !== "-") || (id === "reading_writing" && c.reading_writing_task && c.reading_writing_task !== "-") || (id === "srs" && c.srs_review_task && c.srs_review_task !== "-"));
+    const scheduleDay = currentScheduleDay();
+    const completed = scheduleDay?.completed_tasks || {};
+    const descriptions = { quest: langEn ? "The Quest result is recorded automatically after the real Quest result." : "Kết quả được ghi tự động sau khi Quest trả kết quả thật.", listening: c.listening_task, speaking: c.speaking_task, reading_writing: c.reading_writing_task, srs: c.srs_review_task };
+    const rows = required.map((id) => {
+      const done = !!completed[id];
+      const canConfirm = id !== "quest";
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:16px;">${done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${esc(requiredTaskLabel(id, langEn))}</b><br><small style="color:#64748b;line-height:1.4;">${esc(descriptions[id] || "")}</small></span>${done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "done" : "đã xong"}</small>` : canConfirm ? `<button type="button" data-complete-task="${id}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Confirm done" : "Xác nhận đã làm"}</button>` : `<small style="color:#a16207;font-weight:700;white-space:nowrap;">${langEn ? "open Quest" : "mở Quest"}</small>`}</div>`;
+    }).join("");
+    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fff;"><b>${langEn ? "Required before next day unlock" : "Bắt buộc trước khi mở ngày tiếp theo"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Only recorded activity counts; a score alone is not enough." : "Chỉ hoạt động đã ghi nhận mới được tính; chỉ có điểm là chưa đủ."}</div>${rows}</div>`;
+  }
+
   function renderCoach(container, compact = false) {
     if (!container) return;
     const m = mission();
@@ -216,8 +235,20 @@
     const taskRows = m.tasks.map((task) => `<button type="button" data-mission-task="${task.type}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #f3d5e5;border-radius:11px;background:#fff;padding:8px 10px;margin-top:6px;cursor:pointer;"><span style="font-size:20px;">${task.icon}</span><span style="flex:1;min-width:0;"><b>${langEn ? task.titleEn : task.titleVi}</b><br><small style="color:#64748b;overflow-wrap:anywhere;">${esc(langEn ? task.instructionEn : task.instructionVi)}</small></span><small style="color:#a855f7;font-weight:800;white-space:nowrap;">${task.minutes} min</small></button>`).join("");
     const workbookPlan = compact ? "" : `<div style="font-size:12px;margin-top:9px;padding-top:8px;border-top:1px dashed #e9c8dc;"><b>${langEn ? "Workbook tasks for today" : "Nhiệm vụ theo file Excel hôm nay"}</b><div style="margin-top:5px;line-height:1.55;"><div>🎧 ${esc(c.listening_task || "-")}</div><div>🗣️ ${esc(c.speaking_task || "-")}</div><div>📖 ${esc(c.reading_writing_task || "-")}</div><div>🔁 ${esc(c.srs_review_task || "-")}</div></div></div>`;
     const questPlan = compact ? "" : `<div style="margin-top:9px;padding:8px 9px;border-radius:10px;background:#fff;border:1px solid #ddd6fe;font-size:11.5px;line-height:1.5;"><b>🎯 ${esc(m.questStation)} · ${esc(m.questMainMode)}</b><div>${esc(m.questActivityChain)}</div><div>${esc(m.questDailyTask)}</div><div><b>${langEn ? "XP" : "XP mục tiêu"}:</b> ${m.xpTarget} · <b>${langEn ? "Checkpoint" : "Điều kiện"}:</b> ${esc(m.questCompletionCondition)}</div><div><b>${langEn ? "Checkpoint question" : "Câu hỏi chốt"}:</b> ${esc(m.questCheckpointQuestion)}</div></div>`;
-    container.innerHTML = `<div style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel source" : "Kế hoạch học với AI · Nguồn Excel"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · Week ${m.weekNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${workbookPlan}${questPlan}<div style="margin-top:9px;">${taskRows}</div></div>`;
+    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel source" : "Kế hoạch học với AI · Nguồn Excel"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · Week ${m.weekNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${workbookPlan}${questPlan}<div style="margin-top:9px;">${taskRows}</div>${renderRequiredChecklist(m, langEn)}</div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
+    container.querySelectorAll("[data-complete-task]").forEach((button) => button.addEventListener("click", async () => {
+      const taskId = button.dataset.completeTask;
+      const confirmText = langEn ? `Confirm that you actually completed ${requiredTaskLabel(taskId, true)} for Day ${m.dayNumber}?` : `Bạn xác nhận đã thực sự hoàn thành nhiệm vụ ${requiredTaskLabel(taskId, false)} của ngày ${m.dayNumber}?`;
+      if (!window.confirm(confirmText)) return;
+      try {
+        if (typeof window.PandaHanSchedule?.completeTask !== "function") throw new Error("Schedule chưa sẵn sàng");
+        await window.PandaHanSchedule.completeTask(m.dayNumber, taskId, "coach_confirmation");
+        renderCoach(container, compact);
+      } catch (error) {
+        window.alert((langEn ? "Could not record this task: " : "Chưa ghi nhận được nhiệm vụ: ") + (error.message || error));
+      }
+    }));
   }
 
   function replyTo(text) {
@@ -248,6 +279,10 @@
   }
 
   window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getActiveTask: () => activeTask, parseVocabulary };
-  window.addEventListener("pandahan-schedule-updated", () => { activeMission = null; });
+  window.addEventListener("pandahan-schedule-updated", () => {
+    activeMission = null;
+    const area = document.getElementById("chatMessagesArea");
+    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+  });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load); else load();
 })();
