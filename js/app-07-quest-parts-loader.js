@@ -122,7 +122,7 @@
         };
         outerStatus(`Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`);
         window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
-        window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", ...evaluation, evaluatedAt: Date.now() } }));
+        window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", rawSource: "pinyin-tone-quest", evidenceType: "quest_result", verified: true, ...evaluation, evaluatedAt: Date.now() } }));
         lastQuestResultKey = resultKey;
       }
     } catch (error) {
