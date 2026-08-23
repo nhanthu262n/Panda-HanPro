@@ -8,6 +8,36 @@
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
+  function hasCurriculumTask(value) {
+    const text = String(value == null ? "" : value).trim();
+    return text !== "" && text !== "-" && !/^n\/a$/i.test(text);
+  }
+
+  // These IDs mirror the authoritative Excel columns. A learner may only
+  // advance after every non-empty important column has a real completion event.
+  function getMandatoryTaskIds(item = {}) {
+    const ids = ["quest"];
+    if (hasCurriculumTask(item.listening_task)) ids.push("listening");
+    if (hasCurriculumTask(item.speaking_task)) ids.push("speaking");
+    if (hasCurriculumTask(item.reading_writing_task)) ids.push("reading_writing");
+    if (hasCurriculumTask(item.srs_review_task)) ids.push("srs");
+    return ids;
+  }
+
+  function ensureDayRequirements(day, curriculumItem) {
+    const derived = getMandatoryTaskIds(curriculumItem || day || {});
+    const existing = Array.isArray(day.required_tasks) && day.required_tasks.length ? day.required_tasks : derived;
+    day.required_tasks = Array.from(new Set(existing.map(String)));
+    day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
+    day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
+    return day;
+  }
+
+  function missingRequiredTasks(day) {
+    ensureDayRequirements(day);
+    return day.required_tasks.filter((id) => !day.completed_tasks[id]);
+  }
+
   function todayVietnam(now = new Date()) {
     return new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Ho_Chi_Minh",
@@ -41,6 +71,9 @@
         best_score: null,
         scheduled_date: index === 0 ? today : null,
         completed_at: null,
+        required_tasks: getMandatoryTaskIds(item),
+        completed_tasks: {},
+        task_events: [],
       })),
     };
   }
@@ -122,7 +155,30 @@
     };
   }
 
-  function applySubmit(scheduleInput, dayNumber, score, today = todayVietnam()) {
+  function finishDayIfReady(schedule, day, today) {
+    const reviewType = reviewTypeFor(day, schedule);
+    const threshold = reviewThreshold(reviewType, day);
+    const missingTaskIds = missingRequiredTasks(day);
+    const score = Number(day.last_score);
+    if (missingTaskIds.length) {
+      return { passed: false, action: "incomplete_day_requirements", repeatCount: 0, missingTaskIds, reviewType, threshold, score: Number.isFinite(score) ? score : null };
+    }
+    if (!Number.isFinite(score)) {
+      return { passed: false, action: "awaiting_score", repeatCount: 0, missingTaskIds: [], reviewType, threshold, score: null };
+    }
+    if (score >= threshold) {
+      day.status = "completed";
+      day.completed_at = today;
+      unlockNextDay(schedule, day.sequence_index, today);
+      return { passed: true, action: "advance", repeatCount: 0, missingTaskIds: [], reviewType, threshold, score };
+    }
+    day.status = "failed_review";
+    const repeatCount = reviewType === "monthly" ? 3 : reviewType === "weekly" ? 2 : 1;
+    const repeats = insertRepeatsAfter(schedule, day, repeatCount, `${reviewType}_failed`, today);
+    return { passed: false, action: "repeat_assigned", repeatCount: repeats.length, missingTaskIds: [], reviewType, threshold, score };
+  }
+
+  function applySubmit(scheduleInput, dayNumber, score, today = todayVietnam(), options = {}) {
     const schedule = clone(scheduleInput);
     const numericScore = Number(score);
     if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) {
@@ -135,38 +191,64 @@
       error.code = exists ? "LOCKED_DAY" : "DAY_NOT_FOUND";
       throw error;
     }
-
+    ensureDayRequirements(day);
+    const taskId = options && options.taskId ? String(options.taskId) : "";
+    if (taskId) {
+      if (!day.required_tasks.includes(taskId)) {
+        const error = new Error(`Nhiệm vụ ${taskId} không thuộc yêu cầu của ngày ${dayNumber}.`);
+        error.code = "UNKNOWN_REQUIRED_TASK";
+        throw error;
+      }
+      day.completed_tasks[taskId] = { completed_at: today, source: options.source || "submitted" };
+      day.task_events.push({ task_id: taskId, completed_at: today, source: options.source || "submitted" });
+    }
     const reviewType = reviewTypeFor(day, schedule);
     const threshold = reviewThreshold(reviewType, day);
     day.attempt_count = Number(day.attempt_count || 0) + 1;
     day.best_score = Math.max(Number(day.best_score || 0), numericScore);
-    const passed = numericScore >= threshold;
     day.last_score = numericScore;
     day.last_review_type = reviewType;
-
-    let repeats = [];
-    let action = "advance";
-    if (passed) {
-      day.status = "completed";
-      day.completed_at = today;
-      unlockNextDay(schedule, day.sequence_index, today);
-    } else {
-      day.status = "failed_review";
-      action = "repeat_assigned";
-      const repeatCount = reviewType === "monthly" ? 3 : reviewType === "weekly" ? 2 : 1;
-      repeats = insertRepeatsAfter(schedule, day, repeatCount, `${reviewType}_failed`, today);
-    }
-
+    const evaluation = finishDayIfReady(schedule, day, today);
     return {
       schedule,
       result: {
-        dayNumber: Number(dayNumber),
-        score: numericScore,
-        threshold,
-        reviewType,
-        passed,
-        action,
-        repeatCount: repeats.length,
+        dayNumber: Number(dayNumber), score: numericScore, threshold, reviewType,
+        passed: evaluation.passed, action: evaluation.action,
+        repeatCount: evaluation.repeatCount, missingTaskIds: evaluation.missingTaskIds,
+        requiredTaskIds: day.required_tasks.slice(), code: evaluation.action === "incomplete_day_requirements" ? "INCOMPLETE_DAY_REQUIREMENTS" : undefined,
+      },
+    };
+  }
+
+  function recordTaskCompletion(scheduleInput, dayNumber, taskId, today = todayVietnam(), source = "learner_confirmation") {
+    const schedule = clone(scheduleInput);
+    const day = schedule.days.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
+    if (!day) {
+      const exists = schedule.days.some((item) => Number(item.day_number) === Number(dayNumber));
+      const error = new Error(exists ? "Bài chưa được mở khóa." : `Không tìm thấy ngày ${dayNumber}.`);
+      error.code = exists ? "LOCKED_DAY" : "DAY_NOT_FOUND";
+      throw error;
+    }
+    ensureDayRequirements(day);
+    const id = String(taskId || "");
+    if (!day.required_tasks.includes(id)) {
+      const error = new Error(`Nhiệm vụ ${id || "trống"} không thuộc yêu cầu của ngày ${dayNumber}.`);
+      error.code = "UNKNOWN_REQUIRED_TASK";
+      throw error;
+    }
+    if (!day.completed_tasks[id]) {
+      day.completed_tasks[id] = { completed_at: today, source };
+      day.task_events.push({ task_id: id, completed_at: today, source });
+    }
+    const evaluation = finishDayIfReady(schedule, day, today);
+    return {
+      schedule,
+      result: {
+        dayNumber: Number(dayNumber), taskId: id, score: Number.isFinite(Number(day.last_score)) ? Number(day.last_score) : null,
+        threshold: evaluation.threshold, reviewType: evaluation.reviewType, passed: evaluation.passed,
+        action: evaluation.action, repeatCount: evaluation.repeatCount,
+        missingTaskIds: evaluation.missingTaskIds, requiredTaskIds: day.required_tasks.slice(),
+        code: evaluation.action === "incomplete_day_requirements" ? "INCOMPLETE_DAY_REQUIREMENTS" : undefined,
       },
     };
   }
@@ -206,6 +288,8 @@
     insertRepeatsAfter,
     evaluateReview,
     applySubmit,
+    recordTaskCompletion,
+    getMandatoryTaskIds,
     applyDailyExtension,
   };
 });
