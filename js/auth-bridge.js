@@ -67,6 +67,23 @@
       .sort((a, b) => Number(b.created_at || b.createdAt || 0) - Number(a.created_at || a.createdAt || 0)).slice(0, 30);
   }
 
+  function notificationTitle(item) {
+    return String(window.LANG_MODE === "en" ? (item.title_en || item.title || item.subject || "Study notification") : (item.title_vi || item.title || item.subject || "Thông báo học tập"));
+  }
+  function notificationBody(item) {
+    return String(window.LANG_MODE === "en" ? (item.body_en || item.body || item.message || "") : (item.body_vi || item.body || item.message || ""));
+  }
+  function renderNotificationDropdown() {
+    const dropdown = document.getElementById("notifDropdown");
+    if (!dropdown || dropdown.dataset.rendered === "open") return;
+    const items = Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [];
+    dropdown.innerHTML = items.length ? items.slice(0, 12).map((item) => `
+      <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}">
+        <div>${notificationTitle(item)}</div>
+        <div style="font-size:11px;font-weight:400;margin-top:3px;">${notificationBody(item)}</div>
+      </div>`).join("") : `<div style="padding:10px;color:#64748b;">${window.LANG_MODE === "en" ? "No new notifications." : "Chưa có thông báo mới."}</div>`;
+  }
+
   async function attachNotifications(uid) {
     if (!rtdb || !uid) return;
     const ref = rtdb.ref("notifications/" + uid).limitToLast(30);
@@ -78,14 +95,7 @@
       const unread = window.PandaHanNotifications.filter((item) => item.read !== true && item.is_read !== true).length;
       const badge = document.getElementById("notifBadge");
       if (badge) { badge.textContent = String(unread); badge.style.display = unread ? "inline-block" : "none"; }
-      const dropdown = document.getElementById("notifDropdown");
-      if (dropdown && dropdown.dataset.rendered !== "open") {
-        dropdown.innerHTML = items.length ? items.slice(0, 12).map((item) => `
-          <div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;${item.read ? "opacity:.65;" : "font-weight:700;"}">
-            <div>${String(window.LANG_MODE === "en" ? (item.title_en || item.title || item.subject || "Study notification") : (item.title_vi || item.title || item.subject || "Thông báo học tập"))}</div>
-            <div style="font-size:11px;font-weight:400;margin-top:3px;">${String(window.LANG_MODE === "en" ? (item.body_en || item.body || item.message || "") : (item.body_vi || item.body || item.message || ""))}</div>
-          </div>`).join("") : `<div style='padding:10px;color:#64748b;'>${window.LANG_MODE === "en" ? "No new notifications." : "Chưa có thông báo mới."}</div>`;
-      }
+      renderNotificationDropdown();
     }, (error) => console.warn("Notification listener:", error.message || error));
   }
 
@@ -102,6 +112,19 @@
   // app-01.js owns the single profile/completeLogin Auth listener.
   // This bridge only attaches notifications and schedule services, preventing
   // duplicate Firestore writes and competing overlay state changes.
+  async function ensureDailyPlanNotification() {
+    try {
+      const schedule = window.PandaHanSchedule?.getScheduleAsync ? await window.PandaHanSchedule.getScheduleAsync() : window.PandaHanSchedule?.getSchedule?.();
+      const days = Array.isArray(schedule?.days) ? schedule.days : [];
+      const current = days.filter((day) => day.status === "unlocked").sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
+      if (!current) return;
+      const today = window.PandaHanSchedule?.todayVietnam?.() || new Date().toISOString().slice(0, 10);
+      window.dispatchEvent(new CustomEvent("pandahan-daily-plan", { detail: {
+        dayNumber: Number(current.day_number), sequenceIndex: Number(current.sequence_index), topic: current.topic || "", date: today, force: true
+      }}));
+    } catch (error) { console.warn("Daily plan notification fallback:", error.message || error); }
+  }
+
   async function onUserServices(user) {
     if (!user) return;
     try {
@@ -109,6 +132,7 @@
       if (window.PandaHanSchedule && typeof window.PandaHanSchedule.initScheduleIfNeeded === "function") {
         await window.PandaHanSchedule.initScheduleIfNeeded();
       }
+      await ensureDailyPlanNotification();
     } catch (error) {
       console.warn("Auth service bootstrap:", error.message || error);
     }
@@ -132,12 +156,7 @@
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
     const badge = document.getElementById("notifBadge");
     if (badge) { badge.textContent = String(window.PandaHanNotifications.filter((n) => !n.read).length); badge.style.display = "inline-block"; }
-    const dropdown = document.getElementById("notifDropdown");
-    if (dropdown && dropdown.dataset.rendered !== "open") {
-      const title = window.LANG_MODE === "en" ? item.title_en : item.title_vi;
-      const body = window.LANG_MODE === "en" ? item.body_en : item.body_vi;
-      dropdown.innerHTML = `<div style="padding:8px 4px;border-bottom:1px solid #f1f5f9;font-weight:700;"><div>${title}</div><div style="font-size:11px;font-weight:400;margin-top:3px;">${body}</div></div>` + dropdown.innerHTML;
-    }
+    renderNotificationDropdown();
   });
 
   window.addEventListener("pandahan-quest-score-saved", (event) => {
@@ -206,10 +225,16 @@
 
   auth.onAuthStateChanged(onUserServices);
   const bell = document.getElementById("notifBellBtn");
-  if (bell) bell.addEventListener("click", () => {
+  if (bell) bell.addEventListener("click", async () => {
     const uid = auth.currentUser?.uid;
     const dropdown = document.getElementById("notifDropdown");
-    if (dropdown) dropdown.dataset.rendered = dropdown.style.display === "block" ? "" : "open";
+    const opening = !dropdown || dropdown.style.display !== "block";
+    if (dropdown) dropdown.dataset.rendered = opening ? "" : "open";
+    if (opening) {
+      await ensureDailyPlanNotification();
+      if (dropdown) dropdown.dataset.rendered = "";
+      renderNotificationDropdown();
+    }
     if (uid && dropdown?.style.display === "block") markNotificationsRead(uid).catch(() => {});
   });
 })();
