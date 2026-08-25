@@ -520,7 +520,7 @@ function practiceMissingText(result) {
   const labels = { listening: "Nghe", speaking: "Nói", reading_writing: "Đọc/Viết", srs: "SRS", quest: "Pinyin Quest" };
   return missing.map((id) => labels[id] || id).join(", ");
 }
-async function savePracticeCompletion(score, source = "practice") {
+async function savePracticeCompletion(score, source = "practice", metadata = {}) {
   const api = window.PandaHanSchedule;
   if (!api || typeof api.submitDayResult !== "function") {
     setPracticeSaveStatus("⚠️ Chưa sẵn sàng lưu lộ trình; bài luyện vẫn đã lưu ở thiết bị.", true);
@@ -557,8 +557,8 @@ async function savePracticeCompletion(score, source = "practice") {
       else if (missingText) status += ` Còn cần: ${missingText}.`;
       else status += " Điểm chưa đạt, cần ôn lại ngày này.";
       setPracticeSaveStatus(status, false);
-      const evaluation = { source: "practice", taskId: evidenceTaskId, scheduleTaskId: taskId || null, rawSource: source, evidenceType: "objective_practice_result", verified: true, dayNumber: Number(current.day_number), scorePercent: numericScore, ...result.result, evaluatedAt: Date.now() };
-      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: numericScore, result, taskId, evidenceTaskId } }));
+      const evaluation = { source: "practice", taskId: evidenceTaskId, scheduleTaskId: taskId || null, rawSource: source, evidenceType: "objective_practice_result", verified: true, dayNumber: Number(current.day_number), scorePercent: numericScore, ...metadata, ...result.result, evaluatedAt: Date.now() };
+      window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: numericScore, metadata, result, taskId, evidenceTaskId } }));
       window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: evaluation }));
       return { committed: true, source, taskId, evidenceTaskId, result };
     } catch (error) {
@@ -1720,22 +1720,86 @@ function genReadingQuestions(w) {
 
 function startQuizForWord(char) {
   const w = VOCAB_BY_CHAR[char];
+  if (window.PandaHanAdaptiveLearning && !window.PandaHanAdaptiveLearning.canPracticeWord(char)) {
+    alert("Từ này chưa có lượt học/ôn được xác minh. Hãy hoàn thành phần giới thiệu từ liên kết trước / This word is not yet eligible. Complete its linked introduction first.");
+    return;
+  }
   quizQueue = genReadingQuestions(w).map(q => ({ ...q, char }));
   if (!quizQueue.length) { alert("Từ này chưa có câu trắc nghiệm / No quiz available for this word."); return; }
   runQuiz();
 }
-function startQuizLevel(level) {
-  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  let pool = missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level));
-  pool = shuffle(pool).slice(0, 15);
+function startQuizForWords(words) {
+  const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 15);
   quizQueue = [];
-  pool.forEach(w => {
+  pool.forEach((w) => {
     const qs = genReadingQuestions(w);
     if (qs.length) quizQueue.push({ ...shuffle(qs)[0], char: w.char });
   });
-  if (!quizQueue.length) { alert("Không có câu hỏi / No questions available."); return; }
+  if (!quizQueue.length) { alert("Chưa có đủ dữ liệu bài tập từ nhóm từ đã học / Not enough evidence-based vocabulary exercises yet."); return; }
   runQuiz();
 }
+function startQuizLevel(level) {
+  const pool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+  if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để kiểm tra. Hãy hoàn thành Ngữ âm và giới thiệu từ trước / No evidence-based practice words are ready yet."); return; }
+  startQuizForWords(shuffle(pool));
+}
+
+function startAdaptiveVocabularyLesson(words, dayNumber) {
+  const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 6);
+  if (!pool.length) { alert("Chưa có nhóm từ mới liên kết với phần Ngữ âm này / No linked new vocabulary is ready yet."); return; }
+  document.querySelector("#practiceTab .practice-grid")?.style && (document.querySelector("#practiceTab .practice-grid").style.display = "none");
+  const gc = document.getElementById("gameContainer");
+  if (!gc) return;
+  gc.classList.add("visible"); gc.style.display = "block";
+  let index = 0;
+  const played = new Set();
+  const body = document.getElementById("gameContent");
+  const render = () => {
+    const w = pool[index];
+    if (!w) {
+      const chars = pool.map((item) => item.char);
+      window.PandaHanAdaptiveLearning?.completeIntroduction?.(Number(dayNumber), chars);
+      body.innerHTML = `<div style="text-align:center;padding:22px 12px;"><div style="font-size:42px;">✅</div><h3>${L("Đã học xong nhóm từ liên kết", "Linked vocabulary exposure completed")}</h3><p style="color:var(--text-light);">${L("Hệ thống đã ghi nhận lượt học thật. Bây giờ bài kiểm tra sẽ chỉ dùng đúng nhóm từ này và kết quả sẽ cập nhật SM-2.", "Real exposure was recorded. The next exercises will use only this word set and update SM-2 from your answers.")}</p><button class="btn btn-hsk2" id="adaptiveStartQuizBtn">📝 ${L("Làm bài kiểm tra nhóm từ này", "Test this word set")}</button></div>`;
+      document.getElementById("adaptiveStartQuizBtn")?.addEventListener("click", () => startQuizForWords(pool));
+      return;
+    }
+    recordView(w.char);
+    const hasPlayed = played.has(w.char);
+    body.innerHTML = `<div style="text-align:center;padding:18px 10px;"><div style="font-size:11px;color:var(--text-light);">${index + 1}/${pool.length} · ${L("Từ mới liên kết với Ngữ âm", "New word linked to phonetics")}</div><div style="font-size:54px;font-weight:800;margin-top:8px;">${esc(w.char)}</div><div style="font-size:17px;color:var(--pink);font-weight:800;">${esc(w.pinyin)}</div><div style="margin:8px 0;color:var(--text-light);">${esc(L(w.meaning, w.meaning_en))}</div><div style="font-size:12px;color:var(--text-light);">${esc(w.examples?.[0]?.[0] || "")}</div><div style="display:flex;justify-content:center;gap:8px;margin-top:15px;"><button class="btn btn-outline" id="adaptivePlayAudio">🔊 ${L("Nghe mẫu", "Play audio")}</button><button class="btn btn-hsk2" id="adaptiveNextWord" ${hasPlayed ? "" : "disabled"}>${index + 1 === pool.length ? L("Hoàn tất nhóm từ", "Finish word set") : L("Từ tiếp theo", "Next word")} →</button></div><div id="adaptiveAudioStatus" style="font-size:11px;color:#64748b;margin-top:9px;">${hasPlayed ? L("Đã có lượt nghe thật cho từ này.", "Real playback recorded for this word.") : L("Hãy nghe audio mẫu trước khi sang từ tiếp theo.", "Play the reference audio before continuing.")}</div></div>`;
+    document.getElementById("adaptivePlayAudio")?.addEventListener("click", () => {
+      const audioButton = document.getElementById("adaptivePlayAudio");
+      const button = document.getElementById("adaptiveNextWord");
+      const status = document.getElementById("adaptiveAudioStatus");
+      if (audioButton) audioButton.disabled = true;
+      if (status) status.textContent = L("Đang phát âm thanh mẫu…", "Playing reference audio…");
+      const markPlayed = () => {
+        played.add(w.char);
+        if (button) button.disabled = false;
+        if (audioButton) audioButton.disabled = false;
+        if (status) status.textContent = L("Đã ghi nhận lượt nghe thật.", "Real playback completed and recorded.");
+      };
+      const failPlayed = () => {
+        if (audioButton) audioButton.disabled = false;
+        if (status) status.textContent = L("Không phát được audio; chưa ghi nhận lượt nghe.", "Audio playback failed; playback was not recorded.");
+      };
+      try {
+        if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { failPlayed(); return; }
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(w.pinyin);
+        utterance.lang = "zh-CN";
+        utterance.rate = 0.72;
+        utterance.pitch = 1;
+        utterance.onend = markPlayed;
+        utterance.onerror = failPlayed;
+        window.speechSynthesis.speak(utterance);
+      } catch (_) { failPlayed(); }
+    });
+    document.getElementById("adaptiveNextWord")?.addEventListener("click", () => { index += 1; render(); });
+  };
+  render();
+}
+window.startQuizForWords = startQuizForWords;
+window.startAdaptiveVocabularyLesson = startAdaptiveVocabularyLesson;
 function runQuiz() {
   quizIdx = 0; quizScore = 0;
   showScreen("quiz");
@@ -1998,16 +2062,20 @@ let uQueue = [], uIdx = 0, uSelected = [], uCurrentQ = null;
 let uCorrectCount = 0, uAnsweredCount = 0;
 function startUnscrambleForWord(char) {
   const w = VOCAB_BY_CHAR[char];
-  uQueue = w.unscramble.map(q => ({ ...q, char }));
+  if (window.PandaHanAdaptiveLearning && !window.PandaHanAdaptiveLearning.canPracticeWord(char)) {
+    alert("Từ này chưa có lượt học/ôn được xác minh. Hãy hoàn thành phần giới thiệu từ liên kết trước / This word is not yet eligible.");
+    return;
+  }
+  uQueue = (w.unscramble || []).map(q => ({ ...q, char }));
   if (!uQueue.length) { alert("Từ này chưa có bài sắp xếp câu / No unscramble exercise available."); return; }
   runUnscramble();
 }
 function startUnscrambleLevel(level) {
-  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  let pool = missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level));
+  let pool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+  if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để sắp xếp câu / No evidence-based words are ready for unscramble."); return; }
   pool = shuffle(pool).slice(0, 10);
   uQueue = [];
-  pool.forEach(w => { if (w.unscramble.length) uQueue.push({ ...shuffle(w.unscramble)[0], char: w.char }); });
+  pool.forEach(w => { if (Array.isArray(w.unscramble) && w.unscramble.length) uQueue.push({ ...shuffle(w.unscramble)[0], char: w.char }); });
   if (!uQueue.length) { alert("Không có bài tập / No exercises available."); return; }
   runUnscramble();
 }
@@ -3769,8 +3837,9 @@ function startMatchGame() {
   const gc = document.getElementById("gameContainer"); gc.classList.add("visible"); gc.style.display = "block";
   window.scrollTo({ top: 0, behavior: "instant" });
   const level = document.getElementById("practiceHskFilter").value;
-  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  let pool = shuffle(missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level))).slice(0, 6);
+  const missionPool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+  if (!missionPool.length) { alert("Chưa có nhóm từ đã học/đến hạn đủ điều kiện để ghép nghĩa / No evidence-based words are ready for matching."); return; }
+  let pool = shuffle(missionPool).slice(0, 6);
   let matched = 0, selectedChar = null, selectedMeaning = null;
   const chars = shuffle(pool.map(w => ({ char: w.char, id: w.id })));
   const meanings = shuffle(pool.map(w => ({ meaning: L(w.meaning, w.meaning_en), id: w.id })));
@@ -3820,12 +3889,17 @@ function startWriteGame() {
 /* "Viết nghĩa" — a single shuffled set of ~10 questions mixing two skills:
    recalling a single word's meaning, and translating a full example
    sentence (direction VI<->ZH or EN<->ZH follows the app's global 🌐
-   language toggle). Sentence items are self-checked (type an answer, then
-   reveal the reference) since auto-grading full translations isn't reliable. */
+   language toggle). Sentence items are reflection-only: the learner may type
+   a translation and compare it with the reference, but the sentence is never
+   self-scored and never contributes to SM-2 or the schedule gate. */
 function renderWriteGameShell() {
   const level = document.getElementById("practiceHskFilter").value;
   const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  const sourcePool = missionPool.length ? missionPool : VOCAB.filter(w => level === "all" || w.hsk === Number(level));
+  const sourcePool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : missionPool;
+  if (!sourcePool.length) {
+    document.getElementById("gameContent").innerHTML = `<p style="text-align:center;padding:20px;">${L("Chưa có từ đã học/đến hạn đủ điều kiện để viết nghĩa. Hãy theo lộ trình AI Teacher trước.", "No evidence-based words are ready for writing. Follow the AI Teacher route first.")}</p>`;
+    return;
+  }
   const wordPool = shuffle(sourcePool);
   const sentencePool = shuffle(sourcePool.filter(w => w.examples && w.examples.length));
   const queue = [];
@@ -3835,6 +3909,8 @@ function renderWriteGameShell() {
   for (let i = 0; i < sentCount; i++) queue.push({ type: "sentence", w: sentencePool[i] });
   const finalQueue = shuffle(queue).slice(0, 10);
   let idx = 0, correct = 0;
+  const gradedTotal = finalQueue.filter(item => item.type === "word").length;
+  const reflectionTotal = finalQueue.filter(item => item.type === "sentence").length;
 
   const gc = document.getElementById("gameContent");
   gc.innerHTML = `<div id="wgBody"></div>`;
@@ -3842,8 +3918,9 @@ function renderWriteGameShell() {
   function render() {
     const body = document.getElementById("wgBody");
     if (idx >= finalQueue.length) {
-      body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")} ${correct}/${finalQueue.length} ${L("đúng", "correct")}</h3>`;
-      savePracticeCompletion(finalQueue.length ? Math.round((correct / finalQueue.length) * 100) : 0, "write");
+      const pct = gradedTotal ? Math.round((correct / gradedTotal) * 100) : 0;
+      body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")}</h3><p style="text-align:center;">${gradedTotal ? `${correct}/${gradedTotal} ${L("từ đơn đúng", "graded words correct")}` : L("Không có câu tự động chấm", "No auto-graded word items")} · ${reflectionTotal} ${L("câu dịch để tham khảo", "reflection sentences")}</p>`;
+      if (gradedTotal) savePracticeCompletion(pct, "write", { gradedItems: gradedTotal, reflectionItems: reflectionTotal, score: pct, scoring: "auto_graded_words_only" });
       return;
     }
     const item = finalQueue[idx];
@@ -3898,19 +3975,13 @@ function renderWriteGameShell() {
           <div style="font-size:13px;margin-top:3px;">🇻🇳 ${esc(ex[2])}</div>
           <div style="font-size:13px;color:var(--text-light);">🇬🇧 ${esc(ex[3])}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="btn btn-hsk1" id="wgSelfCorrect" style="font-size:11.5px;padding:6px 12px;">✅ ${L("Mình dịch đúng", "I got it right")}</button>
-            <button class="btn btn-outline" id="wgSelfWrong" style="font-size:11.5px;padding:6px 12px;">❌ ${L("Chưa đúng", "Not quite")}</button>
+            <div style="font-size:11px;color:var(--text-light);">${L("Câu dịch này chỉ để tự luyện và không được dùng làm điểm hay bằng chứng hoàn thành.", "This translation is for reflection only and is not used as a score or completion evidence.")}</div>
           </div>
         </div>
       </div>`;
     document.getElementById("wgCheckBtn").addEventListener("click", () => {
       document.getElementById("wgAnswerBox").style.display = "block";
-    });
-    const selfCorrect = () => { recordQuizResult(w.char, true); playTing("correct"); correct++; idx++; render(); };
-    const selfWrong = () => { recordQuizResult(w.char, false); playTing("wrong"); idx++; render(); };
-    body.querySelector("#wgAnswerBox").addEventListener("click", (e) => {
-      if (e.target.id === "wgSelfCorrect") selfCorrect();
-      if (e.target.id === "wgSelfWrong") selfWrong();
+      window.setTimeout(() => { idx++; render(); }, 1400);
     });
   }
 
