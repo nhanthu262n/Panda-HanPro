@@ -108,42 +108,63 @@ let CURRENT_USER = null;
 let USER_ROLE = "student";
 const TEST_OPEN_ACCESS = false;
 
-// LẮNG NGHE TRẠNG THÁI ĐĂNG NHẬP — nguyên cơ chế từ file nguồn.
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    try {
-      const userDoc = await db.collection("users").doc(user.uid).get();
-      let userData = userDoc.exists ? userDoc.data() : null;
-      if (!userData) {
-        USER_ROLE = MASTER_EMAILS.includes(user.email) ? "teacher" : "student";
-        userData = {
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName || "Học viên",
-          role: USER_ROLE,
-          status: "approved",
-          lastSeen: new Date()
-        };
-        await db.collection("users").doc(user.uid).set(userData);
-      } else {
-        USER_ROLE = userData.role || "student";
-      }
-      CURRENT_USER = { ...user, ...userData };
-      completeLogin(CURRENT_USER);
-      const overlay = document.getElementById("proAuthOverlay");
-      if (overlay) overlay.style.display = "none";
-    } catch (e) {
-      console.error("Auth error:", e);
-      CURRENT_USER = user;
-      completeLogin(user);
-    }
+// Auth state is authoritative. Complete the UI from Firebase immediately;
+// profile Firestore enrichment is best-effort and must never block login.
+function authWithTimeout(promise, ms = 7000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("AUTH_PROFILE_TIMEOUT")), ms))
+  ]);
+}
+function completeLoginSafely(user) {
+  if (typeof completeLogin === "function") {
+    completeLogin(user);
   } else {
+    window.__PANDAHAN_PENDING_AUTH_USER = user;
+    window.dispatchEvent(new CustomEvent("pandahan-auth-pending"));
+  }
+}
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
     CURRENT_USER = null;
+    window.__PANDAHAN_AUTH_STATE_RESOLVED = true;
     const appEl = document.getElementById("app");
     const overlay = document.getElementById("proAuthOverlay");
     if (appEl) appEl.style.display = "none";
-    // Bắt buộc hiện lại trang đăng nhập khi logout, F5 hoặc người dùng mới truy cập.
     if (overlay) overlay.style.display = "flex";
+    return;
+  }
+
+  const fallbackRole = MASTER_EMAILS.includes((user.email || "").toLowerCase()) ? "teacher" : "student";
+  const baseUser = {
+    ...user,
+    uid: user.uid,
+    email: user.email || "",
+    name: user.displayName || "Học viên",
+    displayName: user.displayName || "Học viên",
+    role: fallbackRole,
+    status: "approved"
+  };
+  CURRENT_USER = baseUser;
+  USER_ROLE = fallbackRole;
+  completeLoginSafely(baseUser);
+  window.__PANDAHAN_AUTH_STATE_RESOLVED = true;
+
+  // Firestore profile is enrichment only. A slow/offline/denied profile read
+  // must not leave a successfully authenticated user behind the login overlay.
+  try {
+    const ref = db.collection("users").doc(user.uid);
+    const snap = await authWithTimeout(ref.get());
+    let userData = snap.exists ? snap.data() : null;
+    if (!userData) {
+      userData = { uid: user.uid, email: user.email || "", name: user.displayName || "Học viên", displayName: user.displayName || "Học viên", role: fallbackRole, status: "approved", createdAt: new Date() };
+      ref.set({ ...userData, lastSeen: new Date(), updatedAt: new Date() }, { merge: true }).catch((error) => console.warn("Profile create deferred:", error.message || error));
+    }
+    CURRENT_USER = { ...CURRENT_USER, ...userData, uid: user.uid, email: user.email || userData.email || "" };
+    USER_ROLE = CURRENT_USER.role || fallbackRole;
+    if (typeof applyRoleUI === "function") applyRoleUI();
+  } catch (e) {
+    console.warn("Auth profile enrichment skipped:", e.message || e);
   }
 });
 
@@ -159,8 +180,10 @@ function setGoogleAuthBusy(busy, message = "") {
   const indicator = document.getElementById("loadingIndicator");
   const googleBox = document.getElementById("fbGoogleBtnPro");
   const submit = document.querySelector("#proAuthOverlay .btn-main");
+  const fallback = document.getElementById("proGoogleFallbackBtn");
   if (indicator) { indicator.textContent = message || "⌛ Đang xử lý, vui lòng chờ..."; indicator.style.display = busy ? "block" : "none"; }
   if (googleBox) { googleBox.style.opacity = busy ? "0.62" : "1"; googleBox.style.pointerEvents = busy ? "none" : "auto"; googleBox.setAttribute("aria-busy", busy ? "true" : "false"); }
+  if (fallback) { fallback.disabled = !!busy; fallback.style.opacity = busy ? "0.62" : "1"; fallback.setAttribute("aria-busy", busy ? "true" : "false"); }
   if (submit) submit.disabled = !!busy;
 }
 function showGoogleAuthError(error) {
