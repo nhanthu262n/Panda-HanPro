@@ -48,6 +48,36 @@
     }).format(now);
   }
 
+  function addVietnamDays(dateString, amount) {
+    const base = new Date(`${String(dateString)}T00:00:00Z`);
+    if (Number.isNaN(base.getTime())) return String(dateString);
+    base.setUTCDate(base.getUTCDate() + Number(amount || 0));
+    return base.toISOString().slice(0, 10);
+  }
+
+  function calendarDaysBetween(startDate, endDate) {
+    const start = new Date(`${String(startDate)}T00:00:00Z`);
+    const end = new Date(`${String(endDate)}T00:00:00Z`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+    return Math.max(0, Math.floor((end - start) / 86400000));
+  }
+
+  function promoteDueDays(schedule, today = todayVietnam()) {
+    if (!schedule || !Array.isArray(schedule.days)) return false;
+    let changed = false;
+    schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0)).forEach((day) => {
+      if (day.status !== "pending_unlock") return;
+      const unlockDate = day.unlock_date || day.scheduled_date;
+      if (unlockDate && unlockDate <= today) {
+        day.status = "unlocked";
+        day.scheduled_date = unlockDate;
+        delete day.unlock_date;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
   function createInitialSchedule(curriculum, today = todayVietnam()) {
     if (!Array.isArray(curriculum) || curriculum.length !== 120) {
       throw new Error("Curriculum phải có đúng 120 ngày.");
@@ -66,7 +96,7 @@
         day_type: item.day_type || "new_content",
         week_number: item.week_number || null,
         topic: item.topic || "",
-        required_score: Number(item.required_score || (item.day_type === "review" ? 70 : 80)),
+        required_score: item.day_type === "review" ? Number(item.required_score || 70) : 60,
         status: index === 0 ? "unlocked" : "locked",
         attempt_count: 0,
         best_score: null,
@@ -87,11 +117,15 @@
   function unlockNextDay(schedule, currentSequence, today = todayVietnam()) {
     const ordered = schedule.days.slice().sort((a, b) => a.sequence_index - b.sequence_index);
     const currentIndex = ordered.findIndex((day) => day.sequence_index === currentSequence);
+    const current = ordered[currentIndex];
     const next = ordered[currentIndex + 1];
     if (!next) return null;
-    if (next.status === "locked") {
-      next.status = "unlocked";
-      next.scheduled_date = today;
+    if (next.status === "locked" || next.status === "pending_unlock") {
+      const baseDate = current?.scheduled_date || today;
+      const unlockDate = addVietnamDays(baseDate, 1);
+      next.status = "pending_unlock";
+      next.unlock_date = unlockDate;
+      next.scheduled_date = unlockDate;
     }
     return next;
   }
@@ -143,7 +177,7 @@
   function reviewThreshold(reviewType, day) {
     if (reviewType === "monthly") return 75;
     if (reviewType === "weekly") return 70;
-    return Number(day.required_score || 80);
+    return day.day_type === "review" ? Number(day.required_score || 70) : 60;
   }
 
   function evaluateReview(schedule, reviewType) {
@@ -269,6 +303,7 @@
       return { schedule, changed: false, idempotent: true, reason: "already_processed" };
     }
 
+    promoteDueDays(schedule, today);
     const overdue = schedule.days
       .filter((day) => day.status === "unlocked" && day.scheduled_date && day.scheduled_date < today)
       .sort((a, b) => a.sequence_index - b.sequence_index)[0];
@@ -278,14 +313,16 @@
 
     overdue.status = "extended";
     overdue.extended_at = today;
-    const repeats = insertRepeatsAfter(schedule, overdue, 1, "missed_day", today);
-    schedule._meta.extension_count = Number(schedule._meta.extension_count || 0) + 1;
+    const missedCount = Math.max(1, calendarDaysBetween(overdue.scheduled_date, today));
+    const repeats = insertRepeatsAfter(schedule, overdue, missedCount, "missed_day", today);
+    schedule._meta.extension_count = Number(schedule._meta.extension_count || 0) + repeats.length;
     return {
       schedule,
       changed: true,
       idempotent: false,
       reason: "missed_day_extended",
       sourceDayNumber: overdue.day_number,
+      repeatCount: repeats.length,
       newSequenceIndex: repeats[0].sequence_index,
     };
   }
@@ -294,6 +331,8 @@
     todayVietnam,
     createInitialSchedule,
     unlockNextDay,
+    promoteDueDays,
+    addVietnamDays,
     insertRepeatsAfter,
     evaluateReview,
     applySubmit,
