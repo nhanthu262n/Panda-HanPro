@@ -3306,6 +3306,7 @@ function reloadUserData() {
   ACTLOG = loadLog();
 }
 function completeLogin(user) {
+  if (!user) return;
   CURRENT_USER = user;
   USER_ROLE = user.role || "student"; // Cập nhật role toàn cục
   setSession(user.username || user.uid);
@@ -3326,6 +3327,14 @@ function completeLogin(user) {
   if (typeof checkStreakWarning === "function") checkStreakWarning();
   if (typeof updateNotifBell === "function") updateNotifBell();
 }
+function consumePendingFirebaseAuth() {
+  const pending = window.__PANDAHAN_PENDING_AUTH_USER;
+  if (!pending || typeof completeLogin !== "function") return;
+  try { delete window.__PANDAHAN_PENDING_AUTH_USER; } catch (_) { window.__PANDAHAN_PENDING_AUTH_USER = null; }
+  completeLogin(pending);
+}
+window.addEventListener("pandahan-auth-pending", consumePendingFirebaseAuth);
+consumePendingFirebaseAuth();
 function attemptLogin() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value;
