@@ -51,6 +51,11 @@
       instructionVi: "Ôn các từ đến hạn bằng Flashcard SRS; kết quả được ghi từ thao tác thật.",
       instructionEn: "Review due words with SRS flashcards; completion comes from real actions."
     },
+    "vocab-intro": {
+      titleVi: "Từ vựng liên kết Ngữ âm", titleEn: "Phonetics-linked vocabulary", icon: "🧠", minutes: 8,
+      instructionVi: "Học nhóm từ mới có âm đầu/thanh điệu liên quan đến phần Ngữ âm vừa hoàn thành.",
+      instructionEn: "Learn new words whose initials/finals/tones match the phonetics section just completed."
+    },
     quest: {
       titleVi: "Pinyin Tone Quest", titleEn: "Pinyin Tone Quest", icon: "🎯", minutes: 12,
       instructionVi: "Làm buổi Quest đang mở; điểm phần trăm sẽ được lưu để xét mở ngày tiếp theo.",
@@ -112,20 +117,10 @@
     try { return typeof VOCAB_BY_CHAR !== "undefined" ? VOCAB_BY_CHAR : (window.VOCAB_BY_CHAR || {}); } catch (_) { return window.VOCAB_BY_CHAR || {}; }
   }
   function targetVocabulary(day) {
-    const chars = parseVocabulary(day.new_vocab_raw);
-    const map = getVocabularyMap();
+    const adaptive = window.PandaHanAdaptiveLearning?.buildPlan?.(day, getSchedule());
+    if (adaptive) return adaptive.practiceWords || [];
     const all = getVocabulary();
-    const exact = chars.map((char) => map[char]).filter(Boolean);
-    const seen = new Set(exact.map((w) => w.char));
-    const due = all.filter((w) => {
-      try {
-        const dueNow = typeof isDue === "function" ? isDue(w.char) : false;
-        const tier = typeof getTier === "function" ? getTier(w.char) : 0;
-        return !seen.has(w.char) && (dueNow || tier > 0);
-      } catch (_) { return !seen.has(w.char); }
-    });
-    const fallback = all.filter((w) => !seen.has(w.char));
-    return [...exact, ...due, ...fallback].slice(0, 12);
+    return all.filter((word) => { try { return typeof isDue === "function" && isDue(word.char); } catch (_) { return false; } }).slice(0, 10);
   }
 
   function questModeToTask(mode) {
@@ -137,9 +132,11 @@
     return "quest";
   }
 
-  function buildTasks(day) {
+  function buildTasks(day, adaptivePlan = null) {
     const stage = day.stage_code;
     const review = day.day_type === "review";
+    const hasPracticeWords = !!adaptivePlan?.practiceWords?.length;
+    const hasNewIntro = !!adaptivePlan?.vocabIntroReady && !!adaptivePlan?.introWords?.length;
     const practiceTypes = stage === "stage_0"
       ? (review ? ["quest", "tone-race", "quiz", "flashcards"] : ["quest", "tone-race", "quiz", "write"])
       : stage === "stage_1"
@@ -147,6 +144,7 @@
         : stage === "stage_2"
           ? (review ? ["quest", "flashcards", "quiz", "unscramble", "tone-race"] : ["quest", "quiz", "unscramble", "match", "write"])
           : (review ? ["quest", "flashcards", "quiz", "unscramble", "advanced"] : ["quest", "quiz", "unscramble", "write", "match", ...(Number(day.day_number) >= 75 ? ["advanced"] : [])]);
+    const adaptivePracticeTypes = hasPracticeWords ? practiceTypes.filter((type) => ["quiz", "unscramble", "match", "write", "flashcards", "tone-race", "advanced"].includes(type)) : [];
     const workbookTypes = [
       ["listening", day.listening_task],
       ["speaking", day.speaking_task],
@@ -154,7 +152,7 @@
       ["srs", day.srs_review_task],
     ].filter(([, value]) => value && value !== "-").map(([type]) => type);
     const workbookPrimary = questModeToTask(day.quest_main_mode);
-    const ordered = [...new Set([workbookPrimary, ...practiceTypes, ...workbookTypes])];
+    const ordered = [...new Set([workbookPrimary, "quest", ...(hasNewIntro ? ["vocab-intro"] : []), ...adaptivePracticeTypes, ...workbookTypes])];
     return ordered.map((type, index) => {
       const meta = TASK_META[type] || TASK_META.reading_writing;
       const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook" };
@@ -169,21 +167,33 @@
         task.instructionEn = "Follow the workbook Quest sequence and complete the saved checkpoint.";
         task.minutes = Math.max(8, Number(day.xp_target || 60) >= 100 ? 18 : 12);
       }
+      if (type === "vocab-intro") {
+        task.instructionVi = adaptivePlan?.focusLabel ? `Sau Ngữ âm (${adaptivePlan.focusLabel}), học ${adaptivePlan.introWords.length} từ mới liên quan rồi làm bài kiểm tra.` : task.instructionVi;
+        task.instructionEn = adaptivePlan?.focusLabel ? `After phonetics (${adaptivePlan.focusLabel}), learn ${adaptivePlan.introWords.length} linked new words, then test them.` : task.instructionEn;
+        task.minutes = Math.max(6, Math.min(12, Number(adaptivePlan?.introWords.length || 4) + 3));
+      }
+      if (["quiz", "unscramble", "match", "write", "flashcards"].includes(type) && adaptivePlan) {
+        const reviewCount = adaptivePlan.reviewWords.length;
+        const newCount = adaptivePlan.introCompleted ? adaptivePlan.newWords.length : 0;
+        task.instructionVi += ` Dữ liệu hiện tại: ${reviewCount} từ cần ôn${newCount ? `, ${newCount} từ mới đã học` : ""}.`;
+        task.instructionEn += ` Current evidence: ${reviewCount} review words${newCount ? `, ${newCount} introduced words` : ""}.`;
+      }
       return task;
     });
   }
 
   function buildMission() {
     const day = findCurriculumDay();
-    const words = targetVocabulary(day);
-    const tasks = buildTasks(day);
     const scheduleDay = currentScheduleDay();
+    const adaptivePlan = window.PandaHanAdaptiveLearning?.buildPlan?.(day, getSchedule()) || null;
+    const words = adaptivePlan?.practiceWords || targetVocabulary(day);
+    const tasks = buildTasks(day, adaptivePlan);
     return {
       dayNumber: Number(day.day_number), sequenceIndex: Number(scheduleDay?.sequence_index || day.day_number),
       weekNumber: Number(day.week_number || Math.ceil(Number(day.day_number) / 7)),
       stageCode: day.stage_code, stage: day.stage, dayType: day.day_type, topic: day.topic || "",
       requiredScore: Number(day.required_score || 80), newVocab: words,
-      curriculum: day, tasks,
+      curriculum: day, workbook: day.workbook_row || null, tasks, adaptivePlan,
       questStation: day.quest_station || "-", questMainMode: day.quest_main_mode || "-",
       questActivityChain: day.quest_activity_chain || "-", questDailyTask: day.quest_daily_task || "-",
       questCompletionCondition: day.quest_completion_condition || "-", questCheckpointQuestion: day.quest_checkpoint_question || "-",
@@ -208,7 +218,7 @@
 
   function getTargetVocabulary() {
     const m = activeMission || mission();
-    return activeTask && m.newVocab.length ? m.newVocab : [];
+    return activeTask && m.adaptivePlan ? (m.adaptivePlan.practiceWords || []) : [];
   }
 
   function startTask(type) {
@@ -216,8 +226,11 @@
     activeTask = m.tasks.find((task) => task.type === type) || { type };
     setFilterForMission(m);
     const level = document.getElementById("practiceHskFilter")?.value || "all";
-    if (type === "quiz") window.startQuizLevel?.(level);
-    else if (type === "unscramble") window.startUnscrambleLevel?.(level);
+    if (type === "vocab-intro") window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords || [], m.dayNumber);
+    else if (type === "quiz") {
+      if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.adaptivePlan?.practiceWords || []);
+      else window.startQuizLevel?.(level);
+    } else if (type === "unscramble") window.startUnscrambleLevel?.(level);
     else if (type === "match") window.startMatchGame?.();
     else if (type === "write") window.startWriteGame?.();
     else if (type === "tone-race") window.startToneRaceGame?.();
@@ -248,7 +261,7 @@
   }
 
   function requiredTaskLabel(taskId, langEn) {
-    const labels = { quest: "Pinyin Tone Quest", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS" };
+    const labels = { quest: "Pinyin Tone Quest", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS", "vocab-intro": langEn ? "Linked vocabulary" : "Từ vựng liên kết" };
     return labels[taskId] || taskId;
   }
   function renderRequiredChecklist(m, langEn) {
@@ -271,12 +284,22 @@
     if (!container) return;
     const m = mission();
     const c = m.curriculum;
+    const adaptive = m.adaptivePlan;
     const langEn = window.LANG_MODE === "en";
     const stageLabel = langEn ? (m.stageCode === "stage_0" ? "Pinyin Bootcamp" : m.stageCode === "stage_1" ? "HSK 1 foundation" : m.stageCode === "stage_2" ? "HSK 2 development" : "HSK 3 communication") : (m.stage || m.stageCode);
     const taskRows = m.tasks.map((task) => `<button type="button" data-mission-task="${task.type}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #f3d5e5;border-radius:11px;background:#fff;padding:8px 10px;margin-top:6px;cursor:pointer;"><span style="font-size:20px;">${task.icon}</span><span style="flex:1;min-width:0;"><b>${langEn ? task.titleEn : task.titleVi}</b><br><small style="color:#64748b;overflow-wrap:anywhere;">${esc(langEn ? task.instructionEn : task.instructionVi)}</small></span><small style="color:#a855f7;font-weight:800;white-space:nowrap;">${task.minutes} min</small></button>`).join("");
     const workbookPlan = "";
     const questPlan = "";
-    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel source" : "Kế hoạch học với AI · Nguồn Excel"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · Week ${m.weekNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div><div style="margin-top:9px;">${taskRows}</div>${renderRequiredChecklist(m, langEn)}</div>`;
+    const adaptiveNote = adaptive ? `<div style="font-size:11.5px;color:#475569;margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff;border:1px dashed #c4b5fd;">${langEn ? `Adaptive source: ${adaptive.reviewWords.length} due/weak review words${adaptive.introCompleted ? ` + ${adaptive.newWords.length} introduced words` : adaptive.vocabIntroReady ? ` · ${adaptive.introWords.length} phonetics-linked new words ready` : " · finish phonetics before new vocabulary"}.` : `Nguồn thích ứng: ${adaptive.reviewWords.length} từ đến hạn/yếu cần ôn${adaptive.introCompleted ? ` + ${adaptive.newWords.length} từ mới đã học` : adaptive.vocabIntroReady ? ` · sẵn sàng ${adaptive.introWords.length} từ mới liên kết Ngữ âm` : " · hoàn thành Ngữ âm trước khi học từ mới"}.`}</div>` : "";
+    const excelDetails = [
+      c.grammar_focus ? `${langEn ? "Grammar/reference" : "Ngữ pháp/tài liệu"}: ${c.grammar_focus}` : "",
+      c.notes ? `${langEn ? "Note" : "Ghi chú"}: ${c.notes}` : "",
+      m.questStation !== "-" ? `${langEn ? "Quest station" : "Trạm Quest"}: ${m.questStation}` : "",
+      m.questCompletionCondition !== "-" ? `${langEn ? "Stamp condition" : "Điều kiện đóng dấu"}: ${m.questCompletionCondition}` : "",
+      m.questCheckpointQuestion !== "-" ? `${langEn ? "Checkpoint" : "Câu hỏi chốt"}: ${m.questCheckpointQuestion}` : ""
+    ].filter(Boolean);
+    const excelNote = excelDetails.length ? `<details style="margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:7px 9px;font-size:11px;color:#475569;"><summary style="cursor:pointer;font-weight:800;color:#7e22ce;">${langEn ? "Show full Excel day details" : "Xem đầy đủ nội dung ngày từ Excel"}</summary><div style="margin-top:6px;line-height:1.5;overflow-wrap:anywhere;">${excelDetails.map(esc).join("<br>")}</div></details>` : "";
+    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · Week ${m.weekNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${adaptiveNote}${excelNote}<div style="margin-top:9px;">${taskRows}</div>${renderRequiredChecklist(m, langEn)}</div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
   }
 
@@ -296,18 +319,45 @@
 
   async function load() {
     try {
-      const response = await fetch("assets/curriculum_days.json", { cache: "no-store" });
+      const [response, fullResponse] = await Promise.all([
+        fetch("assets/curriculum_days.json", { cache: "no-store" }),
+        fetch("assets/curriculum_excel_full.json", { cache: "no-store" }).catch(() => null)
+      ]);
       const data = await response.json();
-      curriculum = Array.isArray(data) ? data : (data.curriculum_days || []);
+      const base = Array.isArray(data) ? data : (data.curriculum_days || []);
+      let workbookDays = [];
+      if (fullResponse && fullResponse.ok) {
+        const workbook = await fullResponse.json();
+        workbookDays = Array.isArray(workbook) ? workbook : (workbook.days || []);
+      }
+      const rawByDay = new Map(workbookDays.map((row) => [Number(row["Ngày"]), row]));
+      curriculum = base.map((day) => {
+        const raw = rawByDay.get(Number(day.day_number));
+        if (!raw) return day;
+        const weekLabel = raw["Tuần"] || day.week_number;
+        const stageLabel = raw["Giai đoạn"] || day.stage;
+        const typeLabel = raw["Loại ngày"] || day.day_type;
+        return {
+          ...day,
+          week_label: String(weekLabel),
+          stage_label: String(stageLabel),
+          day_type_label: String(typeLabel),
+          completion_excel: raw["Hoàn thành"] ?? day.completion_marker ?? "-",
+          notes_excel: raw["Ghi chú"] ?? day.notes ?? "",
+          workbook_row: raw,
+          workbook_source: "KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx"
+        };
+      });
     } catch (error) {
       console.warn("Mission curriculum fallback:", error);
       curriculum = [];
     }
+    if (curriculum.length !== 120) console.warn("Mission curriculum expected 120 days, received:", curriculum.length);
     activeMission = null;
     window.dispatchEvent(new CustomEvent("pandahan-mission-ready"));
   }
 
-  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getActiveTask: () => activeTask, parseVocabulary };
+  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
   window.addEventListener("pandahan-schedule-updated", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
