@@ -202,7 +202,9 @@ function showGoogleAuthError(error) {
     "auth/invalid-api-key": "Firebase API key không hợp lệ trên bản đang chạy. Hãy tải lại đúng bản GitHub Pages mới.",
     "AUTH_PERSISTENCE_TIMEOUT": "Bộ nhớ đăng nhập phản hồi quá lâu. Đã hủy trạng thái treo; hãy thử lại hoặc dùng email/mật khẩu.",
     "AUTH_REDIRECT_TIMEOUT": "Không chuyển được tới Google sau 12 giây. Hãy kiểm tra mạng, tắt chặn popup/cookie rồi thử lại.",
-    "AUTH_REDIRECT_RESULT_TIMEOUT": "Google đã trở về nhưng phản hồi đăng nhập không tới được web. Hãy tải lại trang và thử lại."
+    "AUTH_POPUP_TIMEOUT": "Cửa sổ Google không trả kết quả sau 45 giây. Hãy cho phép popup/cookie rồi thử lại.",
+    "AUTH_REDIRECT_RESULT_TIMEOUT": "Google đã trở về nhưng phản hồi đăng nhập không tới được web. Hãy tải lại trang và thử lại.",
+    "AUTH_NO_REDIRECT_USER": "Google đã trở về nhưng chưa tạo được phiên Firebase. Hãy thử lại bằng nút Google hoặc kiểm tra Authorized domains."
   };
   const el = document.getElementById("proError");
   if (el) { el.textContent = messages[code] || ("Lỗi Google: " + (error?.message || "Không xác định")); el.style.display = "block"; }
@@ -254,16 +256,16 @@ async function proGoogleLogin() {
   try { await authWithTimeout(auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL), 3500, "AUTH_PERSISTENCE_TIMEOUT"); }
   catch (persistenceError) { console.warn("Google persistence unavailable; continue with Firebase default:", persistenceError.message || persistenceError); }
   try {
-    if (isMobileAuthContext()) {
-      try { sessionStorage.setItem("pandahan_google_redirect_pending", "1"); } catch (_) {}
-      await authWithTimeout(auth.signInWithRedirect(provider), 12000, "AUTH_REDIRECT_TIMEOUT");
-      return;
-    }
+    // Popup returns the credential directly and is more reliable on Android
+    // browsers that lose Firebase redirect state across a GitHub Pages path.
+    // Redirect remains a fallback when popup is blocked/unsupported.
     await authWithTimeout(auth.signInWithPopup(provider), 45000, "AUTH_POPUP_TIMEOUT");
+    return;
   } catch (error) {
     console.warn("Google popup/redirect error:", error);
     const code = String(error?.code || "");
-    if (!isMobileAuthContext() && ["auth/popup-blocked", "auth/popup-closed-by-user", "auth/operation-not-supported-in-this-environment"].includes(code)) {
+    const redirectFallbackCodes = ["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/web-storage-unsupported", "AUTH_POPUP_TIMEOUT"];
+    if (redirectFallbackCodes.includes(code)) {
       try { sessionStorage.setItem("pandahan_google_redirect_pending", "1"); } catch (_) {}
       try { await authWithTimeout(auth.signInWithRedirect(provider), 12000, "AUTH_REDIRECT_TIMEOUT"); return; } catch (redirectError) { showGoogleAuthError(redirectError); }
     } else showGoogleAuthError(error);
@@ -299,6 +301,11 @@ function handleRedirectResult() {
   if (pending) setGoogleAuthBusy(true, "⌛ Đang hoàn tất đăng nhập Google...");
   authWithTimeout(auth.getRedirectResult(), 15000, "AUTH_REDIRECT_RESULT_TIMEOUT").then((result) => {
     if (result.user) console.log("Đăng nhập thành công sau redirect");
+    else if (pending && !auth.currentUser) {
+      const error = new Error("AUTH_NO_REDIRECT_USER");
+      error.code = "AUTH_NO_REDIRECT_USER";
+      throw error;
+    }
   }).catch((error) => {
     if (String(error?.code || "") !== "auth/no-auth-event") showGoogleAuthError(error);
   }).finally(() => {
