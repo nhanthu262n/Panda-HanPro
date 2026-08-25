@@ -950,6 +950,11 @@ function pvNextSession() {
     recordAiCoachTimeline(event.detail || {}, "evaluation");
   });
   window.addEventListener("pandahan-daily-plan", (event) => recordAiCoachTimeline(event.detail || {}, "daily_plan"));
+  window.addEventListener("pandahan-vocabulary-lesson-completed", (event) => {
+    const detail = event.detail || {};
+    if (detail.verified !== true) return;
+    recordAiCoachTimeline({ ...detail, source: "vocabulary", taskId: "vocabulary", action: "vocabulary_exposure_completed", passed: null, scorePercent: null, evaluatedAt: detail.completedAt || Date.now() }, "evaluation");
+  });
 
   async function sendAiCoachMessage(text) {
     const area = document.getElementById("chatMessagesArea");
