@@ -43,7 +43,7 @@
         day.topic = day.topic || item.topic || "";
         day.week_number = day.week_number || item.week_number || null;
         day.day_type = day.day_type || item.day_type || "new_content";
-        day.required_score = Number(day.required_score || item.required_score || 80);
+        day.required_score = day.day_type === "review" ? Number(day.required_score || item.required_score || 70) : 60;
       }
       day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
       day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
@@ -64,6 +64,7 @@
         day.scheduled_date = null;
       }
     });
+    if (typeof core.promoteDueDays === "function") core.promoteDueDays(schedule, core.todayVietnam());
     return schedule;
   }
 
@@ -138,21 +139,53 @@
     return { committed: transaction.committed, snapshot: transaction.snapshot, schedule: committedSchedule };
   }
 
+  function getRegistrationDate() {
+    try {
+      const authUser = window.firebase?.auth?.().currentUser;
+      const candidate = authUser?.metadata?.creationTime || window.CURRENT_USER?.createdAt || window.CURRENT_USER?.creationTime;
+      if (!candidate) return null;
+      const date = candidate?.toDate ? candidate.toDate() : new Date(candidate);
+      if (Number.isNaN(date.getTime())) return null;
+      return core.todayVietnam(date);
+    } catch (_) { return null; }
+  }
+
+  function applyRegistrationAnchor(schedule) {
+    const registrationDate = getRegistrationDate();
+    if (!schedule || !registrationDate) return schedule;
+    schedule._meta = schedule._meta || { version: 1, extension_count: 0 };
+    if (!schedule._meta.registration_date) {
+      schedule._meta.registration_date = registrationDate;
+      schedule._meta.started_at = schedule._meta.started_at || registrationDate;
+      const first = schedule.days?.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0))[0];
+      if (first && Number(first.attempt_count || 0) === 0 && !(first.task_events || []).length) first.scheduled_date = registrationDate;
+    }
+    return schedule;
+  }
+
   async function initScheduleIfNeeded() {
     await loadCurriculumDays().catch((error) => console.warn("Curriculum preload:", error.message || error));
     const uid = getUid();
     const server = await readServerSchedule(uid).catch(() => null);
     if (server) {
+      applyRegistrationAnchor(server);
+      saveLocal(server);
       publishLocalDailyPlan(server);
       return server;
     }
     const local = loadLocal();
     if (local) {
+      applyRegistrationAnchor(local);
       if (uid) await writeServerSchedule(uid, local).catch(() => {});
+      saveLocal(local);
       publishLocalDailyPlan(local);
       return local;
     }
-    const schedule = core.createInitialSchedule(await loadCurriculumDays(), core.todayVietnam());
+    const today = core.todayVietnam();
+    const registrationDate = getRegistrationDate() || today;
+    const schedule = core.createInitialSchedule(await loadCurriculumDays(), today);
+    schedule._meta = { ...(schedule._meta || {}), registration_date: registrationDate, started_at: registrationDate };
+    if (schedule.days?.[0]) schedule.days[0].scheduled_date = registrationDate;
     saveLocal(schedule);
     if (uid) {
       const result = await writeServerSchedule(uid, schedule);
@@ -235,7 +268,7 @@
   function makeExistingQuestResult(schedule, dayNumber, score) {
     const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber));
     if (!day) return null;
-    const threshold = Number(day.required_score || (day.day_type === "review" ? 70 : 80));
+    const threshold = day.day_type === "review" ? Number(day.required_score || 70) : 60;
     const passed = Number(score) >= threshold;
     const alreadyCompleted = day.status === "completed";
     return {
@@ -284,7 +317,7 @@
       dayNumber: Number(dayNumber),
       scorePercent: Number(score),
       passed: !!result?.result?.passed,
-      threshold: Number(result?.result?.threshold || 80),
+      threshold: Number(result?.result?.threshold || 60),
       reviewType: result?.result?.reviewType || "daily",
       repeatCount: Number(result?.result?.repeatCount || 0),
       action: result?.result?.action || "advance",
@@ -350,6 +383,43 @@
       attempts: evidence.attempts, correct: evidence.correct, total: evidence.total, durationSeconds: evidence.durationSeconds, components: evidence.components, details: evidence.details,
       missingTaskIds: output.result.missingTaskIds || [], requiredTaskIds: output.result.requiredTaskIds || [], evaluatedAt: Date.now(),
     }}));
+    return output;
+  }
+
+  async function requireMistakeReview(dayNumber) {
+    const today = core.todayVietnam();
+    const uid = getUid();
+    const rtdb = getRtdb();
+    let output = null;
+    const apply = (schedule) => {
+      const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
+      if (!day) return null;
+      day.required_tasks = Array.from(new Set([...(Array.isArray(day.required_tasks) ? day.required_tasks : core.getMandatoryTaskIds(day)), "mistake_review"]));
+      day.mistake_review_required = true;
+      day.mistake_review_added_at = day.mistake_review_added_at || today;
+      return { schedule, result: { dayNumber: Number(dayNumber), taskId: "mistake_review", action: "review_required", missingTaskIds: core ? day.required_tasks.filter((id) => !day.completed_tasks?.[id]) : [] } };
+    };
+    if (!uid || !rtdb) {
+      const local = loadLocal() || await initScheduleIfNeeded();
+      output = apply(local);
+      if (output) { saveLocal(output.schedule); window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: output })); }
+      return output;
+    }
+    const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
+    let error = null;
+    const transaction = await ref.transaction((current) => {
+      try {
+        const schedule = hydrateScheduleSync(normalizeSchedule(current) || loadLocal());
+        output = apply(schedule);
+        if (!output) throw new Error("Không tìm thấy ngày đang mở để thêm nhiệm vụ ôn lỗi.");
+        output.schedule._meta = { ...(output.schedule._meta || {}), version: Number(schedule._meta?.version || 0) + 1 };
+        return output.schedule;
+      } catch (caught) { error = caught; return; }
+    });
+    if (error) throw error;
+    if (!transaction.committed || !output) return null;
+    saveLocal(output.schedule);
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: output }));
     return output;
   }
 
@@ -426,6 +496,7 @@
     submitDayResult,
     submitQuestResult,
     completeTask,
+    requireMistakeReview,
     runCatchUpCheck,
     computeWeeklyReview,
     computeMonthlyReview,
