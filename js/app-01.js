@@ -147,40 +147,94 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
+let googleLoginInFlight = false;
+function isMobileAuthContext() {
+  const ua = navigator.userAgent || "";
+  return /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(ua)
+    || (window.matchMedia && window.matchMedia("(max-width: 768px)").matches)
+    || (navigator.maxTouchPoints > 1 && window.innerWidth <= 900);
+}
+function setGoogleAuthBusy(busy, message = "") {
+  googleLoginInFlight = !!busy;
+  const indicator = document.getElementById("loadingIndicator");
+  const googleBox = document.getElementById("fbGoogleBtnPro");
+  const submit = document.querySelector("#proAuthOverlay .btn-main");
+  if (indicator) { indicator.textContent = message || "⌛ Đang xử lý, vui lòng chờ..."; indicator.style.display = busy ? "block" : "none"; }
+  if (googleBox) { googleBox.style.opacity = busy ? "0.62" : "1"; googleBox.style.pointerEvents = busy ? "none" : "auto"; googleBox.setAttribute("aria-busy", busy ? "true" : "false"); }
+  if (submit) submit.disabled = !!busy;
+}
+function showGoogleAuthError(error) {
+  const code = String(error?.code || "");
+  const messages = {
+    "auth/unauthorized-domain": "Tên miền hiện tại chưa được thêm vào Firebase Authentication → Authorized domains.",
+    "auth/popup-blocked": "Trình duyệt đã chặn cửa sổ Google. Hãy bấm lại hoặc dùng luồng chuyển trang Google.",
+    "auth/popup-closed-by-user": "Bạn đã đóng cửa sổ Google trước khi hoàn tất đăng nhập.",
+    "auth/cancelled-popup-request": "Đang có một yêu cầu Google khác. Vui lòng chờ rồi thử lại.",
+    "auth/network-request-failed": "Không kết nối được mạng. Vui lòng kiểm tra mạng rồi thử lại."
+  };
+  const el = document.getElementById("proError");
+  if (el) { el.textContent = messages[code] || ("Lỗi Google: " + (error?.message || "Không xác định")); el.style.display = "block"; }
+}
+function setGoogleFallbackVisible(visible) {
+  const button = document.getElementById("proGoogleFallbackBtn");
+  if (button) button.style.display = visible ? "flex" : "none";
+}
 function initGoogleSignIn() {
-  if (typeof google === "undefined") return;
+  if (typeof google === "undefined" || !google.accounts?.id) { setGoogleFallbackVisible(true); return; }
   const container = document.getElementById("fbGoogleBtnPro");
-  if (!container) return;
-  google.accounts.id.initialize({
+  if (!container || !GOOGLE_CLIENT_ID) { setGoogleFallbackVisible(true); return; }
+  if (isMobileAuthContext()) {
+    container.innerHTML = "";
+    container.style.display = "none";
+    setGoogleFallbackVisible(true);
+    return;
+  }
+  container.style.display = "flex";
+  try { google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
+    ux_mode: "popup",
     callback: async (res) => {
-      const cred = firebase.auth.GoogleAuthProvider.credential(res.credential);
+      if (googleLoginInFlight) return;
+      setGoogleAuthBusy(true, "⌛ Đang xác thực tài khoản Google...");
       try {
+        const cred = firebase.auth.GoogleAuthProvider.credential(res.credential);
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         await auth.signInWithCredential(cred);
       } catch (e) {
-        console.error("Google Auth Error:", e);
-        const errEl = document.getElementById('proError');
-        if (errEl) { errEl.textContent = "Lỗi đăng nhập: " + e.message; errEl.style.display = "block"; }
-      }
+        console.error("Google Auth Error:", e); showGoogleAuthError(e);
+      } finally { setGoogleAuthBusy(false); }
     }
   });
-  google.accounts.id.renderButton(container, { theme: "outline", size: "large", shape: "pill", width: 280 });
-}
-
-async function proGoogleLogin() {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-  } catch (e) {
-    console.error("Popup failed, trying redirect:", e);
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithRedirect(provider);
-    } catch (e2) {
-      const errEl = document.getElementById('proError');
-      if (errEl) { errEl.textContent = "Lỗi: " + e2.message; errEl.style.display = "block"; }
-    }
+    const width = Math.min(400, Math.max(220, Math.floor(container.clientWidth || 280)));
+    container.innerHTML = "";
+    google.accounts.id.renderButton(container, { theme: "outline", size: "large", shape: "pill", width });
+    setGoogleFallbackVisible(false);
+  } catch (error) {
+    console.warn("Google Identity Services unavailable:", error);
+    setGoogleFallbackVisible(true);
   }
+}
+async function proGoogleLogin() {
+  if (googleLoginInFlight) return;
+  setGoogleAuthBusy(true, isMobileAuthContext() ? "⌛ Đang chuyển tới Google..." : "⌛ Đang mở Google...");
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch (_) {}
+  try {
+    if (isMobileAuthContext()) {
+      try { sessionStorage.setItem("pandahan_google_redirect_pending", "1"); } catch (_) {}
+      await auth.signInWithRedirect(provider);
+      return;
+    }
+    await auth.signInWithPopup(provider);
+  } catch (error) {
+    console.warn("Google popup/redirect error:", error);
+    const code = String(error?.code || "");
+    if (!isMobileAuthContext() && ["auth/popup-blocked", "auth/popup-closed-by-user", "auth/operation-not-supported-in-this-environment"].includes(code)) {
+      try { sessionStorage.setItem("pandahan_google_redirect_pending", "1"); } catch (_) {}
+      try { await auth.signInWithRedirect(provider); return; } catch (redirectError) { showGoogleAuthError(redirectError); }
+    } else showGoogleAuthError(error);
+  } finally { setGoogleAuthBusy(false); }
 }
 
 async function proLogin() {
@@ -207,14 +261,22 @@ function closeProAuth() {
 }
 
 function handleRedirectResult() {
+  let pending = false;
+  try { pending = sessionStorage.getItem("pandahan_google_redirect_pending") === "1"; } catch (_) {}
+  if (pending) setGoogleAuthBusy(true, "⌛ Đang hoàn tất đăng nhập Google...");
   auth.getRedirectResult().then((result) => {
     if (result.user) console.log("Đăng nhập thành công sau redirect");
   }).catch((error) => {
-    const errEl = document.getElementById('proError');
-    if (errEl) { errEl.textContent = "Lỗi Google: " + error.message; errEl.style.display = "block"; }
+    if (String(error?.code || "") !== "auth/no-auth-event") showGoogleAuthError(error);
+  }).finally(() => {
+    if (pending) { try { sessionStorage.removeItem("pandahan_google_redirect_pending"); } catch (_) {} }
+    if (pending) setGoogleAuthBusy(false);
   });
 }
-window.addEventListener('load', () => { handleRedirectResult(); });
+window.addEventListener('load', () => {
+  handleRedirectResult();
+  window.setTimeout(() => { if (!CURRENT_USER) initGoogleSignIn(); }, 700);
+});
 async function handleLogin() {
   const email = document.getElementById("loginEmail").value;
   const pass = document.getElementById("loginPassword").value;
