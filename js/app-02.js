@@ -482,12 +482,64 @@ function computeAutoQuality(char) {
   return { quality, label, ratio };
 }
 
-function recordQuizResult(char, correct) {
+/* ---------- Objective wrong-answer queue ----------
+   Every objectively wrong vocabulary item is queued for AI Coach review.
+   This is learner evidence, not a self-confirmation control. */
+function mistakeStorageKey() {
+  let owner = "guest";
+  try { owner = typeof storageNamespace === "function" ? storageNamespace() : (window.CURRENT_USER?.uid || "guest"); } catch (_) {}
+  return `pandahan_mistake_queue_v1_${String(owner).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+}
+function readMistakeQueueRaw() {
+  try { const value = JSON.parse(localStorage.getItem(mistakeStorageKey()) || "[]"); return Array.isArray(value) ? value : []; } catch (_) { return []; }
+}
+function writeMistakeQueueRaw(value) { try { localStorage.setItem(mistakeStorageKey(), JSON.stringify(value.slice(0, 120))); } catch (_) {} }
+function recordVocabularyMistake(char, meta = {}) {
+  const keyChar = String(char || "").trim();
+  if (!keyChar) return null;
+  const source = String(meta.source || "practice");
+  const prompt = String(meta.prompt || "").slice(0, 240);
+  const key = `${keyChar}::${source}::${prompt}`;
+  const now = Date.now();
+  const queue = readMistakeQueueRaw();
+  let item = queue.find((entry) => entry.key === key);
+  if (!item) {
+    item = { key, char: keyChar, dayNumber: Number(meta.dayNumber || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), source, prompt, expected: String(meta.expected || "").slice(0, 240), selected: String(meta.selected || "").slice(0, 240), wrongCount: 0, resolvedCount: 0, firstWrongAt: now, lastWrongAt: now };
+    queue.unshift(item);
+  }
+  item.wrongCount = Number(item.wrongCount || 0) + 1;
+  item.lastWrongAt = now;
+  if (meta.expected) item.expected = String(meta.expected).slice(0, 240);
+  if (meta.selected) item.selected = String(meta.selected).slice(0, 240);
+  writeMistakeQueueRaw(queue);
+  const activeDayNumber = Number(item.dayNumber || meta.dayNumber || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
+  if (activeDayNumber && window.PandaHanSchedule?.requireMistakeReview) window.PandaHanSchedule.requireMistakeReview(activeDayNumber).catch((error) => console.warn("Require mistake review:", error.message || error));
+  window.dispatchEvent(new CustomEvent("pandahan-mistake-recorded", { detail: { ...item, unresolved: Math.max(0, item.wrongCount - item.resolvedCount) } }));
+  return item;
+}
+function resolveVocabularyMistake(char) {
+  const keyChar = String(char || "").trim();
+  if (!keyChar) return;
+  const queue = readMistakeQueueRaw();
+  const item = queue.filter((entry) => entry.char === keyChar && Number(entry.wrongCount || 0) > Number(entry.resolvedCount || 0)).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0))[0];
+  if (!item) return;
+  item.resolvedCount = Number(item.resolvedCount || 0) + 1;
+  item.lastResolvedAt = Date.now();
+  writeMistakeQueueRaw(queue);
+}
+function getVocabularyMistakeQueue() {
+  return readMistakeQueueRaw().filter((item) => Number(item.wrongCount || 0) > Number(item.resolvedCount || 0)).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0));
+}
+window.PandaHanMistakes = { getQueue: getVocabularyMistakeQueue, record: recordVocabularyMistake, resolve: resolveVocabularyMistake };
+
+function recordQuizResult(char, correct, meta = {}) {
   const s = getStat(char);
   s.quizAttempts += 1;
   if (correct) s.quizCorrect += 1;
   s.quizLog.push({ t: Date.now(), correct });
   if (s.quizLog.length > 30) s.quizLog = s.quizLog.slice(-30);
+  if (correct) resolveVocabularyMistake(char);
+  else recordVocabularyMistake(char, { ...meta, source: meta.source || "quiz" });
   // Testing effect: quiz performance also feeds the SRS as a graded review
   gradeWord(char, correct ? 4 : 2);
 }
@@ -1744,6 +1796,44 @@ function startQuizLevel(level) {
   startQuizForWords(shuffle(pool));
 }
 
+function vocabPhaseStorageKey(dayNumber) {
+  const owner = String(typeof storageNamespace === "function" ? storageNamespace() : "guest").replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `pandahan_vocab_phase_v1_${owner}_${Number(dayNumber || 0)}`;
+}
+function readVocabularyPhase(dayNumber) {
+  const base = { dayNumber: Number(dayNumber || 0), introCompleted: false, introChars: [], speechRequiredChars: [], speechAttempts: {}, speakingCompleted: false, updatedAt: 0 };
+  try { const value = JSON.parse(localStorage.getItem(vocabPhaseStorageKey(dayNumber)) || "null"); return value && typeof value === "object" ? { ...base, ...value } : base; } catch (_) { return base; }
+}
+function writeVocabularyPhase(value) {
+  try { localStorage.setItem(vocabPhaseStorageKey(value.dayNumber), JSON.stringify(value)); } catch (_) {}
+  window.dispatchEvent(new CustomEvent("pandahan-vocab-phase-updated", { detail: value }));
+  return value;
+}
+function completeVocabularyIntroPhase(dayNumber, chars) {
+  const current = readVocabularyPhase(dayNumber);
+  current.introCompleted = true;
+  current.introChars = Array.from(new Set([...(current.introChars || []), ...(chars || []).map(String)]));
+  current.updatedAt = Date.now();
+  return writeVocabularyPhase(current);
+}
+function startVocabularySpeakingPhase(dayNumber, chars) {
+  const current = readVocabularyPhase(dayNumber);
+  current.speechRequiredChars = Array.from(new Set((chars || []).map(String)));
+  current.speakingCompleted = current.speechRequiredChars.length > 0 && current.speechRequiredChars.every((char) => Number(current.speechAttempts?.[char] || 0) > 0);
+  current.updatedAt = Date.now();
+  return writeVocabularyPhase(current);
+}
+function recordVocabularySpeakingAttemptPhase(dayNumber, char) {
+  const current = readVocabularyPhase(dayNumber);
+  const key = String(char || "");
+  current.speechAttempts = current.speechAttempts || {};
+  current.speechAttempts[key] = Number(current.speechAttempts[key] || 0) + 1;
+  current.speakingCompleted = current.speechRequiredChars.length > 0 && current.speechRequiredChars.every((item) => Number(current.speechAttempts?.[item] || 0) > 0);
+  current.updatedAt = Date.now();
+  return writeVocabularyPhase(current);
+}
+window.PandaHanVocabularyPhase = { get: readVocabularyPhase, completeIntro: completeVocabularyIntroPhase, startSpeaking: startVocabularySpeakingPhase, recordSpeakingAttempt: recordVocabularySpeakingAttemptPhase };
+
 function startAdaptiveVocabularyLesson(words, dayNumber) {
   const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 6);
   if (!pool.length) { alert("Chưa có nhóm từ mới liên kết với phần Ngữ âm này / No linked new vocabulary is ready yet."); return; }
@@ -1758,6 +1848,7 @@ function startAdaptiveVocabularyLesson(words, dayNumber) {
     const w = pool[index];
     if (!w) {
       const chars = pool.map((item) => item.char);
+      completeVocabularyIntroPhase(Number(dayNumber), chars);
       window.PandaHanAdaptiveLearning?.completeIntroduction?.(Number(dayNumber), chars);
       body.innerHTML = `<div style="text-align:center;padding:22px 12px;"><div style="font-size:42px;">✅</div><h3>${L("Đã học xong nhóm từ liên kết", "Linked vocabulary exposure completed")}</h3><p style="color:var(--text-light);">${L("Hệ thống đã ghi nhận lượt học thật. Bây giờ bài kiểm tra sẽ chỉ dùng đúng nhóm từ này và kết quả sẽ cập nhật SM-2.", "Real exposure was recorded. The next exercises will use only this word set and update SM-2 from your answers.")}</p><button class="btn btn-hsk2" id="adaptiveStartQuizBtn">📝 ${L("Làm bài kiểm tra nhóm từ này", "Test this word set")}</button></div>`;
       document.getElementById("adaptiveStartQuizBtn")?.addEventListener("click", () => startQuizForWords(pool));
@@ -1798,8 +1889,79 @@ function startAdaptiveVocabularyLesson(words, dayNumber) {
   };
   render();
 }
+function startAdaptiveVocabularySpeaking(words, dayNumber) {
+  const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 10);
+  if (!pool.length) { alert("Chưa có nhóm từ đủ điều kiện để luyện nói / No eligible vocabulary is ready for speaking."); return; }
+  document.querySelector("#practiceTab .practice-grid")?.style && (document.querySelector("#practiceTab .practice-grid").style.display = "none");
+  const gc = document.getElementById("gameContainer"); if (!gc) return;
+  gc.classList.add("visible"); gc.style.display = "block";
+  const body = document.getElementById("gameContent");
+  let index = 0;
+  const recognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const normalize = (value) => String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u4e00-\u9fff]/g, "");
+  startVocabularySpeakingPhase(Number(dayNumber), pool.map((item) => item.char));
+  const saveAttempt = (word, transcript, correct) => {
+    const owner = String(typeof storageNamespace === "function" ? storageNamespace() : "guest").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const key = `pandahan_vocab_speaking_v1_${owner}`;
+    let rows = []; try { rows = JSON.parse(localStorage.getItem(key) || "[]"); } catch (_) {}
+    rows.unshift({ char: word.char, pinyin: word.pinyin, transcript: String(transcript || "").slice(0, 120), correct: !!correct, createdAt: Date.now(), dayNumber: Number(dayNumber) });
+    localStorage.setItem(key, JSON.stringify(rows.slice(0, 120)));
+    recordVocabularySpeakingAttemptPhase(Number(dayNumber), word.char);
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "vocabulary-speaking", rawSource: "vocabulary-speaking-recognition", evidenceType: "vocabulary_speech_attempt", verified: true, dayNumber: Number(dayNumber), char: word.char, attempts: 1, correct: correct ? 1 : 0, total: 1, scorePercent: correct ? 100 : 0, transcript: String(transcript || "").slice(0, 120), evaluatedAt: Date.now() } }));
+  };
+  const render = () => {
+    const word = pool[index];
+    if (!word) {
+      body.innerHTML = `<div style="text-align:center;padding:22px 12px;"><div style="font-size:42px;">🗣️</div><h3>${L("Đã hoàn thành lượt nói từ vựng", "Vocabulary speaking round completed")}</h3><p style="color:var(--text-light);">${L("Hệ thống đã lưu từng lượt nhận diện thật; kết quả này không thay thế điểm Ngữ âm chuyên sâu.", "Each real recognition attempt was saved; this result does not replace the full phonetics score.")}</p><button class="btn btn-outline" id="vocabSpeakBack">← ${L("Về luyện tập", "Back to practice")}</button></div>`;
+      document.getElementById("vocabSpeakBack")?.addEventListener("click", () => { if (typeof exitToneRace === "function") exitToneRace(); else switchTab("practice"); });
+      return;
+    }
+    recordView(word.char);
+    body.innerHTML = `<div style="text-align:center;padding:18px 10px;"><div style="font-size:11px;color:var(--text-light);">${index + 1}/${pool.length} · 🗣️ ${L("Nói từ vựng", "Vocabulary speaking")}</div><div style="font-size:54px;font-weight:800;margin-top:8px;">${esc(word.char)}</div><div style="font-size:17px;color:var(--pink);font-weight:800;">${esc(word.pinyin)}</div><div style="margin:8px 0;color:var(--text-light);">${esc(L(word.meaning, word.meaning_en))}</div><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:15px;"><button class="btn btn-outline" id="vocabSpeakPlay">🔊 ${L("Nghe mẫu", "Play model")}</button><button class="btn btn-hsk2" id="vocabSpeakStart">🎙️ ${L("Bắt đầu nói", "Start speaking")}</button></div><div id="vocabSpeakFeedback" style="font-size:12px;color:#64748b;margin-top:12px;min-height:20px;">${L("Hãy nghe mẫu rồi đọc từ này vào micro.", "Play the model, then say the word into the microphone.")}</div></div>`;
+    document.getElementById("vocabSpeakPlay")?.addEventListener("click", () => speak(word.char));
+    document.getElementById("vocabSpeakStart")?.addEventListener("click", () => {
+      const feedback = document.getElementById("vocabSpeakFeedback");
+      if (!recognitionCtor) { if (feedback) feedback.textContent = L("Trình duyệt này chưa hỗ trợ nhận diện giọng nói; chưa ghi nhận lượt nói.", "Speech recognition is not supported; no speaking attempt was recorded."); return; }
+      const btn = document.getElementById("vocabSpeakStart"); if (btn) btn.disabled = true;
+      const recognition = new recognitionCtor(); recognition.lang = "zh-CN"; recognition.interimResults = false; recognition.maxAlternatives = 1;
+      if (feedback) feedback.textContent = L("Đang nghe bạn nói…", "Listening to your speech…");
+      recognition.onresult = (event) => {
+        const transcript = event.results?.[0]?.[0]?.transcript || "";
+        const expected = normalize(word.char) + normalize(word.pinyin);
+        const heard = normalize(transcript);
+        const correct = !!heard && (heard.includes(normalize(word.char)) || heard.includes(normalize(word.pinyin)) || expected.includes(heard));
+        saveAttempt(word, transcript, correct);
+        if (feedback) feedback.innerHTML = correct ? `✅ ${L("Nhận diện đúng từ", "Word recognized correctly")}: ${esc(transcript)}` : `❌ ${L("Chưa khớp nhận diện", "Recognition did not match")}: ${esc(transcript)} · ${L("Đáp án", "Expected")}: ${esc(word.char)} (${esc(word.pinyin)})`;
+        setTimeout(() => { index += 1; render(); }, 1400);
+      };
+      recognition.onerror = () => { if (feedback) feedback.textContent = L("Không nhận diện được lượt nói; hãy thử lại.", "Speech was not recognized; please try again."); if (btn) btn.disabled = false; };
+      recognition.onend = () => { if (btn) btn.disabled = false; };
+      try { recognition.start(); } catch (_) { if (feedback) feedback.textContent = L("Micro chưa sẵn sàng; chưa ghi nhận lượt nói.", "Microphone is not ready; no attempt was recorded."); if (btn) btn.disabled = false; }
+    });
+  };
+  render();
+}
+let mistakeReviewActive = false;
+function finishMistakeReviewIfClear() {
+  if (!mistakeReviewActive) return;
+  const queue = window.PandaHanMistakes?.getQueue?.() || [];
+  if (queue.length) return;
+  mistakeReviewActive = false;
+  const day = window.PandaHanSchedule?.getSchedule?.()?.days?.filter((item) => item.status === "unlocked").sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
+  if (day && window.PandaHanSchedule?.completeTask) window.PandaHanSchedule.completeTask(Number(day.day_number), "mistake_review", "verified:mistake-redo", { evidenceType: "objective_wrong_item_redo", attempts: 1, total: 1, correct: 1, scorePercent: 100, details: "All unresolved wrong items were answered correctly in the redo session." }).catch((error) => console.warn("Complete mistake review:", error.message || error));
+}
+function startMistakeReview() {
+  const queue = window.PandaHanMistakes?.getQueue?.() || [];
+  const words = queue.map((item) => VOCAB_BY_CHAR[item.char]).filter(Boolean);
+  if (!words.length) { alert("Hiện không có câu sai còn tồn đọng / There are no unresolved wrong items."); return; }
+  mistakeReviewActive = true;
+  startQuizForWords(words);
+}
 window.startQuizForWords = startQuizForWords;
 window.startAdaptiveVocabularyLesson = startAdaptiveVocabularyLesson;
+window.startAdaptiveVocabularySpeaking = startAdaptiveVocabularySpeaking;
+window.startMistakeReview = startMistakeReview;
+window.getVocabularyPhase = readVocabularyPhase;
 function runQuiz() {
   quizIdx = 0; quizScore = 0;
   showScreen("quiz");
@@ -1841,7 +2003,7 @@ function timeoutQuizQuestion(q) {
     b.classList.add("disabled"); b.disabled = true;
     if (b.dataset.letter === q.answer) b.classList.add("correct");
   });
-  recordQuizResult(q.char, false);
+  recordQuizResult(q.char, false, { source: "quiz-timeout", dayNumber: Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), prompt: q.question, expected: q.options?.find((option) => option[0] === q.answer)?.[1] || q.answer, selected: "timeout" });
   const explainBox = document.createElement("div");
   explainBox.className = "quiz-explain bad";
   explainBox.innerHTML = `
@@ -1891,7 +2053,7 @@ function answerQuiz(btn, q) {
     else if (b === btn) b.classList.add("wrong");
   });
   if (correct) quizScore++;
-  recordQuizResult(q.char, correct);
+  recordQuizResult(q.char, correct, { source: "quiz", dayNumber: Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), prompt: q.question, expected: q.options?.find((option) => option[0] === q.answer)?.[1] || q.answer, selected: btn?.textContent || "" });
 
   const explainBox = document.createElement("div");
   explainBox.className = "quiz-explain " + (correct ? "ok" : "bad");
@@ -1906,6 +2068,7 @@ function answerQuiz(btn, q) {
   explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 function showQuizResult() {
+  finishMistakeReviewIfClear();
   const pct = Math.round((quizScore / quizQueue.length) * 100);
   const goingToReview = postQuizGoToReview && pendingFlashcardQueue && pendingFlashcardQueue.length;
   const goingToDialogue = pendingDialogueQueue && pendingDialogueQueue.length;
@@ -2175,7 +2338,7 @@ function checkUnscramble() {
     fb.innerHTML = `❌ ${L("Chưa đúng.", "Not quite.")} ${L("Đáp án đúng", "Correct answer")}: <b>${esc(uCurrentQ.answer)}</b> (${esc(uCurrentQ.answer_pinyin)})<div class="quiz-explain-body" style="margin-top:8px;">${explain}</div>`;
     fb.className = "unscramble-feedback bad";
   }
-  recordQuizResult(uCurrentQ.char, correct);
+  recordQuizResult(uCurrentQ.char, correct, { source: "unscramble", prompt: uCurrentQ.meaning_vn || "Sắp xếp câu", expected: uCurrentQ.answer, selected: built });
   uAnsweredCount += 1;
   if (correct) uCorrectCount += 1;
   if (currentAdvancedSetId !== null) {
@@ -3823,7 +3986,7 @@ function answerToneRace(tone,button,q){
   const car=document.getElementById("toneRaceCar"); const feedback=document.getElementById("toneRaceFeedback");
   if(correct){toneRaceState.score+=10+toneRaceState.streak*2;toneRaceState.correctCount++;toneRaceState.streak++;button.classList.add("correct");if(car)car.classList.add("drive");feedback.className="tone-race-feedback ok";feedback.textContent=`✅ Chính xác! ${q.pinyin} là thanh ${q.tone}. Xe tăng tốc về đích!`;}else{toneRaceState.streak=0;button.classList.add("wrong");if(car)car.classList.add("bump");feedback.className="tone-race-feedback bad";feedback.textContent=`💡 Chưa đúng. Đáp án là ${q.pinyin} — thanh ${q.tone}. Hãy nghe lại và ghi nhớ đường cao độ.`;}
   const s=document.getElementById("toneRaceScore");if(s)s.textContent=toneRaceState.score;const st=document.getElementById("toneRaceStreak");if(st)st.textContent=toneRaceState.streak;
-  if(typeof recordQuizResult==="function" && VOCAB_BY_CHAR[q.char]) recordQuizResult(q.char,correct);
+  if(typeof recordQuizResult==="function" && VOCAB_BY_CHAR[q.char]) recordQuizResult(q.char,correct,{ source:"tone-race", prompt:`${q.char} · ${q.syllable}`, expected:q.pinyin, selected:button?.textContent || "" });
   const next=document.getElementById("toneRaceNext");if(next)next.style.display="inline-flex";
 }
 function renderToneRaceResult(){
@@ -3880,6 +4043,8 @@ function startMatchGame() {
         }
       } else {
         selectedChar.classList.add("wrong"); selectedMeaning.classList.add("wrong");
+        const wrongWord = pool.find((w) => String(w.id) === selectedChar.dataset.id);
+        if (wrongWord) recordVocabularyMistake(wrongWord.char, { source: "match", prompt: "Ghép chữ Hán với nghĩa", expected: L(wrongWord.meaning, wrongWord.meaning_en), selected: selectedMeaning.textContent || "" });
         setTimeout(() => { selectedChar.classList.remove("btn-pink", "wrong"); selectedMeaning.classList.remove("btn-pink", "wrong"); }, 500);
       }
       selectedChar = null; selectedMeaning = null;
@@ -3953,7 +4118,7 @@ function renderWriteGameShell() {
       document.getElementById("writeFeedback").innerHTML = ok
         ? `✅ ${L("Đúng!", "Correct!")} <span style="color:var(--hsk1);">${esc(L(w.meaning, w.meaning_en))}</span>`
         : `❌ ${L("Đáp án", "Answer")}: <span style="color:var(--pink);">${esc(L(w.meaning, w.meaning_en))}</span>`;
-      recordQuizResult(w.char, ok);
+      recordQuizResult(w.char, ok, { source: "write", prompt: `Viết nghĩa: ${w.char}`, expected: L(w.meaning, w.meaning_en), selected: val });
       if (ok) correct++;
       setTimeout(() => { idx++; render(); }, 1400);
     });
