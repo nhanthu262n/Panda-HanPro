@@ -4,13 +4,78 @@
 
 /* ---------- Language display mode: 'vi' (Trung-Việt) or 'en' (Trung-Anh) ---------- */
 let LANG_MODE = localStorage.getItem("pandahan_lang") || "vi";
-function L(viText, enText) { return LANG_MODE === "vi" ? viText : enText; }
+window.LANG_MODE = LANG_MODE;
+const LEGACY_UI_EN = {
+  "Hệ thống học tập thông minh & đồng bộ": "Smart, synced learning system", "Đăng nhập bằng Google": "Sign in with Google", "Đăng nhập ngay": "Sign in now", "Tiếp tục Offline": "Continue offline", "Mật khẩu": "Password", "hoặc": "or",
+  "Từ điển": "Dictionary", "Luyện tập": "Practice", "Tiến độ": "Progress", "Ngữ âm": "Phonetics", "Nhắn tin (Lộ trình)": "Messages (Learning Path)", "Giáo viên": "Teacher", "Ôn tập": "Review", "Cần ôn": "Due for review", "Chưa học": "Not studied", "Mới học": "New", "Đang ôn": "Reinforcing", "Đã nắm": "Familiar", "Thành thạo": "Mastered", "Không có dữ liệu": "No data", "Đóng": "Close", "Quay lại": "Back", "Nghe": "Listen", "Bắt đầu": "Start", "Hoàn thành": "Completed",
+  "Làm lại": "Retry", "Thoát": "Exit", "Câu tiếp theo": "Next question", "Kiểm tra": "Check", "Đáp án": "Answer", "Đúng": "Correct", "Sai": "Incorrect", "Điểm": "Score", "Mục tiêu": "Target", "Thời lượng dự kiến": "Estimated time", "Bài luyện": "Practice activity", "Bài tập": "Exercise", "Câu hỏi": "Question", "Kết quả": "Result", "Hướng dẫn": "Guide", "Lưu": "Save", "Đã lưu": "Saved", "Mở bài": "Open task", "Ôn lại câu sai": "Redo wrong items", "Học liên tiếp": "Learning streak", "Tất cả cấp độ": "All levels", "Tất cả mức độ": "All levels", "Tất cả loại từ": "All parts of speech"
+};
+function englishFallback(value) {
+  const raw = String(value == null ? "" : value).trim();
+  if (!raw) return "";
+  return LEGACY_UI_EN[raw] || raw;
+}
+function L(viText, enText) { return LANG_MODE === "vi" ? (viText ?? "") : (enText || englishFallback(viText)); }
+function collapseBilingualText(root = document.body) {
+  // Legacy slash labels are intentionally left untouched: rewriting arbitrary
+  // text nodes made vi→en→vi irreversible and could alter examples/Quest data.
+  // Only elements with explicit translation attributes are safe to switch.
+  if (!root) return;
+  root.querySelectorAll("[data-lang-vi][data-lang-en]").forEach((el) => {
+    const value = LANG_MODE === "vi" ? el.getAttribute("data-lang-vi") : el.getAttribute("data-lang-en");
+    if (el.children.length === 0) el.textContent = value;
+  });
+}
+function applyStaticLanguageUi() {
+  window.LANG_MODE = LANG_MODE;
+  document.documentElement.lang = LANG_MODE === "vi" ? "vi" : "en";
+  document.querySelectorAll("[data-lang-vi][data-lang-en]").forEach((el) => {
+    const value = LANG_MODE === "vi" ? el.getAttribute("data-lang-vi") : el.getAttribute("data-lang-en");
+    if (el.matches("button") && el.querySelector(".notif-dot")) {
+      const textNode = Array.from(el.childNodes).find((node) => node.nodeType === 3);
+      if (textNode) textNode.nodeValue = value;
+      else el.insertBefore(document.createTextNode(value), el.firstChild);
+    } else if (el.children.length === 0) {
+      el.textContent = value;
+    }
+  });
+  const label = document.getElementById("langLabel");
+  if (label) label.textContent = LANG_MODE === "vi" ? "Tiếng Việt" : "English";
+  const toggle = document.getElementById("langToggleBtn");
+  if (toggle) toggle.textContent = LANG_MODE === "vi" ? "🌐 中文 - Tiếng Việt ▾" : "🌐 中文 - English ▾";
+  const choice = document.getElementById("initialLanguageChoice");
+  if (choice) choice.style.display = localStorage.getItem("pandahan_lang") ? "none" : "flex";
+  const search = document.getElementById("searchInput");
+  if (search) search.placeholder = LANG_MODE === "vi" ? search.dataset.placeholderVi : search.dataset.placeholderEn;
+  const streak = document.getElementById("sidebarStreakDays");
+  if (streak && /^\d+\s/.test(streak.textContent || "")) {
+    const number = String(streak.textContent).match(/^\d+/)[0];
+    streak.textContent = LANG_MODE === "vi" ? `${number} ngày` : `${number} days`;
+  }
+  document.querySelectorAll("[data-placeholder-vi][data-placeholder-en]").forEach((el) => { el.placeholder = LANG_MODE === "vi" ? el.dataset.placeholderVi : el.dataset.placeholderEn; });
+  document.querySelectorAll("[data-aria-label-vi][data-aria-label-en]").forEach((el) => { el.setAttribute("aria-label", LANG_MODE === "vi" ? el.dataset.ariaLabelVi : el.dataset.ariaLabelEn); });
+  document.querySelectorAll("[data-title-vi][data-title-en]").forEach((el) => { el.title = LANG_MODE === "vi" ? el.dataset.titleVi : el.dataset.titleEn; });
+  collapseBilingualText(document.body);
+  translateKnownLegacyUi(document.body);
+}
+function translateKnownLegacyUi(root = document.body) {
+  if (!root) return;
+  root.querySelectorAll("button, label, option, summary, h1, h2, h3, h4, p, small, span, div").forEach((el) => {
+    if (el.children.length) return;
+    const original = el.dataset.i18nLegacyVi || String(el.textContent || "").trim();
+    if (!LEGACY_UI_EN[original]) return;
+    if (!el.dataset.i18nLegacyVi) el.dataset.i18nLegacyVi = original;
+    el.textContent = LANG_MODE === "en" ? LEGACY_UI_EN[original] : original;
+  });
+}
 function setLangMode(mode) {
-  LANG_MODE = mode;
-  localStorage.setItem("pandahan_lang", mode);
-  document.getElementById("langLabel").textContent = mode === "vi" ? "Tiếng Việt" : "English";
-  document.getElementById("langToggleBtn").textContent = mode === "vi" ? "🌐 中文 - Tiếng Việt ▾" : "🌐 中文 - English ▾";
+  LANG_MODE = mode === "en" ? "en" : "vi";
+  window.LANG_MODE = LANG_MODE;
+  localStorage.setItem("pandahan_lang", LANG_MODE);
+  applyStaticLanguageUi();
   renderGrids();
+  window.dispatchEvent(new CustomEvent("pandahan-language-changed", { detail: { lang: LANG_MODE } }));
+  setTimeout(() => translateKnownLegacyUi(document.body), 0);
   const detailEl = document.getElementById("detailView");
   if (currentDetailChar && detailEl && detailEl.classList.contains("visible")) openDetail(currentDetailChar);
   if (typeof showStudyReminder === "function" && getDueCount() > 0) showStudyReminder();
@@ -494,6 +559,13 @@ function readMistakeQueueRaw() {
   try { const value = JSON.parse(localStorage.getItem(mistakeStorageKey()) || "[]"); return Array.isArray(value) ? value : []; } catch (_) { return []; }
 }
 function writeMistakeQueueRaw(value) { try { localStorage.setItem(mistakeStorageKey(), JSON.stringify(value.slice(0, 120))); } catch (_) {} }
+const MISTAKE_RETRY_DAYS = [1, 3, 5, 7, 14, 30, 60];
+function mistakeIsOpen(item) { return Number(item?.wrongCount || 0) > Number(item?.resolvedCount || 0); }
+function mistakeIsDue(item, now = Date.now()) { return !!item?.nextReviewAt && Number(item.nextReviewAt) <= now; }
+function nextMistakeReviewAt(stage, now = Date.now()) {
+  const days = MISTAKE_RETRY_DAYS[Math.max(0, Math.min(Number(stage || 0), MISTAKE_RETRY_DAYS.length - 1))];
+  return now + days * 86400000;
+}
 function recordVocabularyMistake(char, meta = {}) {
   const keyChar = String(char || "").trim();
   if (!keyChar) return null;
@@ -504,33 +576,118 @@ function recordVocabularyMistake(char, meta = {}) {
   const queue = readMistakeQueueRaw();
   let item = queue.find((entry) => entry.key === key);
   if (!item) {
-    item = { key, char: keyChar, dayNumber: Number(meta.dayNumber || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), source, prompt, expected: String(meta.expected || "").slice(0, 240), selected: String(meta.selected || "").slice(0, 240), wrongCount: 0, resolvedCount: 0, firstWrongAt: now, lastWrongAt: now };
+    item = { key, char: keyChar, dayNumber: Number(meta.dayNumber || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), source, prompt, expected: String(meta.expected || "").slice(0, 240), selected: String(meta.selected || "").slice(0, 240), wrongCount: 0, resolvedCount: 0, retryStage: 0, nextReviewAt: null, firstWrongAt: now, lastWrongAt: now };
     queue.unshift(item);
   }
   item.wrongCount = Number(item.wrongCount || 0) + 1;
   item.lastWrongAt = now;
+  item.retryStage = 0;
+  item.nextReviewAt = nextMistakeReviewAt(0, now);
+  item.lastStatus = "wrong_requires_redo";
   if (meta.expected) item.expected = String(meta.expected).slice(0, 240);
   if (meta.selected) item.selected = String(meta.selected).slice(0, 240);
   writeMistakeQueueRaw(queue);
   const activeDayNumber = Number(item.dayNumber || meta.dayNumber || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
   if (activeDayNumber && window.PandaHanSchedule?.requireMistakeReview) window.PandaHanSchedule.requireMistakeReview(activeDayNumber).catch((error) => console.warn("Require mistake review:", error.message || error));
-  window.dispatchEvent(new CustomEvent("pandahan-mistake-recorded", { detail: { ...item, unresolved: Math.max(0, item.wrongCount - item.resolvedCount) } }));
+  window.dispatchEvent(new CustomEvent("pandahan-mistake-recorded", { detail: { ...item, unresolved: Math.max(0, item.wrongCount - item.resolvedCount), nextReviewAt: item.nextReviewAt } }));
   return item;
 }
-function resolveVocabularyMistake(char) {
+function resolveVocabularyMistake(char, criteria = {}) {
   const keyChar = String(char || "").trim();
-  if (!keyChar) return;
+  const wantedKey = String(criteria?.key || "").trim();
+  if (!keyChar && !wantedKey) return;
+  const now = Date.now();
   const queue = readMistakeQueueRaw();
-  const item = queue.filter((entry) => entry.char === keyChar && Number(entry.wrongCount || 0) > Number(entry.resolvedCount || 0)).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0))[0];
+  const item = queue.filter((entry) => (wantedKey ? entry.key === wantedKey : entry.char === keyChar) && (mistakeIsOpen(entry) || mistakeIsDue(entry, now))).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0))[0];
   if (!item) return;
-  item.resolvedCount = Number(item.resolvedCount || 0) + 1;
-  item.lastResolvedAt = Date.now();
+  item.resolvedCount = Number(item.wrongCount || 0);
+  item.retryStage = Math.min(Number(item.retryStage || 0) + 1, MISTAKE_RETRY_DAYS.length - 1);
+  item.lastResolvedAt = now;
+  item.lastStatus = "redo_verified_next_review_scheduled";
+  item.nextReviewAt = nextMistakeReviewAt(item.retryStage, now);
   writeMistakeQueueRaw(queue);
+  window.dispatchEvent(new CustomEvent("pandahan-mistake-resolved", { detail: { ...item, nextReviewAt: item.nextReviewAt, retryDays: MISTAKE_RETRY_DAYS[item.retryStage] } }));
 }
 function getVocabularyMistakeQueue() {
-  return readMistakeQueueRaw().filter((item) => Number(item.wrongCount || 0) > Number(item.resolvedCount || 0)).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0));
+  const now = Date.now();
+  return readMistakeQueueRaw().filter((item) => mistakeIsOpen(item) || mistakeIsDue(item, now)).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0));
 }
-window.PandaHanMistakes = { getQueue: getVocabularyMistakeQueue, record: recordVocabularyMistake, resolve: resolveVocabularyMistake };
+function getOpenVocabularyMistakeQueue() {
+  return readMistakeQueueRaw().filter(mistakeIsOpen).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0));
+}
+function getAllVocabularyMistakes() {
+  return readMistakeQueueRaw().filter((item) => item && (mistakeIsOpen(item) || item.nextReviewAt)).sort((a, b) => Number(b.lastWrongAt || 0) - Number(a.lastWrongAt || 0));
+}
+window.PandaHanMistakes = { getQueue: getVocabularyMistakeQueue, getOpenQueue: getOpenVocabularyMistakeQueue, getAllQueue: getAllVocabularyMistakes, record: recordVocabularyMistake, resolve: resolveVocabularyMistake, resolveEntry: (key) => resolveVocabularyMistake("", { key }), retryDays: MISTAKE_RETRY_DAYS.slice() };
+
+/* AI Tutor saved-word SRS is deliberately separate from the mandatory mistake
+   queue: saving or practising a free Tutor topic must never change the 120-day
+   schedule gate. Reviews below record only an actual answer in the Tutor UI. */
+const TUTOR_SRS_RETRY_DAYS = [1, 3, 5, 7, 14, 30, 60];
+function tutorSrsState(char) {
+  const s = getStat(char);
+  if (!s.tutorSrs || typeof s.tutorSrs !== "object") s.tutorSrs = null;
+  return s;
+}
+function addTutorSrsWord(char, meta = {}) {
+  const keyChar = String(char || "").trim();
+  if (!keyChar) return null;
+  recordView(keyChar);
+  const s = tutorSrsState(keyChar);
+  const now = Date.now();
+  if (!s.tutorSrs) {
+    s.tutorSrs = {
+      source: "ai_tutor",
+      savedAt: now,
+      stage: 0,
+      nextReviewAt: now,
+      reviewCount: 0,
+      correctCount: 0,
+      meaning: String(meta.meaning || "").slice(0, 180),
+      pinyin: String(meta.pinyin || "").slice(0, 120),
+      topicId: String(meta.topicId || "").slice(0, 80)
+    };
+  } else {
+    s.tutorSrs.meaning = String(meta.meaning || s.tutorSrs.meaning || "").slice(0, 180);
+    s.tutorSrs.pinyin = String(meta.pinyin || s.tutorSrs.pinyin || "").slice(0, 120);
+    s.tutorSrs.topicId = String(meta.topicId || s.tutorSrs.topicId || "").slice(0, 80);
+  }
+  s.lastSeen = now;
+  saveStats();
+  window.dispatchEvent(new CustomEvent("pandahan-ai-tutor-srs-saved", { detail: { char: keyChar, ...s.tutorSrs, retryDays: TUTOR_SRS_RETRY_DAYS.slice() } }));
+  return { char: keyChar, ...s.tutorSrs };
+}
+function getTutorSrsWords(onlyDue = false) {
+  const now = Date.now();
+  return Object.entries(STATS).map(([char, stat]) => ({ char, ...(stat?.tutorSrs || {}) }))
+    .filter((item) => item.source === "ai_tutor" && item.savedAt)
+    .filter((item) => !onlyDue || Number(item.nextReviewAt || 0) <= now)
+    .sort((a, b) => Number(a.nextReviewAt || 0) - Number(b.nextReviewAt || 0));
+}
+function gradeTutorSrsWord(char, correct) {
+  const keyChar = String(char || "").trim();
+  const s = tutorSrsState(keyChar);
+  if (!keyChar || !s.tutorSrs) return null;
+  const now = Date.now();
+  const state = s.tutorSrs;
+  state.reviewCount = Number(state.reviewCount || 0) + 1;
+  state.lastReviewedAt = now;
+  if (correct) {
+    state.correctCount = Number(state.correctCount || 0) + 1;
+    state.stage = Math.min(Number(state.stage || 0) + 1, TUTOR_SRS_RETRY_DAYS.length - 1);
+  } else {
+    state.stage = 0;
+  }
+  const retryDays = TUTOR_SRS_RETRY_DAYS[state.stage];
+  state.nextReviewAt = now + retryDays * 86400000;
+  s.lastSeen = now;
+  s.studyLog.push({ t: now, grade: correct ? 4 : 2, source: "ai_tutor_srs", tutorSrsStage: state.stage });
+  if (s.studyLog.length > 60) s.studyLog = s.studyLog.slice(-60);
+  saveStats();
+  window.dispatchEvent(new CustomEvent("pandahan-ai-tutor-srs-graded", { detail: { char: keyChar, correct: !!correct, ...state, retryDays } }));
+  return { char: keyChar, correct: !!correct, ...state, retryDays };
+}
+window.PandaHanTutorSrs = { add: addTutorSrsWord, getAll: () => getTutorSrsWords(false), getDue: () => getTutorSrsWords(true), grade: gradeTutorSrsWord, retryDays: TUTOR_SRS_RETRY_DAYS.slice() };
 
 function recordQuizResult(char, correct, meta = {}) {
   const s = getStat(char);
@@ -546,6 +703,16 @@ function recordQuizResult(char, correct, meta = {}) {
 
 /* ---------- Practice completion -> adaptive 120-day schedule ---------- */
 let practiceSaveInFlight = null;
+let activePracticeMode = "free";
+function setPracticeMode(mode) {
+  activePracticeMode = mode === "scheduled" ? "scheduled" : "free";
+  window.PandaHanPracticeMode = activePracticeMode;
+  return activePracticeMode;
+}
+function beginPracticeSession(options = {}) {
+  return setPracticeMode(options && options.practiceMode === "scheduled" ? "scheduled" : "free");
+}
+window.setPracticeMode = setPracticeMode;
 function practiceSaveKey(dayNumber, date) {
   return `pandahan_practice_saved_${storageNamespace()}_${date}_${Number(dayNumber)}`;
 }
@@ -573,6 +740,18 @@ function practiceMissingText(result) {
   return missing.map((id) => labels[id] || id).join(", ");
 }
 async function savePracticeCompletion(score, source = "practice", metadata = {}) {
+  const mode = metadata && metadata.practiceMode ? metadata.practiceMode : activePracticeMode;
+  const numericScore = Math.max(0, Math.min(100, Number(score) || 0));
+  const evidenceTaskId = practiceEvidenceTaskId(source);
+  if (mode !== "scheduled") {
+    const freeResult = { result: { dayNumber: null, score: numericScore, threshold: null, passed: false, action: "free_study_recorded", missingTaskIds: [], requiredTaskIds: [] }, evidenceOnly: true, freeStudy: true };
+    const evaluation = { source: "free-study", taskId: evidenceTaskId, scheduleTaskId: null, rawSource: source, evidenceType: "objective_free_practice_result", verified: true, freeStudy: true, dayNumber: null, scorePercent: numericScore, ...metadata, ...freeResult.result, evaluatedAt: Date.now() };
+    setPracticeSaveStatus(L(`✅ Đã lưu học tự do ${evidenceTaskId} (${numericScore}%). Không thay đổi cổng lộ trình bắt buộc.`, `✅ Free study saved: ${evidenceTaskId} (${numericScore}%). The mandatory learning-path gate was not changed.`), false);
+    window.dispatchEvent(new CustomEvent("pandahan-practice-saved", { detail: { source, score: numericScore, metadata, result: freeResult, taskId: null, evidenceTaskId, freeStudy: true } }));
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: evaluation }));
+    setPracticeMode("free");
+    return { committed: true, source, taskId: null, evidenceTaskId, result: freeResult, freeStudy: true };
+  }
   const api = window.PandaHanSchedule;
   if (!api || typeof api.submitDayResult !== "function") {
     setPracticeSaveStatus("⚠️ Chưa sẵn sàng lưu lộ trình; bài luyện vẫn đã lưu ở thiết bị.", true);
@@ -592,7 +771,6 @@ async function savePracticeCompletion(score, source = "practice", metadata = {})
       const today = typeof api.todayVietnam === "function" ? api.todayVietnam() : new Date().toISOString().slice(0, 10);
       const taskId = practiceTaskId(source);
       const evidenceTaskId = practiceEvidenceTaskId(source);
-      const numericScore = Math.max(0, Math.min(100, Number(score) || 0));
       const key = practiceSaveKey(current.day_number, today) + "_" + (taskId || evidenceTaskId) + "_" + numericScore;
       if (localStorage.getItem(key) === "1") {
         setPracticeSaveStatus(`✅ Kết quả ${evidenceTaskId} với điểm ${numericScore}% của ngày ${current.day_number} đã được lưu.`, false);
@@ -620,6 +798,7 @@ async function savePracticeCompletion(score, source = "practice", metadata = {})
       return { committed: false, reason: error.code || error.message || "save_failed", source };
     } finally {
       practiceSaveInFlight = null;
+      setPracticeMode("free");
     }
   })();
   return practiceSaveInFlight;
@@ -790,17 +969,13 @@ function applyAnnotation(style) {
     span.className = cls;
     ttActiveRange.surroundContents(span);
     const root = span.closest && span.closest(".lookup-text");
-    const scope = root?.dataset?.highlightScope || "";
-    if (scope) persistScopedHighlight(scope, ttActiveText, style);
-    else {
-      const inDetail = span.closest && span.closest("#detailView");
-      if (inDetail && currentDetailChar) persistHighlight(currentDetailChar, ttActiveText, style);
-    }
+    const scope = root?.dataset?.highlightScope || (span.closest && span.closest("#detailView") && currentDetailChar) || "";
+    if (scope) persistHighlight(scope, ttActiveText, style);
   } catch (e) { /* selection crosses element boundaries — silently skip */ }
   hideToolPopup();
   window.getSelection().removeAllRanges();
 }
-/* ---------- Persisted personal highlights (per word, dictionary detail only) ---------- */
+/* ---------- Persisted personal highlights (dictionary detail and AI Tutor reading/chat) ---------- */
 function getHighlightStore() {
   try { return JSON.parse(localStorage.getItem("pandahan_highlights_v1_" + storageNamespace())) || {}; }
   catch (e) { return {}; }
@@ -836,27 +1011,10 @@ function wrapTextNodeRange(container, searchText, cls, tagName) {
   }
   return false;
 }
-function applyPersistedHighlights(char) {
-  const store = getHighlightStore();
-  const list = store[char];
-  const container = document.getElementById("detailView");
-  if (!list || !list.length || !container) return;
-  list.forEach(({ text, style }) => {
-    const isBold = style === "bold";
-    wrapTextNodeRange(container, text, isBold ? "pandahan-bold-hl" : "pandahan-hl-" + style, isBold ? "span" : "mark");
-  });
-}
-function persistScopedHighlight(scope, text, style) {
-  const store = getHighlightStore();
-  if (!store[scope]) store[scope] = [];
-  store[scope] = store[scope].filter(h => h.text !== text);
-  store[scope].push({ text, style });
-  if (store[scope].length > 60) store[scope] = store[scope].slice(-60);
-  saveHighlightStore(store);
-}
-function applyScopedHighlights(scope, container) {
+function applyPersistedHighlights(scope, targetContainer = null) {
   const store = getHighlightStore();
   const list = store[scope];
+  const container = targetContainer || document.getElementById("detailView");
   if (!list || !list.length || !container) return;
   list.forEach(({ text, style }) => {
     const isBold = style === "bold";
@@ -864,10 +1022,9 @@ function applyScopedHighlights(scope, container) {
   });
 }
 window.PandaHanTextHighlights = {
-  apply: (scope, container) => applyScopedHighlights(scope, container),
+  apply: (scope, container) => applyPersistedHighlights(scope, container),
   get: () => getHighlightStore()
 };
-
 function lookupSelectedWord() {
   const text = ttActiveText;
   hideToolPopup();
@@ -1258,8 +1415,10 @@ function grid_attachHandlers() {
 
 function populatePosFilter() {
   const sel = document.getElementById("posFilter");
+  if (!sel) return;
   const posSet = [...new Set(VOCAB.map(w => w.pos))].sort();
-  posSet.forEach(p => { const o = document.createElement("option"); o.value = p; o.textContent = p; sel.appendChild(o); });
+  const posEn = { "Danh từ": "Noun", "Động từ": "Verb", "Tính từ": "Adjective", "Phó từ": "Adverb", "Liên từ": "Conjunction", "Giới từ": "Preposition", "Lượng từ": "Measure word", "Trợ từ": "Particle", "Trợ động từ": "Auxiliary verb", "Đại từ nhân xưng": "Personal pronoun", "Đại từ nghi vấn": "Interrogative pronoun", "Đại từ chỉ định": "Demonstrative pronoun", "Cụm từ/thành ngữ": "Phrase / idiom", "Số từ": "Numeral", "Thán từ": "Interjection", "Danh từ / Tính từ": "Noun / Adjective", "Tính từ / Động từ": "Adjective / Verb", "Động từ / Liên từ": "Verb / Conjunction", "Danh từ / Động từ": "Noun / Verb", "Tính từ / Phó từ": "Adjective / Adverb", "Động từ / Tính từ": "Verb / Adjective" };
+  posSet.forEach(p => { const o = document.createElement("option"); o.value = p; o.dataset.langVi = p; o.dataset.langEn = posEn[p] || p; o.textContent = LANG_MODE === "vi" ? p : o.dataset.langEn; sel.appendChild(o); });
 }
 
 function updateHeaderStats() {
@@ -1277,6 +1436,9 @@ function updateHeaderStats() {
 }
 
 /* ---------- Study reminder (voice notification when vocab review is due) ---------- */
+function getDueMistakeCount() {
+  try { return Number(window.PandaHanMistakes?.getQueue?.().length || 0); } catch (_) { return 0; }
+}
 function getDueCount() {
   return VOCAB.filter(w => isDue(w.char)).length;
 }
@@ -1291,11 +1453,14 @@ function playReminderAudio() {
 }
 function showStudyReminder() {
   const due = getDueCount();
-  if (due <= 0) { hideStudyReminder(); return; }
+  const mistakeDue = getDueMistakeCount();
+  if (due <= 0 && mistakeDue <= 0) { hideStudyReminder(); return; }
   const banner = document.getElementById("studyReminderBanner");
   const text = document.getElementById("studyReminderText");
   if (!banner || !text) return;
-  text.textContent = L(`Đến giờ ôn từ vựng rồi! Có ${due} từ cần ôn tập.`, `Time to review! ${due} words are due.`);
+  text.textContent = LANG_MODE === "vi"
+    ? `Đến giờ ôn tập! ${due ? `${due} từ SRS` : ""}${due && mistakeDue ? " và " : ""}${mistakeDue ? `${mistakeDue} lỗi cần làm lại` : ""}.`
+    : `Review time! ${due ? `${due} SRS word${due === 1 ? "" : "s"}` : ""}${due && mistakeDue ? " and " : ""}${mistakeDue ? `${mistakeDue} wrong item${mistakeDue === 1 ? "" : "s"} to redo` : ""}.`;
   banner.style.display = "flex";
   const playBtn = document.getElementById("studyReminderPlayBtn");
   playBtn.style.display = "inline-block";
@@ -1341,9 +1506,10 @@ function notificationsEnabled() {
 
 function sendDueNotificationIfAny() {
   const due = getDueCount();
-  if (due <= 0) return;
+  const mistakeDue = getDueMistakeCount();
+  if (due <= 0 && mistakeDue <= 0) return;
   if (!notificationsEnabled() || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
-  navigator.serviceWorker.controller.postMessage({ type: "SHOW_DUE_NOTIFICATION", due, lang: LANG_MODE });
+  navigator.serviceWorker.controller.postMessage({ type: "SHOW_DUE_NOTIFICATION", due, mistakeDue, lang: LANG_MODE });
 }
 
 function updateEnableNotifBtn() {
@@ -1360,6 +1526,11 @@ function updateEnableNotifBtn() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const safeAdd = (id, evt, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(evt, fn); };
+  applyStaticLanguageUi();
+  document.querySelectorAll("[data-language-select]").forEach((button) => {
+    button.addEventListener("click", () => setLangMode(button.dataset.languageSelect || "vi"));
+  });
   const playBtn = document.getElementById("studyReminderPlayBtn");
   const startBtn = document.getElementById("studyReminderStartBtn");
   const closeBtn = document.getElementById("studyReminderCloseBtn");
@@ -1369,7 +1540,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (testBtn) testBtn.addEventListener("click", () => {
     playReminderAudio().catch(err => alert(L("Không phát được âm thanh: " + err.message, "Could not play audio: " + err.message)));
   });
-  if (startBtn) startBtn.addEventListener("click", () => { hideStudyReminder(); startReviewSession(); });
+  if (startBtn) startBtn.addEventListener("click", () => { hideStudyReminder(); startReviewSession({ practiceMode: window.PandaHanPracticeMode === "scheduled" ? "scheduled" : "free" }); });
   if (closeBtn) closeBtn.addEventListener("click", hideStudyReminder);
   const streakStudyBtn = document.getElementById("streakWarningStudyBtn");
   const streakCloseBtn = document.getElementById("streakWarningCloseBtn");
@@ -1797,7 +1968,8 @@ function genReadingQuestions(w) {
   return qs.slice(0, 8);
 }
 
-function startQuizForWord(char) {
+function startQuizForWord(char, options = {}) {
+  beginPracticeSession(options);
   const w = VOCAB_BY_CHAR[char];
   if (window.PandaHanAdaptiveLearning && !window.PandaHanAdaptiveLearning.canPracticeWord(char)) {
     alert("Từ này chưa có lượt học/ôn được xác minh. Hãy hoàn thành phần giới thiệu từ liên kết trước / This word is not yet eligible. Complete its linked introduction first.");
@@ -1807,7 +1979,8 @@ function startQuizForWord(char) {
   if (!quizQueue.length) { alert("Từ này chưa có câu trắc nghiệm / No quiz available for this word."); return; }
   runQuiz();
 }
-function startQuizForWords(words) {
+function startQuizForWords(words, options = {}) {
+  beginPracticeSession(options);
   const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 15);
   quizQueue = [];
   pool.forEach((w) => {
@@ -1817,10 +1990,11 @@ function startQuizForWords(words) {
   if (!quizQueue.length) { alert("Chưa có đủ dữ liệu bài tập từ nhóm từ đã học / Not enough evidence-based vocabulary exercises yet."); return; }
   runQuiz();
 }
-function startQuizLevel(level) {
+function startQuizLevel(level, options = {}) {
+  beginPracticeSession(options);
   const pool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
   if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để kiểm tra. Hãy hoàn thành Ngữ âm và giới thiệu từ trước / No evidence-based practice words are ready yet."); return; }
-  startQuizForWords(shuffle(pool));
+  startQuizForWords(shuffle(pool), options);
 }
 
 function vocabPhaseStorageKey(dayNumber) {
@@ -1828,7 +2002,7 @@ function vocabPhaseStorageKey(dayNumber) {
   return `pandahan_vocab_phase_v1_${owner}_${Number(dayNumber || 0)}`;
 }
 function readVocabularyPhase(dayNumber) {
-  const base = { dayNumber: Number(dayNumber || 0), introCompleted: false, introChars: [], speechRequiredChars: [], speechAttempts: {}, speakingCompleted: false, updatedAt: 0 };
+  const base = { dayNumber: Number(dayNumber || 0), introCompleted: false, introChars: [], speechRequiredChars: [], speechAttempts: {}, speakingCompleted: false, gameCompleted: false, gameChars: [], gameScorePercent: null, updatedAt: 0 };
   try { const value = JSON.parse(localStorage.getItem(vocabPhaseStorageKey(dayNumber)) || "null"); return value && typeof value === "object" ? { ...base, ...value } : base; } catch (_) { return base; }
 }
 function writeVocabularyPhase(value) {
@@ -1845,6 +2019,7 @@ function completeVocabularyIntroPhase(dayNumber, chars) {
 }
 function startVocabularySpeakingPhase(dayNumber, chars) {
   const current = readVocabularyPhase(dayNumber);
+  if (!current.introCompleted) return current;
   current.speechRequiredChars = Array.from(new Set((chars || []).map(String)));
   current.speakingCompleted = current.speechRequiredChars.length > 0 && current.speechRequiredChars.every((char) => Number(current.speechAttempts?.[char] || 0) > 0);
   current.updatedAt = Date.now();
@@ -1859,7 +2034,16 @@ function recordVocabularySpeakingAttemptPhase(dayNumber, char) {
   current.updatedAt = Date.now();
   return writeVocabularyPhase(current);
 }
-window.PandaHanVocabularyPhase = { get: readVocabularyPhase, completeIntro: completeVocabularyIntroPhase, startSpeaking: startVocabularySpeakingPhase, recordSpeakingAttempt: recordVocabularySpeakingAttemptPhase };
+function completeVocabularyGamePhase(dayNumber, chars, scorePercent = null) {
+  const current = readVocabularyPhase(dayNumber);
+  if (!current.introCompleted || !current.speakingCompleted) return current;
+  current.gameCompleted = true;
+  current.gameChars = Array.from(new Set([...(current.gameChars || []), ...(chars || []).map(String)]));
+  current.gameScorePercent = Number.isFinite(Number(scorePercent)) ? Number(scorePercent) : current.gameScorePercent;
+  current.updatedAt = Date.now();
+  return writeVocabularyPhase(current);
+}
+window.PandaHanVocabularyPhase = { get: readVocabularyPhase, completeIntro: completeVocabularyIntroPhase, startSpeaking: startVocabularySpeakingPhase, recordSpeakingAttempt: recordVocabularySpeakingAttemptPhase, completeGame: completeVocabularyGamePhase };
 
 function startAdaptiveVocabularyLesson(words, dayNumber) {
   const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 6);
@@ -1971,16 +2155,23 @@ function startAdaptiveVocabularySpeaking(words, dayNumber) {
 let mistakeReviewActive = false;
 function finishMistakeReviewIfClear() {
   if (!mistakeReviewActive) return;
-  const queue = window.PandaHanMistakes?.getQueue?.() || [];
+  const queue = window.PandaHanMistakes?.getOpenQueue?.() || window.PandaHanMistakes?.getQueue?.() || [];
   if (queue.length) return;
   mistakeReviewActive = false;
   const day = window.PandaHanSchedule?.getSchedule?.()?.days?.filter((item) => item.status === "unlocked").sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
   if (day && window.PandaHanSchedule?.completeTask) window.PandaHanSchedule.completeTask(Number(day.day_number), "mistake_review", "verified:mistake-redo", { evidenceType: "objective_wrong_item_redo", attempts: 1, total: 1, correct: 1, scorePercent: 100, details: "All unresolved wrong items were answered correctly in the redo session." }).catch((error) => console.warn("Complete mistake review:", error.message || error));
 }
 function startMistakeReview() {
+  if (window.PandaHanPhoneticsListeningQuiz?.startReview?.()) return;
   const queue = window.PandaHanMistakes?.getQueue?.() || [];
+  const allQueue = window.PandaHanMistakes?.getAllQueue?.() || queue;
   const words = queue.map((item) => VOCAB_BY_CHAR[item.char]).filter(Boolean);
-  if (!words.length) { alert("Hiện không có câu sai còn tồn đọng / There are no unresolved wrong items."); return; }
+  if (!words.length) {
+    const next = allQueue.map((item) => Number(item.nextReviewAt || 0)).filter(Boolean).sort((a, b) => a - b)[0];
+    const dateText = next ? new Date(next).toLocaleDateString(LANG_MODE === "en" ? "en-US" : "vi-VN") : "";
+    alert(L(`Các lỗi hiện tại đã làm đúng. Mốc ôn repetition tiếp theo${dateText ? ` là ${dateText}` : ""}.`, `The current wrong items have been redone. The next spaced-review checkpoint${dateText ? ` is ${dateText}` : ""}.`));
+    return;
+  }
   mistakeReviewActive = true;
   startQuizForWords(words);
 }
@@ -1989,6 +2180,14 @@ window.startAdaptiveVocabularyLesson = startAdaptiveVocabularyLesson;
 window.startAdaptiveVocabularySpeaking = startAdaptiveVocabularySpeaking;
 window.startMistakeReview = startMistakeReview;
 window.getVocabularyPhase = readVocabularyPhase;
+window.addEventListener("pandahan-quest-score-saved", (event) => {
+  const detail = event.detail || {};
+  const mission = window.PandaHanMission?.getCurrent?.();
+  if (!mission || Number(detail.dayNumber) !== Number(mission.dayNumber) || !window.PandaHanVocabularyPhase?.completeGame) return;
+  const words = mission.chainVocabulary || mission.adaptivePlan?.introWords || mission.newVocab || [];
+  window.PandaHanVocabularyPhase.completeGame(Number(mission.dayNumber), words.map((w) => w.char), Number(detail.scorePercent));
+});
+
 function runQuiz() {
   quizIdx = 0; quizScore = 0;
   showScreen("quiz");
@@ -2138,7 +2337,8 @@ function showQuizResult() {
 /* ===================== FLASHCARD (SRS review) ===================== */
 let fcQueue = [], fcIdx = 0, fcCorrect = 0, fcWrong = 0;
 let pendingFlashcardQueue = null, postQuizGoToReview = false;
-function startReviewForWord(char) {
+function startReviewForWord(char, options = {}) {
+  beginPracticeSession(options);
   // Step 1: if this exact word has never been quizzed, send the learner to a
   // quiz for it first (SM-2 needs real performance data to grade — see
   // computeAutoQuality). Step 2: if it already has quiz data, skip the quiz
@@ -2161,7 +2361,8 @@ function startReviewForWord(char) {
   fcQueue = [char];
   runFlashcards();
 }
-function startReviewSession() {
+function startReviewSession(options = {}) {
+  beginPracticeSession(options);
   // Most-overdue-first: with a daily cap, we want the words at real risk of
   // being forgotten to always make the cut, not lose out to a random shuffle.
   // Only review words the student has already learned before (repetitions > 0
@@ -2250,7 +2451,8 @@ function endFlashcards() {
 /* ===================== SENTENCE UNSCRAMBLE ===================== */
 let uQueue = [], uIdx = 0, uSelected = [], uCurrentQ = null;
 let uCorrectCount = 0, uAnsweredCount = 0;
-function startUnscrambleForWord(char) {
+function startUnscrambleForWord(char, options = {}) {
+  beginPracticeSession(options);
   const w = VOCAB_BY_CHAR[char];
   if (window.PandaHanAdaptiveLearning && !window.PandaHanAdaptiveLearning.canPracticeWord(char)) {
     alert("Từ này chưa có lượt học/ôn được xác minh. Hãy hoàn thành phần giới thiệu từ liên kết trước / This word is not yet eligible.");
@@ -2260,8 +2462,9 @@ function startUnscrambleForWord(char) {
   if (!uQueue.length) { alert("Từ này chưa có bài sắp xếp câu / No unscramble exercise available."); return; }
   runUnscramble();
 }
-function startUnscrambleLevel(level) {
-  let pool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+function startUnscrambleLevel(level, options = {}) {
+  beginPracticeSession(options);
+  let pool = Array.isArray(options.words) && options.words.length ? options.words.slice() : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []));
   if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để sắp xếp câu / No evidence-based words are ready for unscramble."); return; }
   pool = shuffle(pool).slice(0, 10);
   uQueue = [];
@@ -3037,7 +3240,7 @@ function showScreen(name) {
     const asv = el("advancedSetsView"); if (asv) asv.style.display = "none";
   }
   else if (name === "dashboard") { if (el("dashboardView")) { el("dashboardView").classList.add("visible"); el("dashboardView").style.display = "block"; if (typeof renderDashboard === "function") renderDashboard(); } }
-  else if (name === "reviewIntro") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); if (typeof startReviewSession === "function") startReviewSession(); }
+  else if (name === "reviewIntro") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); if (typeof startReviewSession === "function") startReviewSession({ practiceMode: window.PandaHanPracticeMode === "scheduled" ? "scheduled" : "free" }); }
   else if (name === "teacher") { if (el("teacherView")) { el("teacherView").classList.add("visible"); el("teacherView").style.display = "block"; if (typeof renderTeacherDashboard === "function") renderTeacherDashboard(); } }
   else if (name === "aiTeacher") { if (el("aiTeacherView")) { el("aiTeacherView").classList.add("visible"); el("aiTeacherView").style.display = "block"; if (typeof window.openAiTutorWorkspace === "function") window.openAiTutorWorkspace(); else openAiTeacherScreen(); } }
   else if (name === "chat") { if (el("chatView")) { el("chatView").classList.add("visible"); el("chatView").style.display = "block"; if (typeof initChatSystem === "function") initChatSystem(); } }
@@ -3957,6 +4160,22 @@ function renderSavedCerts() {
 
 /* ===================== MINI GAMES: Tone Race ===================== */
 let toneRaceState = null;
+const TONE_MARKS = { a:"āáǎà", e:"ēéěè", i:"īíǐì", o:"ōóǒò", u:"ūúǔù", ü:"ǖǘǚǜ" };
+const TONE_INDEX = {"ā":1,"á":2,"ǎ":3,"à":4,"ē":1,"é":2,"ě":3,"è":4,"ī":1,"í":2,"ǐ":3,"ì":4,"ō":1,"ó":2,"ǒ":3,"ò":4,"ū":1,"ú":2,"ǔ":3,"ù":4,"ǖ":1,"ǘ":2,"ǚ":3,"ǜ":4};
+function toneNumberFromPinyin(value) { const mark = String(value || "").split("").find((c) => TONE_INDEX[c]); if (mark) return TONE_INDEX[mark]; const digit = String(value || "").match(/[1-4]/); return digit ? Number(digit[0]) : 0; }
+function stripPinyinTone(value) { return String(value || "").replace(/[āáǎà]/g,"a").replace(/[ēéěè]/g,"e").replace(/[īíǐì]/g,"i").replace(/[ōóǒò]/g,"o").replace(/[ūúǔù]/g,"u").replace(/[ǖǘǚǜ]/g,"ü").replace(/[1-5]/g,""); }
+function markPinyinTone(base, tone) {
+  const clean = stripPinyinTone(base); if (!tone || tone === 5) return clean;
+  let idx = clean.indexOf("a"); if (idx < 0) idx = clean.indexOf("e"); if (idx < 0) { const ou = clean.indexOf("ou"); idx = ou >= 0 ? ou + 1 : -1; }
+  if (idx < 0) { for (let i = clean.length - 1; i >= 0; i -= 1) if ("aeiouü".includes(clean[i])) { idx = i; break; } }
+  if (idx < 0) return clean;
+  const vowel = clean[idx]; return clean.slice(0, idx) + (TONE_MARKS[vowel]?.[tone - 1] || vowel) + clean.slice(idx + 1);
+}
+function makeMissionToneQuestion(word) {
+  const tone = toneNumberFromPinyin(word?.pinyin); if (!tone || !word?.char) return null;
+  const syllable = stripPinyinTone(word.pinyin);
+  return { char: word.char, meaning: word.meaning || "", meaningEn: word.meaning_en || "", syllable, pinyin: word.pinyin, tone, hsk: word.hsk, emoji: "🀄", options: [1,2,3,4].map((n) => markPinyinTone(syllable, n)) };
+}
 const TONE_RACE_BANK = [
   { char:"妈", meaning:"mẹ", meaningEn:"mother", syllable:"ma", pinyin:"mā", tone:1, hsk:1, emoji:"👩", options:["mā","má","mǎ","mà"] },
   { char:"麻", meaning:"cây gai / tê", meaningEn:"hemp / numb", syllable:"ma", pinyin:"má", tone:2, hsk:3, emoji:"🌿", options:["mā","má","mǎ","mà"] },
@@ -3974,17 +4193,25 @@ const TONE_RACE_BANK = [
 function toneRacePath(tone){
   return ({1:"8,46 25,46 42,46 59,46 76,46 94,46",2:"8,70 25,70 42,52 59,34 76,22 94,16",3:"8,26 25,26 42,68 59,68 76,36 94,36",4:"8,18 25,22 42,38 59,58 76,76 94,86"})[tone] || "8,46 94,46";
 }
-function startToneRaceGame(){
+function startToneRaceGame(options = {}){
+  beginPracticeSession(options);
   const grid=document.querySelector("#practiceTab .practice-grid"); if(grid) grid.style.display="none";
   const gc=document.getElementById("gameContainer"); if(!gc) return;
   gc.classList.add("visible"); gc.style.display="block"; window.scrollTo({top:0,behavior:"instant"});
   const level=document.getElementById("practiceHskFilter");
   const selected=level ? level.value : "all";
-  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  const missionChars = new Set(missionPool.map(w => w.char));
-  let pool = missionChars.size ? TONE_RACE_BANK.filter(q => missionChars.has(q.char)) : [];
-  if(pool.length < 4) pool = TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
-  if(pool.length<4) pool=TONE_RACE_BANK.slice();
+  const currentMission = window.PandaHanMission?.getCurrent?.();
+  const explicitPool = Array.isArray(options.words) && options.words.length ? options.words.slice() : [];
+  const missionPool = explicitPool.length ? explicitPool : (currentMission?.chainVocabulary?.length ? currentMission.chainVocabulary : (window.PandaHanMission?.getTargetVocabulary?.() || []));
+  const chainLaunch = explicitPool.length > 0 || window.PandaHanMission?.getActiveTask?.()?.type === "tone-race";
+  let pool = chainLaunch ? missionPool.map(makeMissionToneQuestion).filter(Boolean) : [];
+  if (chainLaunch && !pool.length) { alert("Chưa có từ vựng đúng theo chuỗi Ngữ âm của ngày này / No exact phonetics-linked words are ready for this day's chain."); return; }
+  if (!chainLaunch) {
+    const missionChars = new Set(missionPool.map(w => w.char));
+    pool = missionChars.size ? TONE_RACE_BANK.filter(q => missionChars.has(q.char)) : [];
+    if(pool.length < 4) pool = TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
+    if(pool.length<4) pool=TONE_RACE_BANK.slice();
+  }
   toneRaceState={queue:shuffle(pool).slice(0,Math.min(8,pool.length)),index:0,score:0,correctCount:0,streak:0,answered:false};
   renderToneRaceQuestion();
 }
@@ -4019,7 +4246,10 @@ function answerToneRace(tone,button,q){
 function renderToneRaceResult(){
   const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState)return;
   const total=toneRaceState.queue.length; const correct=toneRaceState.correctCount; const best=Math.max(Number(localStorage.getItem("pandahanToneRaceBest")||0),toneRaceState.score);localStorage.setItem("pandahanToneRaceBest",String(best));
-  savePracticeCompletion(total ? Math.round((correct / total) * 100) : 0, "tone-race");
+  const scorePercent = total ? Math.round((correct / total) * 100) : 0;
+  const chainMission = window.PandaHanMission?.getCurrent?.();
+  if (chainMission && window.PandaHanVocabularyPhase?.completeGame) window.PandaHanVocabularyPhase.completeGame(Number(chainMission.dayNumber), (chainMission.chainVocabulary || chainMission.adaptivePlan?.introWords || chainMission.newVocab || []).map((w) => w.char), scorePercent);
+  savePracticeCompletion(scorePercent, "tone-race");
   gc.innerHTML=`<div class="tone-race-shell"><div class="tone-race-result"><div class="result-emoji">🏆🚗</div><h3>Hoàn thành đường đua!</h3><p>Bạn đạt <b>${toneRaceState.score} điểm</b> trong ${total} câu. Kỷ lục hiện tại: <b>${best} điểm</b>.<br>${correct>=Math.ceil(total*.8)?"Tuyệt vời! Bạn đã kiểm soát thanh điệu rất tốt.":"Hãy chơi lại một lượt để củng cố các thanh điệu còn nhầm lẫn."}</p><div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceBack" type="button">← Về luyện tập</button><button class="btn btn-pink" id="toneRaceReplay" type="button">🚗 Chơi lại</button></div></div></div>`;
   document.getElementById("toneRaceBack").addEventListener("click",exitToneRace);document.getElementById("toneRaceReplay").addEventListener("click",startToneRaceGame);
 }
@@ -4031,12 +4261,13 @@ function exitToneRace(){
 }
 
 /* ===================== MINI GAMES: Match & Write ===================== */
-function startMatchGame() {
+function startMatchGame(options = {}) {
+  beginPracticeSession(options);
   document.querySelector("#practiceTab .practice-grid").style.display = "none";
   const gc = document.getElementById("gameContainer"); gc.classList.add("visible"); gc.style.display = "block";
   window.scrollTo({ top: 0, behavior: "instant" });
   const level = document.getElementById("practiceHskFilter").value;
-  const missionPool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+  const missionPool = Array.isArray(options.words) && options.words.length ? options.words.slice() : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []));
   if (!missionPool.length) { alert("Chưa có nhóm từ đã học/đến hạn đủ điều kiện để ghép nghĩa / No evidence-based words are ready for matching."); return; }
   let pool = shuffle(missionPool).slice(0, 6);
   let matched = 0, selectedChar = null, selectedMeaning = null;
@@ -4071,7 +4302,7 @@ function startMatchGame() {
       } else {
         selectedChar.classList.add("wrong"); selectedMeaning.classList.add("wrong");
         const wrongWord = pool.find((w) => String(w.id) === selectedChar.dataset.id);
-        if (wrongWord) recordVocabularyMistake(wrongWord.char, { source: "match", prompt: "Ghép chữ Hán với nghĩa", expected: L(wrongWord.meaning, wrongWord.meaning_en), selected: selectedMeaning.textContent || "" });
+        if (wrongWord) recordQuizResult(wrongWord.char, false, { source: "match", prompt: "Ghép chữ Hán với nghĩa", expected: L(wrongWord.meaning, wrongWord.meaning_en), selected: selectedMeaning.textContent || "" });
         setTimeout(() => { selectedChar.classList.remove("btn-pink", "wrong"); selectedMeaning.classList.remove("btn-pink", "wrong"); }, 500);
       }
       selectedChar = null; selectedMeaning = null;
@@ -4081,22 +4312,57 @@ function startMatchGame() {
   meanBox.querySelectorAll("button").forEach(b => b.addEventListener("click", () => tryMatch(b)));
 }
 
-function startWriteGame() {
+function startWriteGame(options = {}) {
+  beginPracticeSession(options);
   document.querySelector("#practiceTab .practice-grid").style.display = "none";
   const gc = document.getElementById("gameContainer"); gc.classList.add("visible"); gc.style.display = "block";
   window.scrollTo({ top: 0, behavior: "instant" });
-  renderWriteGameShell();
+  renderWriteGameShell(options);
 }
+/* Rubric grammar có thể kiểm chứng ở client. Điểm chỉ phản ánh cấu trúc quan sát
+   được (độ đầy đủ, dấu câu, từ đích, mẫu ngữ pháp, chủ-vị); không tuyên bố hiểu
+   đúng nghĩa ngữ cảnh — phần semantic cần AI Coach/giáo viên khi backend hoạt động. */
+const GRAMMAR_RUBRIC = [
+  { id: "complete", vi: "Độ đầy đủ câu", en: "Sentence completeness", max: 20 },
+  { id: "punctuation", vi: "Dấu câu tiếng Trung", en: "Chinese punctuation", max: 15 },
+  { id: "target", vi: "Dùng từ mục tiêu", en: "Uses target word", max: 20 },
+  { id: "pattern", vi: "Mẫu ngữ pháp HSK", en: "HSK grammar pattern", max: 25 },
+  { id: "structure", vi: "Khung chủ ngữ + vị ngữ", en: "Subject + predicate frame", max: 20 },
+];
+const HSK_GRAMMAR_MARKERS = {
+  1: ["是", "有", "在", "很", "也", "都", "不", "没", "的"],
+  2: ["因为", "所以", "但是", "虽然", "已经", "正在", "先", "再", "过"],
+  3: ["把", "被", "如果", "只要", "除了", "不但", "而且", "既然", "虽然"],
+};
+function evaluateGrammarDraft(draft, word, level) {
+  const text = String(draft || "").trim();
+  const hanziCount = (text.match(/[\u3400-\u9fff]/g) || []).length;
+  const markers = [...(HSK_GRAMMAR_MARKERS[Math.min(3, Math.max(1, Number(level) || 1))] || []), ...HSK_GRAMMAR_MARKERS[1]];
+  const matchedMarkers = [...new Set(markers.filter((marker) => text.includes(marker)))];
+  const hasSubject = /[我你他她它我们你们他们大家学生老师朋友]/.test(text);
+  const hasPredicate = /[是有在去来学习喜欢想要会能看吃喝做写说住工作]/.test(text);
+  const scores = {
+    complete: hanziCount >= 8 ? 20 : hanziCount >= 4 ? 10 : 0,
+    punctuation: /[。！？]/.test(text) ? 15 : /[，、]/.test(text) ? 8 : 0,
+    target: word?.char && text.includes(word.char) ? 20 : 0,
+    pattern: matchedMarkers.length >= 2 ? 25 : matchedMarkers.length === 1 ? 15 : 0,
+    structure: hasSubject && hasPredicate ? 20 : (hasSubject || hasPredicate ? 10 : 0),
+  };
+  const total = Object.values(scores).reduce((sum, value) => sum + value, 0);
+  return { total, scores, matchedMarkers, hanziCount, semanticChecked: false };
+}
+
 /* "Viết nghĩa" — a single shuffled set of ~10 questions mixing two skills:
    recalling a single word's meaning, and translating a full example
    sentence (direction VI<->ZH or EN<->ZH follows the app's global 🌐
    language toggle). Sentence items are reflection-only: the learner may type
    a translation and compare it with the reference, but the sentence is never
    self-scored and never contributes to SM-2 or the schedule gate. */
-function renderWriteGameShell() {
+function renderWriteGameShell(options = {}) {
   const level = document.getElementById("practiceHskFilter").value;
   const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  const sourcePool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : missionPool;
+  const requestedPool = Array.from(new Map((Array.isArray(options.words) ? options.words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values());
+  const sourcePool = requestedPool.length ? requestedPool : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : missionPool);
   if (!sourcePool.length) {
     document.getElementById("gameContent").innerHTML = `<p style="text-align:center;padding:20px;">${L("Chưa có từ đã học/đến hạn đủ điều kiện để viết nghĩa. Hãy theo lộ trình AI Teacher trước.", "No evidence-based words are ready for writing. Follow the AI Teacher route first.")}</p>`;
     return;
@@ -4109,7 +4375,7 @@ function renderWriteGameShell() {
   for (let i = 0; i < wordCount; i++) queue.push({ type: "word", w: wordPool[i] });
   for (let i = 0; i < sentCount; i++) queue.push({ type: "sentence", w: sentencePool[i] });
   const finalQueue = shuffle(queue).slice(0, 10);
-  let idx = 0, correct = 0;
+  let idx = 0, correct = 0, grammarScores = [];
   const gradedTotal = finalQueue.filter(item => item.type === "word").length;
   const reflectionTotal = finalQueue.filter(item => item.type === "sentence").length;
 
@@ -4119,9 +4385,11 @@ function renderWriteGameShell() {
   function render() {
     const body = document.getElementById("wgBody");
     if (idx >= finalQueue.length) {
-      const pct = gradedTotal ? Math.round((correct / gradedTotal) * 100) : 0;
-      body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")}</h3><p style="text-align:center;">${gradedTotal ? `${correct}/${gradedTotal} ${L("từ đơn đúng", "graded words correct")}` : L("Không có câu tự động chấm", "No auto-graded word items")} · ${reflectionTotal} ${L("câu dịch để tham khảo", "reflection sentences")}</p>`;
-      if (gradedTotal) savePracticeCompletion(pct, "write", { gradedItems: gradedTotal, reflectionItems: reflectionTotal, score: pct, scoring: "auto_graded_words_only" });
+      const wordPct = gradedTotal ? Math.round((correct / gradedTotal) * 100) : 0;
+      const grammarPct = grammarScores.length ? Math.round(grammarScores.reduce((sum, value) => sum + value, 0) / grammarScores.length) : 0;
+      const pct = gradedTotal && grammarScores.length ? Math.round(wordPct * 0.6 + grammarPct * 0.4) : (wordPct || grammarPct);
+      body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")}</h3><p style="text-align:center;">${gradedTotal ? `${correct}/${gradedTotal} ${L("từ đơn đúng", "graded words correct")}` : L("Không có câu tự động chấm", "No auto-graded word items")} · ${L("Rubric grammar", "Grammar rubric")}: ${grammarPct}% · ${L("Điểm Reading/Writing tổng hợp", "Combined Reading/Writing score")}: <b>${pct}%</b></p><p style="text-align:center;font-size:11px;color:var(--text-light);">${L("Rubric tự động chỉ kiểm tra tín hiệu cấu trúc; AI Coach/Giáo viên mới đánh giá được nghĩa và độ tự nhiên hoàn toàn.", "The automatic rubric checks structural signals only; AI Coach/teacher is required for semantic accuracy and naturalness.")}</p>`;
+      if (gradedTotal || grammarScores.length) savePracticeCompletion(pct, "write", { gradedItems: gradedTotal, grammarItems: grammarScores.length, wordScore: wordPct, grammarScore: grammarPct, score: pct, scoring: "objective_words_plus_transparent_grammar_rubric" });
       return;
     }
     const item = finalQueue[idx];
@@ -4168,7 +4436,9 @@ function renderWriteGameShell() {
         <div style="font-size:20px;font-weight:700;background:var(--card-bg,#fafcfe);border-radius:12px;padding:12px 16px;display:inline-block;max-width:340px;">${sourceLabel} ${esc(sourceText)}</div>
         <br>
         <textarea id="wgSentInput" rows="2" placeholder="${L('Gõ bản dịch của bạn...', 'Type your translation...')}" style="margin-top:14px;padding:10px 14px;border-radius:16px;border:2px solid var(--hsk2-light);font-size:14px;width:320px;max-width:90%;font-family:inherit;"></textarea>
-        <br><button class="btn btn-hsk2" id="wgCheckBtn" style="margin-top:10px;">${L("So đáp án", "Compare answer")}</button>
+        <br><button class="btn btn-hsk2" id="wgCheckBtn" style="margin-top:10px;">${L("Chấm rubric & so đáp án", "Score rubric & compare")}</button>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-light);max-width:340px;margin-left:auto;margin-right:auto;">${L("Rubric: độ đầy đủ 20 · dấu câu 15 · từ mục tiêu 20 · mẫu ngữ pháp 25 · chủ-vị 20.", "Rubric: completeness 20 · punctuation 15 · target word 20 · grammar pattern 25 · subject-predicate 20.")}</div>
+        <div id="wgGrammarReport" style="display:none;margin-top:10px;border:1px solid #f3d5e5;background:#fff7fb;border-radius:10px;padding:9px 11px;text-align:left;max-width:340px;margin-left:auto;margin-right:auto;"></div>
         <div id="wgAnswerBox" style="display:none;margin-top:12px;background:#fffbeb;border-radius:10px;padding:10px 14px;text-align:left;max-width:340px;margin-left:auto;margin-right:auto;">
           <div style="font-size:11px;color:var(--text-light);margin-bottom:3px;">${answerLabel}</div>
           <div style="font-weight:700;">${esc(ex[0])}</div>
@@ -4181,8 +4451,15 @@ function renderWriteGameShell() {
         </div>
       </div>`;
     document.getElementById("wgCheckBtn").addEventListener("click", () => {
+      const report = evaluateGrammarDraft(document.getElementById("wgSentInput").value, w, Number(w.hsk || 1));
+      grammarScores.push(report.total);
+      const labels = Object.fromEntries(GRAMMAR_RUBRIC.map((item) => [item.id, LANG_MODE === "en" ? item.en : item.vi]));
+      const detail = GRAMMAR_RUBRIC.map((item) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;"><span>${labels[item.id]}</span><b>${report.scores[item.id]}/${item.max}</b></div>`).join("");
+      const reportBox = document.getElementById("wgGrammarReport");
+      reportBox.innerHTML = `<b>${L("Điểm grammar có thể kiểm chứng", "Verifiable grammar score")}: ${report.total}/100</b>${detail}<div style="font-size:10.5px;color:var(--text-light);margin-top:5px;">${report.matchedMarkers.length ? `${L("Mẫu phát hiện", "Detected patterns")}: ${esc(report.matchedMarkers.join(" · "))}.` : L("Chưa phát hiện mẫu ngữ pháp mục tiêu; hãy thử dùng một cấu trúc HSK phù hợp.", "No target HSK pattern detected; try adding a suitable HSK structure.")}</div>`;
+      reportBox.style.display = "block";
       document.getElementById("wgAnswerBox").style.display = "block";
-      window.setTimeout(() => { idx++; render(); }, 1400);
+      window.setTimeout(() => { idx++; render(); }, 2800);
     });
   }
 
