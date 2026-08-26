@@ -43,7 +43,7 @@
         day.topic = day.topic || item.topic || "";
         day.week_number = day.week_number || item.week_number || null;
         day.day_type = day.day_type || item.day_type || "new_content";
-        day.required_score = 30;
+        day.required_score = day.day_type === "review" ? Number(day.required_score || item.required_score || 70) : 60;
       }
       day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
       day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
@@ -64,19 +64,7 @@
         day.scheduled_date = null;
       }
     });
-    const enforceSingleActiveSession = () => {
-      let foundActive = false;
-      schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0)).forEach((day) => {
-        if (day.status !== "unlocked" && day.status !== "pending_unlock") return;
-        if (!foundActive) { foundActive = true; return; }
-        day.status = "locked";
-        day.scheduled_date = null;
-        delete day.unlock_date;
-      });
-    };
-    enforceSingleActiveSession();
     if (typeof core.promoteDueDays === "function") core.promoteDueDays(schedule, core.todayVietnam());
-    enforceSingleActiveSession();
     return schedule;
   }
 
@@ -280,7 +268,7 @@
   function makeExistingQuestResult(schedule, dayNumber, score) {
     const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber));
     if (!day) return null;
-    const threshold = Number(day.required_score || 30);
+    const threshold = day.day_type === "review" ? Number(day.required_score || 70) : 60;
     const passed = Number(score) >= threshold;
     const alreadyCompleted = day.status === "completed";
     return {
@@ -300,27 +288,6 @@
   }
 
   async function submitQuestResult(dayNumber, score, resultToken) {
-    const mission = window.PandaHanMission?.getCurrent?.();
-    const isCurrentMission = Number(mission?.dayNumber) === Number(dayNumber);
-    const linkedWords = isCurrentMission && Array.isArray(mission?.chainVocabulary) ? mission.chainVocabulary : [];
-    const phase = linkedWords.length ? window.PandaHanVocabularyPhase?.get?.(Number(dayNumber)) : null;
-    const prerequisiteMissing = linkedWords.length && (!mission?.adaptivePlan?.phoneticsReady || !phase?.introCompleted || !phase?.speakingCompleted);
-    if (prerequisiteMissing) {
-      const schedule = loadLocal() || await initScheduleIfNeeded();
-      const missingLinkedSteps = [
-        ...(!mission?.adaptivePlan?.phoneticsReady ? ["listening", "speaking"] : []),
-        ...(!phase?.introCompleted ? ["vocab-intro"] : []),
-        ...(!phase?.speakingCompleted ? ["vocab-speaking"] : [])
-      ];
-      return {
-        schedule,
-        result: {
-          dayNumber: Number(dayNumber), score: Number(score), threshold: Number(mission?.requiredScore || 30), passed: false,
-          action: "linked_chain_incomplete", code: "LINKED_CHAIN_INCOMPLETE", repeatCount: 0,
-          missingTaskIds: missingLinkedSteps, requiredTaskIds: schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber))?.required_tasks || []
-        }
-      };
-    }
     let result = null;
     let submitError = null;
     try {
@@ -350,7 +317,7 @@
       dayNumber: Number(dayNumber),
       scorePercent: Number(score),
       passed: !!result?.result?.passed,
-      threshold: Number(result?.result?.threshold || 30),
+      threshold: Number(result?.result?.threshold || 60),
       reviewType: result?.result?.reviewType || "daily",
       repeatCount: Number(result?.result?.repeatCount || 0),
       action: result?.result?.action || "advance",
@@ -469,10 +436,6 @@
       detail: {
         dayNumber: Number(current.day_number),
         sequenceIndex: Number(current.sequence_index),
-        isRepeat: !!current.is_repeat_of || current.day_type === "repeat",
-        repeatReason: current.repeat_reason || null,
-        carriedCompletedTasks: Array.isArray(current.carried_completed_tasks) ? current.carried_completed_tasks.slice() : Object.keys(current.completed_tasks || {}),
-        missingTaskIds: (current.required_tasks || []).filter((id) => !current.completed_tasks?.[id]),
         topic: current.topic || "",
         date: today,
       },
