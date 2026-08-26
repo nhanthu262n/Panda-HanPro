@@ -1801,7 +1801,7 @@ function vocabPhaseStorageKey(dayNumber) {
   return `pandahan_vocab_phase_v1_${owner}_${Number(dayNumber || 0)}`;
 }
 function readVocabularyPhase(dayNumber) {
-  const base = { dayNumber: Number(dayNumber || 0), introCompleted: false, introChars: [], speechRequiredChars: [], speechAttempts: {}, speakingCompleted: false, updatedAt: 0 };
+  const base = { dayNumber: Number(dayNumber || 0), introCompleted: false, introChars: [], speechRequiredChars: [], speechAttempts: {}, speakingCompleted: false, gameCompleted: false, gameChars: [], gameScorePercent: null, updatedAt: 0 };
   try { const value = JSON.parse(localStorage.getItem(vocabPhaseStorageKey(dayNumber)) || "null"); return value && typeof value === "object" ? { ...base, ...value } : base; } catch (_) { return base; }
 }
 function writeVocabularyPhase(value) {
@@ -1818,6 +1818,7 @@ function completeVocabularyIntroPhase(dayNumber, chars) {
 }
 function startVocabularySpeakingPhase(dayNumber, chars) {
   const current = readVocabularyPhase(dayNumber);
+  if (!current.introCompleted) return current;
   current.speechRequiredChars = Array.from(new Set((chars || []).map(String)));
   current.speakingCompleted = current.speechRequiredChars.length > 0 && current.speechRequiredChars.every((char) => Number(current.speechAttempts?.[char] || 0) > 0);
   current.updatedAt = Date.now();
@@ -1832,7 +1833,16 @@ function recordVocabularySpeakingAttemptPhase(dayNumber, char) {
   current.updatedAt = Date.now();
   return writeVocabularyPhase(current);
 }
-window.PandaHanVocabularyPhase = { get: readVocabularyPhase, completeIntro: completeVocabularyIntroPhase, startSpeaking: startVocabularySpeakingPhase, recordSpeakingAttempt: recordVocabularySpeakingAttemptPhase };
+function completeVocabularyGamePhase(dayNumber, chars, scorePercent = null) {
+  const current = readVocabularyPhase(dayNumber);
+  if (!current.introCompleted || !current.speakingCompleted) return current;
+  current.gameCompleted = true;
+  current.gameChars = Array.from(new Set([...(current.gameChars || []), ...(chars || []).map(String)]));
+  current.gameScorePercent = Number.isFinite(Number(scorePercent)) ? Number(scorePercent) : current.gameScorePercent;
+  current.updatedAt = Date.now();
+  return writeVocabularyPhase(current);
+}
+window.PandaHanVocabularyPhase = { get: readVocabularyPhase, completeIntro: completeVocabularyIntroPhase, startSpeaking: startVocabularySpeakingPhase, recordSpeakingAttempt: recordVocabularySpeakingAttemptPhase, completeGame: completeVocabularyGamePhase };
 
 function startAdaptiveVocabularyLesson(words, dayNumber) {
   const pool = Array.from(new Map((Array.isArray(words) ? words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values()).slice(0, 6);
@@ -1962,6 +1972,14 @@ window.startAdaptiveVocabularyLesson = startAdaptiveVocabularyLesson;
 window.startAdaptiveVocabularySpeaking = startAdaptiveVocabularySpeaking;
 window.startMistakeReview = startMistakeReview;
 window.getVocabularyPhase = readVocabularyPhase;
+window.addEventListener("pandahan-quest-score-saved", (event) => {
+  const detail = event.detail || {};
+  const mission = window.PandaHanMission?.getCurrent?.();
+  if (!mission || Number(detail.dayNumber) !== Number(mission.dayNumber) || !window.PandaHanVocabularyPhase?.completeGame) return;
+  const words = mission.chainVocabulary || mission.adaptivePlan?.introWords || mission.newVocab || [];
+  window.PandaHanVocabularyPhase.completeGame(Number(mission.dayNumber), words.map((w) => w.char), Number(detail.scorePercent));
+});
+
 function runQuiz() {
   quizIdx = 0; quizScore = 0;
   showScreen("quiz");
@@ -2233,8 +2251,8 @@ function startUnscrambleForWord(char) {
   if (!uQueue.length) { alert("Từ này chưa có bài sắp xếp câu / No unscramble exercise available."); return; }
   runUnscramble();
 }
-function startUnscrambleLevel(level) {
-  let pool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+function startUnscrambleLevel(level, options = {}) {
+  let pool = Array.isArray(options.words) && options.words.length ? options.words.slice() : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []));
   if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để sắp xếp câu / No evidence-based words are ready for unscramble."); return; }
   pool = shuffle(pool).slice(0, 10);
   uQueue = [];
@@ -3930,6 +3948,22 @@ function renderSavedCerts() {
 
 /* ===================== MINI GAMES: Tone Race ===================== */
 let toneRaceState = null;
+const TONE_MARKS = { a:"āáǎà", e:"ēéěè", i:"īíǐì", o:"ōóǒò", u:"ūúǔù", ü:"ǖǘǚǜ" };
+const TONE_INDEX = {"ā":1,"á":2,"ǎ":3,"à":4,"ē":1,"é":2,"ě":3,"è":4,"ī":1,"í":2,"ǐ":3,"ì":4,"ō":1,"ó":2,"ǒ":3,"ò":4,"ū":1,"ú":2,"ǔ":3,"ù":4,"ǖ":1,"ǘ":2,"ǚ":3,"ǜ":4};
+function toneNumberFromPinyin(value) { const mark = String(value || "").split("").find((c) => TONE_INDEX[c]); if (mark) return TONE_INDEX[mark]; const digit = String(value || "").match(/[1-4]/); return digit ? Number(digit[0]) : 0; }
+function stripPinyinTone(value) { return String(value || "").replace(/[āáǎà]/g,"a").replace(/[ēéěè]/g,"e").replace(/[īíǐì]/g,"i").replace(/[ōóǒò]/g,"o").replace(/[ūúǔù]/g,"u").replace(/[ǖǘǚǜ]/g,"ü").replace(/[1-5]/g,""); }
+function markPinyinTone(base, tone) {
+  const clean = stripPinyinTone(base); if (!tone || tone === 5) return clean;
+  let idx = clean.indexOf("a"); if (idx < 0) idx = clean.indexOf("e"); if (idx < 0) { const ou = clean.indexOf("ou"); idx = ou >= 0 ? ou + 1 : -1; }
+  if (idx < 0) { for (let i = clean.length - 1; i >= 0; i -= 1) if ("aeiouü".includes(clean[i])) { idx = i; break; } }
+  if (idx < 0) return clean;
+  const vowel = clean[idx]; return clean.slice(0, idx) + (TONE_MARKS[vowel]?.[tone - 1] || vowel) + clean.slice(idx + 1);
+}
+function makeMissionToneQuestion(word) {
+  const tone = toneNumberFromPinyin(word?.pinyin); if (!tone || !word?.char) return null;
+  const syllable = stripPinyinTone(word.pinyin);
+  return { char: word.char, meaning: word.meaning || "", meaningEn: word.meaning_en || "", syllable, pinyin: word.pinyin, tone, hsk: word.hsk, emoji: "🀄", options: [1,2,3,4].map((n) => markPinyinTone(syllable, n)) };
+}
 const TONE_RACE_BANK = [
   { char:"妈", meaning:"mẹ", meaningEn:"mother", syllable:"ma", pinyin:"mā", tone:1, hsk:1, emoji:"👩", options:["mā","má","mǎ","mà"] },
   { char:"麻", meaning:"cây gai / tê", meaningEn:"hemp / numb", syllable:"ma", pinyin:"má", tone:2, hsk:3, emoji:"🌿", options:["mā","má","mǎ","mà"] },
@@ -3953,11 +3987,17 @@ function startToneRaceGame(){
   gc.classList.add("visible"); gc.style.display="block"; window.scrollTo({top:0,behavior:"instant"});
   const level=document.getElementById("practiceHskFilter");
   const selected=level ? level.value : "all";
-  const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  const missionChars = new Set(missionPool.map(w => w.char));
-  let pool = missionChars.size ? TONE_RACE_BANK.filter(q => missionChars.has(q.char)) : [];
-  if(pool.length < 4) pool = TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
-  if(pool.length<4) pool=TONE_RACE_BANK.slice();
+  const currentMission = window.PandaHanMission?.getCurrent?.();
+  const missionPool = currentMission?.chainVocabulary?.length ? currentMission.chainVocabulary : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+  const chainLaunch = window.PandaHanMission?.getActiveTask?.()?.type === "tone-race";
+  let pool = chainLaunch ? missionPool.map(makeMissionToneQuestion).filter(Boolean) : [];
+  if (chainLaunch && !pool.length) { alert("Chưa có từ vựng đúng theo chuỗi Ngữ âm của ngày này / No exact phonetics-linked words are ready for this day's chain."); return; }
+  if (!chainLaunch) {
+    const missionChars = new Set(missionPool.map(w => w.char));
+    pool = missionChars.size ? TONE_RACE_BANK.filter(q => missionChars.has(q.char)) : [];
+    if(pool.length < 4) pool = TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
+    if(pool.length<4) pool=TONE_RACE_BANK.slice();
+  }
   toneRaceState={queue:shuffle(pool).slice(0,Math.min(8,pool.length)),index:0,score:0,correctCount:0,streak:0,answered:false};
   renderToneRaceQuestion();
 }
@@ -3992,7 +4032,10 @@ function answerToneRace(tone,button,q){
 function renderToneRaceResult(){
   const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState)return;
   const total=toneRaceState.queue.length; const correct=toneRaceState.correctCount; const best=Math.max(Number(localStorage.getItem("pandahanToneRaceBest")||0),toneRaceState.score);localStorage.setItem("pandahanToneRaceBest",String(best));
-  savePracticeCompletion(total ? Math.round((correct / total) * 100) : 0, "tone-race");
+  const scorePercent = total ? Math.round((correct / total) * 100) : 0;
+  const chainMission = window.PandaHanMission?.getCurrent?.();
+  if (chainMission && window.PandaHanVocabularyPhase?.completeGame) window.PandaHanVocabularyPhase.completeGame(Number(chainMission.dayNumber), (chainMission.chainVocabulary || chainMission.adaptivePlan?.introWords || chainMission.newVocab || []).map((w) => w.char), scorePercent);
+  savePracticeCompletion(scorePercent, "tone-race");
   gc.innerHTML=`<div class="tone-race-shell"><div class="tone-race-result"><div class="result-emoji">🏆🚗</div><h3>Hoàn thành đường đua!</h3><p>Bạn đạt <b>${toneRaceState.score} điểm</b> trong ${total} câu. Kỷ lục hiện tại: <b>${best} điểm</b>.<br>${correct>=Math.ceil(total*.8)?"Tuyệt vời! Bạn đã kiểm soát thanh điệu rất tốt.":"Hãy chơi lại một lượt để củng cố các thanh điệu còn nhầm lẫn."}</p><div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceBack" type="button">← Về luyện tập</button><button class="btn btn-pink" id="toneRaceReplay" type="button">🚗 Chơi lại</button></div></div></div>`;
   document.getElementById("toneRaceBack").addEventListener("click",exitToneRace);document.getElementById("toneRaceReplay").addEventListener("click",startToneRaceGame);
 }
@@ -4004,12 +4047,12 @@ function exitToneRace(){
 }
 
 /* ===================== MINI GAMES: Match & Write ===================== */
-function startMatchGame() {
+function startMatchGame(options = {}) {
   document.querySelector("#practiceTab .practice-grid").style.display = "none";
   const gc = document.getElementById("gameContainer"); gc.classList.add("visible"); gc.style.display = "block";
   window.scrollTo({ top: 0, behavior: "instant" });
   const level = document.getElementById("practiceHskFilter").value;
-  const missionPool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
+  const missionPool = Array.isArray(options.words) && options.words.length ? options.words.slice() : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []));
   if (!missionPool.length) { alert("Chưa có nhóm từ đã học/đến hạn đủ điều kiện để ghép nghĩa / No evidence-based words are ready for matching."); return; }
   let pool = shuffle(missionPool).slice(0, 6);
   let matched = 0, selectedChar = null, selectedMeaning = null;
@@ -4044,7 +4087,7 @@ function startMatchGame() {
       } else {
         selectedChar.classList.add("wrong"); selectedMeaning.classList.add("wrong");
         const wrongWord = pool.find((w) => String(w.id) === selectedChar.dataset.id);
-        if (wrongWord) recordVocabularyMistake(wrongWord.char, { source: "match", prompt: "Ghép chữ Hán với nghĩa", expected: L(wrongWord.meaning, wrongWord.meaning_en), selected: selectedMeaning.textContent || "" });
+        if (wrongWord) recordQuizResult(wrongWord.char, false, { source: "match", prompt: "Ghép chữ Hán với nghĩa", expected: L(wrongWord.meaning, wrongWord.meaning_en), selected: selectedMeaning.textContent || "" });
         setTimeout(() => { selectedChar.classList.remove("btn-pink", "wrong"); selectedMeaning.classList.remove("btn-pink", "wrong"); }, 500);
       }
       selectedChar = null; selectedMeaning = null;
@@ -4054,11 +4097,11 @@ function startMatchGame() {
   meanBox.querySelectorAll("button").forEach(b => b.addEventListener("click", () => tryMatch(b)));
 }
 
-function startWriteGame() {
+function startWriteGame(options = {}) {
   document.querySelector("#practiceTab .practice-grid").style.display = "none";
   const gc = document.getElementById("gameContainer"); gc.classList.add("visible"); gc.style.display = "block";
   window.scrollTo({ top: 0, behavior: "instant" });
-  renderWriteGameShell();
+  renderWriteGameShell(options);
 }
 /* "Viết nghĩa" — a single shuffled set of ~10 questions mixing two skills:
    recalling a single word's meaning, and translating a full example
@@ -4066,10 +4109,11 @@ function startWriteGame() {
    language toggle). Sentence items are reflection-only: the learner may type
    a translation and compare it with the reference, but the sentence is never
    self-scored and never contributes to SM-2 or the schedule gate. */
-function renderWriteGameShell() {
+function renderWriteGameShell(options = {}) {
   const level = document.getElementById("practiceHskFilter").value;
   const missionPool = window.PandaHanMission?.getTargetVocabulary?.() || [];
-  const sourcePool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : missionPool;
+  const requestedPool = Array.from(new Map((Array.isArray(options.words) ? options.words : []).filter((w) => w && w.char).map((w) => [w.char, w])).values());
+  const sourcePool = requestedPool.length ? requestedPool : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : missionPool);
   if (!sourcePool.length) {
     document.getElementById("gameContent").innerHTML = `<p style="text-align:center;padding:20px;">${L("Chưa có từ đã học/đến hạn đủ điều kiện để viết nghĩa. Hãy theo lộ trình AI Teacher trước.", "No evidence-based words are ready for writing. Follow the AI Teacher route first.")}</p>`;
     return;
