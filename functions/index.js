@@ -1,7 +1,10 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const core = require("./schedule-engine-core");
+
+const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
 admin.initializeApp();
 const db = admin.database();
@@ -72,10 +75,12 @@ async function publishPostMidnightMissedNotice(uid, today, extensionResult) {
   const sourceDay = Number(extensionResult.sourceDayNumber);
   const newSequence = Number(extensionResult.newSequenceIndex || 0);
   const notificationId = `missed_day_after_midnight_${today}_${sourceDay}`;
-  const titleVi = "Bài chưa hoàn thành đã được chuyển sang ngày mới";
-  const titleEn = "Incomplete work moved to the new day";
-  const bodyVi = `Ngày ${sourceDay} chưa hoàn thành trước 00:00. Hệ thống đã tạo buổi ôn ngày ${newSequence} để bạn tiếp tục mà không mất tiến độ.`;
-  const bodyEn = `Day ${sourceDay} was not completed before midnight. A review sequence ${newSequence} was created so you can continue without losing progress.`;
+  const carried = Array.isArray(extensionResult.carriedTaskIds) ? extensionResult.carriedTaskIds : [];
+  const missing = Array.isArray(extensionResult.missingTaskIds) ? extensionResult.missingTaskIds : [];
+  const titleVi = "Nhiệm vụ chưa xong đã chuyển sang buổi tiếp tục";
+  const titleEn = "Incomplete work moved to a continuation session";
+  const bodyVi = `Ngày ${sourceDay} chưa hoàn thành trước 00:00. Hệ thống tạo Buổi ${newSequence} — tiếp tục Ngày ${sourceDay}; đã giữ ${carried.length ? carried.join(", ") : "chưa có task"}, còn thiếu ${missing.length ? missing.join(", ") : "không còn task"}.`;
+  const bodyEn = `Day ${sourceDay} was incomplete at midnight. Session ${newSequence} continues Day ${sourceDay}; carried ${carried.length ? carried.join(", ") : "no tasks"}, still missing ${missing.length ? missing.join(", ") : "none"}.`;
   await db.ref(`notifications/${uid}/${notificationId}`).set({
     type: "missed_day_after_midnight",
     title: titleVi,
@@ -86,6 +91,8 @@ async function publishPostMidnightMissedNotice(uid, today, extensionResult) {
     body_en: bodyEn,
     source_day_number: sourceDay,
     new_sequence_index: newSequence,
+    carried_task_ids: carried,
+    missing_task_ids: missing,
     date: today,
     read: false,
     created_at: admin.database.ServerValue.TIMESTAMP,
@@ -96,14 +103,14 @@ async function publishPostMidnightMissedNotice(uid, today, extensionResult) {
   if (!teacherUid) return { sent: true, teacherMessage: false };
   const chatId = [uid, teacherUid].sort().join("_");
   const messageId = notificationId;
-  const textVi = `Sau 00:00, hệ thống ghi nhận học sinh chưa hoàn thành ngày ${sourceDay} và đã chuyển phần ôn sang sequence ${newSequence}.`;
-  const textEn = `After midnight, the system recorded that day ${sourceDay} was incomplete and moved the review to sequence ${newSequence}.`;
+  const textVi = `Sau 00:00, hệ thống ghi nhận Ngày ${sourceDay} chưa hoàn thành và chuyển phần còn thiếu sang Buổi ${newSequence} — tiếp tục Ngày ${sourceDay}. Đã giữ: ${carried.length ? carried.join(", ") : "chưa có"}; còn thiếu: ${missing.length ? missing.join(", ") : "không còn"}.`;
+  const textEn = `After midnight, Day ${sourceDay} was incomplete; remaining work moved to Session ${newSequence} — continue Day ${sourceDay}. Carried: ${carried.length ? carried.join(", ") : "none"}; still missing: ${missing.length ? missing.join(", ") : "none"}.`;
   const chatRef = firestore.collection("chats").doc(chatId);
   const batch = firestore.batch();
   batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: textVi, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
   batch.set(chatRef.collection("messages").doc(messageId), {
     senderId: "system", senderName: "PandaHán Pro", text: textVi, text_vi: textVi, text_en: textEn,
-    isBroadcast: true, reminderDate: today, sourceDayNumber: sourceDay, newSequenceIndex: newSequence,
+    isBroadcast: true, reminderDate: today, sourceDayNumber: sourceDay, newSequenceIndex: newSequence, carriedTaskIds: carried, missingTaskIds: missing,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
   await batch.commit();
@@ -117,14 +124,17 @@ async function publishDailyPlan(uid, today, schedule) {
   const notificationId = `daily_plan_${today}_${Number(current.sequence_index)}`;
   await db.ref(`notifications/${uid}/${notificationId}`).set({
     type: "daily_plan",
-    title: `Kế hoạch học ngày ${current.sequence_index}`,
-    title_vi: `Kế hoạch học ngày ${current.sequence_index}`,
-    title_en: `Study plan for day ${current.sequence_index}`,
-    body: `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
-    body_vi: `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
-    body_en: `Today: study curriculum day ${current.day_number}: ${current.topic || "the assigned lesson"}. Complete it and meet the threshold to unlock the next lesson.`,
+    title: current.is_repeat_of ? `Buổi tiếp tục ${current.sequence_index} — Ngày ${current.day_number}` : `Kế hoạch học ngày ${current.sequence_index}`,
+    title_vi: current.is_repeat_of ? `Buổi tiếp tục ${current.sequence_index} — Ngày ${current.day_number}` : `Kế hoạch học ngày ${current.sequence_index}`,
+    title_en: current.is_repeat_of ? `Continuation session ${current.sequence_index} — Day ${current.day_number}` : `Study plan for day ${current.sequence_index}`,
+    body: current.is_repeat_of ? `Tiếp tục Ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành phần còn thiếu để mở buổi sau.` : `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
+    body_vi: current.is_repeat_of ? `Tiếp tục Ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành phần còn thiếu để mở buổi sau.` : `Hôm nay học nội dung ngày ${current.day_number}: ${current.topic || "bài học theo lộ trình"}. Hoàn thành và đạt ngưỡng để mở bài tiếp theo.`,
+    body_en: current.is_repeat_of ? `Continue Day ${current.day_number}: ${current.topic || "the assigned lesson"}. Complete the remaining work to unlock the next session.` : `Today: study curriculum day ${current.day_number}: ${current.topic || "the assigned lesson"}. Complete it and meet the threshold to unlock the next lesson.`,
     day_number: Number(current.day_number),
     sequence_index: Number(current.sequence_index),
+    is_repeat: !!current.is_repeat_of || current.day_type === "repeat",
+    carried_task_ids: current.carried_completed_tasks || [],
+    missing_task_ids: (current.required_tasks || []).filter((id) => !current.completed_tasks?.[id]),
     date: today,
     read: false,
     created_at: admin.database.ServerValue.TIMESTAMP,
@@ -253,4 +263,78 @@ exports.dailyScheduleExtension = onSchedule(
 
 exports.scheduleHealth = onRequest(async (_req, res) => {
   res.json({ ok: true, timezone: "Asia/Ho_Chi_Minh", service: "dailyScheduleExtension" });
+});
+
+function setCors(res) {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+}
+function normaliseChatHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history.slice(-12).map((item) => {
+    const role = item?.role === "user" ? "user" : "assistant";
+    return { role, content: String(item?.text || item?.content || "").slice(0, 2000) };
+  }).filter((item) => item.content.trim());
+}
+function aiSystemPrompt(learner) {
+  const safe = learner && typeof learner === "object" ? learner : {};
+  return [
+    "You are PandaHán AI Coach, a natural conversational Chinese tutor. Continue the conversation coherently and be helpful for open-ended questions, while grounding progress claims in the supplied learner context.",
+    "Output language rule: answer in English when learner.lang=en, in Chinese when learner.lang=zh, and otherwise in Vietnamese. If the user writes primarily in English or Chinese, match that language even if learner.lang is absent. For Chinese-learning examples, include Chinese characters, pinyin, and a concise explanation/translation in the output language.",
+    "Open-chat scope: support Chinese study questions, HSK 1–6 explanations, vocabulary, grammar, reading, writing, dialogue rehearsal, study habits, feedback on a learner-provided draft, and natural follow-up questions. For unrelated requests, respond politely and redirect toward a useful learning angle without inventing facts.",
+    "Progress integrity: never claim that the learner completed a task, earned a score, unlocked a day, or fixed a mistake unless that exact evidence appears in learner context. Free practice never unlocks a scheduled day. Do not bypass a locked sequence.",
+    "When a daily task is being discussed, prioritize the first verified-missing task and give an actionable next step. If the user asks for progress and evidence is absent, state that no verified evidence is available instead of guessing.",
+    "For a requested HSK 1–6 paragraph, first respect an explicitly chosen level/topic. Create a complete multi-sentence passage suitable to the requested level, with a short title, Chinese text, pinyin, translation, 2–4 grammar patterns, 4–8 target words and one rewrite task. Do not output only one sentence unless the user explicitly asks for one sentence.",
+    "For a grammar question, teach as a patient tutor in this order: name and HSK-appropriate pattern; plain-language purpose and when to use it; 1–2 Chinese examples with pinyin and translation; a contrast or common mistake; then one short personalised practice prompt. If the question compares two grammar patterns, state the key contrast with one paired example. Do not merely define a pattern in one sentence.",
+    "For vocabulary questions, give meaning, pinyin, word class when useful, a natural example, one collocation or contrast when reliable, and a short invitation to make the learner's own sentence. For sentence correction, quote the learner's original sentence, provide a corrected version only when confident, explain each visible change, and distinguish grammar certainty from optional naturalness improvements.",
+    "For conversation practice, give a realistic 2–6 turn dialogue, then ask one relevant follow-up question. For writing feedback, separate observable grammar/wording feedback from semantic/naturalness feedback. Never fabricate a rubric score or verified learning evidence.",
+    "Keep replies well structured but concise enough for a chat panel. Use headings only when the response includes a passage, dialogue, plan, or feedback list.",
+    "LEARNER_CONTEXT_JSON=" + JSON.stringify(safe).slice(0, 12000),
+  ].join("\n");
+}
+exports.aiChat = onRequest({
+  region: "asia-southeast1",
+  secrets: [OPENAI_API_KEY],
+  timeoutSeconds: 60,
+  memory: "256MiB",
+}, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "METHOD_NOT_ALLOWED" });
+  try {
+    const authHeader = String(req.get("authorization") || "");
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (!token) return res.status(401).json({ error: "AUTH_REQUIRED" });
+    const decoded = await admin.auth().verifyIdToken(token);
+    const message = String(req.body?.message || "").trim().slice(0, 2000);
+    if (!message) return res.status(400).json({ error: "EMPTY_MESSAGE" });
+    const apiKey = process.env.OPENAI_API_KEY || OPENAI_API_KEY.value();
+    if (!apiKey) return res.status(503).json({ error: "AI_BACKEND_NOT_CONFIGURED" });
+    const model = String(process.env.OPENAI_MODEL || "gpt-5-mini");
+    const history = normaliseChatHistory(req.body?.history);
+    const lang = ["vi", "en", "zh"].includes(req.body?.lang) ? req.body.lang : "vi";
+    const learner = { ...(req.body?.learner || {}), uid: decoded.uid, lang };
+    const upstream = await fetch(String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1") + "/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: aiSystemPrompt(learner) }, ...history, { role: "user", content: message }],
+        max_completion_tokens: 1400,
+      }),
+    });
+    const payload = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      console.error("AI provider error", { status: upstream.status, code: payload?.error?.code || payload?.error?.message });
+      return res.status(502).json({ error: "AI_PROVIDER_ERROR" });
+    }
+    const content = payload?.choices?.[0]?.message?.content;
+    const reply = Array.isArray(content) ? content.map((part) => part?.text || "").join("") : String(content || "");
+    if (!reply.trim()) return res.status(502).json({ error: "AI_EMPTY_REPLY" });
+    return res.json({ reply: reply.trim().slice(0, 8000), model, mode: "open_ai_coach", uid: decoded.uid });
+  } catch (error) {
+    console.error("aiChat error", error);
+    return res.status(error?.code?.startsWith?.("auth/") ? 401 : 500).json({ error: "AI_CHAT_FAILED" });
+  }
 });
