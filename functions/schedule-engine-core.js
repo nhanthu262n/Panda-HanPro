@@ -48,36 +48,6 @@
     }).format(now);
   }
 
-  function addVietnamDays(dateString, amount) {
-    const base = new Date(`${String(dateString)}T00:00:00Z`);
-    if (Number.isNaN(base.getTime())) return String(dateString);
-    base.setUTCDate(base.getUTCDate() + Number(amount || 0));
-    return base.toISOString().slice(0, 10);
-  }
-
-  function calendarDaysBetween(startDate, endDate) {
-    const start = new Date(`${String(startDate)}T00:00:00Z`);
-    const end = new Date(`${String(endDate)}T00:00:00Z`);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
-    return Math.max(0, Math.floor((end - start) / 86400000));
-  }
-
-  function promoteDueDays(schedule, today = todayVietnam()) {
-    if (!schedule || !Array.isArray(schedule.days)) return false;
-    let changed = false;
-    schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0)).forEach((day) => {
-      if (day.status !== "pending_unlock") return;
-      const unlockDate = day.unlock_date || day.scheduled_date;
-      if (unlockDate && unlockDate <= today) {
-        day.status = "unlocked";
-        day.scheduled_date = unlockDate;
-        delete day.unlock_date;
-        changed = true;
-      }
-    });
-    return changed;
-  }
-
   function createInitialSchedule(curriculum, today = todayVietnam()) {
     if (!Array.isArray(curriculum) || curriculum.length !== 120) {
       throw new Error("Curriculum phải có đúng 120 ngày.");
@@ -96,7 +66,7 @@
         day_type: item.day_type || "new_content",
         week_number: item.week_number || null,
         topic: item.topic || "",
-        required_score: 30,
+        required_score: Number(item.required_score || (item.day_type === "review" ? 70 : 80)),
         status: index === 0 ? "unlocked" : "locked",
         attempt_count: 0,
         best_score: null,
@@ -114,72 +84,26 @@
     return Math.max(0, ...schedule.days.map((day) => Number(day.sequence_index || 0))) + 1;
   }
 
-  function copyContinuationState(source, target, options = {}) {
-    ensureDayRequirements(source);
-    ensureDayRequirements(target);
-    const resetTaskIds = new Set((options.resetTaskIds || []).map(String));
-    const copiedTasks = {};
-    Object.entries(source.completed_tasks || {}).forEach(([taskId, evidence]) => {
-      if (!resetTaskIds.has(String(taskId))) copiedTasks[taskId] = clone(evidence);
-    });
-    target.completed_tasks = copiedTasks;
-    target.task_events = (source.task_events || [])
-      .filter((event) => !resetTaskIds.has(String(event.task_id || "")))
-      .map((event) => clone(event));
-    target.task_scores = Object.fromEntries(Object.entries(source.task_scores || {})
-      .filter(([taskId]) => !resetTaskIds.has(String(taskId)))
-      .map(([taskId, score]) => [taskId, clone(score)]));
-    target.attempt_count = 0;
-    target.best_score = Number.isFinite(Number(source.best_score)) ? Number(source.best_score) : null;
-    target.last_score = resetTaskIds.has("quest") || options.resetScore
-      ? null
-      : (Number.isFinite(Number(source.last_score)) ? Number(source.last_score) : null);
-    target.previous_best_score = target.best_score;
-    target.carried_completed_tasks = Object.keys(copiedTasks);
-    target.carried_from_sequence = Number(source.sequence_index || 0) || null;
-    target.carried_from_day_number = Number(source.day_number || 0) || null;
-    target.carry_forwarded_at = options.today || todayVietnam();
-    target.reset_task_ids = Array.from(resetTaskIds);
-    return target;
-  }
-
-  function continuationOptions(day, today = todayVietnam()) {
-    ensureDayRequirements(day);
-    const reviewType = reviewTypeFor(day, { days: [] });
-    const threshold = reviewThreshold(reviewType, day);
-    const score = Number(day.last_score);
-    const questPassed = !!day.completed_tasks.quest && Number.isFinite(score) && score >= threshold;
-    return { today, resetTaskIds: questPassed ? [] : ["quest"], resetScore: !questPassed };
-  }
-
   function unlockNextDay(schedule, currentSequence, today = todayVietnam()) {
     const ordered = schedule.days.slice().sort((a, b) => a.sequence_index - b.sequence_index);
     const currentIndex = ordered.findIndex((day) => day.sequence_index === currentSequence);
-    const current = ordered[currentIndex];
     const next = ordered[currentIndex + 1];
     if (!next) return null;
-    if (next.status === "locked" || next.status === "pending_unlock") {
-      if (current && Number(next.continuation_from_sequence) === Number(currentSequence)) {
-        copyContinuationState(current, next, { today });
-      }
-      const baseDate = current?.scheduled_date || today;
-      const unlockDate = addVietnamDays(baseDate, 1);
-      next.status = "pending_unlock";
-      next.unlock_date = unlockDate;
-      next.scheduled_date = unlockDate;
+    if (next.status === "locked") {
+      next.status = "unlocked";
+      next.scheduled_date = today;
     }
     return next;
   }
 
-  function insertRepeatsAfter(schedule, failedDay, count, reason, today = todayVietnam(), options = {}) {
+  function insertRepeatsAfter(schedule, failedDay, count, reason, today = todayVietnam()) {
     const repeats = [];
     const baseSequence = Number(failedDay.sequence_index);
-    const carryOptions = { ...continuationOptions(failedDay, today), ...options, today };
     schedule.days.forEach((day) => {
       if (day.sequence_index > baseSequence) day.sequence_index += count;
     });
     for (let index = 0; index < count; index += 1) {
-      const repeat = {
+      repeats.push({
         day_number: failedDay.day_number,
         sequence_index: baseSequence + index + 1,
         day_type: "repeat",
@@ -192,15 +116,11 @@
         scheduled_date: index === 0 ? today : null,
         is_repeat_of: failedDay.day_number,
         repeat_reason: reason,
-        extension_index: index + 1,
-        continuation_from_sequence: index === 0 ? null : baseSequence + index,
         required_tasks: Array.isArray(failedDay.required_tasks) ? failedDay.required_tasks.slice() : ["quest"],
         completed_tasks: {},
         task_events: [],
         task_scores: {},
-      };
-      if (index === 0) copyContinuationState(failedDay, repeat, carryOptions);
-      repeats.push(repeat);
+      });
     }
     schedule.days.push(...repeats);
     return repeats;
@@ -221,12 +141,14 @@
   }
 
   function reviewThreshold(reviewType, day) {
-    return 30;
+    if (reviewType === "monthly") return 75;
+    if (reviewType === "weekly") return 70;
+    return Number(day.required_score || 80);
   }
 
   function evaluateReview(schedule, reviewType) {
     const limit = reviewType === "monthly" ? 28 : 7;
-    const threshold = 30;
+    const threshold = reviewType === "monthly" ? 75 : 70;
     const recent = completedOriginalDays(schedule).slice(-limit);
     if (!recent.length) return { reviewType, threshold, average: 0, pass: false, recentDays: [] };
     const average = recent.reduce((sum, day) => sum + Number(day.best_score || 0), 0) / recent.length;
@@ -258,7 +180,7 @@
     }
     day.status = "failed_review";
     const repeatCount = reviewType === "monthly" ? 3 : reviewType === "weekly" ? 2 : 1;
-    const repeats = insertRepeatsAfter(schedule, day, repeatCount, `${reviewType}_failed`, today, continuationOptions(day, today));
+    const repeats = insertRepeatsAfter(schedule, day, repeatCount, `${reviewType}_failed`, today);
     return { passed: false, action: "repeat_assigned", repeatCount: repeats.length, missingTaskIds: [], reviewType, threshold, score };
   }
 
@@ -347,7 +269,6 @@
       return { schedule, changed: false, idempotent: true, reason: "already_processed" };
     }
 
-    promoteDueDays(schedule, today);
     const overdue = schedule.days
       .filter((day) => day.status === "unlocked" && day.scheduled_date && day.scheduled_date < today)
       .sort((a, b) => a.sequence_index - b.sequence_index)[0];
@@ -357,19 +278,15 @@
 
     overdue.status = "extended";
     overdue.extended_at = today;
-    const missedCount = Math.max(1, calendarDaysBetween(overdue.scheduled_date, today));
-    const repeats = insertRepeatsAfter(schedule, overdue, missedCount, "missed_day", today, continuationOptions(overdue, today));
-    schedule._meta.extension_count = Number(schedule._meta.extension_count || 0) + repeats.length;
+    const repeats = insertRepeatsAfter(schedule, overdue, 1, "missed_day", today);
+    schedule._meta.extension_count = Number(schedule._meta.extension_count || 0) + 1;
     return {
       schedule,
       changed: true,
       idempotent: false,
       reason: "missed_day_extended",
       sourceDayNumber: overdue.day_number,
-      repeatCount: repeats.length,
       newSequenceIndex: repeats[0].sequence_index,
-      carriedTaskIds: Array.isArray(repeats[0].carried_completed_tasks) ? repeats[0].carried_completed_tasks.slice() : [],
-      missingTaskIds: (repeats[0].required_tasks || []).filter((id) => !repeats[0].completed_tasks?.[id]),
     };
   }
 
@@ -377,11 +294,7 @@
     todayVietnam,
     createInitialSchedule,
     unlockNextDay,
-    promoteDueDays,
-    addVietnamDays,
     insertRepeatsAfter,
-    copyContinuationState,
-    continuationOptions,
     evaluateReview,
     applySubmit,
     recordTaskCompletion,
