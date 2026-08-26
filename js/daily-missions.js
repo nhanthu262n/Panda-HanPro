@@ -538,6 +538,22 @@
     if (language === "en") return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\nMeaning: ${meaning || "Open the dictionary card to view the saved meaning."}\nPart of speech: ${word.pos || "—"}\n\n**Example**\n${exampleZh || `Write one sentence about yourself using “${word.char}”.`}\n${exampleMeaning ? `Meaning cue: ${exampleMeaning}` : ""}\n\nWrite your own sentence with this word. Offline can verify visible target-word use; detailed collocation and naturalness need Cloud AI.`;
     return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\nNghĩa: ${meaning || "Hãy mở thẻ từ điển để xem nghĩa đã lưu."}\nTừ loại: ${word.pos || "—"}\n\n**Ví dụ**\n${exampleZh || `Hãy viết một câu về bản thân với “${word.char}”.`}\n${exampleMeaning ? `Gợi nghĩa: ${exampleMeaning}` : ""}\n\nHãy dùng từ này viết một câu. Offline kiểm tra được việc xuất hiện từ mục tiêu; giải thích kết hợp từ và độ tự nhiên chi tiết cần Cloud AI.`;
   }
+  function missionAssignmentResponse(m, language, mistakeCount) {
+    const zh = language === "zh";
+    const en = language === "en";
+    const title = zh ? (m.isRepeat ? `第 ${m.sequenceIndex} 节：继续第 ${m.dayNumber} 天` : `第 ${m.dayNumber} 天学习任务`) : en ? m.sessionLabelEn : m.sessionLabelVi;
+    const taskRows = (m.tasks || []).map((task) => {
+      const taskTitle = zh ? (task.titleEn || task.titleVi) : en ? task.titleEn : task.titleVi;
+      return `${task.order}. ${task.icon || "•"} ${taskTitle} · ${task.minutes || 0} ${zh ? "分钟" : en ? "min" : "phút"}`;
+    }).join("\n");
+    const carry = m.isRepeat
+      ? (zh ? `这是延续课程：已保留 ${m.carriedTaskIds?.length || 0} 项已验证任务；仍需完成 ${m.missingTaskIds?.length || 0} 项。` : en ? `This is a continuation session: ${m.carriedTaskIds?.length || 0} verified task(s) are carried; ${m.missingTaskIds?.length || 0} still need completion.` : `Đây là buổi tiếp tục: đã giữ ${m.carriedTaskIds?.length || 0} nhiệm vụ có evidence; còn ${m.missingTaskIds?.length || 0} nhiệm vụ phải hoàn thành.`)
+      : (zh ? "请按下方顺序学习；自由练习不会提前解锁下一天。" : en ? "Follow this order; free practice never unlocks the next day early." : "Hãy làm theo đúng thứ tự dưới đây; học tự do không mở khóa ngày tiếp theo sớm.");
+    const gate = zh ? `解锁条件：必做任务必须有真实 evidence，且分数达到 ${m.requiredScore}%；错题仍需复习。` : en ? `Unlock rule: required tasks need real evidence and the score must reach ${m.requiredScore}%; wrong items still require review.` : `Điều kiện mở khóa: nhiệm vụ bắt buộc cần evidence thật và điểm phải đạt ${m.requiredScore}%; câu sai vẫn phải ôn lại.`;
+    const mistakes = mistakeCount ? (zh ? `当前有 ${mistakeCount} 个错题待复习。` : en ? `${mistakeCount} wrong item(s) are still queued for redo.` : `Hiện có ${mistakeCount} câu/từ sai đang chờ ôn lại.`) : "";
+    const action = zh ? "请直接点击 khung kế hoạch中的任务按钮开始。" : en ? "Tap an Open task button in the plan card to start." : "Hãy bấm nút nhiệm vụ trong khung kế hoạch để bắt đầu.";
+    return `${title}\n${zh ? "主题" : en ? "Topic" : "Chủ đề"}: ${m.topic || "—"}\n\n${taskRows}\n\n${carry}\n${gate}${mistakes ? `\n${mistakes}` : ""}\n${action}`;
+  }
   function replyTo(text, options = {}) {
     const m = activeMission || mission();
     const q = String(text || "").toLowerCase();
@@ -546,6 +562,7 @@
     const zh = language === "zh";
     const mistakeCount = window.PandaHanMistakes?.getAllQueue?.().length || window.PandaHanMistakes?.getQueue?.().length || 0;
     const writingRequest = /(viết|write|đoạn văn|paragraph|作文|article)/.test(q);
+    if (/(nhiệm vụ|kế hoạch|lộ trình|hôm nay học|học gì|plan|learning path|today.*learn|today.*task|任务|计划|今天.*学|学习路径)/i.test(q)) return missionAssignmentResponse(m, language, mistakeCount);
     const grammarEntry = window.PandaHanGrammarPack?.find?.(text);
     if (grammarEntry) return grammarLessonResponse(grammarEntry, language);
     if (/(ngữ pháp|grammar|语法|cách dùng|dùng.*thế nào|how.*use|giải thích.*mẫu|explain.*pattern|句式)/i.test(q)) return grammarMenuResponse(language);
@@ -631,22 +648,30 @@
   window.addEventListener("pandahan-vocab-phase-updated", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
-    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+    const host = area?.querySelector("[data-ai-coach-plan-host]");
+    if (host) renderCoach(host);
+    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
   });
   window.addEventListener("pandahan-schedule-updated", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
-    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+    const host = area?.querySelector("[data-ai-coach-plan-host]");
+    if (host) renderCoach(host);
+    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
   });
   window.addEventListener("pandahan-mistake-recorded", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
-    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+    const host = area?.querySelector("[data-ai-coach-plan-host]");
+    if (host) renderCoach(host);
+    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
   });
   window.addEventListener("pandahan-mistake-resolved", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
-    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+    const host = area?.querySelector("[data-ai-coach-plan-host]");
+    if (host) renderCoach(host);
+    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
   });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load); else load();
 })();
