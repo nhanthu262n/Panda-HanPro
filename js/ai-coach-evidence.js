@@ -2,6 +2,7 @@
   "use strict";
 
   const LISTENING_THRESHOLD = 20;
+  const LISTENING_QUIZ_PASS_SCORE = 30;
   const REPORT_STEP = 5;
   let completionInFlight = {};
   let lastPronunciationId = "";
@@ -35,6 +36,11 @@
   function dispatchEvaluation(detail) {
     window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: {
       ...detail, verified: true, evaluatedAt: Number(detail.evaluatedAt || Date.now())
+    }}));
+  }
+  function dispatchObservation(detail) {
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: {
+      ...detail, verified: false, evaluatedAt: Number(detail.evaluatedAt || Date.now())
     }}));
   }
   async function completeVerifiedTask(day, taskId, source, evidence) {
@@ -105,9 +111,36 @@
       rawSource: "pinyin-phonetics-audio"
     };
     if (count % REPORT_STEP === 0 || count >= LISTENING_THRESHOLD) {
-      dispatchEvaluation({ source: "phonetics-listening", taskId: "listening", dayNumber: Number(day.day_number), scorePercent: Math.min(100, Math.round(count / LISTENING_THRESHOLD * 100)), threshold: 100, passed: count >= LISTENING_THRESHOLD, action: count >= LISTENING_THRESHOLD ? "evidence_threshold_reached" : "evidence_progress", ...evidence });
+      dispatchObservation({ source: "phonetics-listening", taskId: "listening", dayNumber: Number(day.day_number), scorePercent: null, threshold: LISTENING_QUIZ_PASS_SCORE, passed: false, action: "audio_playback_observed", ...evidence });
     }
-    if (count >= LISTENING_THRESHOLD) await completeVerifiedTask(day, "listening", "verified:phonetics-audio", evidence);
+  }
+
+  async function processListeningQuiz(result) {
+    const day = await currentDay();
+    if (!day || !result) return null;
+    const score = Math.max(0, Math.min(100, Number(result.scorePercent) || 0));
+    const correct = Math.max(0, Number(result.correct) || 0);
+    const total = Math.max(1, Number(result.total) || 1);
+    const wrongItems = Array.isArray(result.wrongItems) ? result.wrongItems.slice(0, total) : [];
+    const passed = score >= LISTENING_QUIZ_PASS_SCORE;
+    const evidence = {
+      evidenceType: "phonetics_listening_quiz_score",
+      quizId: String(result.quizId || ""),
+      scorePercent: score,
+      threshold: LISTENING_QUIZ_PASS_SCORE,
+      passed,
+      correct,
+      total,
+      attempts: Math.max(1, Number(result.attempts) || 1),
+      wrongItems,
+      date: String(result.completedAt || new Date().toISOString()),
+      rawSource: "phonetics-listening-quiz"
+    };
+    if (wrongItems.length) await window.PandaHanSchedule?.requireMistakeReview?.(Number(day.day_number));
+    const output = passed ? await completeVerifiedTask(day, "listening", "verified:phonetics-listening-quiz", evidence) : null;
+    const action = passed ? "quiz_passed_pending_other_evidence" : "quiz_below_threshold";
+    dispatchEvaluation({ source: "phonetics-listening-quiz", taskId: "listening", dayNumber: Number(day.day_number), action, ...evidence });
+    return { completed: !!output, passed, action, result: output?.result || null, evidence };
   }
 
   function nextListeningCount(media) {
@@ -143,6 +176,7 @@
 
   window.PandaHanEvidence = {
     processPronunciationRecord,
+    processListeningQuiz,
     processListening: (count) => reportListening(Number(count) || 0, null),
     getListeningCount: () => Number(localStorage.getItem(evidenceKey(`listening_${today()}`)) || 0)
   };
