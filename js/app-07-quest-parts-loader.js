@@ -118,7 +118,7 @@
           dayNumber: day,
           scorePercent: score,
           passed: !!result?.result?.passed,
-          threshold: Number(result?.result?.threshold || 80),
+          threshold: Number(result?.result?.threshold || 30),
           reviewType: result?.result?.reviewType || "daily",
           repeatCount: Number(result?.result?.repeatCount || 0),
           action: result?.result?.action || "advance"
@@ -185,9 +185,37 @@
     app.appendChild(main.cloneNode(true));
     output.body.appendChild(app);
     output.body.appendChild(gameData.cloneNode(true));
+    const safeChain = initialChain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" };
     const chainBootstrap = output.createElement("script");
-    chainBootstrap.textContent = `window.__PANDAHAN_QUEST_CHAIN=${JSON.stringify(initialChain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" })};`;
+    chainBootstrap.textContent = `window.__PANDAHAN_QUEST_CHAIN=${JSON.stringify(safeChain)};`;
     output.body.appendChild(chainBootstrap);
+    const chainFilter = output.createElement("script");
+    chainFilter.textContent = `(function(){
+      try {
+        var chain = window.__PANDAHAN_QUEST_CHAIN || {};
+        var chars = Array.from(new Set((chain.vocabularyChars || []).map(String).filter(Boolean)));
+        var node = document.getElementById('game-data');
+        if (!node || !chars.length) return;
+        var data = JSON.parse(node.textContent || '{}');
+        var contains = function(item){ var raw = JSON.stringify(item || {}); return chars.some(function(ch){ return raw.indexOf(ch) >= 0; }); };
+        var fallbackItems = (chain.vocabulary || []).filter(function(w){ return w && w.char; }).map(function(w, i){
+          var meaning = String(w.meaningEn || w.meaning || 'Review this linked word');
+          return { section:'vocabulary', heading:'Từ liên kết ' + (i + 1), prompt:String(w.char) + ' · ' + String(w.pinyin || ''), passage:meaning, options:[{label:'A',text:meaning},{label:'B',text:'Not this word'},{label:'C',text:'Choose again'}], answerLabel:'A', explanation:'This item was generated from the exact vocabulary manifest for this lesson.', audioTranscript:String(w.char), chainVocabularyId:String(w.id || '') };
+        });
+        var restrict = function(day){
+          if (!day) return day;
+          var isSession = Array.isArray(day.questions);
+          var items = isSession ? day.questions : (Array.isArray(day.items) ? day.items : []);
+          var matched = items.filter(contains);
+          var nextItems = matched.length ? matched : fallbackItems;
+          return isSession ? Object.assign({}, day, { questions: nextItems }) : Object.assign({}, day, { items: nextItems });
+        };
+        if (Array.isArray(data.sourceDays)) data.sourceDays = data.sourceDays.map(function(day){ return Number(day.day) === Number(chain.lessonId) ? restrict(day) : day; });
+        if (Array.isArray(data.hanziSessions) && Number(chain.lessonId) >= 1 && Number(chain.lessonId) <= data.hanziSessions.length) data.hanziSessions[Number(chain.lessonId) - 1] = restrict(data.hanziSessions[Number(chain.lessonId) - 1]);
+        node.textContent = JSON.stringify(data);
+      } catch (error) { console.warn('Quest chain vocabulary filter failed', error); }
+    })();`;
+    output.body.appendChild(chainFilter);
     runtime.forEach((script) => output.body.appendChild(script.cloneNode(true)));
     output.body.insertAdjacentHTML("beforeend", STORAGE_BOOTSTRAP + GATE_SCRIPT);
     return "<!doctype html>" + output.documentElement.outerHTML;
