@@ -125,7 +125,7 @@
       if (!current) return;
       const today = window.PandaHanSchedule?.todayVietnam?.() || new Date().toISOString().slice(0, 10);
       window.dispatchEvent(new CustomEvent("pandahan-daily-plan", { detail: {
-        dayNumber: Number(current.day_number), sequenceIndex: Number(current.sequence_index), topic: current.topic || "", date: today, force: true
+        dayNumber: Number(current.day_number), sequenceIndex: Number(current.sequence_index), isRepeat: !!current.is_repeat_of || current.day_type === "repeat", repeatReason: current.repeat_reason || null, carriedCompletedTasks: Array.isArray(current.carried_completed_tasks) ? current.carried_completed_tasks.slice() : Object.keys(current.completed_tasks || {}), missingTaskIds: (current.required_tasks || []).filter((id) => !current.completed_tasks?.[id]), topic: current.topic || "", date: today, force: true
       }}));
     } catch (error) { console.warn("Daily plan notification fallback:", error.message || error); }
   }
@@ -147,15 +147,24 @@
     const detail = event.detail || {};
     const day = Number(detail.dayNumber || 0);
     if (!day) return;
+    const seq = Number(detail.sequenceIndex || day);
+    const repeat = !!detail.isRepeat;
+    const carried = Array.isArray(detail.carriedCompletedTasks) ? detail.carriedCompletedTasks : [];
+    const missing = Array.isArray(detail.missingTaskIds) ? detail.missingTaskIds : [];
     const item = {
-      id: `local_daily_plan_${detail.date}_${Number(detail.sequenceIndex || day)}`,
+      id: `local_daily_plan_${detail.date}_${seq}`,
       type: "daily_plan",
-      title_vi: `Kế hoạch học ngày ${day}`,
-      title_en: `Study plan for day ${day}`,
-      body_vi: `Hôm nay học ngày ${day}${detail.topic ? `: ${detail.topic}` : ""}. Hoàn thành bài để mở buổi tiếp theo.`,
-      body_en: `Today: study day ${day}${detail.topic ? `: ${detail.topic}` : ""}. Complete the lesson to unlock the next session.`,
+      title_vi: repeat ? `Buổi tiếp tục ${seq} — Ngày ${day}` : `Kế hoạch học buổi ${seq}`,
+      title_en: repeat ? `Continuation session ${seq} — Day ${day}` : `Study plan for session ${seq}`,
+      body_vi: repeat ? `Tiếp tục nội dung Ngày ${day}${detail.topic ? `: ${detail.topic}` : ""}. Đã giữ ${carried.length ? carried.join(", ") : "chưa có"}; còn thiếu ${missing.length ? missing.join(", ") : "không còn"}.` : `Hôm nay học nội dung Ngày ${day}${detail.topic ? `: ${detail.topic}` : ""}. Hoàn thành bài để mở buổi tiếp theo.`,
+      body_en: repeat ? `Continue curriculum Day ${day}${detail.topic ? `: ${detail.topic}` : ""}. Carried ${carried.length ? carried.join(", ") : "none"}; still missing ${missing.length ? missing.join(", ") : "none"}.` : `Today: study curriculum Day ${day}${detail.topic ? `: ${detail.topic}` : ""}. Complete the lesson to unlock the next session.`,
       read: false,
       created_at: Date.now(),
+      day_number: day,
+      sequence_index: seq,
+      is_repeat: repeat,
+      carried_task_ids: carried,
+      missing_task_ids: missing,
     };
     saveLocalNotification(item);
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
@@ -175,14 +184,14 @@
       type: "quest_score_saved",
       title_vi: passed ? `Pinyin Tone Quest ngày ${day}: đạt ${score}%` : `Pinyin Tone Quest ngày ${day}: ${score}% — cần ôn lại`,
       title_en: passed ? `Pinyin Tone Quest day ${day}: ${score}% passed` : `Pinyin Tone Quest day ${day}: ${score}% — review required`,
-      body_vi: passed ? `Bạn đã đạt ngưỡng ${Number(detail.threshold || 80)}%. Ngày học tiếp theo đã được xét mở theo lộ trình.` : `Bạn chưa đạt ngưỡng ${Number(detail.threshold || 80)}%. Hệ thống giữ gate và tạo ${Number(detail.repeatCount || 1)} buổi ôn trước khi mở nội dung mới.`,
-      body_en: passed ? `You met the ${Number(detail.threshold || 80)}% threshold. The next learning day was evaluated for unlock.` : `You did not meet the ${Number(detail.threshold || 80)}% threshold. The gate stays in place and ${Number(detail.repeatCount || 1)} review session(s) were created before new content unlocks.`,
+      body_vi: passed ? `Bạn đã đạt ngưỡng ${Number(detail.threshold || 30)}%. Buổi tiếp theo đã được xét mở theo lộ trình.` : `Bạn chưa đạt ngưỡng ${Number(detail.threshold || 30)}%. Hệ thống giữ gate và tạo ${Number(detail.repeatCount || 1)} buổi ôn trước khi mở nội dung mới.`,
+      body_en: passed ? `You met the ${Number(detail.threshold || 30)}% threshold. The next session was evaluated for unlock.` : `You did not meet the ${Number(detail.threshold || 30)}% threshold. The gate stays in place and ${Number(detail.repeatCount || 1)} review session(s) were created before new content unlocks.`,
       read: false,
       created_at: Date.now(),
       day_number: day,
       score_percent: score,
       passed,
-      threshold: Number(detail.threshold || 80),
+      threshold: Number(detail.threshold || 30),
       repeat_count: Number(detail.repeatCount || 0)
     };
     saveLocalNotification(item);
@@ -199,12 +208,16 @@
     const item = {
       id: `local_missed_day_${day}_${seq}`,
       type: "missed_day_after_midnight",
-      title_vi: "Bài chưa hoàn thành đã được chuyển sang ngày mới",
-      title_en: "Incomplete work moved to the new day",
-      body_vi: `Ngày ${day} chưa hoàn thành trước 00:00. Đã tạo buổi ôn ${seq || "tiếp theo"}.`,
-      body_en: `Day ${day} was incomplete before midnight. Review sequence ${seq || "the next sequence"} is now available.`,
+      title_vi: `Nhiệm vụ chưa xong đã chuyển sang Buổi ${seq || "tiếp tục"}`,
+      title_en: `Incomplete work moved to continuation session ${seq || "next"}`,
+      body_vi: `Ngày ${day} chưa hoàn thành trước 00:00. Đã tạo Buổi ${seq || "tiếp theo"} — tiếp tục Ngày ${day}; đã giữ ${(detail.carriedTaskIds || []).join(", ") || "chưa có"}, còn thiếu ${(detail.missingTaskIds || []).join(", ") || "không còn"}.`,
+      body_en: `Day ${day} was incomplete before midnight. Session ${seq || "the next"} continues Day ${day}; carried ${(detail.carriedTaskIds || []).join(", ") || "none"}, still missing ${(detail.missingTaskIds || []).join(", ") || "none"}.`,
       read: false,
       created_at: Date.now(),
+      day_number: day,
+      sequence_index: seq,
+      carried_task_ids: Array.isArray(detail.carriedTaskIds) ? detail.carriedTaskIds : [],
+      missing_task_ids: Array.isArray(detail.missingTaskIds) ? detail.missingTaskIds : [],
     };
     saveLocalNotification(item);
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
