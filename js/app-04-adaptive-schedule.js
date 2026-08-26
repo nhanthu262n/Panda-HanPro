@@ -64,7 +64,19 @@
         day.scheduled_date = null;
       }
     });
+    const enforceSingleActiveSession = () => {
+      let foundActive = false;
+      schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0)).forEach((day) => {
+        if (day.status !== "unlocked" && day.status !== "pending_unlock") return;
+        if (!foundActive) { foundActive = true; return; }
+        day.status = "locked";
+        day.scheduled_date = null;
+        delete day.unlock_date;
+      });
+    };
+    enforceSingleActiveSession();
     if (typeof core.promoteDueDays === "function") core.promoteDueDays(schedule, core.todayVietnam());
+    enforceSingleActiveSession();
     return schedule;
   }
 
@@ -288,6 +300,27 @@
   }
 
   async function submitQuestResult(dayNumber, score, resultToken) {
+    const mission = window.PandaHanMission?.getCurrent?.();
+    const isCurrentMission = Number(mission?.dayNumber) === Number(dayNumber);
+    const linkedWords = isCurrentMission && Array.isArray(mission?.chainVocabulary) ? mission.chainVocabulary : [];
+    const phase = linkedWords.length ? window.PandaHanVocabularyPhase?.get?.(Number(dayNumber)) : null;
+    const prerequisiteMissing = linkedWords.length && (!mission?.adaptivePlan?.phoneticsReady || !phase?.introCompleted || !phase?.speakingCompleted);
+    if (prerequisiteMissing) {
+      const schedule = loadLocal() || await initScheduleIfNeeded();
+      const missingLinkedSteps = [
+        ...(!mission?.adaptivePlan?.phoneticsReady ? ["listening", "speaking"] : []),
+        ...(!phase?.introCompleted ? ["vocab-intro"] : []),
+        ...(!phase?.speakingCompleted ? ["vocab-speaking"] : [])
+      ];
+      return {
+        schedule,
+        result: {
+          dayNumber: Number(dayNumber), score: Number(score), threshold: Number(mission?.requiredScore || 30), passed: false,
+          action: "linked_chain_incomplete", code: "LINKED_CHAIN_INCOMPLETE", repeatCount: 0,
+          missingTaskIds: missingLinkedSteps, requiredTaskIds: schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber))?.required_tasks || []
+        }
+      };
+    }
     let result = null;
     let submitError = null;
     try {
