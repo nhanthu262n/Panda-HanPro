@@ -11,6 +11,17 @@ const PV_TONE_MARKS = {
   u:['\u016b','\u00fa','\u01d4','\u00f9','u'],
   \u00fc:['\u01d6','\u01d8','\u01da','\u01dc','\u00fc'],
 };
+function pvT(vi, en) { return window.LANG_MODE === "en" ? en : vi; }
+const PV_SESSION_EN = {
+  1: ["Four tones", "The most important foundation"], 2: ["Single finals (a o e)", "Basic simple vowels"],
+  3: ["Initials b p m f", "Labial initial consonants"], 4: ["Initials d t n l", "Alveolar initial consonants"],
+  5: ["Initials g k h", "Velar initial consonants"], 6: ["Initials j q x", "Palatal initial consonants"],
+  7: ["Initials zh ch sh r", "Retroflex initials"], 8: ["Initials z c s", "Dental sibilant initials"],
+  9: ["Compound finals", "Compound vowel combinations"], 10: ["Full review", "Consolidate tones and initials"],
+};
+function pvSessionTitle(session) { return window.LANG_MODE === "en" && PV_SESSION_EN[session.id] ? PV_SESSION_EN[session.id][0] : session.title; }
+function pvSessionSub(session) { return window.LANG_MODE === "en" && PV_SESSION_EN[session.id] ? PV_SESSION_EN[session.id][1] : session.sub; }
+function pvCardMeaning(card) { return window.LANG_MODE === "en" ? (window.VOCAB_BY_CHAR?.[card.hanzi]?.meaning_en || card.meaning_en || card.viet) : card.viet; }
 
 function pvApplyTone(syl, tone) {
   if (!tone) return syl;
@@ -187,8 +198,8 @@ function renderSessionList(container) {
   let html = `<div class="pv-container">
     <div class="pv-header">
       <div>
-        <div class="pv-title">🎵 Ngữ âm — <span>10 Buổi Học</span></div>
-        <div class="pv-sub">Flashcard → Game → Bài tập · Đạt ≥80% để mở khóa buổi tiếp</div>
+        <div class="pv-title">🎵 ${pvT("Ngữ âm", "Phonetics")} — <span>${pvT("10 Buổi Học", "10 Learning Sessions")}</span></div>
+        <div class="pv-sub">Flashcard → ${pvT("Game", "Game")} → ${pvT("Bài tập", "Practice")} · ${pvT("Đạt ≥30% để qua buổi", "Reach ≥30% to pass the session")}</div>
       </div>
     </div>
     <div class="pv-stats">
@@ -198,7 +209,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#f97316;background:#fff7ed;padding:2px 8px;border-radius:8px">30 max</span>
         </div>
         <div class="pv-stat-num">${totalStars}</div>
-        <div class="pv-stat-label">Tổng sao</div>
+        <div class="pv-stat-label">${pvT("Tổng sao", "Total stars")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(totalStars/30)*100}%"></div></div>
       </div>
       <div class="pv-stat-card" style="border-color:#bbf7d0">
@@ -207,7 +218,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#22c55e;background:#f0fdf4;padding:2px 8px;border-radius:8px">10 max</span>
         </div>
         <div class="pv-stat-num" style="color:#22c55e">${doneCount}</div>
-        <div class="pv-stat-label">Buổi hoàn thành</div>
+        <div class="pv-stat-label">${pvT("Buổi hoàn thành", "Completed sessions")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(doneCount/10)*100}%;background:#22c55e"></div></div>
       </div>
       <div class="pv-stat-card" style="border-color:#ddd6fe">
@@ -216,7 +227,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#8b5cf6;background:#f5f3ff;padding:2px 8px;border-radius:8px">10 max</span>
         </div>
         <div class="pv-stat-num" style="color:#8b5cf6">${unlockedCount}</div>
-        <div class="pv-stat-label">Buổi đã mở</div>
+        <div class="pv-stat-label">${pvT("Buổi đã mở", "Unlocked sessions")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(unlockedCount/10)*100}%;background:#8b5cf6"></div></div>
       </div>
     </div>
@@ -231,9 +242,9 @@ function renderSessionList(container) {
       <div class="pv-session-body">
         <div class="pv-session-emoji">${unlocked ? s.emoji : '🔒'}</div>
         <div class="pv-session-info">
-          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">Buổi ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
-          <div class="pv-session-title">${s.title}</div>
-          <div class="pv-session-sub">${s.sub}</div>
+          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">${pvT("Buổi", "Session")} ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
+          <div class="pv-session-title">${pvSessionTitle(s)}</div>
+          <div class="pv-session-sub">${pvSessionSub(s)}</div>
           ${done ? `<div style="margin-top:6px;height:4px;background:#f3f4f6;border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;width:${(p.bestScore/10)*100}%;background:linear-gradient(to right,${s.color},#a855f7)"></div></div>` : ''}
         </div>
         ${unlocked ? `<div class="pv-session-arrow"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="${done ? '#fff' : s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>` : ''}
@@ -255,14 +266,14 @@ function renderSessionDetail(container) {
 
   let html = `<div class="pv-container pv-detail">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid #fbcfe8;margin-bottom:8px">
-      <button class="pv-back-btn" onclick="pvBackToList()" style="color:${session.color}">← Quay lại</button>
-      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;color:#1e1b4b">${session.emoji} ${session.title}</div>
+      <button class="pv-back-btn" onclick="pvBackToList()" style="color:${session.color}">← ${pvT("Quay lại", "Back")}</button>
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;color:#1e1b4b">${session.emoji} ${pvSessionTitle(session)}</div>
       <div style="font-size:16px">${'⭐'.repeat(progress.stars)}${'☆'.repeat(3-progress.stars)}</div>
     </div>`;
 
   if (phase !== 'result') {
     const phases = ['flash','game','quiz'];
-    const labels = ['🃏 Flashcard','🎮 Game','📝 Bài tập'];
+    const labels = ['🃏 Flashcard',`🎮 ${pvT("Game", "Game")}`,`📝 ${pvT("Bài tập", "Practice")}`];
     html += '<div class="pv-phases">';
     phases.forEach((p, i) => {
       const isActive = phase === p || (phase === 'intro' && p === 'flash');
@@ -295,23 +306,23 @@ function renderSessionDetail(container) {
 function renderIntro(session) {
   let html = `<div class="pv-intro">
     <div class="pv-intro-emoji">${session.emoji}</div>
-    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem;color:#1e1b4b;margin-bottom:4px">${session.title}</h2>
-    <p style="color:#9ca3af;font-weight:600;margin-bottom:20px">${session.sub}</p>
+    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem;color:#1e1b4b;margin-bottom:4px">${pvSessionTitle(session)}</h2>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:20px">${pvSessionSub(session)}</p>
     <div class="pv-intro-grid">`;
   session.cards.forEach(c => {
     html += `<div class="pv-intro-card">
       <div class="ic-py">${pvApplyTone(c.pinyin, c.tone)}</div>
       <div class="ic-hz">${c.hanzi}</div>
-      <div class="ic-vi">${c.viet}</div>
+      <div class="ic-vi">${pvCardMeaning(c)}</div>
     </div>`;
   });
   html += `</div>
     <div style="color:#9ca3af;font-weight:600;font-size:.82rem;margin-bottom:18px">
-      📌 3 giai đoạn: Flashcard → Game → Bài tập<br/>
-      🎯 Cần ≥80% (8/10) để qua buổi
+      📌 ${pvT("3 giai đoạn", "3 stages")}: Flashcard → ${pvT("Game", "Game")} → ${pvT("Bài tập", "Practice")}<br/>
+      🎯 ${pvT("Cần ≥30% (3/10) để qua buổi", "Reach ≥30% (3/10) to pass the session")}
     </div>
     <button class="pv-start-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);box-shadow:0 6px 20px ${session.color}44" onclick="pvSetPhase('flash')">
-      Bắt đầu học 🚀
+      ${pvT("Bắt đầu học", "Start learning")} 🚀
     </button>
   </div>`;
   return html;
@@ -371,7 +382,7 @@ function renderFlash(session) {
     html += `<div class="pv-flash-dot" style="width:${w}px;height:6px;border-radius:4px;background:${bg}"></div>`;
   });
   html += `</div>
-    <p style="color:#9ca3af;font-weight:700;font-size:.85rem;text-align:center;margin-bottom:14px">Thẻ ${idx+1}/${session.cards.length}</p>
+    <p style="color:#9ca3af;font-weight:700;font-size:.85rem;text-align:center;margin-bottom:14px">${pvT("Thẻ", "Card")} ${idx+1}/${session.cards.length}</p>
     <div class="pv-flash-card${flipped ? ' flipped' : ''}" onclick="pvFlipCard()">
       <div class="pv-flash-front">
         <div class="pv-flash-pinyin" style="font-size:3rem">${pvApplyTone(card.pinyin, card.tone)}</div>
@@ -382,16 +393,16 @@ function renderFlash(session) {
   });
   html += `</div>
         <button class="pv-flash-btn" style="margin-top:14px;background:${speaking ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};color:${speaking ? '#fff' : '#ec4899'};box-shadow:${speaking ? '0 4px 14px rgba(236,72,153,.4)' : 'none'}" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
-          ${speaking ? '🔊 Đang đọc...' : '🔊 Nghe giáo viên'}
+          ${speaking ? `🔊 ${pvT("Đang đọc...", "Reading...")}` : `🔊 ${pvT("Nghe giáo viên", "Listen to teacher")}`}
         </button>
-        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:11px;animation:pvPulse 2s ease infinite">nhấn thẻ để xem chữ ↗</div>
+        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:11px;animation:pvPulse 2s ease infinite">${pvT("nhấn thẻ để xem chữ", "tap card to see Hanzi")} ↗</div>
       </div>
       <div class="pv-flash-back">
         <div class="pv-flash-hanzi" style="font-size:4.5rem">${card.hanzi}</div>
         <div class="pv-flash-pinyin" style="font-size:1.4rem;margin-top:6px">${pvApplyTone(card.pinyin, card.tone)}</div>
-        <div class="pv-flash-viet" style="font-size:.95rem;margin-top:2px">${card.viet}</div>
+        <div class="pv-flash-viet" style="font-size:.95rem;margin-top:2px">${pvCardMeaning(card)}</div>
         <button class="pv-flash-btn" style="margin-top:10px;background:rgba(255,255,255,.7);color:#ec4899;border:2px solid #fbcfe8" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
-          🔊 Nghe lại
+          🔊 ${pvT("Nghe lại", "Listen again")}
         </button>
       </div>
     </div>`;
@@ -402,9 +413,9 @@ function renderFlash(session) {
 
   const isLast = idx >= session.cards.length - 1;
   html += `<div class="pv-action-row">
-    <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvTeacherSpeak('${card.hanzi}')">🔊 Nghe lại</button>
+    <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvTeacherSpeak('${card.hanzi}')">🔊 ${pvT("Nghe lại", "Listen again")}</button>
     <button class="pv-action-btn" style="background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(236,72,153,.35)" onclick="pvFlashNext()">
-      ${isLast ? 'Vào Game 🎮' : 'Tiếp theo →'}
+      ${isLast ? `${pvT("Vào Game", "Enter game")} 🎮` : `${pvT("Tiếp theo", "Next")} →`}
     </button>
   </div>
   </div>`;
@@ -556,7 +567,7 @@ function renderResult(session) {
   const score = pvState.quizScore;
   const total = 10;
   const pct = Math.round(score / total * 100);
-  const isPass = score / total >= 0.8;
+  const isPass = score / total >= 0.3;
   const stars = score >= 9 ? 3 : score >= 7 ? 2 : score >= 6 ? 1 : 0;
 
   // Auto-speak result
@@ -568,8 +579,8 @@ function renderResult(session) {
   const dashLen = pct * 2.64;
   let html = `<div class="pv-result">
     <div style="font-size:3.5rem;margin-bottom:12px">${isPass ? '🎉' : '😊'}</div>
-    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.5rem;color:#1e1b4b;margin-bottom:4px">${isPass ? 'Xuất sắc! Qua buổi học! 🏆' : 'Cố lên! Thử lại nhé 💪'}</h2>
-    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? 'Đạt 80% — mở khóa buổi tiếp theo!' : 'Cần ≥80% (8/10) để qua buổi.'}</p>
+    <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.5rem;color:#1e1b4b;margin-bottom:4px">${isPass ? (window.LANG_MODE === 'en' ? 'Passed the learning session! 🏆' : 'Đã qua buổi học! 🏆') : (window.LANG_MODE === 'en' ? 'Keep practising and try again 💪' : 'Cố lên! Thử lại nhé 💪')}</h2>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? (window.LANG_MODE === 'en' ? 'Reached 30% — the next session can now be evaluated for unlock.' : 'Đạt 30% — buổi tiếp theo được xét mở khóa.') : (window.LANG_MODE === 'en' ? 'You need at least 30% (3/10) to pass this session.' : 'Cần ≥30% (3/10) để qua buổi.')}</p>
     <svg viewBox="0 0 100 100" style="width:120px;height:120px;transform:rotate(-90deg)">
       <circle cx="50" cy="50" r="42" fill="none" stroke="#fce7f3" stroke-width="10"/>
       <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round"
@@ -781,7 +792,7 @@ function pvNextSession() {
   async function initChatSystem() {
     const contactListEl = document.getElementById("chatContactList");
     if (!contactListEl) return;
-    contactListEl.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:8px;">Đang tải danh sách...</div>';
+    contactListEl.innerHTML = `<div style="font-size:12px;color:var(--text-light);padding:8px;">${window.LANG_MODE === "en" ? "Loading contacts..." : "Đang tải danh sách..."}</div>`;
 
     const broadcastBtn = document.getElementById("chatBroadcastBtn");
     if (broadcastBtn) {
@@ -800,9 +811,9 @@ function pvNextSession() {
 
       // Học viên chỉ được thấy Giáo viên trong danh sách liên hệ — không nhắn
       // tin trực tiếp được với học viên khác.
-        if (!isTeacherRole()) {
+      if (!isTeacherRole()) {
         contacts = contacts.filter(u => u.role === "teacher" || u.role === "master_teacher");
-        contacts.unshift({ uid: "__pandahan_ai__", name: "PandaHán AI Coach", role: "ai", isAi: true });
+        contacts.unshift({ uid: "__pandahan_ai__", name: "PandaHán AI Coach", isAi: true, role: "ai_coach" });
       }
     } catch (e) {
       console.error("initChatSystem error:", e);
@@ -813,7 +824,7 @@ function pvNextSession() {
     if (contacts.length === 0) {
       const empty = document.createElement("div");
       empty.style.cssText = "font-size:12px;color:var(--text-light);padding:8px;";
-      empty.textContent = isTeacherRole() ? "Chưa có liên hệ nào." : "Chưa có giáo viên nào để nhắn tin.";
+      empty.textContent = window.LANG_MODE === "en" ? (isTeacherRole() ? "No contacts yet." : "No teacher is available for messaging yet.") : (isTeacherRole() ? "Chưa có liên hệ nào." : "Chưa có giáo viên nào để nhắn tin.");
       contactListEl.appendChild(empty);
       return;
     }
@@ -824,7 +835,7 @@ function pvNextSession() {
       div.className = "chat-contact";
       div.dataset.uid = uid;
       const isAi = !!u.isAi;
-      const roleLabel = isAi ? "🤖 Trợ lý lộ trình 120 ngày" : ((u.role === "teacher" || u.role === "master_teacher") ? "👩‍🏫 Giáo viên" : "🎓 Học viên");
+      const roleLabel = isAi ? (window.LANG_MODE === "en" ? "🤖 120-day Learning Path Assistant" : "🤖 Trợ lý lộ trình 120 ngày") : ((u.role === "teacher" || u.role === "master_teacher") ? (window.LANG_MODE === "en" ? "👩‍🏫 Teacher" : "👩‍🏫 Giáo viên") : (window.LANG_MODE === "en" ? "🎓 Student" : "🎓 Học viên"));
       const roleColor = isAi ? "var(--pink)" : ((u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)");
 
       div.innerHTML = '<div class="cc-avatar">' + (isAi ? "🤖" : (u.name || "U").charAt(0).toUpperCase()) + '</div>' +
@@ -882,8 +893,8 @@ function pvNextSession() {
     box.innerHTML = "";
     const history = loadAiConversation();
     if (!history.length) {
-      const welcomeVi = "Xin chào! Mình là AI Coach của PandaHán. Lộ trình 3.0 có 120 ngày HSK1–HSK2–HSK3. Mỗi buổi hiển thị đúng thứ tự: Ngữ âm Nghe/Nói có evidence → Từ vựng liên kết nghe/nói → Pinyin Tone Quest dùng đúng nhóm từ → Viết nghĩa/Đọc–Viết → ôn lỗi nếu còn. Nút Vào học sẽ mở đúng trang của từng bước. Quest chỉ ghi điểm cho ngày schedule đang mở và chỉ sau các bước phía trước; ngày tiếp theo chỉ xét mở khi đủ evidence bắt buộc và đạt 30%. Nếu bỏ lỡ hoặc chưa hoàn thành, hệ thống tạo buổi repeat 121, 122, 123…; từ/câu sai vào hàng đợi 1–3–5–7–14–30–60 ngày.";
-      const welcomeEn = "Hi! I am PandaHan AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Each session shows one exact order: verified Phonetics listening/speaking → linked-vocabulary listening/speaking → Pinyin Tone Quest with that same word set → writing/reading → redo errors when due. Each Open step button goes to its matching screen. Quest only records the currently unlocked schedule day after earlier steps; the next day is evaluated only after required evidence and 30%. Missed or incomplete work creates repeat sessions 121, 122, 123…; wrong words/sentences enter spaced redo at 1–3–5–7–14–30–60-day intervals.";
+      const welcomeVi = "Xin chào! Mình là AI Coach của PandaHán. Lộ trình 3.0 có 120 ngày HSK1–HSK2–HSK3. Mỗi buổi theo đúng một chuỗi: Quiz nghe Ngữ âm 10 câu đạt từ 30% → Ghi âm Nói Ngữ âm có evidence → Học/Nói Từ vựng liên kết → Pinyin Tone Quest dùng đúng nhóm từ → Viết nghĩa/Đọc–Viết → ôn toàn bộ câu sai nếu còn. Nút Vào học mở đúng trang của từng bước. Điểm Quest chỉ ghi cho ngày schedule đang mở và sau các bước phía trước; Day 2 chỉ được xét mở theo ngày đăng ký khi Day 1 đủ evidence, điểm thật và đã xử lý câu sai. Nếu bỏ lỡ/chưa hoàn thành, hệ thống tạo buổi repeat 121, 122, 123…; từ/câu sai vào hàng đợi 1–3–5–7–14–30–60 ngày.";
+      const welcomeEn = "Hi! I am PandaHan AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Each session follows one exact chain: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking recording → linked-vocabulary learn/speak → Pinyin Tone Quest with that same word set → writing/reading → redo every open error. Each Open step button goes to its matching screen. Quest only records the currently unlocked schedule day after earlier steps; Day 2 is evaluated from the registration-date schedule only after Day 1 has real evidence, score and cleared errors. Missed or incomplete work creates repeat sessions 121, 122, 123…; wrong words/sentences enter spaced redo at 1–3–5–7–14–30–60-day intervals.";
       renderAiCoachMessage(window.LANG_MODE === "en" ? welcomeEn : welcomeVi, "bot", true);
     } else {
       history.forEach((m) => renderAiCoachMessage(m.text, m.role, false));
@@ -1207,17 +1218,22 @@ function pvNextSession() {
     renderTutorStudyTools(studyMount);
   }
   window.openAiTutorWorkspace = renderAiTutorWorkspace;
-
-  function renderAiCoachMessage(text, role) {
+  function renderAiCoachMessage(text, role, persist = true) {
     const area = document.getElementById("chatMessagesArea");
-    if (!area) return;
+    const box = conversationBox(area);
+    if (!box) return;
     const row = document.createElement("div");
     row.className = "chat-msg-row " + (role === "user" ? "me" : "them");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble2";
     bubble.innerHTML = escapeHtml(String(text || "")).replace(/\n/g, "<br>");
     row.appendChild(bubble);
-    area.appendChild(row);
+    box.appendChild(row);
+    if (persist && String(text || "").trim()) {
+      const history = loadAiCoachConversation();
+      history.push({ role: role === "user" ? "user" : "bot", text: String(text).slice(0, 2000), createdAt: Date.now() });
+      saveAiCoachConversation(history);
+    }
     area.scrollTop = area.scrollHeight;
   }
 
@@ -1243,7 +1259,9 @@ function pvNextSession() {
     const score = Number.isFinite(Number(d.scorePercent)) ? Number(d.scorePercent) : (Number.isFinite(Number(d.score)) ? Number(d.score) : null);
     const date = String(d.date || d.evaluatedAt || new Date().toISOString());
     const id = String(d.id || `${type}_${day}_${taskId}_${score == null ? "na" : score}_${date.slice(0, 10)}`);
-    return { id, type, verified: d.verified === true, dayNumber: day, taskId, scorePercent: score, threshold: Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : null, passed: typeof d.passed === "boolean" ? d.passed : null, action: String(d.action || ""), missingTaskIds: Array.isArray(d.missingTaskIds) ? d.missingTaskIds.slice(0, 10) : [], requiredTaskIds: Array.isArray(d.requiredTaskIds) ? d.requiredTaskIds.slice(0, 10) : [], topic: String(d.topic || ""), date, source: String(d.source || type), rawSource: String(d.rawSource || ""), evidenceType: String(d.evidenceType || ""), attempts: Number.isFinite(Number(d.attempts)) ? Number(d.attempts) : null, correct: Number.isFinite(Number(d.correct)) ? Number(d.correct) : null, total: Number.isFinite(Number(d.total)) ? Number(d.total) : null, durationSeconds: Number.isFinite(Number(d.durationSeconds)) ? Number(d.durationSeconds) : null, components: d.components && typeof d.components === "object" ? d.components : null, details: Array.isArray(d.details) ? d.details.slice(0, 6) : [], createdAt: Number(d.evaluatedAt || Date.now()) };
+    const sequenceIndex = Number(d.sequenceIndex || d.sequence_index || day);
+    const isRepeat = !!d.isRepeat || !!d.is_repeat || !!d.is_repeat_of;
+    return { id, type, verified: d.verified === true, dayNumber: day, sequenceIndex, isRepeat, carriedCompletedTasks: Array.isArray(d.carriedCompletedTasks) ? d.carriedCompletedTasks.slice(0, 10) : (Array.isArray(d.carried_task_ids) ? d.carried_task_ids.slice(0, 10) : []), taskId, scorePercent: score, threshold: Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : null, passed: typeof d.passed === "boolean" ? d.passed : null, action: String(d.action || ""), missingTaskIds: Array.isArray(d.missingTaskIds) ? d.missingTaskIds.slice(0, 10) : (Array.isArray(d.missing_task_ids) ? d.missing_task_ids.slice(0, 10) : []), requiredTaskIds: Array.isArray(d.requiredTaskIds) ? d.requiredTaskIds.slice(0, 10) : (Array.isArray(d.required_task_ids) ? d.required_task_ids.slice(0, 10) : []), topic: String(d.topic || ""), date, source: String(d.source || type), rawSource: String(d.rawSource || ""), evidenceType: String(d.evidenceType || ""), attempts: Number.isFinite(Number(d.attempts)) ? Number(d.attempts) : null, correct: Number.isFinite(Number(d.correct)) ? Number(d.correct) : null, total: Number.isFinite(Number(d.total)) ? Number(d.total) : null, durationSeconds: Number.isFinite(Number(d.durationSeconds)) ? Number(d.durationSeconds) : null, components: d.components && typeof d.components === "object" ? d.components : null, details: Array.isArray(d.details) ? d.details.slice(0, 6) : [], createdAt: Number(d.evaluatedAt || Date.now()) };
   }
   function recordAiCoachTimeline(detail, type = "evaluation") {
     if (type !== "daily_plan" && detail?.verified !== true) return;
@@ -1277,7 +1295,9 @@ function pvNextSession() {
         const missing = item.missingTaskIds.length ? ` · ${window.LANG_MODE === "en" ? "still needed" : "còn thiếu"}: ${item.missingTaskIds.map(aiCoachTaskLabel).join(", ")}` : "";
         const source = item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "phonetics-pronunciation" || item.source === "phonetics-listening" || item.source === "phonetics" ? "Ngữ âm" : item.source === "practice" ? "Từ vựng/Practice" : item.source === "task" ? "Verified task" : "AI Coach";
         const metrics = [item.attempts != null ? `${item.attempts} lần` : "", item.correct != null && item.total != null ? `${item.correct}/${item.total} đúng` : "", item.durationSeconds != null ? `${Math.round(item.durationSeconds)}s` : ""].filter(Boolean).join(" · ");
-        return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>Ngày ${item.dayNumber}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}${metrics ? ` · ${metrics}` : ""}</span></div>`;
+        const sessionLabel = item.isRepeat ? (window.LANG_MODE === "en" ? `Session ${item.sequenceIndex} — continue Day ${item.dayNumber}` : `Buổi ${item.sequenceIndex} — tiếp tục Ngày ${item.dayNumber}`) : (window.LANG_MODE === "en" ? `Day ${item.dayNumber}` : `Ngày ${item.dayNumber}`);
+        const carried = item.carriedCompletedTasks.length ? ` · ${window.LANG_MODE === "en" ? "carried" : "đã giữ"}: ${item.carriedCompletedTasks.map(aiCoachTaskLabel).join(", ")}` : "";
+        return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>${sessionLabel}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}${carried}${metrics ? ` · ${metrics}` : ""}</span></div>`;
       }).join("");
       section.innerHTML = `<b>${title}</b>${planNote}${rows}`;
     }
@@ -1285,27 +1305,55 @@ function pvNextSession() {
     area.scrollTop = area.scrollHeight;
   }
 
-  function openAiCoachChat() {
-    activeChatUserId = "__pandahan_ai__";
-    activeChatId = "__pandahan_ai__";
-    const title = document.getElementById("activeChatTitle");
-    if (title) title.textContent = "🤖 PandaHán AI Coach · Lộ trình 120 ngày";
-    document.getElementById("chatWrap")?.classList.add("chat-open");
+  function setAiCoachComposer(active) {
+    const input = document.getElementById("chatMsgInput");
+    const send = document.getElementById("chatSendMsgBtn");
+    const attach = document.getElementById("chatAttachBtn");
+    if (input) {
+      input.disabled = !active;
+      input.value = "";
+      input.placeholder = active
+        ? (window.LANG_MODE === "en" ? "Ask AI Coach about today’s learning plan..." : "Hỏi AI Coach về nhiệm vụ học hôm nay...")
+        : (window.LANG_MODE === "en" ? "Type a message..." : "Nhập tin nhắn...");
+    }
+    if (send) send.disabled = !active;
+    if (attach) {
+      attach.disabled = !!active;
+      attach.style.opacity = active ? ".35" : "";
+      attach.title = active ? (window.LANG_MODE === "en" ? "AI Coach accepts text prompts only" : "AI Coach chỉ nhận câu hỏi dạng chữ") : "";
+    }
+  }
+  function renderAiCoachHistory() {
     const area = document.getElementById("chatMessagesArea");
     if (!area) return;
-    if (window.PandaHanMission?.renderCoach) {
-      window.PandaHanMission.renderCoach(area);
-      const intro = window.LANG_MODE === "en"
-        ? "I will assign today's tasks in order and explain which lesson to study next. You can ask me about any exercise."
-        : "Tôi sẽ giao nhiệm vụ hôm nay theo thứ tự và hướng dẫn bạn nên học phần nào tiếp theo. Bạn có thể hỏi tôi về từng bài.";
-      const introBox = document.createElement("div");
-      introBox.style.cssText = "margin-top:10px;padding:9px 11px;border-radius:10px;background:#fff7fb;color:#5b4964;font-size:12px;";
-      introBox.textContent = intro;
-      area.appendChild(introBox);
-      renderAiCoachTimeline(area);
-    } else {
-      area.innerHTML = "<div style=\"padding:12px;\">AI Coach đang tải kế hoạch hôm nay...</div>";
+    const history = loadAiCoachConversation();
+    if (!history.length) {
+      renderAiCoachMessage(window.LANG_MODE === "en"
+        ? "Hello, I am PandaHán AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Today’s plan follows one exact order: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking → linked vocabulary learn/speak → Pinyin Tone Quest using that word set → writing/reading → redo every open error. Every Open step button leads to its matching screen. Quest accepts only the currently unlocked schedule day after earlier steps; Day 2 is evaluated from the registration-date schedule only after Day 1 has real evidence, score and cleared errors. Missed or incomplete work creates repeat sessions 121, 122, 123…; wrong items follow 1–3–5–7–14–30–60-day spaced redo."
+        : "Xin chào, mình là PandaHán AI Coach. Lộ trình 3.0 có 120 ngày HSK1–HSK2–HSK3. Kế hoạch hôm nay theo một chuỗi thống nhất: Quiz nghe Ngữ âm 10 câu đạt từ 30% → Nói Ngữ âm có evidence → Học/Nói Từ vựng liên kết → Pinyin Tone Quest dùng đúng nhóm từ → Viết nghĩa/Đọc–Viết → ôn toàn bộ câu sai khi còn. Mỗi nút Vào học dẫn đúng trang tương ứng. Quest chỉ nhận điểm cho ngày schedule đang mở sau các bước phía trước; Day 2 chỉ được xét mở theo ngày đăng ký khi Day 1 đủ evidence, điểm thật và đã xử lý câu sai. Nếu bỏ lỡ/chưa hoàn thành sẽ tạo repeat 121, 122, 123…; câu sai ôn theo 1–3–5–7–14–30–60 ngày.", "bot", false);
+      return;
     }
+    history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
+  }
+  function openAiCoachChat() {
+    activeChatUserId = "__pandahan_ai__";
+    activeChatId = null;
+    if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+    clearPendingChatFile();
+    document.getElementById("chatWrap")?.classList.add("chat-open");
+    const titleEl = document.getElementById("activeChatTitle");
+    if (titleEl) titleEl.textContent = window.LANG_MODE === "en" ? "PandaHán AI Coach · Learning Path" : "PandaHán AI Coach · Lộ trình học";
+    const area = document.getElementById("chatMessagesArea");
+    if (!area) return;
+    area.innerHTML = '<section data-ai-coach-message-intro="true" style="padding:10px 11px;border:1px solid #f2bfd8;border-radius:12px;background:#fff7fb;font-size:11.5px;line-height:1.5;color:#5b4964;"></section><div data-ai-coach-plan-host="true"></div>';
+    const intro = area.querySelector("[data-ai-coach-message-intro]");
+    if (intro) intro.textContent = window.LANG_MODE === "en"
+      ? "AI Coach allocates today’s verified learning sequence. Free practice and chat do not unlock the next curriculum day."
+      : "AI Coach phân bổ chuỗi học hôm nay từ dữ liệu đã xác minh. Học tự do và chat không tự mở ngày giáo trình tiếp theo.";
+    window.PandaHanMission?.renderCoach?.(area.querySelector("[data-ai-coach-plan-host]"));
+    renderAiCoachHistory();
+    renderAiCoachTimeline(area);
+    setAiCoachComposer(true);
   }
 
   window.openAiCoachChat = openAiCoachChat;
@@ -1320,15 +1368,75 @@ function pvNextSession() {
     if (detail.verified !== true) return;
     recordAiCoachTimeline({ ...detail, source: "vocabulary", taskId: "vocabulary", action: "vocabulary_exposure_completed", passed: null, scorePercent: null, evaluatedAt: detail.completedAt || Date.now() }, "evaluation");
   });
+  window.addEventListener("pandahan-mission-ready", () => {
+    if (activeChatUserId !== "__pandahan_ai__") return;
+    const host = document.querySelector("[data-ai-coach-plan-host]");
+    if (host) window.PandaHanMission?.renderCoach?.(host);
+  });
 
+  function getAiChatEndpoint() {
+    if (window.PANDAHAN_AI_ENDPOINT) return String(window.PANDAHAN_AI_ENDPOINT);
+    try {
+      const projectId = window.firebase?.app?.()?.options?.projectId;
+      return projectId ? `https://asia-southeast1-${projectId}.cloudfunctions.net/aiChat` : "";
+    } catch (_) { return ""; }
+  }
+  function buildAiLearnerContext() {
+    const mission = window.PandaHanMission?.getCurrent?.() || {};
+    const schedule = window.PandaHanSchedule?.getSchedule?.() || {};
+    const currentDay = Array.isArray(schedule.days) ? schedule.days.find((d) => d.status === "unlocked") : null;
+    const timeline = window.PandaHanAiCoach?.getTimeline?.() || [];
+    const mistakes = window.PandaHanMistakes?.getQueue?.() || [];
+    return {
+      dayNumber: Number(mission.dayNumber || currentDay?.day_number || 0),
+      topic: String(mission.topic || currentDay?.topic || ""),
+      requiredScore: Number(mission.requiredScore || 30),
+      tasks: Array.isArray(mission.tasks) ? mission.tasks.slice(0, 12).map((t) => ({ id: t.id, title: t.titleVi || t.titleEn, status: t.status || "assigned" })) : [],
+      chain: mission.chain ? { lessonId: mission.chain.lessonId, vocabularyIds: mission.chain.vocabularyIds, vocabularyChars: mission.chain.vocabularyChars, phoneticFocus: mission.chain.phoneticFocus } : null,
+      currentScheduleDay: currentDay ? { dayNumber: currentDay.day_number, sequenceIndex: currentDay.sequence_index, isRepeat: !!currentDay.is_repeat_of || currentDay.day_type === "repeat", repeatReason: currentDay.repeat_reason || null, carriedCompletedTasks: currentDay.carried_completed_tasks || [], requiredTasks: currentDay.required_tasks || [], status: currentDay.status, score: currentDay.last_score || null, scoreHistoryBest: currentDay.best_score || null, completedTasks: currentDay.completed_tasks || {}, missingTasks: (currentDay.required_tasks || []).filter((id) => !currentDay.completed_tasks?.[id]) } : null,
+      verifiedTimeline: timeline.filter((x) => x.verified === true).slice(0, 12),
+      unresolvedMistakeCount: mistakes.length,
+      scheduleRule: "Sequential curriculum: free practice never unlocks a day; incomplete work continues in the next repeat session.",
+    };
+  }
+  async function requestRealAiCoach(text, preferredLanguage = "auto") {
+    const endpoint = getAiChatEndpoint();
+    const currentUser = window.firebase?.auth?.()?.currentUser;
+    if (!endpoint || !currentUser) throw new Error("AI backend is not configured or user is not signed in");
+    const token = await currentUser.getIdToken();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ message: String(text).slice(0, 2000), history: (activeChatUserId === "__pandahan_ai__" ? loadAiCoachConversation() : loadAiConversation()).slice(-12), learner: buildAiLearnerContext(), lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || window.LANG_MODE || "vi" }),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.reply) throw new Error(payload.error || `AI_HTTP_${response.status}`);
+      return String(payload.reply).trim();
+    } finally { clearTimeout(timer); }
+  }
   async function sendAiCoachMessage(text) {
     const area = document.getElementById("chatMessagesArea");
-    if (!area || !text) return;
-    renderAiCoachMessage(text, "user");
-    const reply = window.PandaHanMission?.replyTo ? window.PandaHanMission.replyTo(text) : "Kế hoạch hôm nay đang được tải. Hãy thử lại sau một chút.";
-    await new Promise((resolve) => setTimeout(resolve, 220));
-    renderAiCoachMessage(reply, "bot");
+    if (!area || !String(text || "").trim()) return;
+    const clean = String(text).trim().slice(0, 2000);
+    renderAiCoachMessage(clean, "user");
+    let reply = "";
+    try {
+      reply = await requestRealAiCoach(clean, window.PandaHanMission?.detectResponseLanguage?.(clean) || "auto");
+    } catch (error) {
+      console.info("AI backend unavailable; using deterministic learning fallback:", error.message || error);
+      reply = window.PandaHanMission?.replyTo ? window.PandaHanMission.replyTo(clean) : ((window.LANG_MODE === "en") ? "Today's learning plan is still loading. Please try again shortly." : "Kế hoạch hôm nay đang được tải. Hãy thử lại sau một chút.");
+    }
+    renderAiCoachMessage(reply || ((window.PandaHanMission?.detectResponseLanguage?.(clean) || window.LANG_MODE) === "en" ? "I could not create a reply yet. Please try again." : "Mình chưa tạo được phản hồi. Bạn thử gửi lại câu hỏi nhé."), "bot");
   }
+
+  window.addEventListener("pandahan-language-changed", () => {
+    const tutorView = document.getElementById("aiTeacherView");
+    if (tutorView && tutorView.style.display !== "none") window.openAiTutorWorkspace?.();
+  });
 
   function getChatId(uid1, uid2) {
     return [uid1, uid2].sort().join("_");
@@ -1394,26 +1502,27 @@ function pvNextSession() {
   async function uploadChatFile(){throw new Error("Tải tệp cloud đã tắt trong bản tối ưu host.");}
 
   function renderMessageBubble(m, isMe) {
+    const en = window.LANG_MODE === "en";
     const messageText = window.LANG_MODE === "en" ? (m.text_en || m.text || m.text_vi || "") : (m.text_vi || m.text || m.text_en || "");
     const isBroadcast = !!m.isBroadcast;
     const row = document.createElement("div");
     row.className = "chat-msg-row " + (isMe ? "me" : "them") + (isBroadcast ? " broadcast" : "");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble2";
-    const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Vừa xong";
+    const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : (en ? "Just now" : "Vừa xong");
 
     let inner = "";
-    if (isBroadcast) inner += '<div style="font-size:9.5px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 Thông báo chung</div>';
+    if (isBroadcast) inner += `<div style="font-size:9.5px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 ${en ? "Broadcast" : "Thông báo chung"}</div>`;
     if (m.fileUrl) {
       if (m.isImage) {
         inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener">' +
           '<img class="chat-img" src="' + m.fileUrl + '" alt="' + escapeHtml(m.fileName || "") + '" ' +
-          'onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'chat-file-card\',innerHTML:\'🖼️ <span>' + escapeHtml(m.fileName || "Hình ảnh") + ' (không tải được ảnh, bấm để mở)</span>\'}))" /></a>';
+          'onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'chat-file-card\',innerHTML:\'🖼️ <span>' + escapeHtml(m.fileName || (en ? "Image" : "Hình ảnh")) + ' (' + (en ? "image unavailable; click to open" : "không tải được ảnh, bấm để mở") + ')</span>\'}))" /></a>';
       } else {
-        inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener" class="chat-file-card">📄 <span style="word-break:break-all;">' + escapeHtml(m.fileName || "Tệp đính kèm") + '</span></a>';
+        inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener" class="chat-file-card">📄 <span style="word-break:break-all;">' + escapeHtml(m.fileName || (en ? "Attachment" : "Tệp đính kèm")) + '</span></a>';
       }
       if (m.driveDownloadUrl) {
-        inner += '<br><a href="' + m.driveDownloadUrl + '" target="_blank" rel="noopener" class="chat-dl-link">⬇ Tải xuống / Download</a>';
+        inner += `<br><a href="${m.driveDownloadUrl}" target="_blank" rel="noopener" class="chat-dl-link">⬇ ${en ? "Download" : "Tải xuống"}</a>`;
       }
       if (messageText) inner += '<div style="margin-top:4px;">' + escapeHtml(messageText) + '</div>';
     } else if (messageText) {
@@ -1428,18 +1537,19 @@ function pvNextSession() {
   async function openChatWith(otherUid, otherName) {
     if (!CURRENT_USER) return;
     activeChatUserId = otherUid;
+    setAiCoachComposer(false);
     const myUid = CURRENT_USER.uid || CURRENT_USER.username;
     activeChatId = getChatId(myUid, otherUid);
     
     const titleEl = document.getElementById("activeChatTitle");
-    if (titleEl) titleEl.textContent = "Đang chat với: " + otherName;
+    if (titleEl) titleEl.textContent = (window.LANG_MODE === "en" ? "Chatting with: " : "Đang chat với: ") + otherName;
 
     clearPendingChatFile();
 
     if (chatUnsubscribe) chatUnsubscribe();
 
     const msgArea = document.getElementById("chatMessagesArea");
-    if (msgArea) msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;">Đang tải tin nhắn...</div>';
+    if (msgArea) msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:12px;">${window.LANG_MODE === "en" ? "Loading messages..." : "Đang tải tin nhắn..."}</div>`;
 
     try {
       const chatRef = db.collection("chats").doc(activeChatId);
@@ -1454,7 +1564,7 @@ function pvNextSession() {
       chatUnsubscribe = chatRef.collection("messages").orderBy("createdAt", "asc").onSnapshot(snapshot => {
         msgArea.innerHTML = "";
         if (snapshot.empty) {
-          msgArea.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">Chưa có tin nhắn nào. Hãy gửi lời chào!</div>';
+          msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">${window.LANG_MODE === "en" ? "No messages yet. Send a greeting!" : "Chưa có tin nhắn nào. Hãy gửi lời chào!"}</div>`;
           return;
         }
         snapshot.forEach(doc => {
@@ -1466,7 +1576,7 @@ function pvNextSession() {
       });
     } catch(e) {
       console.error("Chat error:", e);
-      if (msgArea) msgArea.innerHTML = '<div style="color:red;font-size:12px;text-align:center;">Lỗi tải tin nhắn (Kiểm tra Firestore Rules).</div>';
+      if (msgArea) msgArea.innerHTML = `<div style="color:red;font-size:12px;text-align:center;">${window.LANG_MODE === "en" ? "Unable to load messages (check Firestore Rules)." : "Lỗi tải tin nhắn (Kiểm tra Firestore Rules)."}</div>`;
     }
   }
 
@@ -1673,4 +1783,3 @@ function pvNextSession() {
     if (typeof originalRenderTeacherDashboard === "function") originalRenderTeacherDashboard();
     initChatSystem();
   };
-
