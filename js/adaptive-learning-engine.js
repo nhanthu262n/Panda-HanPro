@@ -99,8 +99,9 @@
     const groups = focusGroups(curriculum);
     const raw = parseNewVocab(curriculum.new_vocab_raw);
     const linkedNew = raw.map((item) => map[item.char]).filter(Boolean).filter((word) => matchesFocus(word, groups));
-    const linkedFallback = raw.map((item) => map[item.char]).filter(Boolean);
-    const exactNew = (linkedNew.length ? linkedNew : linkedFallback).slice(0, INTRO_LIMIT);
+    // Strict chain rule: when a phonetics focus exists, never inject a raw day word
+    // that does not match that focus merely to fill the intro quota.
+    const exactNew = linkedNew.slice(0, INTRO_LIMIT);
     const introState = getIntroState(dayNumber);
     const introducedChars = new Set(Array.isArray(introState.chars) ? introState.chars : []);
     const introWords = exactNew.filter((word) => !introducedChars.has(word.char) && !hasRecallEvidence(getStatFor(word.char))).slice(0, INTRO_LIMIT);
