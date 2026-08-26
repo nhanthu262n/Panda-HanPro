@@ -116,7 +116,7 @@
       day_type: "new_content",
       topic: scheduleDay?.topic || "Lộ trình học hiện tại",
       new_vocab_raw: "-",
-      required_score: 80,
+      required_score: 30,
       listening_task: "Nghe audio mẫu và lặp lại.",
       speaking_task: "Ghi âm và tự kiểm tra.",
       reading_writing_task: "Làm bài luyện đọc và viết.",
@@ -195,7 +195,7 @@
       const workbookText = { listening: day.listening_task, speaking: day.speaking_task, reading_writing: day.reading_writing_task, srs: day.srs_review_task }[type];
       if (workbookText && workbookText !== "-") {
         task.instructionVi = workbookText;
-        task.instructionEn = `${meta.instructionEn} (Excel task: ${workbookText})`;
+        task.instructionEn = meta.instructionEn;
       }
       if (type === "quest") {
         task.titleVi = day.quest_main_mode && day.quest_main_mode !== "-" ? `Pinyin Quest · ${day.quest_main_mode}` : task.titleVi;
@@ -226,11 +226,19 @@
     const chainVocabulary = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : []);
     const vocabPhase = window.PandaHanVocabularyPhase?.get?.(Number(day.day_number)) || { introCompleted: !!adaptivePlan?.introCompleted, speakingCompleted: false, gameCompleted: false };
     const tasks = buildTasks(day, adaptivePlan, vocabPhase);
+    const sequenceIndex = Number(scheduleDay?.sequence_index || day.day_number);
+    const isRepeat = !!scheduleDay?.is_repeat_of || scheduleDay?.day_type === "repeat";
+    const sessionLabelVi = isRepeat ? `Buổi ${sequenceIndex} — tiếp tục Ngày ${Number(day.day_number)}` : `Ngày ${Number(day.day_number)}`;
+    const sessionLabelEn = isRepeat ? `Session ${sequenceIndex} — continue Day ${Number(day.day_number)}` : `Day ${Number(day.day_number)}`;
+    const carriedTaskIds = Array.isArray(scheduleDay?.carried_completed_tasks) ? scheduleDay.carried_completed_tasks.slice() : Object.keys(scheduleDay?.completed_tasks || {});
+    const requiredTaskIds = Array.isArray(scheduleDay?.required_tasks) ? scheduleDay.required_tasks.slice() : [];
+    const missingTaskIds = requiredTaskIds.filter((id) => !scheduleDay?.completed_tasks?.[id]);
     return {
-      dayNumber: Number(day.day_number), sequenceIndex: Number(scheduleDay?.sequence_index || day.day_number),
+      dayNumber: Number(day.day_number), sequenceIndex, isRepeat, sessionLabelVi, sessionLabelEn,
+      carriedTaskIds, requiredTaskIds, missingTaskIds, scheduleDay,
       weekNumber: Number(day.week_number || Math.ceil(Number(day.day_number) / 7)),
       stageCode: day.stage_code, stage: day.stage, dayType: day.day_type, topic: day.topic || "",
-      requiredScore: day.day_type === "review" ? Number(day.required_score || 70) : 60, newVocab: words,
+      requiredScore: Number(scheduleDay?.required_score || day.required_score || 30), newVocab: words,
       curriculum: day, workbook: day.workbook_row || null, tasks, adaptivePlan, vocabPhase,
       chain: { lessonId: Number(day.day_number), vocabularyIds: chainVocabulary.map((word) => word.id), vocabularyChars: chainVocabulary.map((word) => word.char), vocabulary: chainVocabulary.map((word) => ({ id: word.id, char: word.char, pinyin: word.pinyin, meaning: word.meaning, meaningEn: word.meaning_en })), phoneticFocus: adaptivePlan?.focusGroups || [], focusLabel: adaptivePlan?.focusLabel || "" },
       chainVocabulary,
@@ -270,20 +278,22 @@
     if (type === "vocab-writing" && (!phase.speakingCompleted || !phase.gameCompleted)) { alert(L("Hãy hoàn thành nghe → nói → game trước khi viết nghĩa.", "Complete listening → speaking → game before vocabulary writing.")); return; }
     if (["quiz", "match", "unscramble", "write"].includes(type) && m.chainVocabulary?.length && !phase.gameCompleted) { alert(L("Bài này chỉ mở sau game của đúng nhóm từ trong ngày.", "This exercise opens only after the game for the exact day word set.")); return; }
     setFilterForMission(m);
+    const scheduledContext = { practiceMode: "scheduled", scheduleDayNumber: m.dayNumber, sequenceIndex: m.sequenceIndex };
     const level = document.getElementById("practiceHskFilter")?.value || "all";
     if (type === "vocab-intro") window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords || [], m.dayNumber);
     else if (type === "vocab-speaking") window.startAdaptiveVocabularySpeaking?.(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), m.dayNumber);
-    else if (type === "vocab-writing") { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.({ words: m.chainVocabulary || [] }), 80); }
+    else if (type === "vocab-writing") { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.({ words: m.chainVocabulary || [], ...scheduledContext }), 80); }
     else if (type === "wrong-review") window.startMistakeReview?.();
     else if (type === "quiz") {
-      if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []));
-      else window.startQuizLevel?.(level);
-    } else if (type === "unscramble") window.startUnscrambleLevel?.(level, { words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []) });
-    else if (type === "match") window.startMatchGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []) });
-    else if (type === "write") window.startWriteGame?.();
-    else if (type === "tone-race") window.startToneRaceGame?.();
+      if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), scheduledContext);
+      else window.startQuizLevel?.(level, scheduledContext);
+    } else if (type === "unscramble") window.startUnscrambleLevel?.(level, { words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
+    else if (type === "match") window.startMatchGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
+    else if (type === "write") window.startWriteGame?.(scheduledContext);
+    else if (type === "tone-race") window.startToneRaceGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
     else if (type === "quest") {
       window.switchTab?.("practice");
+      window.setPracticeMode?.("scheduled");
       setTimeout(() => document.getElementById("pCardPinyinQuest")?.click(), 80);
     } else if (type === "listening" || type === "speaking") {
       try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {}
@@ -291,15 +301,16 @@
       setTimeout(() => document.getElementById("pinyin-phonetics-root")?.scrollIntoView({ behavior: "smooth", block: "start" }), 160);
     } else if (type === "reading_writing") {
       window.switchTab?.("practice");
-      setTimeout(() => window.startWriteGame?.(), 80);
+      setTimeout(() => window.startWriteGame?.(scheduledContext), 80);
     } else if (type === "srs") {
+      window.setPracticeMode?.("scheduled");
       window.switchTab?.("reviewIntro");
     } else if (type === "advanced") {
       document.getElementById("advancedSetsView")?.style && (document.getElementById("advancedSetsView").style.display = "block");
       window.renderAdvancedSetsList?.();
     } else if (type === "flashcards") {
       const first = m.newVocab[0];
-      if (first) window.startReviewForWord?.(first.char);
+      if (first) window.startReviewForWord?.(first.char, scheduledContext);
       else window.switchTab?.("dashboard");
     }
   }
@@ -312,13 +323,30 @@
     const labels = { mistake_review: langEn ? "Redo wrong items" : "Ôn lại câu sai", quest: "Pinyin Tone Quest", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS", "vocab-intro": langEn ? "Linked vocabulary" : "Từ vựng liên kết" };
     return labels[taskId] || taskId;
   }
+  function workbookTaskDescription(taskId, curriculum, langEn) {
+    if (!langEn) return ({ listening: curriculum.listening_task, speaking: curriculum.speaking_task, reading_writing: curriculum.reading_writing_task, srs: curriculum.srs_review_task })[taskId] || "";
+    return ({
+      listening: "Complete the reference-audio listening task assigned for this session.",
+      speaking: "Complete a recorded speaking attempt in Phonetics for this session.",
+      reading_writing: "Complete the assigned reading/writing activity using this session’s linked material.",
+      srs: "Complete the scheduled spaced review for this session."
+    })[taskId] || "";
+  }
+  function localizedCurriculumTopic(m, langEn) {
+    if (!langEn) return m.curriculum?.topic || m.topic || "";
+    const day = Number(m.dayNumber || 1);
+    if (day <= 10) return `Phonetics foundation · Day ${day}`;
+    if (day <= 35) return `HSK 1 foundation · Day ${day}`;
+    if (day <= 70) return `HSK 2 development · Day ${day}`;
+    return `HSK 3 integration · Day ${day}`;
+  }
   function renderRequiredChecklist(m, langEn) {
     const c = m.curriculum || {};
     const core = window.PandaHanScheduleCore;
     const required = core?.getMandatoryTaskIds ? [...core.getMandatoryTaskIds(c), ...((window.PandaHanMistakes?.getQueue?.().length || 0) ? ["mistake_review"] : [])] : ["quest", "listening", "speaking", "reading_writing"].filter((id) => id === "quest" || (id === "listening" && c.listening_task && c.listening_task !== "-") || (id === "speaking" && c.speaking_task && c.speaking_task !== "-") || (id === "reading_writing" && c.reading_writing_task && c.reading_writing_task !== "-") || (id === "srs" && c.srs_review_task && c.srs_review_task !== "-"));
     const scheduleDay = currentScheduleDay();
     const completed = scheduleDay?.completed_tasks || {};
-    const descriptions = { mistake_review: langEn ? "Redo every unresolved wrong item before the next day can unlock." : "Làm lại toàn bộ câu/từ sai còn tồn đọng trước khi mở ngày mới.", quest: langEn ? "The Quest result is recorded automatically after the real Quest result." : "Kết quả được ghi tự động sau khi Quest trả kết quả thật.", listening: c.listening_task, speaking: c.speaking_task, reading_writing: c.reading_writing_task, srs: c.srs_review_task };
+    const descriptions = { mistake_review: langEn ? "Redo every unresolved wrong item before the next day can unlock." : "Làm lại toàn bộ câu/từ sai còn tồn đọng trước khi mở ngày mới.", quest: langEn ? "The Quest result is recorded automatically after the real Quest result." : "Kết quả được ghi tự động sau khi Quest trả kết quả thật.", listening: workbookTaskDescription("listening", c, langEn), speaking: workbookTaskDescription("speaking", c, langEn), reading_writing: workbookTaskDescription("reading_writing", c, langEn), srs: workbookTaskDescription("srs", c, langEn) };
     const launchType = { mistake_review: "wrong-review", quest: "quest", listening: "listening", speaking: "speaking", reading_writing: "reading_writing", srs: "srs" };
     const rows = required.map((id) => {
       const done = !!completed[id];
@@ -343,36 +371,213 @@
     }).join("");
     const workbookPlan = "";
     const questPlan = "";
-    const mistakeCount = window.PandaHanMistakes?.getQueue?.().length || 0;
+    const mistakeCount = window.PandaHanMistakes?.getAllQueue?.().length || window.PandaHanMistakes?.getQueue?.().length || 0;
     const adaptiveNote = adaptive ? `<div style="font-size:11.5px;color:#475569;margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff;border:1px dashed #c4b5fd;">${langEn ? `Adaptive source: ${adaptive.reviewWords.length} due/weak review words${adaptive.introCompleted ? ` + ${adaptive.newWords.length} introduced words` : adaptive.vocabIntroReady ? ` · ${adaptive.introWords.length} phonetics-linked new words ready` : " · finish phonetics before new vocabulary"}${mistakeCount ? ` · ${mistakeCount} wrong items to redo` : ""}.` : `Nguồn thích ứng: ${adaptive.reviewWords.length} từ đến hạn/yếu cần ôn${adaptive.introCompleted ? ` + ${adaptive.newWords.length} từ mới đã học` : adaptive.vocabIntroReady ? ` · sẵn sàng ${adaptive.introWords.length} từ mới liên kết Ngữ âm` : " · hoàn thành Ngữ âm trước khi học từ mới"}${mistakeCount ? ` · ${mistakeCount} câu sai cần làm lại` : ""}.`}</div>` : "";
-    const excelDetails = [
+    const nextOriginalTextVi = m.dayNumber < 120 ? `Ngày gốc ${m.dayNumber + 1} vẫn khóa cho đến khi buổi này đạt.` : "Đây là phần kéo dài sau ngày 120; không có ngày giáo trình mới bị mở sớm.";
+    const nextOriginalTextEn = m.dayNumber < 120 ? `Original Day ${m.dayNumber + 1} remains locked until this session passes.` : "This is an extension after Day 120; no new curriculum day is unlocked early.";
+    const carryNote = m.isRepeat ? `<div style="font-size:11.5px;color:#92400e;margin-top:7px;padding:8px 9px;border-radius:9px;background:#fffbeb;border:1px solid #fcd34d;">${langEn ? `Continuation session: verified work carried from Day ${m.dayNumber}: ${m.carriedTaskIds.length ? m.carriedTaskIds.join(", ") : "none"}. Still required: ${m.missingTaskIds.length ? m.missingTaskIds.join(", ") : "none"}. ${nextOriginalTextEn}` : `Buổi tiếp tục: đã giữ bằng chứng từ Ngày ${m.dayNumber}: ${m.carriedTaskIds.length ? m.carriedTaskIds.join(", ") : "chưa có"}. Còn phải làm: ${m.missingTaskIds.length ? m.missingTaskIds.join(", ") : "không còn"}. ${nextOriginalTextVi}`}</div>` : "";
+    const excelDetails = langEn ? [] : [
       c.grammar_focus ? `${langEn ? "Grammar/reference" : "Ngữ pháp/tài liệu"}: ${c.grammar_focus}` : "",
       c.notes ? `${langEn ? "Note" : "Ghi chú"}: ${c.notes}` : "",
       m.questStation !== "-" ? `${langEn ? "Quest station" : "Trạm Quest"}: ${m.questStation}` : "",
       m.questCompletionCondition !== "-" ? `${langEn ? "Stamp condition" : "Điều kiện đóng dấu"}: ${m.questCompletionCondition}` : "",
       m.questCheckpointQuestion !== "-" ? `${langEn ? "Checkpoint" : "Câu hỏi chốt"}: ${m.questCheckpointQuestion}` : ""
     ].filter(Boolean);
-    const excelNote = excelDetails.length ? `<details style="margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:7px 9px;font-size:11px;color:#475569;"><summary style="cursor:pointer;font-weight:800;color:#7e22ce;">${langEn ? "Show full Excel day details" : "Xem đầy đủ nội dung ngày từ Excel"}</summary><div style="margin-top:6px;line-height:1.5;overflow-wrap:anywhere;">${excelDetails.map(esc).join("<br>")}</div></details>` : "";
-    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `Day ${m.dayNumber} · Week ${m.weekNumber} · ${stageLabel}` : `Ngày ${m.dayNumber} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(c.topic)}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${adaptiveNote}${excelNote}<div style="margin-top:9px;">${taskRows}</div>${renderRequiredChecklist(m, langEn)}</div>`;
+    const excelNote = excelDetails.length ? `<details style="margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:7px 9px;font-size:11px;color:#475569;"><summary style="cursor:pointer;font-weight:800;color:#7e22ce;">Xem đầy đủ nội dung ngày từ Excel</summary><div style="margin-top:6px;line-height:1.5;overflow-wrap:anywhere;">${excelDetails.map(esc).join("<br>")}</div></details>` : "";
+    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${adaptiveNote}${carryNote}${excelNote}<div style="margin-top:9px;">${taskRows}</div>${renderRequiredChecklist(m, langEn)}</div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
   }
 
-  function replyTo(text) {
+  function coachUsesEnglish(text) {
+    const raw = String(text || "").toLowerCase();
+    const englishSignals = /\b(please|can you|could you|write|paragraph|topic|english|explain|help|what|how|why|weekend|family|school|food|travel|doctor|work|city|environment)\b/;
+    const vietnameseSignals = /\b(tôi|bạn|mình|viết|đoạn|chủ đề|giúp|là gì|như thế nào|cuối tuần|gia đình|trường học|giải thích|dùng|ví dụ|lỗi|thường|cách)\b/;
+    return englishSignals.test(raw) && !vietnameseSignals.test(raw);
+  }
+  function coachUsesVietnamese(text) {
+    const raw = String(text || "").toLowerCase();
+    return /\b(tôi|bạn|mình|viết|đoạn|chủ đề|giúp|là gì|như thế nào|cuối tuần|gia đình|trường học|giải thích|dùng|ví dụ|lỗi|thường|cách|ngữ pháp|từ vựng)\b/.test(raw);
+  }
+  function coachResponseLanguage(text, preferred = "auto") {
+    if (["zh", "en", "vi"].includes(preferred)) return preferred;
+    const raw = String(text || "");
+    if (coachUsesVietnamese(raw)) return "vi";
+    if (coachUsesEnglish(raw)) return "en";
+    if (/[\u3400-\u9fff]/.test(raw)) return "zh";
+    return window.LANG_MODE === "en" ? "en" : "vi";
+  }
+  function topicLengthProfile(level, selected = "adaptive") {
+    const base = Number(level || 1);
+    if (selected === "short" || selected === "medium" || selected === "long") return selected;
+    return base <= 2 ? "short" : base <= 4 ? "medium" : "long";
+  }
+  function hanziCount(text) { return (String(text || "").match(/[\u3400-\u9fff]/g) || []).length; }
+  function takeSentences(text, targetHanzi) {
+    const sentences = String(text || "").match(/[^。！？]+[。！？]?/g) || [String(text || "")];
+    const selected = [];
+    sentences.forEach((sentence) => {
+      if (!selected.length || hanziCount(selected.join("")) + hanziCount(sentence) <= targetHanzi) selected.push(sentence);
+    });
+    return selected.join("");
+  }
+  function longReadingExtensions(level) {
+    const extensions = {
+      4: [
+        ["从这个角度来看，了解具体情况非常重要。", "Cóng zhège jiǎodù lái kàn, liǎojiě jùtǐ qíngkuàng fēicháng zhòngyào."],
+        ["同时，我们也应该听取不同人的经验。", "Tóngshí, wǒmen yě yīnggāi tīngqǔ bùtóng rén de jīngyàn."],
+        ["如果能把想法变成每天可做的小行动，效果会更明显。", "Rúguǒ néng bǎ xiǎngfǎ biàn chéng měitiān kě zuò de xiǎo xíngdòng, xiàoguǒ huì gèng míngxiǎn."],
+        ["因此，学习者可以先观察，再作出合适的选择。", "Yīncǐ, xuéxízhě kěyǐ xiān guānchá, zài zuòchū héshì de xuǎnzé."],
+        ["最后，定期复盘能帮助我们发现需要改进的地方。", "Zuìhòu, dìngqī fùpán néng bāngzhù wǒmen fāxiàn xūyào gǎijìn de dìfang."]
+      ],
+      5: [
+        ["值得注意的是，问题往往不能只从单一角度来理解。", "Zhíde zhùyì de shì, wèntí wǎngwǎng bù néng zhǐ cóng dānyī jiǎodù lái lǐjiě."],
+        ["在作出判断之前，人们需要比较不同方案带来的影响。", "Zài zuòchū pànduàn zhīqián, rénmen xūyào bǐjiào bùtóng fāng'àn dàilái de yǐngxiǎng."],
+        ["个人经验固然重要，但可靠的信息同样不可缺少。", "Gèrén jīngyàn gùrán zhòngyào, dàn kěkào de xìnxī tóngyàng bùkě quēshǎo."],
+        ["如果能够提出具体例子，观点会更清楚，也更容易交流。", "Rúguǒ nénggòu tíchū jùtǐ lìzi, guāndiǎn huì gèng qīngchu, yě gèng róngyì jiāoliú."],
+        ["长期来看，持续反思比一次性的结论更有价值。", "Chángqī lái kàn, chíxù fǎnsī bǐ yí cìxìng de jiélùn gèng yǒu jiàzhí."],
+        ["因此，我们应该把学习到的知识和真实情境结合起来。", "Yīncǐ, wǒmen yīnggāi bǎ xuéxí dào de zhīshi hé zhēnshí qíngjìng jiéhé qǐlái."],
+        ["这也是提高表达能力和分析能力的有效方式。", "Zhè yě shì tígāo biǎodá nénglì hé fēnxī nénglì de yǒuxiào fāngshì."],
+        ["当不同利益之间出现冲突时，清楚说明依据往往比急于表态更有帮助。", "Dāng bùtóng lìyì zhījiān chūxiàn chōngtū shí, qīngchu shuōmíng yījù wǎngwǎng bǐ jíyú biǎotài gèng yǒu bāngzhù."],
+        ["通过反复讨论和修正，人们才能逐渐形成较为全面的认识。", "Tōngguò fǎnfù tǎolùn hé xiūzhèng, rénmen cái néng zhújiàn xíngchéng jiàowéi quánmiàn de rènshi."]
+      ],
+      6: [
+        ["进一步说，复杂议题通常同时涉及个人经验、公共责任与长期影响。", "Jìnyíbù shuō, fùzá yìtí tōngcháng tóngshí shèjí gèrén jīngyàn, gōnggòng zérèn yǔ chángqī yǐngxiǎng."],
+        ["面对不同意见时，先澄清概念和证据，能够避免把讨论变成简单的对立。", "Miànduì bùtóng yìjiàn shí, xiān chéngqīng gàiniàn hé zhèngjù, nénggòu bìmiǎn bǎ tǎolùn biàn chéng jiǎndān de duìlì."],
+        ["有说服力的观点不仅要表达立场，也要说明形成这一立场的推理过程。", "Yǒu shuōfúlì de guāndiǎn bùjǐn yào biǎodá lìchǎng, yě yào shuōmíng xíngchéng zhè yì lìchǎng de tuīlǐ guòchéng."],
+        ["此外，具体案例可以帮助听者理解抽象原则在现实中的作用。", "Cǐwài, jùtǐ ànlì kěyǐ bāngzhù tīngzhě lǐjiě chōuxiàng yuánzé zài xiànshí zhōng de zuòyòng."],
+        ["即使暂时无法达成一致，理性的交流仍然能够扩大彼此的理解范围。", "Jíshǐ zànshí wúfǎ dáchéng yízhì, lǐxìng de jiāoliú réngrán nénggòu kuòdà bǐcǐ de lǐjiě fànwéi."],
+        ["在信息快速传播的环境里，核实来源和区分事实、推测与价值判断尤其重要。", "Zài xìnxī kuàisù chuánbō de huánjìng lǐ, héshí láiyuán hé qūfēn shìshí, tuīcè yǔ jiàzhí pànduàn yóuqí zhòngyào."],
+        ["因此，学习者应当练习用准确、克制且清晰的语言组织论证。", "Yīncǐ, xuéxízhě yīngdāng liànxí yòng zhǔnquè, kèzhì qiě qīngxī de yǔyán zǔzhī lùnzhèng."],
+        ["这样的训练不仅有助于中文表达，也有助于形成更成熟的思考习惯。", "Zhèyàng de xùnliàn bùjǐn yǒuzhù yú Zhōngwén biǎodá, yě yǒuzhù yú xíngchéng gèng chéngshú de sīkǎo xíguàn."],
+        ["如果结论需要随着新资料而调整，承认不确定性并不代表观点没有价值。", "Rúguǒ jiélùn xūyào suízhe xīn zīliào ér tiáozhěng, chéngrèn bù quèdìngxìng bìng bù dàibiǎo guāndiǎn méiyǒu jiàzhí."],
+        ["相反，这种开放的态度能让后续的合作和判断建立在更可靠的基础上。", "Xiāngfǎn, zhè zhǒng kāifàng de tàidu néng ràng hòuxù de hézuò hé pànduàn jiànlì zài gèng kěkào de jīchǔ shàng."]
+      ]
+    };
+    return extensions[Number(level)] || [];
+  }
+  function paragraphForLength(topic, length) {
+    const level = Number(topic?.level || 1);
+    if (level <= 3) return { zh: String(topic?.zh || ""), pinyin: String(topic?.pinyin || "") };
+    const targets = {
+      4: { short: 90, medium: 145, long: 200 },
+      5: { short: 130, medium: 230, long: 340 },
+      6: { short: 160, medium: 270, long: 400 }
+    };
+    const target = (targets[level] || targets[4])[length] || (targets[level] || targets[4]).medium;
+    const base = String(topic.zh || "");
+    const added = [];
+    const pinyin = [String(topic.pinyin || "")];
+    for (const [zh, py] of longReadingExtensions(level)) {
+      if (hanziCount(base + added.join("")) >= target) break;
+      added.push(zh);
+      pinyin.push(py);
+    }
+    return { zh: base + added.join(""), pinyin: pinyin.filter(Boolean).join(" ") };
+  }
+  function hskTopicResponse(topic, language = "vi", requestedLength = "adaptive") {
+    const en = language === "en";
+    const zh = language === "zh";
+    const length = topicLengthProfile(topic.level, requestedLength);
+    const paragraph = paragraphForLength(topic, length);
+    const title = en ? topic.topicEn : topic.topicVi;
+    const meaning = en ? topic.en : topic.vi;
+    const task = en ? topic.taskEn : topic.taskVi;
+    const vocabulary = topic.vocabulary.map((item) => `• ${item}`).join("\n");
+    const grammar = topic.grammar.map((item) => `• ${item}`).join("\n");
+    const dialogue = topic.dialogue.map((item) => `• ${item}`).join("\n");
+    const lengthLabel = { short: zh ? "短篇（适合入门）" : en ? "Short practice" : "Đoạn ngắn", medium: zh ? "中篇（适合进阶）" : en ? "Standard practice" : "Đoạn vừa", long: zh ? "长篇（适合高阶）" : en ? "Long practice" : "Đoạn dài" }[length];
+    const longHint = length === "long" && Number(topic.level) >= 4 ? (zh ? `\n\n篇幅参考\nHSK ${topic.level === 4 ? "4 约200字" : "5–6 约300–400字"}；段落已按所选主题扩展。` : en ? `\n\nLength reference\nHSK ${topic.level === 4 ? "4: about 200 Chinese characters" : "5–6: about 300–400 Chinese characters"}; this passage is expanded for the selected topic.` : `\n\nTham chiếu độ dài\nHSK ${topic.level === 4 ? "4: khoảng 200 chữ Hán" : "5–6: khoảng 300–400 chữ Hán"}; đoạn đã được mở rộng theo đúng chủ đề.`) : "";
+    if (zh) return `HSK ${topic.level} · ${topic.topicEn}\n\n练习长度\n${lengthLabel}\n\n中文短文\n${paragraph.zh}\n\n拼音\n${paragraph.pinyin}\n\n重点词汇\n${vocabulary}\n\n语法点\n${grammar}\n\n小对话\n${dialogue}\n\n练习任务\n请围绕这个主题写一段中文，并至少使用一个上面的语法点。${longHint}\n\n写完后发给我。我会检查可观察的结构、目标词和 HSK 句型；完整的语义与自然度反馈需要已部署的 AI Coach 或老师。`;
+    return en
+      ? `HSK ${topic.level} · ${title}\n\nPractice length\n${lengthLabel}\n\nChinese paragraph\n${paragraph.zh}\n\nPinyin\n${paragraph.pinyin}\n\nMeaning\n${meaning}\n\nTarget vocabulary\n${vocabulary}\n\nGrammar patterns\n${grammar}\n\nMini dialogue\n${dialogue}\n\nYour task\n${task}${longHint}\n\nSend your version when ready. I will check observable structure, target words and HSK patterns; semantic naturalness needs the deployed AI Coach or a teacher.`
+      : `HSK ${topic.level} · ${title}\n\nĐộ dài luyện tập\n${lengthLabel}\n\nĐoạn văn tiếng Trung\n${paragraph.zh}\n\nPinyin\n${paragraph.pinyin}\n\nNghĩa\n${meaning}\n\nTừ mục tiêu\n${vocabulary}\n\nMẫu ngữ pháp\n${grammar}\n\nHội thoại ngắn\n${dialogue}\n\nNhiệm vụ của bạn\n${task}${longHint}\n\nKhi viết xong hãy gửi lại. Mình sẽ kiểm tra cấu trúc, từ mục tiêu và mẫu HSK; việc chấm ngữ nghĩa/độ tự nhiên đầy đủ cần AI Coach backend đã deploy hoặc giáo viên.`;
+  }
+  function hskTopicMenu(level, language = "vi") {
+    const en = language === "en";
+    const zh = language === "zh";
+    const library = window.PandaHanHskLibrary;
+    const selected = Number(level || 0);
+    const items = library?.items?.filter((item) => !selected || Number(item.level) === selected) || [];
+    const byLevel = [1, 2, 3, 4, 5, 6].map((n) => {
+      const choices = items.filter((item) => Number(item.level) === n).map((item) => en || zh ? item.topicEn : item.topicVi);
+      return choices.length ? `HSK ${n}: ${choices.join(" · ")}` : "";
+    }).filter(Boolean).join("\n");
+    if (zh) return `请从 Offline 题库中选择 HSK ${selected || "1–6"} 主题：\n${byLevel}\n\n你可以输入主题名称或点击 AI Tutor 里的主题卡。系统会给出中文短文、拼音、词汇、语法和小对话。`;
+    return en
+      ? `Choose one structured HSK ${selected || "1–3"} topic from the Offline library:\n${byLevel}\n\nType a topic name (for example “HSK 2 weekend” or “travel”) or select a topic card above. I will then send a multi-sentence Chinese paragraph, pinyin, meaning, vocabulary, grammar and a mini dialogue.`
+      : `Hãy chọn một chủ đề HSK ${selected || "1–3"} có sẵn trong thư viện Offline:\n${byLevel}\n\nBạn có thể gõ tên chủ đề (ví dụ “HSK 2 cuối tuần” hoặc “du lịch”) hoặc bấm thẻ chủ đề ở phía trên. Sau đó mình sẽ gửi đoạn tiếng Trung nhiều câu, pinyin, nghĩa, từ mục tiêu, ngữ pháp và hội thoại ngắn.`;
+  }
+  function grammarLessonResponse(entry, language) {
+    if (language === "zh") return `**${entry.name} · HSK ${entry.hsk}**\n\n**结构**\n${entry.form}\n\n**怎么用**\n${entry.zh}\n\n**例句**\n${entry.ex}\nPinyin: ${entry.py}\n\n**常见错误**\n${entry.cautionZh}\n\n**现在练习**\n${entry.taskZh}\n\n把你的句子发给我；离线模式可以提示结构，完整的自然度与语义反馈需要已部署的 Cloud AI 或老师。`;
+    if (language === "en") return `**${entry.name} · HSK ${entry.hsk}**\n\n**Pattern**\n${entry.form}\n\n**How to use it**\n${entry.en}\n\n**Example**\n${entry.ex}\nPinyin: ${entry.py}\nMeaning: ${entry.exEn}\n\n**Common pitfall**\n${entry.cautionEn}\n\n**Try it now**\n${entry.taskEn}\n\nSend your sentence. Offline mode can point out observable structure; full naturalness and meaning feedback needs deployed Cloud AI or a teacher.`;
+    return `**${entry.name} · HSK ${entry.hsk}**\n\n**Cấu trúc**\n${entry.form}\n\n**Cách dùng**\n${entry.vi}\n\n**Ví dụ**\n${entry.ex}\nPinyin: ${entry.py}\nNghĩa: ${entry.exVi}\n\n**Lỗi thường gặp**\n${entry.cautionVi}\n\n**Luyện ngay**\n${entry.taskVi}\n\nGửi câu của bạn. Offline có thể nhắc lỗi cấu trúc quan sát được; phản hồi đầy đủ về độ tự nhiên/ngữ nghĩa cần Cloud AI đã deploy hoặc giáo viên.`;
+  }
+  function grammarMenuResponse(language) {
+    const pack = window.PandaHanGrammarPack?.all?.() || [];
+    const menu = [1, 2, 3, 4, 5, 6].map((level) => {
+      const names = pack.filter((entry) => entry.hsk === level).map((entry) => entry.name).join(" · ");
+      return names ? `HSK ${level}: ${names}` : "";
+    }).filter(Boolean).join("\n");
+    if (language === "zh") return `我可以用“结构 → 用法 → 例句 → 常见错误 → 小练习”的方式解释这些语法：\n${menu}\n\n请直接问一个句式，例如：“把字句怎么用？” 或 “解释 无论…都…”。`;
+    if (language === "en") return `I can explain these grammar patterns as “pattern → use → example → common pitfall → short practice”:\n${menu}\n\nAsk directly, for example: “How do I use 把?” or “Explain 无论…都…”.`;
+    return `Mình có thể giải thích theo cấu trúc: “công thức → cách dùng → ví dụ → lỗi thường gặp → luyện ngắn” cho các mẫu:\n${menu}\n\nHãy hỏi trực tiếp, ví dụ: “把 dùng thế nào?” hoặc “Giải thích 无论…都…”.`;
+  }
+  function offlineTutorCapabilityResponse(language) {
+    if (language === "zh") return "离线 AI Tutor 可以解释已收录的 HSK 语法、提供主题短文、查看词汇和检查可观察的句子结构。对于开放式、复杂或课外问题，需要部署 Cloud AI 后才能得到完整回答。";
+    if (language === "en") return "Offline AI Tutor can explain included HSK grammar, provide topic passages, look up vocabulary, and check observable sentence structure. For open-ended, complex, or non-course questions, deploy Cloud AI for a full answer.";
+    return "AI Tutor Offline có thể giải thích ngữ pháp HSK đã có, tạo đoạn theo chủ đề, tra từ vựng và kiểm tra cấu trúc câu quan sát được. Với câu hỏi mở, phức tạp hoặc ngoài nội dung học, cần deploy Cloud AI để nhận câu trả lời đầy đủ.";
+  }
+  function vocabularyTutorResponse(text, language) {
+    const word = getVocabulary().find((item) => item.char && String(text || "").includes(item.char));
+    if (!word) return "";
+    const meaning = language === "en" ? (word.meaning_en || word.meaning || "") : (word.meaning || word.meaning_en || "");
+    const sample = Array.isArray(word.examples) ? word.examples[0] : null;
+    const exampleZh = Array.isArray(sample) ? sample[0] : "";
+    const exampleMeaning = Array.isArray(sample) ? sample[1] : "";
+    if (language === "zh") return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\n释义: ${meaning || "请打开词典卡查看释义。"}\n词性: ${word.pos || "—"}\n\n**例句**\n${exampleZh || `请用“${word.char}”写一句和你有关的话。`}\n${exampleMeaning ? `提示: ${exampleMeaning}` : ""}\n\n请用这个词写一句。离线模式可检查目标词是否出现；更细的搭配与自然度需要 Cloud AI。`;
+    if (language === "en") return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\nMeaning: ${meaning || "Open the dictionary card to view the saved meaning."}\nPart of speech: ${word.pos || "—"}\n\n**Example**\n${exampleZh || `Write one sentence about yourself using “${word.char}”.`}\n${exampleMeaning ? `Meaning cue: ${exampleMeaning}` : ""}\n\nWrite your own sentence with this word. Offline can verify visible target-word use; detailed collocation and naturalness need Cloud AI.`;
+    return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\nNghĩa: ${meaning || "Hãy mở thẻ từ điển để xem nghĩa đã lưu."}\nTừ loại: ${word.pos || "—"}\n\n**Ví dụ**\n${exampleZh || `Hãy viết một câu về bản thân với “${word.char}”.`}\n${exampleMeaning ? `Gợi nghĩa: ${exampleMeaning}` : ""}\n\nHãy dùng từ này viết một câu. Offline kiểm tra được việc xuất hiện từ mục tiêu; giải thích kết hợp từ và độ tự nhiên chi tiết cần Cloud AI.`;
+  }
+  function replyTo(text, options = {}) {
     const m = activeMission || mission();
     const q = String(text || "").toLowerCase();
-    const en = window.LANG_MODE === "en";
-    const mistakeCount = window.PandaHanMistakes?.getQueue?.().length || 0;
+    const language = coachResponseLanguage(text, options.language || "auto");
+    const en = language === "en";
+    const zh = language === "zh";
+    const mistakeCount = window.PandaHanMistakes?.getAllQueue?.().length || window.PandaHanMistakes?.getQueue?.().length || 0;
+    const writingRequest = /(viết|write|đoạn văn|paragraph|作文|article)/.test(q);
+    const grammarEntry = window.PandaHanGrammarPack?.find?.(text);
+    if (grammarEntry) return grammarLessonResponse(grammarEntry, language);
+    if (/(ngữ pháp|grammar|语法|cách dùng|dùng.*thế nào|how.*use|giải thích.*mẫu|explain.*pattern|句式)/i.test(q)) return grammarMenuResponse(language);
+    const vocabularyAnswer = vocabularyTutorResponse(text, language);
+    if (vocabularyAnswer) return vocabularyAnswer;
+    const hskMatch = q.match(/hsk\s*([1-6])/i);
+    const topic = window.PandaHanHskLibrary?.find?.(text);
+    if (topic) return hskTopicResponse(topic, language, options.length || "adaptive");
+    if (writingRequest || /(topic|chủ đề|theme|作文|主题)/.test(q)) return hskTopicMenu(hskMatch?.[1], language);
+    if (writingRequest && hskMatch) {
+      const level = Number(hskMatch[1]);
+      const models = {
+        1: { zh: "我叫安娜。我是学生。我学习汉语。今天我在家看书，也喝茶。我很高兴。", py: "Wǒ jiào Ānnà. Wǒ shì xuéshēng. Wǒ xuéxí Hànyǔ. Jīntiān wǒ zài jiā kàn shū, yě hē chá. Wǒ hěn gāoxìng.", vi: "Tôi tên là Anna. Tôi là học sinh. Tôi học tiếng Trung. Hôm nay tôi ở nhà đọc sách và uống trà. Tôi rất vui.", en: "My name is Anna. I am a student. I study Chinese. Today I read at home and drink tea. I am very happy.", noteVi: "Mẫu HSK1: chủ ngữ + 是; chủ ngữ + động từ; 在 + nơi chốn; 也; 很 + tính từ.", noteEn: "HSK1 patterns: subject + 是; subject + verb; 在 + place; 也; 很 + adjective." },
+        2: { zh: "上个周末，我和朋友去学校附近的饭店吃饭。因为天气很好，所以我们走路去。吃完饭以后，我们一起看电影，还聊了很多学习汉语的方法。", py: "Shàng ge zhōumò, wǒ hé péngyou qù xuéxiào fùjìn de fàndiàn chīfàn. Yīnwèi tiānqì hěn hǎo, suǒyǐ wǒmen zǒulù qù. Chī wán fàn yǐhòu, wǒmen yìqǐ kàn diànyǐng, hái liáo le hěn duō xuéxí Hànyǔ de fāngfǎ.", vi: "Cuối tuần trước, tôi và bạn đến nhà hàng gần trường ăn cơm. Vì thời tiết đẹp nên chúng tôi đi bộ. Ăn xong, chúng tôi cùng xem phim và nói nhiều về cách học tiếng Trung.", en: "Last weekend, my friend and I ate at a restaurant near school. Because the weather was good, we walked there. After eating, we watched a film and discussed ways to learn Chinese.", noteVi: "Mẫu HSK2: 因为…所以…; động từ + 完 + tân ngữ; 以后; 一起; 还.", noteEn: "HSK2 patterns: 因为…所以…; verb + 完 + object; 以后; 一起; 还." },
+        3: { zh: "为了准备下个月的中文考试，我给自己做了一个学习计划。如果每天能按时复习，我相信成绩会提高。除了背新单词以外，我还把常常说错的句子写下来，请老师帮助我修改。", py: "Wèile zhǔnbèi xià ge yuè de Zhōngwén kǎoshì, wǒ gěi zìjǐ zuò le yí ge xuéxí jìhuà. Rúguǒ měitiān néng ànshí fùxí, wǒ xiāngxìn chéngjì huì tígāo. Chúle bèi xīn dāncí yǐwài, wǒ hái bǎ chángcháng shuō cuò de jùzi xiě xiàlái, qǐng lǎoshī bāngzhù wǒ xiūgǎi.", vi: "Để chuẩn bị cho kỳ thi tiếng Trung tháng sau, tôi lập một kế hoạch học. Nếu có thể ôn đúng giờ mỗi ngày, tôi tin kết quả sẽ tiến bộ. Ngoài việc học từ mới, tôi còn viết lại các câu mình thường nói sai và nhờ giáo viên sửa.", en: "To prepare for next month's Chinese exam, I made a study plan. If I review on time every day, I believe my result will improve. Besides learning new words, I write down sentences I often say incorrectly and ask my teacher to correct them.", noteVi: "Mẫu HSK3: 为了…; 如果…; 除了…以外，还…; 把 + tân ngữ + động từ; 请 + người + động từ.", noteEn: "HSK3 patterns: 为了…; 如果…; 除了…以外，还…; 把 + object + verb; 请 + person + verb." }
+      };
+      const model = models[level];
+      return en ? `HSK ${level} model paragraph\n中文：${model.zh}\nPinyin: ${model.py}\nMeaning: ${model.en}\nGrammar: ${model.noteEn}\n\nTry changing one detail about yourself, then send your version. I can check structure, target words and HSK patterns; semantic naturalness needs the deployed AI Coach or a teacher.` : `Đoạn văn mẫu HSK ${level}\n中文：${model.zh}\nPinyin: ${model.py}\nNghĩa: ${model.vi}\nNgữ pháp: ${model.noteVi}\n\nBạn hãy đổi một chi tiết thành thông tin của mình rồi gửi lại. Mình có thể kiểm tra cấu trúc, từ mục tiêu và mẫu HSK; muốn chấm độ tự nhiên/ngữ nghĩa đầy đủ thì cần AI Coach backend đã deploy hoặc giáo viên.`;
+    }
+    if (/(rubric|ngữ pháp|grammar|chấm viết|score writing)/.test(q)) return en ? "The Writing rubric is transparent: completeness 20, Chinese punctuation 15, target word 20, HSK grammar pattern 25, and subject–predicate frame 20. This browser score checks observable structure only; it does not pretend to judge meaning or naturalness." : "Rubric Viết/Ngữ pháp có 5 phần: độ đầy đủ câu 20, dấu câu tiếng Trung 15, từ mục tiêu 20, mẫu ngữ pháp HSK 25 và khung chủ ngữ–vị ngữ 20. Điểm trên trình duyệt chỉ kiểm tra cấu trúc có thể xác minh; không giả là đã chấm đúng nghĩa hay độ tự nhiên.";
     if (/sai|làm lại|redo|mistake|ôn lại/.test(q)) return en ? `${mistakeCount ? `You have ${mistakeCount} unresolved wrong item(s).` : "There are no unresolved wrong items."} Start the redo task; a correct retry removes one outstanding mistake.` : `${mistakeCount ? `Hiện có ${mistakeCount} câu/từ sai cần làm lại.` : "Hiện chưa có câu sai tồn đọng."} Hãy mở Ôn lại câu sai; trả lời đúng sẽ gỡ từng lỗi khỏi hàng đợi.`;
     if (/nghe từ|vocab.*listen|từ vựng.*nghe/.test(q)) return en ? `Start with the ${m.adaptivePlan?.introWords?.length || 0} phonetics-linked vocabulary words. Real playback must finish before each next word.` : `Bắt đầu với ${m.adaptivePlan?.introWords?.length || 0} từ mới liên kết Ngữ âm. Phải nghe mẫu thật xong mới sang từ tiếp theo.`;
     if (/nói từ|vocab.*speak|từ vựng.*nói/.test(q)) return en ? `After vocabulary listening, speak the same practice set into the microphone. Recognition attempts are saved separately from the full phonetics rubric.` : "Sau khi nghe từ vựng, hãy nói lại đúng nhóm từ đó vào micro. Lượt nhận diện được lưu riêng, không giả làm điểm rubric Ngữ âm.";
-    if (/trắc nghiệm|quiz|multiple/.test(q)) return en ? `Start Multiple choice for Day ${m.dayNumber}. The set contains only introduced or due/weak words; current redo queue: ${mistakeCount}.` : `Hãy bấm Trắc nghiệm ngày ${m.dayNumber}. Đề chỉ lấy từ đã giới thiệu hoặc đến hạn/yếu; hiện hàng đợi câu sai là ${mistakeCount}.`;
-    if (/sắp xếp|unscramble|câu/.test(q)) return en ? `Use Sentence unscramble next. It uses the same evidence-based practice pool and sends wrong items to redo.` : "Tiếp theo hãy làm Sắp xếp câu. Bài dùng cùng practice pool theo evidence và tự đưa câu sai vào hàng đợi làm lại.";
+    if (/trắc nghiệm|quiz|multiple/.test(q)) return en ? `Start Multiple choice for ${m.sessionLabelEn}. The set contains only introduced or due/weak words; current redo queue: ${mistakeCount}.` : `Hãy bấm Trắc nghiệm ${m.sessionLabelVi}. Đề chỉ lấy từ đã giới thiệu hoặc đến hạn/yếu; hiện hàng đợi câu sai là ${mistakeCount}.`;
+    if (/(sửa câu|sửa.*câu|correct.*sentence|check.*sentence|改.*句|修改.*句|đúng không|correct this)/i.test(q)) return zh ? "请发送一条完整的中文句子。离线 AI Tutor 会先检查可观察的要素：主语、动词、语法标记、标点和目标词。语义、搭配与自然度的完整修改需要已部署的 Cloud AI 或老师。" : en ? "Send one complete Chinese sentence. Offline AI Tutor will first check observable elements: subject, verb, grammar markers, punctuation, and target words. Full meaning, collocation, and naturalness correction needs deployed Cloud AI or a teacher." : "Hãy gửi một câu tiếng Trung hoàn chỉnh. AI Tutor Offline sẽ kiểm tra trước các yếu tố quan sát được: chủ ngữ, động từ, dấu hiệu ngữ pháp, dấu câu và từ mục tiêu. Sửa trọn vẹn nghĩa, kết hợp từ và độ tự nhiên cần Cloud AI đã deploy hoặc giáo viên.";
+    if (/sắp xếp|unscramble|xếp câu/.test(q)) return en ? `Use Sentence unscramble next. It uses the same evidence-based practice pool and sends wrong items to redo.` : zh ? "下一步可以做“句子排序”。练习使用同一套基于学习证据的词汇池，答错会进入复习队列。" : "Tiếp theo hãy làm Sắp xếp câu. Bài dùng cùng practice pool theo evidence và tự đưa câu sai vào hàng đợi làm lại.";
     if (/ghép|match|nghĩa/.test(q)) return en ? `Use Match Hanzi · meaning for a short warm-up. It uses only eligible words, not the whole HSK bank.` : `Hãy làm Ghép chữ · nghĩa để khởi động. Bài chỉ lấy từ đủ điều kiện, không lấy toàn bộ kho HSK.`;
-    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest ${m.questStation} for Day ${m.dayNumber}. Main mode: ${m.questMainMode}. Follow: ${m.questActivityChain}. The score is saved and used with the ${m.requiredScore}% gate.` : `Hãy mở Pinyin Tone Quest ${m.questStation} của ngày ${m.dayNumber}. Chế độ chính: ${m.questMainMode}. Làm theo chuỗi: ${m.questActivityChain}. Điểm sẽ được lưu và dùng cùng ngưỡng ${m.requiredScore}% để xét mở ngày tiếp theo.`;
-    if (/nghe|listen|nói|speak|đọc|viết|read|write|srs|ôn/.test(q)) return en ? `Today's workbook tasks are: Listen — ${m.curriculum.listening_task}; Speak — ${m.curriculum.speaking_task}; Read/Write — ${m.curriculum.reading_writing_task}; SRS — ${m.curriculum.srs_review_task}.` : `Nhiệm vụ theo file hôm nay gồm: Nghe — ${m.curriculum.listening_task}; Nói — ${m.curriculum.speaking_task}; Đọc/Viết — ${m.curriculum.reading_writing_task}; SRS — ${m.curriculum.srs_review_task}.`;
+    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest ${m.questStation} for ${m.sessionLabelEn}. Main mode: ${m.questMainMode}. Follow: ${m.questActivityChain}. The score is saved and used with the ${m.requiredScore}% gate.` : `Hãy mở Pinyin Tone Quest ${m.questStation} của ${m.sessionLabelVi}. Chế độ chính: ${m.questMainMode}. Làm theo chuỗi: ${m.questActivityChain}. Điểm sẽ được lưu và dùng cùng ngưỡng ${m.requiredScore}% để xét mở ngày tiếp theo.`;
+    if (/nghe|listen|nói|speak|đọc|viết|read|write|srs|ôn/.test(q)) return en ? `Today's workbook tasks are: Listen — ${workbookTaskDescription("listening", m.curriculum, true)} Speak — ${workbookTaskDescription("speaking", m.curriculum, true)} Read/Write — ${workbookTaskDescription("reading_writing", m.curriculum, true)} SRS — ${workbookTaskDescription("srs", m.curriculum, true)}` : `Nhiệm vụ theo file hôm nay gồm: Nghe — ${m.curriculum.listening_task}; Nói — ${m.curriculum.speaking_task}; Đọc/Viết — ${m.curriculum.reading_writing_task}; SRS — ${m.curriculum.srs_review_task}.`;
     if (/viết|write/.test(q)) return en ? "Use Write the meaning after the recognition tasks. Try from memory before revealing the reference answer." : "Hãy làm Viết nghĩa sau các bài nhận diện. Cố nhớ trước rồi mới xem phần đáp án tham khảo.";
     if (/xong|hoàn thành|done|next|tiếp/.test(q)) return en ? `A new day unlocks only after the current registered-day sequence has all verified required tasks and reaches ${m.requiredScore}%. Wrong items remain assigned for redo. If the day is missed, the schedule inserts a repeat extension after midnight.` : `Ngày mới chỉ mở khi ngày hiện tại theo mốc đăng ký đã đủ nhiệm vụ bắt buộc có evidence và đạt ${m.requiredScore}%. Câu sai vẫn được giao làm lại. Nếu bỏ lỡ qua 24:00, hệ thống chèn ngày repeat nối tiếp.`;
-    return en ? `Today's plan is Day ${m.dayNumber}: ${m.topic}. Start with ${m.tasks[0]?.titleEn || "the first task"}, then continue in order. Ask me about any task.` : `Kế hoạch hôm nay là ngày ${m.dayNumber}: ${m.topic}. Hãy bắt đầu với ${m.tasks[0]?.titleVi || "bài đầu tiên"}, rồi làm lần lượt. Bạn có thể hỏi tôi về từng bài.`;
+    return offlineTutorCapabilityResponse(language);
   }
 
   async function load() {
@@ -415,13 +620,30 @@
     window.dispatchEvent(new CustomEvent("pandahan-mission-ready"));
   }
 
-  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
+  function formatTopicForTutor(topicId, requestedLength = "adaptive") {
+    const topic = (window.PandaHanHskLibrary?.items || []).find((item) => item.id === String(topicId || ""));
+    if (!topic) return null;
+    const length = topicLengthProfile(topic.level, requestedLength);
+    const paragraph = paragraphForLength(topic, length);
+    return { id: topic.id, level: topic.level, length, zh: paragraph.zh, pinyin: paragraph.pinyin, topicVi: topic.topicVi, topicEn: topic.topicEn };
+  }
+  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
   window.addEventListener("pandahan-vocab-phase-updated", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
     if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
   });
   window.addEventListener("pandahan-schedule-updated", () => {
+    activeMission = null;
+    const area = document.getElementById("chatMessagesArea");
+    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+  });
+  window.addEventListener("pandahan-mistake-recorded", () => {
+    activeMission = null;
+    const area = document.getElementById("chatMessagesArea");
+    if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+  });
+  window.addEventListener("pandahan-mistake-resolved", () => {
     activeMission = null;
     const area = document.getElementById("chatMessagesArea");
     if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
