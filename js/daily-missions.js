@@ -169,13 +169,29 @@
       ["srs", day.srs_review_task],
     ].filter(([, value]) => value && value !== "-").map(([type]) => type);
     const phoneticsTypes = workbookTypes.filter((type) => type === "listening" || type === "speaking");
-    const vocabFollowups = (vocabPhase?.introCompleted || adaptivePlan?.introCompleted) && hasPracticeWords ? ["vocab-speaking", "vocab-writing"] : [];
+    const introComplete = !!(vocabPhase?.introCompleted || adaptivePlan?.introCompleted);
+    const speakingComplete = !!vocabPhase?.speakingCompleted;
+    const gameComplete = !!vocabPhase?.gameCompleted;
+    const hasPendingLinkedIntro = hasNewIntro && !introComplete;
+    const canOpenVocabSpeaking = introComplete && hasPracticeWords;
+    const canOpenGame = canOpenVocabSpeaking && speakingComplete;
+    const canOpenVocabWriting = canOpenGame && gameComplete;
+    const vocabFollowups = [
+      ...(canOpenVocabSpeaking ? ["vocab-speaking"] : []),
+      ...(canOpenGame ? ["tone-race", "quest"] : []),
+      ...(canOpenVocabWriting ? ["vocab-writing"] : [])
+    ];
     const workbookAfterPractice = workbookTypes.filter((type) => !phoneticsTypes.includes(type) && type !== "reading_writing");
     const workbookPrimary = questModeToTask(day.quest_main_mode);
-    const ordered = [...new Set([...(mistakeCount ? ["wrong-review"] : []), ...phoneticsTypes, ...(hasNewIntro ? ["vocab-intro"] : []), ...vocabFollowups, ...adaptivePracticeTypes, "reading_writing", ...workbookAfterPractice, "quest", workbookPrimary])];
+    const allowedAdaptivePractice = canOpenVocabWriting ? adaptivePracticeTypes : [];
+    const chainMode = !!(adaptivePlan?.linkedNewWords?.length || adaptivePlan?.introWords?.length || hasNewIntro);
+    const preChain = [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : []), ...(canOpenVocabSpeaking ? ["vocab-speaking"] : [])];
+    const postChain = [...(canOpenGame ? ["tone-race", "quest"] : []), ...(canOpenVocabWriting ? ["vocab-writing"] : []), ...allowedAdaptivePractice, ...(canOpenVocabWriting && workbookTypes.includes("reading_writing") ? ["reading_writing"] : []), ...workbookAfterPractice, ...(canOpenGame ? [workbookPrimary] : [])];
+    const ordered = [...new Set([...(mistakeCount ? ["wrong-review"] : []), ...(chainMode ? [...preChain, ...postChain] : [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : []), ...vocabFollowups, ...allowedAdaptivePractice, "reading_writing", ...workbookAfterPractice, ...(canOpenGame ? ["quest"] : []), workbookPrimary])])];
     return ordered.map((type, index) => {
       const meta = TASK_META[type] || TASK_META.reading_writing;
-      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook" };
+      const chainWords = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : (adaptivePlan?.practiceWords || []));
+      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook", lessonId: Number(day.day_number), vocabularyIds: chainWords.map((word) => word.id), vocabularyChars: chainWords.map((word) => word.char) };
       const workbookText = { listening: day.listening_task, speaking: day.speaking_task, reading_writing: day.reading_writing_task, srs: day.srs_review_task }[type];
       if (workbookText && workbookText !== "-") {
         task.instructionVi = workbookText;
@@ -207,7 +223,8 @@
     const scheduleDay = currentScheduleDay();
     const adaptivePlan = window.PandaHanAdaptiveLearning?.buildPlan?.(day, getSchedule()) || null;
     const words = adaptivePlan?.practiceWords || targetVocabulary(day);
-    const vocabPhase = window.PandaHanVocabularyPhase?.get?.(Number(day.day_number)) || { introCompleted: !!adaptivePlan?.introCompleted, speakingCompleted: false };
+    const chainVocabulary = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : []);
+    const vocabPhase = window.PandaHanVocabularyPhase?.get?.(Number(day.day_number)) || { introCompleted: !!adaptivePlan?.introCompleted, speakingCompleted: false, gameCompleted: false };
     const tasks = buildTasks(day, adaptivePlan, vocabPhase);
     return {
       dayNumber: Number(day.day_number), sequenceIndex: Number(scheduleDay?.sequence_index || day.day_number),
@@ -215,6 +232,8 @@
       stageCode: day.stage_code, stage: day.stage, dayType: day.day_type, topic: day.topic || "",
       requiredScore: day.day_type === "review" ? Number(day.required_score || 70) : 60, newVocab: words,
       curriculum: day, workbook: day.workbook_row || null, tasks, adaptivePlan, vocabPhase,
+      chain: { lessonId: Number(day.day_number), vocabularyIds: chainVocabulary.map((word) => word.id), vocabularyChars: chainVocabulary.map((word) => word.char), vocabulary: chainVocabulary.map((word) => ({ id: word.id, char: word.char, pinyin: word.pinyin, meaning: word.meaning, meaningEn: word.meaning_en })), phoneticFocus: adaptivePlan?.focusGroups || [], focusLabel: adaptivePlan?.focusLabel || "" },
+      chainVocabulary,
       questStation: day.quest_station || "-", questMainMode: day.quest_main_mode || "-",
       questActivityChain: day.quest_activity_chain || "-", questDailyTask: day.quest_daily_task || "-",
       questCompletionCondition: day.quest_completion_condition || "-", questCheckpointQuestion: day.quest_checkpoint_question || "-",
@@ -247,18 +266,20 @@
     activeTask = m.tasks.find((task) => task.type === type) || { type };
     const phase = m.vocabPhase || {};
     if (type === "vocab-speaking" && !phase.introCompleted) { alert(L("Hãy hoàn thành phần nghe giới thiệu từ trước.", "Complete the vocabulary listening introduction first.")); return; }
-    if (type === "vocab-writing" && !phase.speakingCompleted) { alert(L("Hãy nói từng từ vào micro trước khi mở phần viết nghĩa.", "Complete one real speaking attempt for each word before opening vocabulary writing.")); return; }
+    if ((type === "tone-race" || type === "quest") && m.chainVocabulary?.length && !phase.speakingCompleted) { alert(L("Hãy hoàn thành lượt nói từng từ trước khi vào game thanh điệu.", "Complete one real speaking attempt for each linked word before the tone game.")); return; }
+    if (type === "vocab-writing" && (!phase.speakingCompleted || !phase.gameCompleted)) { alert(L("Hãy hoàn thành nghe → nói → game trước khi viết nghĩa.", "Complete listening → speaking → game before vocabulary writing.")); return; }
+    if (["quiz", "match", "unscramble", "write"].includes(type) && m.chainVocabulary?.length && !phase.gameCompleted) { alert(L("Bài này chỉ mở sau game của đúng nhóm từ trong ngày.", "This exercise opens only after the game for the exact day word set.")); return; }
     setFilterForMission(m);
     const level = document.getElementById("practiceHskFilter")?.value || "all";
     if (type === "vocab-intro") window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords || [], m.dayNumber);
-    else if (type === "vocab-speaking") window.startAdaptiveVocabularySpeaking?.(m.adaptivePlan?.introWords?.length ? m.adaptivePlan.introWords : (m.adaptivePlan?.practiceWords || []), m.dayNumber);
-    else if (type === "vocab-writing") { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.(), 80); }
+    else if (type === "vocab-speaking") window.startAdaptiveVocabularySpeaking?.(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), m.dayNumber);
+    else if (type === "vocab-writing") { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.({ words: m.chainVocabulary || [] }), 80); }
     else if (type === "wrong-review") window.startMistakeReview?.();
     else if (type === "quiz") {
-      if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.adaptivePlan?.practiceWords || []);
+      if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []));
       else window.startQuizLevel?.(level);
-    } else if (type === "unscramble") window.startUnscrambleLevel?.(level);
-    else if (type === "match") window.startMatchGame?.();
+    } else if (type === "unscramble") window.startUnscrambleLevel?.(level, { words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []) });
+    else if (type === "match") window.startMatchGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []) });
     else if (type === "write") window.startWriteGame?.();
     else if (type === "tone-race") window.startToneRaceGame?.();
     else if (type === "quest") {
@@ -316,7 +337,7 @@
     const stageLabel = langEn ? (m.stageCode === "stage_0" ? "Pinyin Bootcamp" : m.stageCode === "stage_1" ? "HSK 1 foundation" : m.stageCode === "stage_2" ? "HSK 2 development" : "HSK 3 communication") : (m.stage || m.stageCode);
     const phase = m.vocabPhase || {};
     const taskRows = m.tasks.map((task) => {
-      const locked = (task.type === "vocab-speaking" && !phase.introCompleted) || (task.type === "vocab-writing" && !phase.speakingCompleted);
+      const locked = (task.type === "vocab-speaking" && !phase.introCompleted) || ((task.type === "tone-race" || task.type === "quest") && m.chainVocabulary?.length && !phase.speakingCompleted) || (task.type === "vocab-writing" && (!phase.speakingCompleted || !phase.gameCompleted)) || (["quiz", "match", "unscramble", "write"].includes(task.type) && m.chainVocabulary?.length && !phase.gameCompleted);
       const lockText = langEn ? " · complete the previous vocabulary phase first" : " · hoàn thành bước từ vựng trước trước";
       return `<button type="button" data-mission-task="${task.type}" ${locked ? "disabled aria-disabled=\"true\"" : ""} style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:1px solid #f3d5e5;border-radius:11px;background:${locked ? "#f8fafc" : "#fff"};padding:8px 10px;margin-top:6px;cursor:${locked ? "not-allowed" : "pointer"};opacity:${locked ? ".58" : "1"};"><span style="font-size:20px;">${locked ? "🔒" : task.icon}</span><span style="flex:1;min-width:0;"><b>${langEn ? task.titleEn : task.titleVi}</b><br><small style="color:#64748b;overflow-wrap:anywhere;">${esc((langEn ? task.instructionEn : task.instructionVi) + (locked ? lockText : ""))}</small></span><small style="color:#a855f7;font-weight:800;white-space:nowrap;">${task.minutes} min</small></button>`;
     }).join("");
