@@ -123,7 +123,8 @@
           repeatCount: Number(result?.result?.repeatCount || 0),
           action: result?.result?.action || "advance"
         };
-        outerStatus(`Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`);
+        const chainBlocked = evaluation.action === "linked_chain_incomplete";
+        outerStatus(chainBlocked ? "Quest chưa được tính vào lộ trình: hãy hoàn thành Ngữ âm và Từ vựng liên kết trước rồi làm lại Quest." : `Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`, chainBlocked);
         window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
         window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", rawSource: "pinyin-tone-quest", evidenceType: "quest_result", verified: true, ...evaluation, evaluatedAt: Date.now() } }));
         lastQuestResultKey = resultKey;
