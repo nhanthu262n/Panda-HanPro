@@ -43,7 +43,7 @@
         day.topic = day.topic || item.topic || "";
         day.week_number = day.week_number || item.week_number || null;
         day.day_type = day.day_type || item.day_type || "new_content";
-        day.required_score = day.day_type === "review" ? Number(day.required_score || item.required_score || 70) : 60;
+        day.required_score = 30;
       }
       day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
       day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
@@ -268,7 +268,7 @@
   function makeExistingQuestResult(schedule, dayNumber, score) {
     const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber));
     if (!day) return null;
-    const threshold = day.day_type === "review" ? Number(day.required_score || 70) : 60;
+    const threshold = Number(day.required_score || 30);
     const passed = Number(score) >= threshold;
     const alreadyCompleted = day.status === "completed";
     return {
@@ -317,7 +317,7 @@
       dayNumber: Number(dayNumber),
       scorePercent: Number(score),
       passed: !!result?.result?.passed,
-      threshold: Number(result?.result?.threshold || 60),
+      threshold: Number(result?.result?.threshold || 30),
       reviewType: result?.result?.reviewType || "daily",
       repeatCount: Number(result?.result?.repeatCount || 0),
       action: result?.result?.action || "advance",
@@ -436,6 +436,10 @@
       detail: {
         dayNumber: Number(current.day_number),
         sequenceIndex: Number(current.sequence_index),
+        isRepeat: !!current.is_repeat_of || current.day_type === "repeat",
+        repeatReason: current.repeat_reason || null,
+        carriedCompletedTasks: Array.isArray(current.carried_completed_tasks) ? current.carried_completed_tasks.slice() : Object.keys(current.completed_tasks || {}),
+        missingTaskIds: (current.required_tasks || []).filter((id) => !current.completed_tasks?.[id]),
         topic: current.topic || "",
         date: today,
       },
