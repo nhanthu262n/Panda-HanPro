@@ -645,33 +645,21 @@
     return { id: topic.id, level: topic.level, length, zh: paragraph.zh, pinyin: paragraph.pinyin, topicVi: topic.topicVi, topicEn: topic.topicEn };
   }
   window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
-  window.addEventListener("pandahan-vocab-phase-updated", () => {
-    activeMission = null;
-    const area = document.getElementById("chatMessagesArea");
-    const host = area?.querySelector("[data-ai-coach-plan-host]");
-    if (host) renderCoach(host);
-    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
-  });
-  window.addEventListener("pandahan-schedule-updated", () => {
-    activeMission = null;
-    const area = document.getElementById("chatMessagesArea");
-    const host = area?.querySelector("[data-ai-coach-plan-host]");
-    if (host) renderCoach(host);
-    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
-  });
-  window.addEventListener("pandahan-mistake-recorded", () => {
-    activeMission = null;
-    const area = document.getElementById("chatMessagesArea");
-    const host = area?.querySelector("[data-ai-coach-plan-host]");
-    if (host) renderCoach(host);
-    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
-  });
-  window.addEventListener("pandahan-mistake-resolved", () => {
-    activeMission = null;
-    const area = document.getElementById("chatMessagesArea");
-    const host = area?.querySelector("[data-ai-coach-plan-host]");
-    if (host) renderCoach(host);
-    else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
-  });
+  let coachPlanRefreshQueued = false;
+  function refreshCoachPlanSoon() {
+    if (coachPlanRefreshQueued) return;
+    coachPlanRefreshQueued = true;
+    const flush = () => {
+      coachPlanRefreshQueued = false;
+      activeMission = null;
+      const area = document.getElementById("chatMessagesArea");
+      const host = area?.querySelector("[data-ai-coach-plan-host]");
+      if (host) renderCoach(host);
+      else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
+    };
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(flush);
+    else window.setTimeout(flush, 0);
+  }
+  ["pandahan-vocab-phase-updated", "pandahan-schedule-updated", "pandahan-mistake-recorded", "pandahan-mistake-resolved"].forEach((eventName) => window.addEventListener(eventName, refreshCoachPlanSoon));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load); else load();
 })();
