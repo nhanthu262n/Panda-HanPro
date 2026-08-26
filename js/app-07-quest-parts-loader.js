@@ -140,8 +140,8 @@
   const GATE_SCRIPT = `<script>(function(){
     var gate={unlockedDays:[1],completedDays:[],chain:{lessonId:0,vocabularyIds:[],vocabularyChars:[],vocabulary:[],phoneticFocus:[],focusLabel:''}};
     function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
-    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
-    setInterval(reportProgress,700);
+    var lastProgressFingerprint='';
+    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[],tail=mistakes[mistakes.length-1]||{},fingerprint=[completed.length,mistakes.length,last?last.day:0,last?Number(last.record.updatedAt||last.record.completedAt||0):0,String(tail.id||tail.updatedAt||tail.timestamp||tail.word||tail.char||'')].join('|');if(fingerprint===lastProgressFingerprint)return;lastProgressFingerprint=fingerprint;parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}
     var resultSent={}; var lastStartedDay=0;
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
@@ -165,7 +165,7 @@
     window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);gate.chain=d.chain||gate.chain;window.__PANDAHAN_QUEST_CHAIN=gate.chain;document.documentElement.dataset.chainLesson=String(gate.chain.lessonId||0);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
-    setInterval(reportResult,700);
+    setInterval(function(){reportProgress();reportResult();},1800);
     document.documentElement.classList.add('ph-content-only');
     parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
   })();</script>`;
@@ -275,11 +275,9 @@
       }
       activeFrameWindow.postMessage({ type: "PANDAHAN_QUEST_OPEN_REVIEW" }, "*");
     });
-  });
-  window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
-  document.addEventListener("DOMContentLoaded", () => {
     const card = document.getElementById("pCardPinyinQuest");
     if (card) card.addEventListener("click", () => loadQuestOffline().catch(() => {}));
     showPersistedSummary();
   });
+  window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
 })();
