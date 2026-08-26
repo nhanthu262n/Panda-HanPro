@@ -5,23 +5,16 @@
     2:{label:"HSK 2",grammar:["过/正在/着","比字句","因为…所以…","虽然…但是…","趋向 bổ ngữ cơ bản"],topics:["Sinh hoạt hằng ngày","Sở thích","Đi lại","Sức khỏe"]},
     3:{label:"HSK 3",grammar:["把字句","被字句","除了…以外…","一边…一边…","连…都…","结果/可能补语"],topics:["Học tập và công việc","Du lịch","Môi trường","Kế hoạch tương lai"]},
     4:{label:"HSK 4",grammar:["不仅…而且…","即使…也…","无论…都…","既然…就…","定语从句 và liên từ nâng cao"],topics:["Xã hội và văn hóa","Giáo dục","Công nghệ","Quan điểm và tranh luận"]},
-    5:{label:"HSK 5",grammar:["尽管…可是…","与其…不如…","既…又…","让步/điều kiện phức hợp","Văn phong viết và thành ngữ"],topics:["Tin tức và đời sống","Kinh tế","Khoa học","Văn hóa Trung Hoa"]}
+    5:{label:"HSK 5",grammar:["尽管…可是…","与其…不如…","既…又…","让步/điều kiện phức hợp","Văn phong viết và thành ngữ"],topics:["Tin tức và đời sống","Kinh tế","Khoa học","Văn hóa Trung Hoa"]},
+    6:{label:"HSK 6",grammar:["并不在于…而在于…","只有…才…","抽象论述与论证","书面表达与衔接"],topics:["Thảo luận công cộng","Trao đổi văn hóa","Tư duy khoa học"]}
   };
-  const SOURCE_NOTE="Ngữ liệu dùng cho AI Chat Box: giáo trình HSK 3.0, ngữ pháp theo cấp HSK 1–5, từ vựng trong kho học liệu hiện có và bộ chủ đề hội thoại HSK 1–3. Bộ 1.154 từ sẽ được đọc từ file học liệu khi file được đặt vào kho dữ liệu.";
+  const SOURCE_NOTE="AI Tutor dùng thư viện chủ đề HSK 1–6 Offline và có thể nhận yêu cầu bằng 中文, Tiếng Việt hoặc English. Cloud AI (sau khi deploy) mở rộng phần hội thoại tự do theo đúng ngữ cảnh người học.";
   window.PANDAHAN_AI_SOURCES=HSK_AI_SOURCES;
   window.PANDAHAN_AI_CONTEXT_TEXT=Object.values(HSK_AI_SOURCES).map(x=>`${x.label}: grammar=${x.grammar.join(", ")}; topics=${x.topics.join(", ")}`).join("\n");
 
   function renameAI(){
-    document.querySelectorAll("#aiTeacherTabBtn,.ai-teacher-page-head h2,.ai-teacher-status,.ai-toolbar-title,[aria-label*=AI]").forEach(el=>{if(el&&el.textContent)el.textContent=el.textContent.replace(/AI Teacher/g,"AI Chat Box").replace(/AI Tutor/g,"AI Chat Box")});
-    const h=document.querySelector("#aiTeacherView h2"),p=document.querySelector("#aiTeacherView .ai-teacher-page-head p"),s=document.querySelector("#aiTeacherView .ai-teacher-status");
-    if(h)h.textContent="💬 AI Chat Box";
-    if(p)p.textContent="Hộp chat luyện tiếng Trung theo cấp HSK, ngữ pháp, từ vựng và chủ đề hội thoại.";
-    if(s)s.textContent="Nguồn HSK 1–5 · HSK 3.0 · Chat học tập";
-    const mount=document.getElementById("aiChatMount");if(!mount||mount.dataset.sourcesReady)return;
-    mount.dataset.sourcesReady="true";
-    const box=document.createElement("section");box.className="panda-ai-sources";box.style="margin:12px 0 18px;padding:14px;border:1px solid #fbcfe8;border-radius:18px;background:linear-gradient(135deg,#fff7fb,#fff);box-shadow:0 8px 24px rgba(236,72,153,.08)";
-    box.innerHTML=`<div style="font-weight:900;color:#be185d;margin-bottom:5px">📚 Nguồn học đã nạp cho AI Chat Box</div><div style="font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:10px">${SOURCE_NOTE}</div><div class="panda-hsk-source-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"></div>`;
-    mount.prepend(box);const grid=box.querySelector(".panda-hsk-source-grid");Object.values(HSK_AI_SOURCES).forEach(src=>{const card=document.createElement("div");card.style="padding:9px;border-radius:12px;background:#fff1f8;border:1px solid #fce7f3;font-size:11px;color:#831843";card.innerHTML=`<strong>${src.label}</strong><br><span>Ngữ pháp: ${src.grammar.slice(0,3).join(" · ")}</span><br><span>Chủ đề: ${src.topics.slice(0,2).join(" · ")}</span>`;grid.appendChild(card)});
+    const mount=document.getElementById("aiChatMount");
+    mount?.querySelector(".panda-ai-sources")?.remove();
   }
 
   const HIGHLIGHT_KEY="pandahan_vocab_highlights_v1";
