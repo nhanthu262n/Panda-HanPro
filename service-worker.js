@@ -1,4 +1,4 @@
-const CACHE_NAME = "pandahan-runtime-v1";
+const CACHE_NAME = "pandahan-runtime-chain-learning-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
