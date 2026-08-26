@@ -811,8 +811,9 @@ function pvNextSession() {
 
       // Học viên chỉ được thấy Giáo viên trong danh sách liên hệ — không nhắn
       // tin trực tiếp được với học viên khác.
-        if (!isTeacherRole()) {
+      if (!isTeacherRole()) {
         contacts = contacts.filter(u => u.role === "teacher" || u.role === "master_teacher");
+        contacts.unshift({ uid: "__pandahan_ai__", name: "PandaHán AI Coach", isAi: true, role: "ai_coach" });
       }
     } catch (e) {
       console.error("initChatSystem error:", e);
@@ -863,6 +864,17 @@ function pvNextSession() {
   }
   function saveAiConversation(items) {
     try { localStorage.setItem(aiConversationKey(), JSON.stringify(items.slice(-30))); } catch (_) {}
+  }
+  function aiCoachConversationKey() {
+    let ns = "guest";
+    try { ns = typeof window.storageNamespace === "function" ? String(window.storageNamespace() || "guest") : String(window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest"); } catch (_) {}
+    return "pandahan_ai_coach_messages_v1_" + ns.replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+  function loadAiCoachConversation() {
+    try { const value = JSON.parse(localStorage.getItem(aiCoachConversationKey()) || "[]"); return Array.isArray(value) ? value.filter((m) => m && (m.role === "user" || m.role === "bot") && String(m.text || "").trim()).slice(-30) : []; } catch (_) { return []; }
+  }
+  function saveAiCoachConversation(items) {
+    try { localStorage.setItem(aiCoachConversationKey(), JSON.stringify(items.slice(-30))); } catch (_) {}
   }
   function conversationBox(area) {
     if (!area) return null;
@@ -1218,9 +1230,9 @@ function pvNextSession() {
     row.appendChild(bubble);
     box.appendChild(row);
     if (persist && String(text || "").trim()) {
-      const history = loadAiConversation();
+      const history = loadAiCoachConversation();
       history.push({ role: role === "user" ? "user" : "bot", text: String(text).slice(0, 2000), createdAt: Date.now() });
-      saveAiConversation(history);
+      saveAiCoachConversation(history);
     }
     area.scrollTop = area.scrollHeight;
   }
@@ -1293,9 +1305,55 @@ function pvNextSession() {
     area.scrollTop = area.scrollHeight;
   }
 
+  function setAiCoachComposer(active) {
+    const input = document.getElementById("chatMsgInput");
+    const send = document.getElementById("chatSendMsgBtn");
+    const attach = document.getElementById("chatAttachBtn");
+    if (input) {
+      input.disabled = !active;
+      input.value = "";
+      input.placeholder = active
+        ? (window.LANG_MODE === "en" ? "Ask AI Coach about today’s learning plan..." : "Hỏi AI Coach về nhiệm vụ học hôm nay...")
+        : (window.LANG_MODE === "en" ? "Type a message..." : "Nhập tin nhắn...");
+    }
+    if (send) send.disabled = !active;
+    if (attach) {
+      attach.disabled = !!active;
+      attach.style.opacity = active ? ".35" : "";
+      attach.title = active ? (window.LANG_MODE === "en" ? "AI Coach accepts text prompts only" : "AI Coach chỉ nhận câu hỏi dạng chữ") : "";
+    }
+  }
+  function renderAiCoachHistory() {
+    const area = document.getElementById("chatMessagesArea");
+    if (!area) return;
+    const history = loadAiCoachConversation();
+    if (!history.length) {
+      renderAiCoachMessage(window.LANG_MODE === "en"
+        ? "Hello, I am PandaHán AI Coach. I assign today’s sequence from verified schedule data: Phonetics → linked vocabulary → Pinyin Tone Quest → reading/writing. I keep the next curriculum day locked until required evidence is verified and the 30% threshold is met. Ask me what to do next, or tap a task in today’s plan."
+        : "Xin chào, mình là PandaHán AI Coach. Mình phân bổ nhiệm vụ hôm nay từ dữ liệu schedule đã xác minh theo chuỗi: Ngữ âm → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết. Ngày giáo trình tiếp theo vẫn khóa cho đến khi đủ evidence bắt buộc và ngưỡng 30%. Hãy hỏi mình nên học gì tiếp theo hoặc bấm một nhiệm vụ trong kế hoạch hôm nay.", "bot", false);
+      return;
+    }
+    history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
+  }
   function openAiCoachChat() {
-    window.switchTab?.("ai");
-    setTimeout(() => window.openAiTutorWorkspace?.(), 0);
+    activeChatUserId = "__pandahan_ai__";
+    activeChatId = null;
+    if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+    clearPendingChatFile();
+    document.getElementById("chatWrap")?.classList.add("chat-open");
+    const titleEl = document.getElementById("activeChatTitle");
+    if (titleEl) titleEl.textContent = window.LANG_MODE === "en" ? "PandaHán AI Coach · Learning Path" : "PandaHán AI Coach · Lộ trình học";
+    const area = document.getElementById("chatMessagesArea");
+    if (!area) return;
+    area.innerHTML = '<section data-ai-coach-message-intro="true" style="padding:10px 11px;border:1px solid #f2bfd8;border-radius:12px;background:#fff7fb;font-size:11.5px;line-height:1.5;color:#5b4964;"></section><div data-ai-coach-plan-host="true"></div>';
+    const intro = area.querySelector("[data-ai-coach-message-intro]");
+    if (intro) intro.textContent = window.LANG_MODE === "en"
+      ? "AI Coach allocates today’s verified learning sequence. Free practice and chat do not unlock the next curriculum day."
+      : "AI Coach phân bổ chuỗi học hôm nay từ dữ liệu đã xác minh. Học tự do và chat không tự mở ngày giáo trình tiếp theo.";
+    window.PandaHanMission?.renderCoach?.(area.querySelector("[data-ai-coach-plan-host]"));
+    renderAiCoachHistory();
+    renderAiCoachTimeline(area);
+    setAiCoachComposer(true);
   }
 
   window.openAiCoachChat = openAiCoachChat;
@@ -1309,6 +1367,11 @@ function pvNextSession() {
     const detail = event.detail || {};
     if (detail.verified !== true) return;
     recordAiCoachTimeline({ ...detail, source: "vocabulary", taskId: "vocabulary", action: "vocabulary_exposure_completed", passed: null, scorePercent: null, evaluatedAt: detail.completedAt || Date.now() }, "evaluation");
+  });
+  window.addEventListener("pandahan-mission-ready", () => {
+    if (activeChatUserId !== "__pandahan_ai__") return;
+    const host = document.querySelector("[data-ai-coach-plan-host]");
+    if (host) window.PandaHanMission?.renderCoach?.(host);
   });
 
   function getAiChatEndpoint() {
@@ -1347,7 +1410,7 @@ function pvNextSession() {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ message: String(text).slice(0, 2000), history: loadAiConversation().slice(-12), learner: buildAiLearnerContext(), lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || window.LANG_MODE || "vi" }),
+        body: JSON.stringify({ message: String(text).slice(0, 2000), history: (activeChatUserId === "__pandahan_ai__" ? loadAiCoachConversation() : loadAiConversation()).slice(-12), learner: buildAiLearnerContext(), lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || window.LANG_MODE || "vi" }),
         signal: controller.signal,
       });
       const payload = await response.json().catch(() => ({}));
@@ -1474,6 +1537,7 @@ function pvNextSession() {
   async function openChatWith(otherUid, otherName) {
     if (!CURRENT_USER) return;
     activeChatUserId = otherUid;
+    setAiCoachComposer(false);
     const myUid = CURRENT_USER.uid || CURRENT_USER.username;
     activeChatId = getChatId(myUid, otherUid);
     
