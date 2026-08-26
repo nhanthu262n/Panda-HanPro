@@ -58,12 +58,10 @@
         .map((d) => Number(d.day_number)).filter((n) => n > 0 && n <= 120);
       const completed = days.filter((d) => d.status === "completed")
         .map((d) => Number(d.day_number)).filter((n) => n > 0 && n <= 120);
-      const mission = window.PandaHanMission?.getCurrent?.() || window.PandaHanMission?.mission?.();
-      const chain = mission?.chain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" };
-      return { unlocked: Array.from(new Set(unlocked.length ? unlocked : [1])), completed: Array.from(new Set(completed)), chain, schedule: schedule || null };
+      return { unlocked: Array.from(new Set(unlocked.length ? unlocked : [1])), completed: Array.from(new Set(completed)), schedule: schedule || null };
     } catch (error) {
       console.warn("Quest schedule gate fallback:", error.message || error);
-      return { unlocked: [1], completed: [], chain: { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" }, schedule: null };
+      return { unlocked: [1], completed: [], schedule: null };
     }
   }
 
@@ -72,7 +70,6 @@
       type: "PANDAHAN_QUEST_GATE",
       unlockedDays: gate.unlocked,
       completedDays: gate.completed,
-      chain: gate.chain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" },
     }, "*");
   }
 
@@ -118,13 +115,12 @@
           dayNumber: day,
           scorePercent: score,
           passed: !!result?.result?.passed,
-          threshold: Number(result?.result?.threshold || 30),
+          threshold: Number(result?.result?.threshold || 80),
           reviewType: result?.result?.reviewType || "daily",
           repeatCount: Number(result?.result?.repeatCount || 0),
           action: result?.result?.action || "advance"
         };
-        const chainBlocked = evaluation.action === "linked_chain_incomplete";
-        outerStatus(chainBlocked ? "Quest chưa được tính vào lộ trình: hãy hoàn thành Ngữ âm và Từ vựng liên kết trước rồi làm lại Quest." : `Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`, chainBlocked);
+        outerStatus(`Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`);
         window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
         window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", rawSource: "pinyin-tone-quest", evidenceType: "quest_result", verified: true, ...evaluation, evaluatedAt: Date.now() } }));
         lastQuestResultKey = resultKey;
@@ -139,10 +135,10 @@
 
   const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();</script>`;
   const GATE_SCRIPT = `<script>(function(){
-    var gate={unlockedDays:[1],completedDays:[],chain:{lessonId:0,vocabularyIds:[],vocabularyChars:[],vocabulary:[],phoneticFocus:[],focusLabel:''}};
+    var gate={unlockedDays:[1],completedDays:[]};
     function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
-    var lastProgressFingerprint='';
-    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[],tail=mistakes[mistakes.length-1]||{},fingerprint=[completed.length,mistakes.length,last?last.day:0,last?Number(last.record.updatedAt||last.record.completedAt||0):0,String(tail.id||tail.updatedAt||tail.timestamp||tail.word||tail.char||'')].join('|');if(fingerprint===lastProgressFingerprint)return;lastProgressFingerprint=fingerprint;parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}
+    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
+    setInterval(reportProgress,700);
     var resultSent={}; var lastStartedDay=0;
     function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
@@ -163,17 +159,17 @@
       var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
-    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);gate.chain=d.chain||gate.chain;window.__PANDAHAN_QUEST_CHAIN=gate.chain;document.documentElement.dataset.chainLesson=String(gate.chain.lessonId||0);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
+    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy hoàn thành buổi học trước để mở buổi này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
-    setInterval(function(){reportProgress();reportResult();},1800);
+    setInterval(reportResult,700);
     document.documentElement.classList.add('ph-content-only');
     parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
   })();</script>`;
 
   const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
 
-  function extractQuestContentOnlyHtml(html, initialChain = null) {
+  function extractQuestContentOnlyHtml(html) {
     const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
     const main = parsed.querySelector("main.oh-main");
     const gameData = parsed.getElementById("game-data");
@@ -186,37 +182,6 @@
     app.appendChild(main.cloneNode(true));
     output.body.appendChild(app);
     output.body.appendChild(gameData.cloneNode(true));
-    const safeChain = initialChain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" };
-    const chainBootstrap = output.createElement("script");
-    chainBootstrap.textContent = `window.__PANDAHAN_QUEST_CHAIN=${JSON.stringify(safeChain)};`;
-    output.body.appendChild(chainBootstrap);
-    const chainFilter = output.createElement("script");
-    chainFilter.textContent = `(function(){
-      try {
-        var chain = window.__PANDAHAN_QUEST_CHAIN || {};
-        var chars = Array.from(new Set((chain.vocabularyChars || []).map(String).filter(Boolean)));
-        var node = document.getElementById('game-data');
-        if (!node || !chars.length) return;
-        var data = JSON.parse(node.textContent || '{}');
-        var contains = function(item){ var raw = JSON.stringify(item || {}); return chars.some(function(ch){ return raw.indexOf(ch) >= 0; }); };
-        var fallbackItems = (chain.vocabulary || []).filter(function(w){ return w && w.char; }).map(function(w, i){
-          var meaning = String(w.meaningEn || w.meaning || 'Review this linked word');
-          return { section:'vocabulary', heading:'Từ liên kết ' + (i + 1), prompt:String(w.char) + ' · ' + String(w.pinyin || ''), passage:meaning, options:[{label:'A',text:meaning},{label:'B',text:'Not this word'},{label:'C',text:'Choose again'}], answerLabel:'A', explanation:'This item was generated from the exact vocabulary manifest for this lesson.', audioTranscript:String(w.char), chainVocabularyId:String(w.id || '') };
-        });
-        var restrict = function(day){
-          if (!day) return day;
-          var isSession = Array.isArray(day.questions);
-          var items = isSession ? day.questions : (Array.isArray(day.items) ? day.items : []);
-          var matched = items.filter(contains);
-          var nextItems = matched.length ? matched : fallbackItems;
-          return isSession ? Object.assign({}, day, { questions: nextItems }) : Object.assign({}, day, { items: nextItems });
-        };
-        if (Array.isArray(data.sourceDays)) data.sourceDays = data.sourceDays.map(function(day){ return Number(day.day) === Number(chain.lessonId) ? restrict(day) : day; });
-        if (Array.isArray(data.hanziSessions) && Number(chain.lessonId) >= 1 && Number(chain.lessonId) <= data.hanziSessions.length) data.hanziSessions[Number(chain.lessonId) - 1] = restrict(data.hanziSessions[Number(chain.lessonId) - 1]);
-        node.textContent = JSON.stringify(data);
-      } catch (error) { console.warn('Quest chain vocabulary filter failed', error); }
-    })();`;
-    output.body.appendChild(chainFilter);
     runtime.forEach((script) => output.body.appendChild(script.cloneNode(true)));
     output.body.insertAdjacentHTML("beforeend", STORAGE_BOOTSTRAP + GATE_SCRIPT);
     return "<!doctype html>" + output.documentElement.outerHTML;
@@ -228,7 +193,6 @@
     if (objectUrl) { target.src = objectUrl; return objectUrl; }
     if (loadPromise) return loadPromise;
     setStatus("Đang ghép nội dung Pinyin Tone Quest…");
-    const initialGate = await getScheduleForQuest().catch(() => ({ chain: { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" } }));
     loadPromise = Promise.all(PARTS.map(async (part) => {
       const response = await fetch(part, { cache: "force-cache" });
       if (!response.ok) throw new Error(`Không tải được ${part} (${response.status})`);
@@ -241,16 +205,7 @@
         let html = decoder.decode(bytes);
         const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
         html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
-        const dayMarker = "const getDay = (day) => {";
-        const choiceMarker = "const getChoiceItems = (day) =>";
-        const dayStart = html.indexOf(dayMarker);
-        const choiceStart = html.indexOf(choiceMarker, dayStart);
-        if (dayStart >= 0 && choiceStart > dayStart) {
-          const originalBody = html.slice(dayStart + dayMarker.length, choiceStart);
-          const chainBranch = `const getDay = (day) => { const chain = window.__PANDAHAN_QUEST_CHAIN || {}; if (Number(chain.lessonId || 0) === Number(day) && Array.isArray(chain.vocabulary) && chain.vocabulary.length) { const items = chain.vocabulary.map((w, i) => { const toneMarks = {a:'āáǎà',e:'ēéěè',i:'īíǐì',o:'ōóǒò',u:'ūúǔù',ü:'ǖǘǚǜ'}; const toneIndex = {'ā':1,'á':2,'ǎ':3,'à':4,'ē':1,'é':2,'ě':3,'è':4,'ī':1,'í':2,'ǐ':3,'ì':4,'ō':1,'ó':2,'ǒ':3,'ò':4,'ū':1,'ú':2,'ǔ':3,'ù':4,'ǖ':1,'ǘ':2,'ǚ':3,'ǜ':4}; const pinyin = String(w.pinyin || ''); const detectedTone = Number(w.tone || [...pinyin].map((c) => toneIndex[c] || 0).find((n) => n > 0) || 0); const base = pinyin.replace(/[āáǎà]/g,'a').replace(/[ēéěè]/g,'e').replace(/[īíǐì]/g,'i').replace(/[ōóǒò]/g,'o').replace(/[ūúǔù]/g,'u').replace(/[ǖǘǚǜ]/g,'ü').replace(/[1-5]/g,''); const options = Array.isArray(w.toneOptions) && w.toneOptions.length ? w.toneOptions : [1,2,3,4].map((n) => { let at = base.indexOf('a'); if (at < 0) at = base.indexOf('e'); if (at < 0) { const ou = base.indexOf('ou'); at = ou >= 0 ? ou + 1 : -1; } if (at < 0) for (let j = base.length - 1; j >= 0; j -= 1) if ('aeiouü'.includes(base[j])) { at = j; break; } const v = at >= 0 ? base[at] : ''; return at >= 0 ? base.slice(0, at) + (toneMarks[v]?.[n - 1] || v) + base.slice(at + 1) : base; }); const labels = ['A','B','C','D']; const answerLabel = labels[Math.max(0, Math.min(3, detectedTone - 1))]; return { section:'vocabulary', heading:'Từ liên kết ' + (i + 1), prompt:w.char, passage:w.meaning || '', options:options.slice(0,4).map((text, n) => ({label:labels[n], text})), answerLabel, explanation:'Tập từ này được truyền từ AI Coach theo lesson/day manifest; không lấy từ ngoài ngày.', audioUrl:null, audioTranscript:w.pinyin || '', vocabularyId:w.id }; }); return { day, title:'AI Coach · Từ vựng liên kết ngày ' + day, items }; }` + originalBody;
-          html = html.slice(0, dayStart) + chainBranch + html.slice(choiceStart);
-        }
-        html = extractQuestContentOnlyHtml(html, initialGate.chain);
+        html = extractQuestContentOnlyHtml(html);
       objectUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
       target.onload = () => { activeFrameWindow = target.contentWindow; refreshQuestGate(); };
       target.src = objectUrl; target.style.opacity = "1";
@@ -276,9 +231,11 @@
       }
       activeFrameWindow.postMessage({ type: "PANDAHAN_QUEST_OPEN_REVIEW" }, "*");
     });
+  });
+  window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
+  document.addEventListener("DOMContentLoaded", () => {
     const card = document.getElementById("pCardPinyinQuest");
     if (card) card.addEventListener("click", () => loadQuestOffline().catch(() => {}));
     showPersistedSummary();
   });
-  window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
 })();
