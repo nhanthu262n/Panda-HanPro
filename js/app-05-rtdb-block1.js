@@ -80,7 +80,7 @@
       unlocked_at: first ? timestamp() : null,
       completed_at: null,
       day_type: day.day_type || "new_content",
-      required_score: Number(day.required_score || 80),
+      required_score: 30,
     };
   }
 
