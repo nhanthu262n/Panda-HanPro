@@ -121,20 +121,19 @@
       schedule: scheduleItem, curriculum, source: "real_vocab_stats_and_excel_day"
     };
   }
-  function canPracticeWord(char, plan = null) {
-    const key = String(char || "");
+  // `canPracticeWord` is intentionally permissive for the public Dictionary/
+  // Practice screens: a learner may open any word already present in the local
+  // 2,254-word data set at any time. The AI Coach chain remains strict because
+  // its launchers pass an explicit `options.words` manifest from the current day.
+  function canPracticeWord(char) {
+    const key = String(char || "").trim();
     if (!key) return false;
-    const stat = getStatFor(key);
-    if (hasRecallEvidence(stat)) return true;
-    const currentPlan = plan || buildPlan();
-    const state = getIntroState(Number(currentPlan.dayNumber || 1));
-    return !!state.completed && Array.isArray(state.chars) && state.chars.includes(key);
+    return !!getMap()[key];
   }
   function getPracticePool(level = "all") {
-    const plan = buildPlan();
-    return (Array.isArray(plan.practiceWords) ? plan.practiceWords : [])
+    return getVocab()
       .filter((word) => level === "all" || word.hsk === Number(level))
-      .filter((word) => canPracticeWord(word.char, plan));
+      .filter((word) => word && word.char && (word.examples?.length || word.unscramble?.length || word.meaning || word.meaning_en));
   }
   function completeIntroduction(dayNumber, chars) {
     const values = Array.from(new Set((chars || []).map(String).filter(Boolean)));
