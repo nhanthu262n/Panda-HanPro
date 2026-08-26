@@ -2,6 +2,9 @@
 <html lang="vi">
 <head>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>PandaHán Pro - HSK 1-2-3 Trilingual Dictionary &amp; SRS</title>
@@ -17,7 +20,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 
-<link rel="stylesheet" href="css/style.css?v=mobile-layout-20260825-v2">
+<link rel="stylesheet" href="css/style.css?v=ai-tutor-inline-vocab-20260826-v7">
 
 <style id="pandahan-quest-integration-css">
 .pinyin-tone-quest-view{display:none;background:#fafcfe;border-radius:16px;padding:12px;border:2px solid #c4b5fd;margin-top:10px;overflow:hidden;}
@@ -54,25 +57,29 @@
         <div class="pro-auth-card">
             <div style="font-size:3.5em; margin-bottom:10px;">🐼</div>
             <h2>PandaHán Pro</h2>
-            <p style="color:#636e72; font-size:14px; margin-bottom:25px;">Hệ thống học tập thông minh & đồng bộ</p>
-            
+            <p data-lang-vi="Hệ thống học tập thông minh & đồng bộ" data-lang-en="Smart, synced learning system" style="color:#636e72; font-size:14px; margin-bottom:12px;">Hệ thống học tập thông minh & đồng bộ</p>
+            <div id="initialLanguageChoice" data-language-choice style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 16px;padding:10px 12px;border:1px solid #fbcfe8;border-radius:12px;background:#fff7fb;">
+              <span data-lang-vi="Chọn ngôn ngữ" data-lang-en="Choose language" style="width:100%;font-size:11px;color:#6b6478;font-weight:700;">Chọn ngôn ngữ</span>
+              <button type="button" data-language-select="vi" style="border:1px solid #f9a8d4;border-radius:999px;background:#fff;color:#9d174d;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;">中文 - Tiếng Việt</button>
+              <button type="button" data-language-select="en" style="border:1px solid #c4b5fd;border-radius:999px;background:#fff;color:#6d28d9;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;">中文 - English</button>
+            </div>
             <div id="fbGoogleBtnPro" style="display:flex; justify-content:center; margin-bottom:10px;"></div>
-            <button id="proGoogleFallbackBtn" type="button" aria-label="Đăng nhập bằng Google" onclick="proGoogleLogin()" style="display:flex;width:100%;min-height:44px;border:1.5px solid #dadce0;border-radius:24px;background:#fff;color:#3c4043;font-weight:800;font-size:14px;cursor:pointer;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;">
-              <span style="font-weight:900;color:#4285f4;font-size:18px;">G</span><span>Đăng nhập bằng Google</span>
+            <button id="proGoogleFallbackBtn" type="button" data-aria-label-vi="Đăng nhập bằng Google" data-aria-label-en="Sign in with Google" aria-label="Đăng nhập bằng Google" onclick="proGoogleLogin()" style="display:flex;width:100%;min-height:44px;border:1.5px solid #dadce0;border-radius:24px;background:#fff;color:#3c4043;font-weight:800;font-size:14px;cursor:pointer;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;">
+              <span style="font-weight:900;color:#4285f4;font-size:18px;">G</span><span data-lang-vi="Đăng nhập bằng Google" data-lang-en="Sign in with Google">Đăng nhập bằng Google</span>
             </button>
             
             <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
                 <div style="flex:1; height:1px; background:#eee;"></div>
-                <span style="font-size:12px; color:#b2bec3;">hoặc</span>
+                <span data-lang-vi="hoặc" data-lang-en="or" style="font-size:12px; color:#b2bec3;">hoặc</span>
                 <div style="flex:1; height:1px; background:#eee;"></div>
             </div>
             
             <input id="proEmail" type="text" placeholder="Email">
-            <input id="proPass" type="password" placeholder="Mật khẩu">
-            <button class="btn-main" onclick="proLogin()">Đăng nhập ngay</button>
+            <input id="proPass" type="password" data-placeholder-vi="Mật khẩu" data-placeholder-en="Password" placeholder="Mật khẩu">
+            <button class="btn-main" data-lang-vi="Đăng nhập ngay" data-lang-en="Sign in now" onclick="proLogin()">Đăng nhập ngay</button>
             <div id="proError" style="color:#e74c3c; font-size:12px; margin-top:15px; display:none; background:#fdf2f2; padding:10px; border-radius:8px;"></div>
-            <button onclick="closeProAuth()" style="background:transparent; color:#636e72; border:none; margin-top:15px; cursor:pointer; font-size:13px; text-decoration:underline;">Tiếp tục Offline</button>
-            <div id="loadingIndicator" style="display:none; font-size:12px; color:#e84393; margin-top:10px;">⌛ Đang xử lý, vui lòng chờ...</div>
+            <button onclick="closeProAuth()" data-lang-vi="Tiếp tục Offline" data-lang-en="Continue offline" style="background:transparent; color:#636e72; border:none; margin-top:15px; cursor:pointer; font-size:13px; text-decoration:underline;">Tiếp tục Offline</button>
+            <div id="loadingIndicator" data-lang-vi="⌛ Đang xử lý, vui lòng chờ..." data-lang-en="⌛ Processing, please wait..." style="display:none; font-size:12px; color:#e84393; margin-top:10px;">⌛ Đang xử lý, vui lòng chờ...</div>
         </div>
     </div>
 
@@ -104,15 +111,15 @@
 <div class="app" id="app" style="display:none;">
   <header class="header">
     <div class="logo">🐼 Panda<span>Hán</span> Pro <small>HSK 1-2-3 · 中文 · <span id="langLabel">Tiếng Việt</span></small></div>
-    <button id="openFirstGuideBtn" class="hs-item" type="button" style="background:#fce7f3;color:#9d174d;border:none;cursor:pointer;font-weight:700;">Hướng dẫn người mới</button>
+    <button id="openFirstGuideBtn" class="hs-item" type="button" data-lang-vi="Hướng dẫn người mới" data-lang-en="New learner guide" style="background:#fce7f3;color:#9d174d;border:none;cursor:pointer;font-weight:700;">Hướng dẫn người mới</button>
     <div class="header-stats">
       <div id="notifBellWrap" style="position:relative;display:inline-block;">
         <button id="notifBellBtn" class="hs-item" style="background:#fef3c7;color:#92400e;border:none;cursor:pointer;font-size:16px;position:relative;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;line-height:1.3;">0</span></button>
         <div id="notifDropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border-radius:12px;box-shadow:var(--shadow,0 4px 20px rgba(0,0,0,0.08));width:280px;max-width:90vw;max-height:70vh;overflow-y:auto;z-index:100;padding:12px;font-size:12.5px;box-sizing:border-box;"></div>
       </div>
       <button id="langToggleBtn" class="hs-item" style="background:#fde68a;color:#92400e;border:none;cursor:pointer;font-weight:700;">🌐 中文-VI / 中文-EN</button>
-      <button id="testReminderBtn" class="hs-item" style="background:#fbbf24;color:#78350f;border:none;cursor:pointer;font-weight:700;" title="Nghe thử âm thanh nhắc nhở / Preview reminder audio">🔊 Test nhắc nhở</button>
-      <button id="enableNotifBtn" class="hs-item" style="background:#fde68a;color:#92400e;border:none;cursor:pointer;font-weight:700;display:none;">🔔 Bật thông báo</button>
+      <button id="testReminderBtn" class="hs-item" data-lang-vi="🔊 Test nhắc nhở" data-lang-en="🔊 Test reminder" style="background:#fbbf24;color:#78350f;border:none;cursor:pointer;font-weight:700;" title="Preview reminder audio">🔊 Test nhắc nhở</button>
+      <button id="enableNotifBtn" class="hs-item" data-lang-vi="🔔 Bật thông báo" data-lang-en="🔔 Enable notifications" style="background:#fde68a;color:#92400e;border:none;cursor:pointer;font-weight:700;display:none;">🔔 Bật thông báo</button>
       <!-- Statistics removed per user request -->
     </div>
   </header>
@@ -158,21 +165,21 @@
       <div style="width:30px;height:30px;border-radius:10px;flex:none;background:linear-gradient(135deg,#f472b6,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:900;" id="sidebarUserAvatar">N</div>
       <div style="min-width:0;overflow:hidden;">
         <div style="font-size:11px;font-weight:800;color:#1e1b4b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="sidebarUserName">—</div>
-        <div style="font-size:9px;color:#a78bfa;font-weight:600;">🌍 中文 · Tiếng Việt</div>
+        <div style="font-size:9px;color:#a78bfa;font-weight:600;" data-lang-vi="🌍 中文 · Tiếng Việt" data-lang-en="🌍 中文 · English">🌍 中文 · Tiếng Việt</div>
       </div>
       <div id="sidebarUserDropdown" style="display:none;position:absolute;left:0;top:calc(100% + 5px);width:100%;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1.5px solid rgba(251,207,232,0.6);z-index:1000;overflow:hidden;">
         <button id="sidebarLogoutBtnReal" style="width:100%;padding:10px;border:none;background:transparent;color:#dc2626;font-weight:800;font-size:12px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;">🚪 Thoát / Log out</button>
       </div>
     </div>
 
-    <button class="active" data-tab="browse">📚 Từ điển<span class="en">Dictionary</span></button>
-    <!-- <button data-tab="review">🎯 Ôn tập<span class="en">Review (SRS)</span></button> -->
-    <button data-tab="practice">✍️ Luyện tập<span class="en">Practice</span></button>
-    <button data-tab="dashboard">📊 Tiến độ<span class="en">Progress &amp; Rubric</span></button>
-    <button data-tab="pinyin">🎵 Ngữ âm<span class="en">Phonics</span></button>
-        <button data-tab="chat" style="position:relative;">💬 Nhắn tin<span class="en">Messages</span><span class="notif-dot" id="chatNotifDot"></span></button>
-    <button data-tab="ai" id="aiTeacherTabBtn">🤖 AI Teacher<span class="en">AI Tutor</span></button>
-    <button data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Giáo viên<span class="en">Teacher</span></button>
+    <button class="active" data-tab="browse" data-lang-vi="📚 Từ điển" data-lang-en="📚 Dictionary">📚 Từ điển</button>
+    <!-- <button data-tab="review" data-lang-vi="🎯 Ôn tập" data-lang-en="🎯 Review (SRS)">🎯 Ôn tập</button> -->
+    <button data-tab="practice" data-lang-vi="✍️ Luyện tập" data-lang-en="✍️ Practice">✍️ Luyện tập</button>
+    <button data-tab="dashboard" data-lang-vi="📊 Tiến độ" data-lang-en="📊 Progress & Rubric">📊 Tiến độ</button>
+    <button data-tab="pinyin" data-lang-vi="🎵 Ngữ âm" data-lang-en="🎵 Phonics">🎵 Ngữ âm</button>
+        <button data-tab="chat" style="position:relative;" data-lang-vi="💬 Nhắn tin (Lộ trình)" data-lang-en="💬 Messages (Learning Path)">💬 Nhắn tin (Lộ trình)<span class="notif-dot" id="chatNotifDot"></span></button>
+    <button data-tab="ai" id="aiTeacherTabBtn" data-lang-vi="🤖 AI Teacher" data-lang-en="🤖 AI Tutor">🤖 AI Teacher</button>
+    <button data-tab="teacher" id="teacherTabBtn" style="display:none;" data-lang-vi="👩‍🏫 Giáo viên" data-lang-en="👩‍🏫 Teacher">👩‍🏫 Giáo viên</button>
 
     <div style="flex:1;"></div>
     <div style="display:flex;justify-content:center;padding-bottom:2px;opacity:0.1;font-size:60px;">🐼</div>
@@ -181,30 +188,30 @@
       <span style="font-size:19px;" class="animate-wiggle">🔥</span>
       <div>
         <div style="font-size:12px;font-weight:900;color:#1e1b4b;" id="sidebarStreakDays">0 ngày</div>
-        <div style="font-size:9px;color:#9ca3af;font-weight:600;">Học liên tiếp</div>
+        <div data-lang-vi="Học liên tiếp" data-lang-en="Learning streak" style="font-size:9px;color:#9ca3af;font-weight:600;">Học liên tiếp</div>
       </div>
     </div>
   </nav>
 
   <div id="browseTab">
     <div class="toolbar">
-      <input type="text" id="searchInput" placeholder="🔍 Tìm chữ Hán / pinyin / nghĩa Việt / English...">
-      <select id="posFilter"><option value="all">📑 Tất cả loại từ / All POS</option></select>
+      <input type="text" id="searchInput" data-placeholder-vi="🔍 Tìm chữ Hán / pinyin / nghĩa Việt / English..." data-placeholder-en="🔍 Search Hanzi / pinyin / Vietnamese meaning / English..." placeholder="🔍 Tìm chữ Hán / pinyin / nghĩa Việt / English...">
+      <select id="posFilter"><option value="all" data-lang-vi="📑 Tất cả loại từ" data-lang-en="📑 All parts of speech">📑 Tất cả loại từ</option></select>
       <select id="tierFilter">
-        <option value="all">📊 Tất cả mức độ / All levels</option>
-        <option value="0">⚪ Chưa học / Not studied</option>
-        <option value="1">🔴 Mới học / New</option>
-        <option value="2">🟡 Đang ôn / Reinforcing</option>
-        <option value="3">🔵 Đã nắm / Familiar</option>
-        <option value="4">🟢 Thành thạo / Mastered</option>
-        <option value="due">⏰ Cần ôn / Due</option>
+        <option value="all" data-lang-vi="📊 Tất cả mức độ" data-lang-en="📊 All levels">📊 Tất cả mức độ</option>
+        <option value="0" data-lang-vi="⚪ Chưa học" data-lang-en="⚪ Not studied">⚪ Chưa học</option>
+        <option value="1" data-lang-vi="🔴 Mới học" data-lang-en="🔴 New">🔴 Mới học</option>
+        <option value="2" data-lang-vi="🟡 Đang ôn" data-lang-en="🟡 Reinforcing">🟡 Đang ôn</option>
+        <option value="3" data-lang-vi="🔵 Đã nắm" data-lang-en="🔵 Familiar">🔵 Đã nắm</option>
+        <option value="4" data-lang-vi="🟢 Thành thạo" data-lang-en="🟢 Mastered">🟢 Thành thạo</option>
+        <option value="due" data-lang-vi="⏰ Cần ôn" data-lang-en="⏰ Due for review">⏰ Cần ôn</option>
       </select>
     </div>
-    <div class="hsk-section hsk1"><h3>🟢 HSK 1 <small>Sơ cấp 1 / Elementary 1</small></h3><span class="badge badge-hsk1" id="hsk1Badge">353 từ</span><span class="count" id="hsk1Count">0/353</span></div>
+    <div class="hsk-section hsk1"><h3>🟢 HSK 1 <small data-lang-vi="Sơ cấp 1" data-lang-en="Elementary 1">Sơ cấp 1</small></h3><span class="badge badge-hsk1" id="hsk1Badge" data-lang-vi="353 từ" data-lang-en="353 words">353 từ</span><span class="count" id="hsk1Count">0/353</span></div>
     <div class="grid" id="hsk1Grid"></div>
-    <div class="hsk-section hsk2"><h3>🔵 HSK 2 <small>Sơ cấp 2 / Elementary 2</small></h3><span class="badge badge-hsk2" id="hsk2Badge">672 từ</span><span class="count" id="hsk2Count">0/672</span></div>
+    <div class="hsk-section hsk2"><h3>🔵 HSK 2 <small data-lang-vi="Sơ cấp 2" data-lang-en="Elementary 2">Sơ cấp 2</small></h3><span class="badge badge-hsk2" id="hsk2Badge" data-lang-vi="672 từ" data-lang-en="672 words">672 từ</span><span class="count" id="hsk2Count">0/672</span></div>
     <div class="grid" id="hsk2Grid"></div>
-    <div class="hsk-section hsk3"><h3>🟠 HSK 3 <small>Trung cấp / Intermediate</small></h3><span class="badge badge-hsk3" id="hsk3Badge">1229 từ</span><span class="count" id="hsk3Count">0/1229</span></div>
+    <div class="hsk-section hsk3"><h3>🟠 HSK 3 <small data-lang-vi="Trung cấp" data-lang-en="Intermediate">Trung cấp</small></h3><span class="badge badge-hsk3" id="hsk3Badge" data-lang-vi="1229 từ" data-lang-en="1229 words">1229 từ</span><span class="count" id="hsk3Count">0/1229</span></div>
     <div class="grid" id="hsk3Grid"></div>
   </div>
 
@@ -339,11 +346,11 @@
   </div>
 
   <div class="practice-section" id="practiceTab">
-    <h2 style="font-size:18px;margin-bottom:2px;">✍️ Luyện tập tam ngữ / Trilingual Practice</h2>
-    <p style="color:var(--text-light);margin-bottom:12px;font-size:13px;">Chọn cấp độ và dạng bài / Choose HSK level and exercise type</p>
+    <h2 data-lang-vi="✍️ Luyện tập tam ngữ" data-lang-en="✍️ Trilingual Practice" style="font-size:18px;margin-bottom:2px;">✍️ Luyện tập tam ngữ</h2>
+    <p data-lang-vi="Chọn cấp độ và dạng bài" data-lang-en="Choose HSK level and exercise type" style="color:var(--text-light);margin-bottom:12px;font-size:13px;">Chọn cấp độ và dạng bài</p>
     <div class="toolbar">
       <select id="practiceHskFilter">
-        <option value="all">📊 Tất cả cấp độ / All levels</option>
+        <option value="all" data-lang-vi="📊 Tất cả cấp độ" data-lang-en="📊 All levels">📊 Tất cả cấp độ</option>
         <option value="1">🟢 HSK 1</option>
         <option value="2">🔵 HSK 2</option>
         <option value="3">🟠 HSK 3</option>
@@ -413,36 +420,36 @@
   <div class="dashboard-view" id="aiTeacherView" style="display:none;">
     <div class="ai-teacher-page-head">
       <div>
-        <h2>🤖 AI Teacher</h2>
-        <p>Trợ lý học tiếng Trung hỗ trợ luyện hội thoại, giải thích từ và đề xuất bước học tiếp theo.</p>
+        <h2 data-lang-vi="🤖 AI Tutor · Không gian luyện tập" data-lang-en="🤖 AI Tutor · Practice workspace">🤖 AI Tutor · Không gian luyện tập</h2>
+        <p data-lang-vi="Chọn chủ đề, độ dài và ngôn ngữ; sau đó trò chuyện hoặc luyện viết cùng AI Tutor." data-lang-en="Choose a topic, length and language; then chat or practise writing with AI Tutor.">Chọn chủ đề, độ dài và ngôn ngữ; sau đó trò chuyện hoặc luyện viết cùng AI Tutor.</p>
       </div>
-      <span class="ai-teacher-status">AI hỗ trợ · Giáo viên kiểm soát</span>
+      <span class="ai-teacher-status" data-lang-vi="中文 · Tiếng Việt · English" data-lang-en="中文 · Vietnamese · English">中文 · Tiếng Việt · English</span>
     </div>
     <div id="aiChatMount"></div>
   </div>
 
   <div class="dashboard-view" id="chatView" style="display:none;">
-    <h2 style="font-size:20px;font-weight:800;color:var(--pink);margin-bottom:16px;">💬 Trò chuyện trực tiếp Giáo viên - Học viên / Direct Messaging</h2>
+    <h2 data-lang-vi="💬 Trò chuyện trực tiếp Giáo viên - Học viên" data-lang-en="💬 Direct Teacher–Student Messages" style="font-size:20px;font-weight:800;color:var(--pink);margin-bottom:16px;">💬 Trò chuyện trực tiếp Giáo viên - Học viên</h2>
     <div class="chat-wrap" id="chatWrap">
       <div class="chat-sidebar">
-        <h4>Danh sách liên hệ / Contacts</h4>
-        <button id="chatBroadcastBtn" type="button" class="chat-broadcast-btn" style="display:none;">📢 Gửi thông báo cho tất cả học viên<br><span style="font-weight:600;font-size:9.5px;opacity:.9;">Broadcast to all students</span></button>
+        <h4 data-lang-vi="Danh sách liên hệ" data-lang-en="Contacts">Danh sách liên hệ</h4>
+        <button id="chatBroadcastBtn" type="button" class="chat-broadcast-btn" data-lang-vi="📢 Gửi thông báo cho tất cả học viên" data-lang-en="📢 Broadcast to all students" style="display:none;">📢 Gửi thông báo cho tất cả học viên</button>
         <div id="chatContactList" style="display:flex;flex-direction:column;gap:4px;"></div>
       </div>
       <div class="chat-main">
         <div class="chat-header2" id="chatBoxHeader">
-          <button class="back-btn" id="chatBackBtn" type="button" title="Quay lại danh sách / Back">←</button>
-          <span id="activeChatTitle">Chọn một liên hệ để bắt đầu trò chuyện / Select a contact to chat</span>
+          <button class="back-btn" id="chatBackBtn" type="button" data-title-vi="Quay lại danh sách" data-title-en="Back to contacts" title="Quay lại danh sách">←</button>
+          <span id="activeChatTitle" data-lang-vi="Chọn một liên hệ để bắt đầu trò chuyện" data-lang-en="Select a contact to start chatting">Chọn một liên hệ để bắt đầu trò chuyện</span>
         </div>
         <div id="chatMessagesArea" class="chat-messages2">
-          <div style="text-align:center;color:var(--text-light);margin-top:auto;margin-bottom:auto;font-size:13px;">Chưa chọn cuộc trò chuyện nào.</div>
+          <div data-lang-vi="Chưa chọn cuộc trò chuyện nào." data-lang-en="No conversation selected." style="text-align:center;color:var(--text-light);margin-top:auto;margin-bottom:auto;font-size:13px;">Chưa chọn cuộc trò chuyện nào.</div>
         </div>
         <div id="chatFilePreview" style="display:none;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--pink);background:var(--pink-light);border-radius:10px;padding:6px 10px;margin:0 14px 8px;"></div>
         <div class="chat-input-bar">
           <input type="file" id="chatFileInput" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" />
-          <button id="chatAttachBtn" type="button" class="chat-attach-btn2" title="Đính kèm file / hình ảnh · Attach file / image">📎</button>
-          <input type="text" id="chatMsgInput" placeholder="Nhập tin nhắn... / Type a message..." />
-          <button id="chatSendMsgBtn" class="chat-send-btn2" title="Gửi / Send">➤</button>
+          <button id="chatAttachBtn" type="button" class="chat-attach-btn2" data-title-vi="Đính kèm tệp hoặc ảnh" data-title-en="Attach file or image" title="Đính kèm tệp hoặc ảnh">📎</button>
+          <input type="text" id="chatMsgInput" data-placeholder-vi="Nhập tin nhắn..." data-placeholder-en="Type a message..." placeholder="Nhập tin nhắn..." />
+          <button id="chatSendMsgBtn" class="chat-send-btn2" data-title-vi="Gửi" data-title-en="Send" title="Gửi">➤</button>
         </div>
       </div>
 
@@ -484,8 +491,8 @@
   </div>
 
   <div class="dashboard-view" id="dashboardView">
-    <h2 style="font-size:18px;margin-bottom:2px;">📊 Tiến độ học tập / Learning Progress</h2>
-    <p style="color:var(--text-light);margin-bottom:4px;font-size:13px;">Theo dõi hành trình chinh phục HSK 1-3 của bạn / Track your HSK 1-3 mastery journey</p>
+    <h2 data-lang-vi="📊 Tiến độ học tập" data-lang-en="📊 Learning Progress" style="font-size:18px;margin-bottom:2px;">📊 Tiến độ học tập</h2>
+    <p data-lang-vi="Theo dõi hành trình chinh phục HSK 1-3 của bạn" data-lang-en="Track your HSK 1–3 mastery journey" style="color:var(--text-light);margin-bottom:4px;font-size:13px;">Theo dõi hành trình chinh phục HSK 1-3 của bạn</p>
 
     <div class="bento-grid">
       <div class="bento-wide">
@@ -495,7 +502,7 @@
               <circle cx="60" cy="60" r="52" fill="none" stroke="#e9edf3" stroke-width="12"/>
               <circle id="dashRingFill" class="dash-ring-fill" cx="60" cy="60" r="52" fill="none" stroke="var(--pink)" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 1000" transform="rotate(-90 60 60)"/>
             </svg>
-            <div class="dash-ring-label"><span id="progressLabel">0%</span><small>Tiến độ<br>Progress</small></div>
+            <div class="dash-ring-label"><span id="progressLabel">0%</span><small data-lang-vi="Tiến độ" data-lang-en="Progress">Tiến độ</small></div>
           </div>
           <div class="dash-hero-stats">
             <div class="dash-stat"><div class="num orange" id="dashStreak">🔥0</div><div class="lbl">Streak</div></div>
@@ -505,10 +512,10 @@
 
       <div class="bento-wide">
         <div class="stat-quad">
-          <div class="stat-quad-card" data-cat="added" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#fef3c7;">➕</div><div class="stat-quad-num" id="statAdded">0</div><div class="stat-quad-lbl">Từ đã thêm<br>Added</div></div>
-          <div class="stat-quad-card" data-cat="remembered" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#d1fae5;">✅</div><div class="stat-quad-num" id="statRemembered">0</div><div class="stat-quad-lbl">Đã nhớ<br>Remembered</div></div>
-          <div class="stat-quad-card" data-cat="notRemembered" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#fee2e2;">❓</div><div class="stat-quad-num" id="statNotRemembered">0</div><div class="stat-quad-lbl">Chưa nhớ<br>Not yet</div></div>
-          <div class="stat-quad-card" data-cat="due" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#dbeafe;">🔁</div><div class="stat-quad-num" id="dashDue">0</div><div class="stat-quad-lbl">Cần ôn ngay<br>Due now</div></div>
+          <div class="stat-quad-card" data-cat="added" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#fef3c7;">➕</div><div class="stat-quad-num" id="statAdded">0</div><div class="stat-quad-lbl" data-lang-vi="Từ đã thêm" data-lang-en="Added words">Từ đã thêm</div></div>
+          <div class="stat-quad-card" data-cat="remembered" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#d1fae5;">✅</div><div class="stat-quad-num" id="statRemembered">0</div><div class="stat-quad-lbl" data-lang-vi="Đã nhớ" data-lang-en="Remembered">Đã nhớ</div></div>
+          <div class="stat-quad-card" data-cat="notRemembered" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#fee2e2;">❓</div><div class="stat-quad-num" id="statNotRemembered">0</div><div class="stat-quad-lbl" data-lang-vi="Chưa nhớ" data-lang-en="Not yet">Chưa nhớ</div></div>
+          <div class="stat-quad-card" data-cat="due" style="cursor:pointer;"><div class="stat-quad-icon" style="background:#dbeafe;">🔁</div><div class="stat-quad-num" id="dashDue">0</div><div class="stat-quad-lbl" data-lang-vi="Cần ôn ngay" data-lang-en="Due now">Cần ôn ngay</div></div>
         </div>
       </div>
 
@@ -605,7 +612,7 @@
   <div id="aiToolbarMenu" role="menu" aria-label="Các chức năng AI">
     <div class="ai-toolbar-title">✨ AI Teacher</div>
     <div class="ai-toolbar-hint">Các chức năng AI được gom về một vị trí để tránh chồng lấn với tin nhắn giáo viên.</div>
-    <button id="chatFab" class="ai-tool-action" type="button" title="Luyện hội thoại tiếng Trung với Panda">🐼 <span>Mở Chat AI luyện hội thoại</span></button>
+    <button id="chatFab" class="ai-tool-action" type="button" title="Mở Nhắn tin (Lộ trình)">🐼 <span>Nhắn tin (Lộ trình)</span></button>
     <div class="ai-toolbar-hint">📖 Muốn tra từ hoặc nhờ AI giải thích: chọn một từ trong bài học rồi bấm nút tra từ.</div>
   </div>
   <button id="aiToolbarToggle" type="button" aria-expanded="false" aria-controls="aiToolbarMenu" title="Mở thanh công cụ AI">✨ AI</button>
@@ -613,7 +620,7 @@
 <div id="chatPanel">
   <div id="chatPanelHeader">
     <span>🐼</span>
-    <div><div>Luyện hội thoại</div><div class="sub">Chỉ dùng từ vựng HSK1-3 đã học</div></div>
+    <div><div>Nhắn tin (Lộ trình)</div><div class="sub" data-lang-vi="AI Coach · dùng từ vựng HSK1-3 đã học" data-lang-en="AI Coach · uses studied HSK1-3 vocabulary">AI Coach · dùng từ vựng HSK1-3 đã học</div></div>
     <button id="chatCloseBtn">✕</button>
   </div>
   <select id="chatTopicSelect" style="margin:8px 10px 0;padding:6px 10px;border-radius:10px;border:1.5px solid var(--pink-light,#fce4ec);font-size:11.5px;background:var(--surface,#fff);color:var(--text,#2d2a3a);"></select>
@@ -635,20 +642,23 @@
   <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
   
 <script defer src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
-<script defer src="js/app-02.js?v=chain-learning-20260825-v1"></script>
-<script defer src="js/adaptive-learning-engine.js?v=chain-learning-20260825-v1"></script>
-<script defer src="js/app-03.js?v=adaptive-real-evidence-20260824-v4"></script>
+<script defer src="js/app-02.js?v=ai-tutor-highlight-20260826-v9"></script>
+<script defer src="js/adaptive-learning-engine.js?v=free-study-chain-20260826-v2"></script>
+<script defer src="js/app-03.js?v=ai-tutor-highlight-20260826-v11"></script>
 <script defer src="js/firebase-boot.js"></script>
-<script defer src="js/auth-bridge.js?v=strict-gate-ai-coach-20260823-final2"></script>
-<script defer src="js/schedule-engine-core.js?v=chain-learning-20260825-v1"></script>
-<script defer src="js/app-04-adaptive-schedule.js?v=chain-learning-20260825-v1"></script>
-<script defer src="js/daily-missions.js?v=chain-learning-20260825-v1"></script>
+<script defer src="js/auth-bridge.js?v=threshold-30-continuation-20260826-v4"></script>
+<script defer src="js/schedule-engine-core.js?v=threshold-30-carry-forward-20260826-v4"></script>
+<script defer src="js/app-04-adaptive-schedule.js?v=threshold-30-carry-forward-20260826-v5"></script>
+<script defer src="js/hsk-topic-library.js?v=hsk-topic-library-20260826-v2"></script>
+<script defer src="js/hsk-topic-library-advanced.js?v=hsk-topic-economy-culture-20260826-v2"></script>
+<script defer src="js/ai-tutor-grammar-pack.js?v=ai-tutor-grammar-pack-20260826-v1"></script>
+<script defer src="js/daily-missions.js?v=ai-tutor-grammar-tutor-20260826-v13"></script>
 <script defer src="js/app-05-rtdb-block1.js"></script>
 <script defer src="js/app-06-quest-ui.js"></script>
-<script defer src="js/app-07-quest-parts-loader.js?v=chain-learning-20260825-v1"></script>
+<script defer src="js/app-07-quest-parts-loader.js?v=chain-manifest-20260826-v2"></script>
 <script defer src="js/pinyin-phonetics-loader.js?v=real-evidence-20260824-v1"></script>
 <script defer src="js/ai-coach-evidence.js?v=real-evidence-20260824-v1"></script>
 <script defer src="js/offline-enhancements.js?v=real-evidence-20260824-v2"></script>
-<script defer src="js/first-time-guide.js?v=real-evidence-20260824-v2"></script>
+<script defer src="js/first-time-guide.js?v=english-onboarding-20260826-v3"></script>
 </body>
 </html>
