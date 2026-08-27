@@ -2087,7 +2087,7 @@ function startAdaptiveVocabularyLesson(words, dayNumber) {
       try {
         if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") { failPlayed(); return; }
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(w.pinyin);
+        const utterance = new SpeechSynthesisUtterance(w.char);
         utterance.lang = "zh-CN";
         utterance.rate = 0.72;
         utterance.pitch = 1;
@@ -2188,8 +2188,9 @@ window.addEventListener("pandahan-quest-score-saved", (event) => {
   window.PandaHanVocabularyPhase.completeGame(Number(mission.dayNumber), words.map((w) => w.char), Number(detail.scorePercent));
 });
 
+let quizAttemptRows = [];
 function runQuiz() {
-  quizIdx = 0; quizScore = 0;
+  quizIdx = 0; quizScore = 0; quizAttemptRows = [];
   showScreen("quiz");
   document.getElementById("qTotal").textContent = quizQueue.length;
   showQuizQuestion();
@@ -2230,6 +2231,7 @@ function timeoutQuizQuestion(q) {
     if (b.dataset.letter === q.answer) b.classList.add("correct");
   });
   recordQuizResult(q.char, false, { source: "quiz-timeout", dayNumber: Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), prompt: q.question, expected: q.options?.find((option) => option[0] === q.answer)?.[1] || q.answer, selected: "timeout" });
+  quizAttemptRows.push({ char: q.char, correct: false, expected: q.options?.find((option) => option[0] === q.answer)?.[1] || q.answer, selected: "timeout", explanation: explainAnswer(q) });
   const explainBox = document.createElement("div");
   explainBox.className = "quiz-explain bad";
   explainBox.innerHTML = `
@@ -2280,6 +2282,7 @@ function answerQuiz(btn, q) {
   });
   if (correct) quizScore++;
   recordQuizResult(q.char, correct, { source: "quiz", dayNumber: Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0), prompt: q.question, expected: q.options?.find((option) => option[0] === q.answer)?.[1] || q.answer, selected: btn?.textContent || "" });
+  quizAttemptRows.push({ char: q.char, correct, expected: q.options?.find((option) => option[0] === q.answer)?.[1] || q.answer, selected: btn?.textContent || "", explanation: explainAnswer(q) });
 
   const explainBox = document.createElement("div");
   explainBox.className = "quiz-explain " + (correct ? "ok" : "bad");
@@ -2296,6 +2299,18 @@ function answerQuiz(btn, q) {
 function showQuizResult() {
   finishMistakeReviewIfClear();
   const pct = Math.round((quizScore / quizQueue.length) * 100);
+  const missionDay = Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
+  const wrongItems = quizAttemptRows.filter((row) => !row.correct).map((row) => ({ char: row.char, expected: row.expected, selected: row.selected, explanation: row.explanation }));
+  const feedback = pct >= 80 ? L("Nắm tốt nhóm từ. Hãy ôn ngắt quãng để giữ độ chắc.", "Strong linked-vocabulary result. Use spaced review to retain it.") : pct >= 30 ? L("Đã có điểm, nhưng hãy ôn lại các câu sai trước buổi mới.", "The score is recorded, but redo the wrong items before the next session.") : L("Chưa đạt mục tiêu. Hãy nghe lại audio mẫu và làm lại nhóm từ này.", "Below target. Replay the model audio and retry this linked-vocabulary set.");
+  const owner = String(typeof storageNamespace === "function" ? storageNamespace() : (window.CURRENT_USER?.uid || "guest")).replace(/[^a-zA-Z0-9_-]/g, "_");
+  const assessment = { source: "linked-vocabulary-quiz", dayNumber: missionDay, scorePercent: pct, correct: quizScore, total: quizQueue.length, wrongItems, feedback, evaluatedAt: Date.now() };
+  try {
+    const key = `pandahan_ai_coach_assessments_v1_${owner}`;
+    const rows = JSON.parse(localStorage.getItem(key) || "[]");
+    localStorage.setItem(key, JSON.stringify([assessment, ...rows.filter((row) => !(String(row.source) === assessment.source && Number(row.dayNumber) === missionDay))].slice(0, 40)));
+  } catch (_) {}
+  window.dispatchEvent(new CustomEvent("pandahan-ai-coach-assessment", { detail: assessment }));
+  window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { ...assessment, rawSource: "vocabulary-quiz", evidenceType: "linked_vocabulary_quiz", verified: true } }));
   const goingToReview = postQuizGoToReview && pendingFlashcardQueue && pendingFlashcardQueue.length;
   const goingToDialogue = pendingDialogueQueue && pendingDialogueQueue.length;
   let btnHtml, noteHtml = "";
@@ -2312,6 +2327,7 @@ function showQuizResult() {
   document.getElementById("qContent").innerHTML =
     `<div class="quiz-result"><div class="score">${pct}%</div>
      <p>${L(`Đúng ${quizScore}/${quizQueue.length} câu`, `${quizScore}/${quizQueue.length} correct`)}</p>
+     <div style="margin:12px auto;max-width:520px;padding:10px 12px;border-radius:10px;background:${pct >= 80 ? '#f0fdf4' : pct >= 30 ? '#fffbeb' : '#fef2f2'};color:${pct >= 80 ? '#166534' : pct >= 30 ? '#92400e' : '#b91c1c'};font-size:13px;line-height:1.5;">🤖 <b>${L("AI Coach nhận xét", "AI Coach feedback")}:</b> ${esc(feedback)}${wrongItems.length ? `<br><span style="font-size:12px;">${L("Cần ôn", "Review")}: ${wrongItems.map((item) => esc(item.char || item.expected)).filter(Boolean).join(" · ")}</span>` : ""}</div>
      ${noteHtml}
      ${btnHtml}</div>`;
   document.getElementById("qProgress").textContent = quizQueue.length;
