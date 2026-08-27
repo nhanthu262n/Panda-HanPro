@@ -1075,7 +1075,12 @@ function pvNextSession() {
     const formatted = topic ? window.PandaHanMission?.formatTopicForTutor?.(topic.id, aiTutorState.length) : null;
     if (!topic || !formatted) { container.innerHTML = ""; return; }
     const readingScope = `ai_tutor_reading_${topic.id}_${aiTutorState.length || "adaptive"}`;
-    container.innerHTML = `<section class="ai-tutor-inline-reading"><div class="ai-tutor-inline-head"><div><b>${escapeHtml(tutorText("Đoạn đọc tương tác", "Interactive reading", "互动阅读"))}</b><span>${escapeHtml(`HSK ${formatted.level} · ${topic.topicEn}`)}</span></div><small>${escapeHtml(tutorText("Bôi đen từ/cụm từ để tra nghĩa hoặc chọn màu từ thanh highlight giống Từ điển.", "Select a word/phrase to look it up, or use the Dictionary-style highlight palette.", "选中词语可查义，或使用与词典相同的高亮色板。"))}</small></div><p id="aiTutorReadingText" class="ai-tutor-reading-text lookup-text ai-tutor-highlightable" data-highlight-scope="${escapeHtml(readingScope)}" lang="zh" title="${escapeHtml(tutorText("Bôi đen nội dung để highlight giống Từ điển", "Select text to highlight it like Dictionary text", "选中文本即可像词典一样高亮"))}">${escapeHtml(formatted.zh)}</p><p class="ai-tutor-reading-pinyin">${escapeHtml(formatted.pinyin)}</p><div class="ai-tutor-reading-actions"><button type="button" id="aiTutorLookupSelection">${escapeHtml(tutorText("Tra nghĩa & lưu phần đã chọn", "Look up & save selection", "查义并保存所选内容"))}</button><span>${escapeHtml(tutorText("Có thể lưu cả từ đơn lẫn cụm từ; thao tác này không mở khóa schedule.", "You can save single words or phrases; this never unlocks the schedule.", "可保存单词或短语；此操作不会解锁日程。"))}</span></div><div data-ai-tutor-inline-detail></div></section>`;
+    const responseLanguage = tutorResponseLanguage("");
+    const readingMeaning = responseLanguage === "en" ? formatted.en : formatted.vi;
+    const meaningLabel = responseLanguage === "en" ? "Meaning in English" : responseLanguage === "zh" ? "释义（越南语）" : "Nghĩa tiếng Việt";
+    const meaningHelp = responseLanguage === "en" ? "The meaning follows the selected reply language." : responseLanguage === "zh" ? "释义会随所选回复语言显示。" : "Nghĩa thay đổi theo ngôn ngữ phản hồi đã chọn.";
+    const meaningHtml = readingMeaning ? `<section class="ai-tutor-reading-meaning" lang="${responseLanguage === "en" ? "en" : "vi"}"><b>${escapeHtml(meaningLabel)}</b><p>${escapeHtml(readingMeaning)}</p><small>${escapeHtml(meaningHelp)}</small></section>` : "";
+    container.innerHTML = `<section class="ai-tutor-inline-reading"><div class="ai-tutor-inline-head"><div><b>${escapeHtml(tutorText("Đoạn đọc tương tác", "Interactive reading", "互动阅读"))}</b><span>${escapeHtml(`HSK ${formatted.level} · ${topic.topicEn}`)}</span></div><small>${escapeHtml(tutorText("Bôi đen từ/cụm từ để tra nghĩa hoặc chọn màu từ thanh highlight giống Từ điển.", "Select a word/phrase to look it up, or use the Dictionary-style highlight palette.", "选中词语可查义，或使用与词典相同的高亮色板。"))}</small></div><p id="aiTutorReadingText" class="ai-tutor-reading-text lookup-text ai-tutor-highlightable" data-highlight-scope="${escapeHtml(readingScope)}" lang="zh" title="${escapeHtml(tutorText("Bôi đen nội dung để highlight giống Từ điển", "Select text to highlight it like Dictionary text", "选中文本即可像词典一样高亮"))}">${escapeHtml(formatted.zh)}</p><p class="ai-tutor-reading-pinyin">${escapeHtml(formatted.pinyin)}</p>${meaningHtml}<div class="ai-tutor-reading-actions"><button type="button" id="aiTutorLookupSelection">${escapeHtml(tutorText("Tra nghĩa & lưu phần đã chọn", "Look up & save selection", "查义并保存所选内容"))}</button><span>${escapeHtml(tutorText("Có thể lưu cả từ đơn lẫn cụm từ; thao tác này không mở khóa schedule.", "You can save single words or phrases; this never unlocks the schedule.", "可保存单词或短语；此操作不会解锁日程。"))}</span></div><div data-ai-tutor-inline-detail></div></section>`;
     const reading = container.querySelector("#aiTutorReadingText");
     window.PandaHanTextHighlights?.apply?.(readingScope, reading);
     const showSelected = () => {
@@ -1167,7 +1172,7 @@ function pvNextSession() {
       const fallbackText = topic
         ? (language === "zh" ? `HSK ${topic.level} 主题：${topic.topicEn}` : language === "en" ? `HSK ${topic.level} topic: ${topic.topicEn}` : `Chủ đề HSK ${topic.level}: ${topic.topicVi}`)
         : clean;
-      reply = window.PandaHanMission?.replyTo?.(fallbackText, { language, length: aiTutorState.length }) || tutorText("AI Tutor đang tải. Hãy thử lại sau.", "AI Tutor is loading. Please try again.", "AI Tutor 正在加载，请稍后再试。");
+      reply = window.PandaHanMission?.replyTo?.(fallbackText, { language, length: aiTutorState.length, context: "ai-tutor", selectedStandardTopic: Boolean(topic) }) || tutorText("AI Tutor đang tải. Hãy thử lại sau.", "AI Tutor is loading. Please try again.", "AI Tutor 正在加载，请稍后再试。");
     }
     tutorClearProcessing(area);
     const botCreatedAt = Date.now();
@@ -1328,9 +1333,10 @@ function pvNextSession() {
     if (!area) return;
     const history = loadAiCoachConversation();
     if (!history.length) {
-      renderAiCoachMessage(window.LANG_MODE === "en"
+      const routeStatus = window.PandaHanMission?.getRouteStatusText?.(window.LANG_MODE === "en" ? "en" : "vi") || "";
+      renderAiCoachMessage((window.LANG_MODE === "en"
         ? "Hello, I am PandaHán AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Today’s plan follows one exact order: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking → linked vocabulary learn/speak → Pinyin Tone Quest using that word set → writing/reading → redo every open error. Every Open step button leads to its matching screen. Quest accepts only the currently unlocked schedule day after earlier steps; Day 2 is evaluated from the registration-date schedule only after Day 1 has real evidence, score and cleared errors. Missed or incomplete work creates repeat sessions 121, 122, 123…; wrong items follow 1–3–5–7–14–30–60-day spaced redo."
-        : "Xin chào, mình là PandaHán AI Coach. Lộ trình 3.0 có 120 ngày HSK1–HSK2–HSK3. Kế hoạch hôm nay theo một chuỗi thống nhất: Quiz nghe Ngữ âm 10 câu đạt từ 30% → Nói Ngữ âm có evidence → Học/Nói Từ vựng liên kết → Pinyin Tone Quest dùng đúng nhóm từ → Viết nghĩa/Đọc–Viết → ôn toàn bộ câu sai khi còn. Mỗi nút Vào học dẫn đúng trang tương ứng. Quest chỉ nhận điểm cho ngày schedule đang mở sau các bước phía trước; Day 2 chỉ được xét mở theo ngày đăng ký khi Day 1 đủ evidence, điểm thật và đã xử lý câu sai. Nếu bỏ lỡ/chưa hoàn thành sẽ tạo repeat 121, 122, 123…; câu sai ôn theo 1–3–5–7–14–30–60 ngày.", "bot", false);
+        : "Xin chào, mình là PandaHán AI Coach. Lộ trình 3.0 có 120 ngày HSK1–HSK2–HSK3. Kế hoạch hôm nay theo một chuỗi thống nhất: Quiz nghe Ngữ âm 10 câu đạt từ 30% → Nói Ngữ âm có evidence → Học/Nói Từ vựng liên kết → Pinyin Tone Quest dùng đúng nhóm từ → Viết nghĩa/Đọc–Viết → ôn toàn bộ câu sai khi còn. Mỗi nút Vào học dẫn đúng trang tương ứng. Quest chỉ nhận điểm cho ngày schedule đang mở sau các bước phía trước; Day 2 chỉ được xét mở theo ngày đăng ký khi Day 1 đủ evidence, điểm thật và đã xử lý câu sai. Nếu bỏ lỡ/chưa hoàn thành sẽ tạo repeat 121, 122, 123…; câu sai ôn theo 1–3–5–7–14–30–60 ngày.") + (routeStatus ? `\n\n${routeStatus}` : ""), "bot", false);
       return;
     }
     history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
@@ -1436,6 +1442,7 @@ function pvNextSession() {
   window.addEventListener("pandahan-language-changed", () => {
     const tutorView = document.getElementById("aiTeacherView");
     if (tutorView && tutorView.style.display !== "none") window.openAiTutorWorkspace?.();
+    else if (activeChatUserId === "__pandahan_ai__") openAiCoachChat();
   });
 
   function getChatId(uid1, uid2) {
