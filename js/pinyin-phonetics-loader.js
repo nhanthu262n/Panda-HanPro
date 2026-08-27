@@ -26,12 +26,12 @@
     if (!root) return;
     const pct = Math.round((done / PARTS.length) * 100);
     root.innerHTML = `<div style="padding:28px;text-align:center;color:#9ca3af;font-weight:700">
-      <div style="font-size:18px;margin-bottom:8px">Đang tải Ngữ âm Pinyin…</div>
-      <div style="font-size:13px;margin-bottom:12px">Lần đầu cần tải dữ liệu âm thanh và flashcard.</div>
+      <div style="font-size:18px;margin-bottom:8px">${window.LANG_MODE === "en" ? "Loading Pinyin Phonetics…" : "Đang tải Ngữ âm Pinyin…"}</div>
+      <div style="font-size:13px;margin-bottom:12px">${window.LANG_MODE === "en" ? "Audio and flashcard data load on first use." : "Lần đầu cần tải dữ liệu âm thanh và flashcard."}</div>
       <div style="height:8px;background:#fce7f3;border-radius:99px;overflow:hidden">
         <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ec4899,#a855f7);transition:width .25s"></div>
       </div>
-      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} phần đã tải</div>
+      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} ${window.LANG_MODE === "en" ? "parts loaded" : "phần đã tải"}</div>
     </div>`;
   }
 
@@ -41,10 +41,10 @@
     if (!root) return;
     const isFetchError = error instanceof TypeError || /fetch|cors|network/i.test(String(error?.message || error));
     const detail = isFetchError
-      ? 'AI Teacher cần backend cho phép CORS từ GitHub Pages. Vui lòng thử lại sau khi backend được cấu hình.'
-      : 'Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.';
+      ? (window.LANG_MODE === "en" ? 'AI Tutor needs a backend that permits CORS from GitHub Pages. Retry after the backend is configured.' : 'AI Teacher cần backend cho phép CORS từ GitHub Pages. Vui lòng thử lại sau khi backend được cấu hình.')
+      : (window.LANG_MODE === "en" ? 'Check your network, then press Ctrl + F5 to retry.' : 'Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.');
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
-      <strong>Không tải được module Ngữ âm.</strong><br>${detail}
+      <strong>${window.LANG_MODE === "en" ? "Unable to load the Phonetics module." : "Không tải được module Ngữ âm."}</strong><br>${detail}
     </div>`;
   }
 
@@ -87,6 +87,18 @@
       panel.setAttribute('aria-hidden', 'true');
       panel.setAttribute('data-pandahan-overview-history-hidden', 'true');
     }
+  }
+
+  function applyPinyinLanguageContent() {
+    const host = getRoot();
+    const shadow = host && host.shadowRoot;
+    if (!shadow) return;
+    const intro = [...shadow.querySelectorAll('p')].find((el) => el.dataset.pandahanPinyinViHtml || (el.textContent || '').includes('Trong zhi/chi/shi/ri'));
+    if (!intro) return;
+    if (!intro.dataset.pandahanPinyinViHtml) intro.dataset.pandahanPinyinViHtml = intro.innerHTML;
+    intro.innerHTML = window.LANG_MODE === 'en'
+      ? 'For <b>zhi/chi/shi/ri</b>, the letter <b>i</b> is a special apical-vowel sound, close to Vietnamese “ư” but not the same sound and not a long “i”. In <b>zi/ci/si</b>, the letter <b>i</b> is a front apical vowel; do not curl the tongue into “ư”.'
+      : intro.dataset.pandahanPinyinViHtml;
   }
 
   function installPinyinLayoutFix() {
@@ -141,7 +153,7 @@
     if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
     const shadow=host.shadowRoot;
     let timer=0;
-    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();},120)};
+    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();applyPinyinLanguageContent();window.translateKnownLegacyUi?.(host);},120)};
     hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();
     host.__pinyinUiObserver=new MutationObserver(refresh);
     host.__pinyinUiObserver.observe(shadow,{childList:true,subtree:true});
@@ -194,7 +206,7 @@
       window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
       mounted = true;
 
-      setTimeout(installPinyinObservers, 0);
+      setTimeout(() => { installPinyinObservers(); applyPinyinLanguageContent(); window.translateKnownLegacyUi?.(mountRoot); }, 0);
     })().catch((error) => {
       loadingPromise = null;
       mounted = false;
@@ -204,4 +216,8 @@
 
     return loadingPromise;
   };
+  window.addEventListener("pandahan-language-changed", () => {
+    const root = getRoot();
+    if (root) { applyPinyinLanguageContent(); window.translateKnownLegacyUi?.(root); }
+  });
 })();
