@@ -8,7 +8,13 @@ window.LANG_MODE = LANG_MODE;
 const LEGACY_UI_EN = {
   "Hệ thống học tập thông minh & đồng bộ": "Smart, synced learning system", "Đăng nhập bằng Google": "Sign in with Google", "Đăng nhập ngay": "Sign in now", "Tiếp tục Offline": "Continue offline", "Mật khẩu": "Password", "hoặc": "or",
   "Từ điển": "Dictionary", "Luyện tập": "Practice", "Tiến độ": "Progress", "Ngữ âm": "Phonetics", "Nhắn tin (Lộ trình)": "Messages (Learning Path)", "Giáo viên": "Teacher", "Ôn tập": "Review", "Cần ôn": "Due for review", "Chưa học": "Not studied", "Mới học": "New", "Đang ôn": "Reinforcing", "Đã nắm": "Familiar", "Thành thạo": "Mastered", "Không có dữ liệu": "No data", "Đóng": "Close", "Quay lại": "Back", "Nghe": "Listen", "Bắt đầu": "Start", "Hoàn thành": "Completed",
-  "Làm lại": "Retry", "Thoát": "Exit", "Câu tiếp theo": "Next question", "Kiểm tra": "Check", "Đáp án": "Answer", "Đúng": "Correct", "Sai": "Incorrect", "Điểm": "Score", "Mục tiêu": "Target", "Thời lượng dự kiến": "Estimated time", "Bài luyện": "Practice activity", "Bài tập": "Exercise", "Câu hỏi": "Question", "Kết quả": "Result", "Hướng dẫn": "Guide", "Lưu": "Save", "Đã lưu": "Saved", "Mở bài": "Open task", "Ôn lại câu sai": "Redo wrong items", "Học liên tiếp": "Learning streak", "Tất cả cấp độ": "All levels", "Tất cả mức độ": "All levels", "Tất cả loại từ": "All parts of speech"
+  "Làm lại": "Retry", "Thoát": "Exit", "Câu tiếp theo": "Next question", "Kiểm tra": "Check", "Đáp án": "Answer", "Đúng": "Correct", "Sai": "Incorrect", "Điểm": "Score", "Mục tiêu": "Target", "Thời lượng dự kiến": "Estimated time", "Bài luyện": "Practice activity", "Bài tập": "Exercise", "Câu hỏi": "Question", "Kết quả": "Result", "Hướng dẫn": "Guide", "Lưu": "Save", "Đã lưu": "Saved", "Mở bài": "Open task", "Ôn lại câu sai": "Redo wrong items", "Học liên tiếp": "Learning streak", "Tất cả cấp độ": "All levels", "Tất cả mức độ": "All levels", "Tất cả loại từ": "All parts of speech",
+  "Động từ": "Verb", "Danh từ": "Noun", "Tính từ": "Adjective", "Trạng từ": "Adverb", "Phó từ": "Adverb", "Số từ": "Numeral", "Lượng từ": "Measure word", "Trợ từ": "Particle", "Trợ động từ": "Modal verb", "Giới từ": "Preposition", "Liên từ": "Conjunction", "Thán từ": "Interjection", "Cụm từ/thành ngữ": "Phrase / idiom", "Danh từ / Tính từ": "Noun / adjective", "Tính từ / Động từ": "Adjective / verb", "Đại từ chỉ định": "Demonstrative pronoun", "Đại từ nghi vấn": "Interrogative pronoun", "Đại từ nhân xưng": "Personal pronoun", "Động từ / Liên từ": "Verb / conjunction",
+  "Trắc nghiệm": "Multiple choice", "Multiple choice · nghĩa, pinyin, chữ Hán, ngữ cảnh": "Multiple choice · meaning, pinyin, Hanzi, context", "Sắp xếp câu": "Sentence unscramble", "Sentence unscramble · dựa trên câu ví dụ thật": "Sentence unscramble · based on real example sentences", "Ghép chữ · nghĩa": "Match Hanzi · meaning", "Viết nghĩa": "Type the meaning", "Đề HSK3 3.0": "HSK3 3.0 practice", "Đoạn văn điền từ · Đồng/trái nghĩa · Sắp xếp hội thoại": "Cloze paragraph · synonyms/antonyms · dialogue order", "Đua xe thanh điệu": "Tone race", "Chọn đúng thanh điệu để Panda về đích · Video-inspired tone race": "Choose the correct tone to guide Panda to the finish · Video-inspired tone race", "Luyện nghe và chọn thanh điệu trong không gian Quest offline": "Listen and choose tones in the offline Quest space",
+  "Điểm, phần cần ôn và bước tiếp theo được lưu trong một nơi.": "Scores, review items and next steps are kept in one place.", "💬 Mở AI Coach": "💬 Open AI Coach", "Đến giờ ôn từ vựng rồi!": "Time to review vocabulary!", "🔊 Nghe nhắc nhở": "🔊 Hear reminder", "▶️ Ôn tập ngay": "▶️ Review now", "Streak sắp mất!": "Your streak is at risk!", "⚡ Học ngay!": "⚡ Study now!", "🚪 Thoát / Log out": "🚪 Log out",
+  "Đang tải Ngữ âm Pinyin…": "Loading Pinyin Phonetics…", "Lần đầu cần tải dữ liệu âm thanh và flashcard.": "Audio and flashcard data load on first use.", "phần đã tải": "parts loaded", "Không tải được module Ngữ âm.": "Unable to load the Phonetics module.", "Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.": "Check your network, then press Ctrl + F5 to retry.", "Nghe mẫu": "Hear model", "Tất cả": "All", "Phát âm đúng": "Correct pronunciation", "Phát âm sai": "Incorrect pronunciation", "Lịch sử phát âm": "Pronunciation history", "Xóa lịch sử": "Clear history", "Chưa có lần thu âm nào.": "No recording attempts yet.", "Thẻ tiếp theo": "Next card", "Thẻ trước": "Previous card",
+  "Buổi 1": "Session 1", "Buổi 2": "Session 2", "Buổi 3": "Session 3", "Buổi 4": "Session 4", "Buổi 5": "Session 5", "Buổi 6": "Session 6", "Buổi 7": "Session 7", "Buổi 8": "Session 8", "Buổi 9": "Session 9", "Buổi 10": "Session 10", "Tuần 1": "Week 1", "Tuần 2": "Week 2", "4 Thanh Điệu + Nguyên Âm": "4 Tones + Vowels", "Nền tảng: 4 thanh cơ bản + a o e i u": "Foundation: 4 core tones + a o e i u", "Phụ Âm b/p/m/f · d/t/n/l": "Initials b/p/m/f · d/t/n/l", "Nhóm âm môi + nhóm âm đầu lưỡi": "Labial and tongue-tip initials", "Phụ Âm j / q / x": "Initials j / q / x", "Âm mặt lưỡi — dễ nhầm với zh/ch/sh": "Blade-palatal initials — easily confused with zh/ch/sh", "Âm Cuộn Lưỡi zh/ch/sh/r · z/c/s": "Retroflex initials zh/ch/sh/r · z/c/s", "Phân biệt uốn lưỡi (zh/ch/sh/r) vs không uốn (z/c/s)": "Contrast retroflex zh/ch/sh/r with non-retroflex z/c/s", "Vận Mẫu Mũi -n và -ng": "Nasal finals -n and -ng", "Biến Điệu — Tone Sandhi": "Tone sandhi", "Ôn Tập Tuần 1": "Week 1 review", "Tổng Ôn + Thi Thử Đọc": "Final review + reading mock test",
+  "Giai đoạn 0 · Ngữ âm nền tảng · mở từng chữ để nghe đúng mẫu rồi luyện Flashcard → Game → Quiz": "Stage 0 · Phonetics foundation · open each sound to hear the correct model, then practise Flashcards → Game → Quiz", "Luyện nhóm i đặc biệt: zh · ch · sh · r · z · c · s": "Practise the special i group: zh · ch · sh · r · z · c · s", "🎵 Ngữ âm —": "🎵 Phonetics —", "zh + i · [ʐ̩] · không bật hơi": "zh + i · [ʐ̩] · unaspirated", "Gần “trư”; giữ lưỡi cong, không phì hơi.": "Similar to a retroflex ‘zh’; keep the tongue curled and do not release extra air.", "ch + i · [ʈʂʰ̩] · bật hơi": "ch + i · [ʈʂʰ̩] · aspirated", "Gần “trư”; bật một luồng hơi rõ sau âm tắc-xát.": "Similar to an aspirated retroflex ‘ch’; release a clear puff of air after the affricate.", "sh + i · [ʂ̩] · âm xát": "sh + i · [ʂ̩] · fricative", "Gần “sư”; lưỡi cong và hơi đi liên tục.": "Similar to a retroflex ‘sh’; curl the tongue and keep air flowing continuously.", "Tổng sao": "Total stars", "Buổi hoàn thành": "Completed sessions", "Buổi đã mở": "Unlocked sessions", "📈 Lịch sử phát âm": "📈 Pronunciation history", "Theo dõi từng lần thu, điểm gần nhất và mức tiến bộ theo Pinyin/thanh điệu.": "Track each recording, latest score, and progress by Pinyin/tone.", "Chưa có lần thu âm nào. Mở một ô Pinyin, bấm Ghi âm rồi xem kết quả ở đây.": "No recording attempts yet. Open a Pinyin card, tap Record, then view the result here.", "✅ Phát âm đúng": "✅ Correct pronunciation", "❌ Phát âm sai": "❌ Incorrect pronunciation", ", chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong": ", the letter i is a special apical-vowel sound, close to ‘ư’ but not Vietnamese ‘ư’ and not a long ‘i’. In", ", chữ i là nguyên âm đầu lưỡi trước; không quặt lưỡi thành “ư”.": ", the letter i is a front apical vowel; do not curl the tongue into ‘ư’.", "Phân biệt kết thúc mũi trước (-n) vs mũi sau (-ng)": "Contrast front nasal ending (-n) with back nasal ending (-ng)", "Thanh 3+3 · 不 biến điệu · 一 biến điệu": "Third-tone pairs · 不 tone change · 一 tone change", "Kiểm tra tổng hợp buổi 1–6": "Integrated review of Sessions 1–6", "Âm Tiết Co Rút iu · ui · un": "Contracted finals iu · ui · un", "Khinh Thanh & Âm Nhi 儿化": "Neutral tone & erhua 儿化", "Trợ từ khinh thanh: 吗 呢 吧 的 — Erhua 儿化": "Neutral-tone particles: 吗 呢 吧 的 — Erhua 儿化", "Kiểm tra toàn bộ Pinyin Bootcamp — Giai đoạn 0": "Review the full Pinyin Bootcamp — Stage 0"
 };
 function englishFallback(value) {
   const raw = String(value == null ? "" : value).trim();
@@ -58,14 +64,55 @@ function applyStaticLanguageUi() {
   collapseBilingualText(document.body);
   translateKnownLegacyUi(document.body);
 }
+function legacyTranslationRoots(root) {
+  const roots = [root];
+  const seen = new Set(roots);
+  if (root?.shadowRoot && !seen.has(root.shadowRoot)) { seen.add(root.shadowRoot); roots.push(root.shadowRoot); }
+  const addShadowRoots = (scope) => {
+    if (!scope?.querySelectorAll) return;
+    scope.querySelectorAll("*").forEach((el) => {
+      if (el.shadowRoot && !seen.has(el.shadowRoot)) { seen.add(el.shadowRoot); roots.push(el.shadowRoot); addShadowRoots(el.shadowRoot); }
+    });
+  };
+  roots.slice().forEach(addShadowRoots);
+  return roots;
+}
+function englishLegacyText(original) {
+  if (LEGACY_UI_EN[original]) return LEGACY_UI_EN[original];
+  const studied = original.match(/^(\d+\s*\/\s*\d+)\s+đã học$/i);
+  if (studied) return `${studied[1]} studied`;
+  const loaded = original.match(/^(\d+)\s*\/\s*(\d+)\s+phần đã tải$/i);
+  if (loaded) return `${loaded[1]}/${loaded[2]} parts loaded`;
+  return "";
+}
 function translateKnownLegacyUi(root = document.body) {
   if (!root) return;
-  root.querySelectorAll("button, label, option, summary, h1, h2, h3, h4, p, small, span, div").forEach((el) => {
-    if (el.children.length) return;
-    const original = el.dataset.i18nLegacyVi || String(el.textContent || "").trim();
-    if (!LEGACY_UI_EN[original]) return;
-    if (!el.dataset.i18nLegacyVi) el.dataset.i18nLegacyVi = original;
-    el.textContent = LANG_MODE === "en" ? LEGACY_UI_EN[original] : original;
+  legacyTranslationRoots(root).forEach((scope) => {
+    scope.querySelectorAll("button, label, option, summary, h1, h2, h3, h4, p, small, span, div").forEach((el) => {
+      if (el.children.length) return;
+      const original = el.dataset.i18nLegacyVi || String(el.textContent || "").trim();
+      const english = englishLegacyText(original);
+      if (!english) return;
+      if (!el.dataset.i18nLegacyVi) el.dataset.i18nLegacyVi = original;
+      el.textContent = LANG_MODE === "en" ? english : original;
+    });
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      const parent = node.parentElement;
+      if (parent && !parent.closest("script,style")) {
+        const original = node.__pandahanI18nLegacyVi || node.nodeValue || "";
+        const plain = String(original).trim();
+        const english = englishLegacyText(plain);
+        if (english) {
+          node.__pandahanI18nLegacyVi = original;
+          const lead = String(original).match(/^\s*/)?.[0] || "";
+          const trail = String(original).match(/\s*$/)?.[0] || "";
+          node.nodeValue = LANG_MODE === "en" ? `${lead}${english}${trail}` : original;
+        }
+      }
+      node = walker.nextNode();
+    }
   });
 }
 function setLangMode(mode) {
