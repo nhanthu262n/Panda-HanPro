@@ -403,6 +403,30 @@
     return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fff;"><b>${langEn ? "One synced chain before the next session" : "Một chuỗi đồng bộ trước khi mở buổi mới"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Each button opens its matching screen. Quiz score, verified tasks and unresolved wrong items are the only inputs to the schedule; there is no manual confirmation." : "Mỗi nút mở đúng trang học tương ứng. Điểm quiz, evidence thật và câu sai chưa ôn là dữ liệu duy nhất của schedule; không có nút xác nhận thủ công."}</div>${rows}</div>`;
   }
 
+  function coachAssessmentKey() {
+    const owner = String(typeof window.storageNamespace === "function" ? window.storageNamespace() : (window.CURRENT_USER?.uid || "guest"));
+    return "pandahan_ai_coach_assessments_v1_" + owner.replace(/[^a-zA-Z0-9_-]/g, "_");
+  }
+  function latestCoachAssessment(dayNumber) {
+    try {
+      const rows = JSON.parse(localStorage.getItem(coachAssessmentKey()) || "[]");
+      return rows.find((row) => Number(row.dayNumber || 0) === Number(dayNumber || 0)) || rows[0] || null;
+    } catch (_) { return null; }
+  }
+  function renderCoachAssessment(m, langEn) {
+    const report = latestCoachAssessment(m.dayNumber);
+    if (!report) return "";
+    const score = Math.max(0, Math.min(100, Number(report.scorePercent || 0)));
+    const wrongItems = Array.isArray(report.wrongItems) ? report.wrongItems : [];
+    const tone = score >= 80 ? "#15803d" : score >= 30 ? "#b45309" : "#b91c1c";
+    const comment = score >= 80
+      ? (langEn ? "Strong result. Keep the linked words active with one short spaced review." : "Kết quả tốt. Hãy ôn ngắt quãng ngắn để giữ vững nhóm từ liên kết.")
+      : score >= 30
+        ? (langEn ? "The score is recorded, but redo the listed wrong items before the next session." : "Điểm đã được ghi nhận, nhưng cần làm lại các mục sai dưới đây trước buổi mới.")
+        : (langEn ? "Below the target. Reopen this linked-vocabulary quiz and practise the listed items." : "Chưa đạt mục tiêu. Hãy làm lại quiz Từ vựng liên kết và ôn các mục dưới đây.");
+    const wrongText = wrongItems.length ? wrongItems.slice(0, 6).map((item) => esc(String(item.char || item.word || item.expected || ""))).filter(Boolean).join(" · ") : (langEn ? "None" : "Không có");
+    return `<div data-ai-coach-assessment="true" style="margin-top:10px;padding:9px 10px;border:1px solid ${tone}44;border-radius:11px;background:#fff;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${langEn ? "Latest verified learning report" : "Nhận xét bài làm mới nhất"}</b><span style="color:${tone};font-weight:900;">${score}%</span></div><div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.45;">${esc(comment)}</div><div style="font-size:11px;color:#64748b;margin-top:5px;">${langEn ? "Review items" : "Mục cần ôn"}: ${wrongText}</div></div>`;
+  }
   function renderCoach(container, compact = false) {
     if (!container) return;
     const m = mission();
@@ -427,7 +451,7 @@
       m.questCheckpointQuestion !== "-" ? `${langEn ? "Checkpoint" : "Câu hỏi chốt"}: ${m.questCheckpointQuestion}` : ""
     ].filter(Boolean);
     const excelNote = excelDetails.length ? `<details style="margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:7px 9px;font-size:11px;color:#475569;"><summary style="cursor:pointer;font-weight:800;color:#7e22ce;">Xem đầy đủ nội dung ngày từ Excel</summary><div style="margin-top:6px;line-height:1.5;overflow-wrap:anywhere;">${excelDetails.map(esc).join("<br>")}</div></details>` : "";
-    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${adaptiveNote}${carryNote}${excelNote}${learningSequence}${renderRequiredChecklist(m, langEn)}</div>`;
+    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${adaptiveNote}${carryNote}${excelNote}${renderCoachAssessment(m, langEn)}${learningSequence}${renderRequiredChecklist(m, langEn)}</div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
   }
 
@@ -703,6 +727,6 @@
     if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(flush);
     else window.setTimeout(flush, 0);
   }
-  ["pandahan-vocab-phase-updated", "pandahan-schedule-updated", "pandahan-mistake-recorded", "pandahan-mistake-resolved"].forEach((eventName) => window.addEventListener(eventName, refreshCoachPlanSoon));
+  ["pandahan-vocab-phase-updated", "pandahan-schedule-updated", "pandahan-mistake-recorded", "pandahan-mistake-resolved", "pandahan-learning-evaluation", "pandahan-ai-coach-assessment"].forEach((eventName) => window.addEventListener(eventName, refreshCoachPlanSoon));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load); else load();
 })();
