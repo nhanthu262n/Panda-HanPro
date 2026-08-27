@@ -221,6 +221,7 @@
   function buildMission() {
     const day = findCurriculumDay();
     const scheduleDay = currentScheduleDay();
+    const schedule = getSchedule();
     const adaptivePlan = window.PandaHanAdaptiveLearning?.buildPlan?.(day, getSchedule()) || null;
     const words = adaptivePlan?.practiceWords || targetVocabulary(day);
     const chainVocabulary = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : []);
@@ -233,8 +234,11 @@
     const carriedTaskIds = Array.isArray(scheduleDay?.carried_completed_tasks) ? scheduleDay.carried_completed_tasks.slice() : Object.keys(scheduleDay?.completed_tasks || {});
     const requiredTaskIds = Array.isArray(scheduleDay?.required_tasks) ? scheduleDay.required_tasks.slice() : [];
     const missingTaskIds = requiredTaskIds.filter((id) => !scheduleDay?.completed_tasks?.[id]);
+    const plannedDays = Math.max(120, ...(Array.isArray(schedule?.days) ? schedule.days.map((entry) => Number(entry.sequence_index || 0)) : [0]));
+    const extensionCount = Math.max(0, Number(schedule?._meta?.extension_count || 0), plannedDays - 120);
+    const startedAt = String(schedule?._meta?.started_at || scheduleDay?.scheduled_date || "");
     return {
-      dayNumber: Number(day.day_number), sequenceIndex, isRepeat, sessionLabelVi, sessionLabelEn,
+      dayNumber: Number(day.day_number), sequenceIndex, isRepeat, sessionLabelVi, sessionLabelEn, plannedDays, extensionCount, startedAt,
       carriedTaskIds, requiredTaskIds, missingTaskIds, scheduleDay,
       weekNumber: Number(day.week_number || Math.ceil(Number(day.day_number) / 7)),
       stageCode: day.stage_code, stage: day.stage, dayType: day.day_type, topic: day.topic || "",
@@ -427,6 +431,44 @@
     const wrongText = wrongItems.length ? wrongItems.slice(0, 6).map((item) => esc(String(item.char || item.word || item.expected || ""))).filter(Boolean).join(" · ") : (langEn ? "None" : "Không có");
     return `<div data-ai-coach-assessment="true" style="margin-top:10px;padding:9px 10px;border:1px solid ${tone}44;border-radius:11px;background:#fff;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${langEn ? "Latest verified learning report" : "Nhận xét bài làm mới nhất"}</b><span style="color:${tone};font-weight:900;">${score}%</span></div><div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.45;">${esc(comment)}</div><div style="font-size:11px;color:#64748b;margin-top:5px;">${langEn ? "Review items" : "Mục cần ôn"}: ${wrongText}</div></div>`;
   }
+  function formatScheduleStart(date) {
+    const parts = String(date || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return parts ? `${parts[3]}/${parts[2]}/${parts[1]}` : "—";
+  }
+  function renderCoachRouteStatus(m, langEn) {
+    const missing = (m.missingTaskIds || []).map((id) => requiredTaskLabel(id, langEn)).join(" · ");
+    const start = formatScheduleStart(m.startedAt);
+    const hasExtension = Number(m.plannedDays || 120) > 120 || Number(m.extensionCount || 0) > 0;
+    const title = hasExtension
+      ? (langEn ? `Learning path extended: 120 → ${m.plannedDays} days` : `Lộ trình đã kéo dài: 120 → ${m.plannedDays} ngày`)
+      : (langEn ? "120-day learning path" : "Lộ trình học 120 ngày");
+    const body = hasExtension
+      ? (langEn
+        ? `Started ${start}. Scheduled session ${m.sequenceIndex} continues curriculum Day ${m.dayNumber}; ${m.extensionCount || (m.plannedDays - 120)} extra session(s) were added because required evidence was not completed before the deadline.`
+        : `Bắt đầu từ ${start}. Buổi lịch ${m.sequenceIndex} đang tiếp tục Ngày giáo trình ${m.dayNumber}; đã tăng ${m.extensionCount || (m.plannedDays - 120)} ngày vì evidence bắt buộc chưa hoàn thành đúng hạn.`)
+      : (langEn
+        ? `Started ${start}. You are on curriculum Day ${m.dayNumber}/120, scheduled session ${m.sequenceIndex}. Complete today’s verified tasks before the next curriculum day can be evaluated.`
+        : `Bắt đầu từ ${start}. Bạn đang ở Ngày giáo trình ${m.dayNumber}/120, buổi lịch ${m.sequenceIndex}. Hoàn thành các nhiệm vụ có evidence hôm nay trước khi xét mở ngày giáo trình tiếp theo.`);
+    const pending = missing
+      ? (langEn ? `Still required: ${missing}.` : `Còn phải hoàn thành: ${missing}.`)
+      : (langEn ? "All required task evidence for this session is recorded; score and wrong-item gates still apply." : "Đã ghi nhận evidence của các nhiệm vụ; điều kiện điểm và câu sai cần ôn vẫn được kiểm tra.");
+    const color = hasExtension ? "#b45309" : "#0f766e";
+    const bg = hasExtension ? "#fffbeb" : "#f0fdfa";
+    return `<div data-ai-coach-route-status="true" style="margin-top:10px;padding:9px 10px;border:1px solid ${color}44;border-radius:11px;background:${bg};"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${title}</b><span style="color:${color};font-weight:900;white-space:nowrap;">${m.plannedDays} ${langEn ? "days" : "ngày"}</span></div><div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.45;">${esc(body)}</div><div style="font-size:11px;color:${color};margin-top:5px;font-weight:700;line-height:1.4;">${esc(pending)}</div></div>`;
+  }
+  function routeStatusChatText(m, language = "vi") {
+    const hasExtension = Number(m?.plannedDays || 120) > 120 || Number(m?.extensionCount || 0) > 0;
+    const start = formatScheduleStart(m?.startedAt);
+    if (language === "zh") return hasExtension
+      ? `路径更新：120天课程已延长到${m.plannedDays}天。开始日期：${start}；第${m.sequenceIndex}节继续第${m.dayNumber}天，未完成的必做 evidence 将继续保留。`
+      : `课程从${start}开始，共120天；当前为第${m?.dayNumber || 1}/120天。完成今天所有已验证任务后，才会评估下一天。`;
+    if (language === "en") return hasExtension
+      ? `Path update: the 120-day course is now ${m.plannedDays} days. Started ${start}; session ${m.sequenceIndex} continues curriculum Day ${m.dayNumber}, and unfinished required evidence remains assigned.`
+      : `The 120-day course started ${start}; you are on curriculum Day ${m?.dayNumber || 1}/120. The next day is evaluated only after today’s verified tasks are complete.`;
+    return hasExtension
+      ? `Cập nhật lộ trình: khóa 120 ngày đã tăng lên ${m.plannedDays} ngày. Bắt đầu từ ${start}; Buổi ${m.sequenceIndex} tiếp tục Ngày giáo trình ${m.dayNumber}, các evidence bắt buộc chưa hoàn thành vẫn được giữ lại.`
+      : `Lộ trình 120 ngày bắt đầu từ ${start}; bạn đang ở Ngày giáo trình ${m?.dayNumber || 1}/120. Ngày tiếp theo chỉ được xét sau khi nhiệm vụ hôm nay có evidence đầy đủ.`;
+  }
   function renderCoach(container, compact = false) {
     if (!container) return;
     const m = mission();
@@ -451,7 +493,7 @@
       m.questCheckpointQuestion !== "-" ? `${langEn ? "Checkpoint" : "Câu hỏi chốt"}: ${m.questCheckpointQuestion}` : ""
     ].filter(Boolean);
     const excelNote = excelDetails.length ? `<details style="margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:7px 9px;font-size:11px;color:#475569;"><summary style="cursor:pointer;font-weight:800;color:#7e22ce;">Xem đầy đủ nội dung ngày từ Excel</summary><div style="margin-top:6px;line-height:1.5;overflow-wrap:anywhere;">${excelDetails.map(esc).join("<br>")}</div></details>` : "";
-    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${adaptiveNote}${carryNote}${excelNote}${renderCoachAssessment(m, langEn)}${learningSequence}${renderRequiredChecklist(m, langEn)}</div>`;
+    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${renderCoachRouteStatus(m, langEn)}${adaptiveNote}${carryNote}${excelNote}${renderCoachAssessment(m, langEn)}${learningSequence}${renderRequiredChecklist(m, langEn)}</div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
   }
 
@@ -490,11 +532,11 @@
   function longReadingExtensions(level) {
     const extensions = {
       4: [
-        ["从这个角度来看，了解具体情况非常重要。", "Cóng zhège jiǎodù lái kàn, liǎojiě jùtǐ qíngkuàng fēicháng zhòngyào."],
-        ["同时，我们也应该听取不同人的经验。", "Tóngshí, wǒmen yě yīnggāi tīngqǔ bùtóng rén de jīngyàn."],
-        ["如果能把想法变成每天可做的小行动，效果会更明显。", "Rúguǒ néng bǎ xiǎngfǎ biàn chéng měitiān kě zuò de xiǎo xíngdòng, xiàoguǒ huì gèng míngxiǎn."],
-        ["因此，学习者可以先观察，再作出合适的选择。", "Yīncǐ, xuéxízhě kěyǐ xiān guānchá, zài zuòchū héshì de xuǎnzé."],
-        ["最后，定期复盘能帮助我们发现需要改进的地方。", "Zuìhòu, dìngqī fùpán néng bāngzhù wǒmen fāxiàn xūyào gǎijìn de dìfang."]
+        ["从这个角度来看，了解具体情况非常重要。", "Cóng zhège jiǎodù lái kàn, liǎojiě jùtǐ qíngkuàng fēicháng zhòngyào.", "Nhìn từ góc độ này, việc hiểu rõ tình hình cụ thể là rất quan trọng.", "From this perspective, understanding the specific situation is very important."],
+        ["同时，我们也应该听取不同人的经验。", "Tóngshí, wǒmen yě yīnggāi tīngqǔ bùtóng rén de jīngyàn.", "Đồng thời, chúng ta cũng nên lắng nghe kinh nghiệm của những người khác nhau.", "At the same time, we should also listen to the experiences of different people."],
+        ["如果能把想法变成每天可做的小行动，效果会更明显。", "Rúguǒ néng bǎ xiǎngfǎ biàn chéng měitiān kě zuò de xiǎo xíngdòng, xiàoguǒ huì gèng míngxiǎn.", "Nếu có thể biến ý tưởng thành những hành động nhỏ mỗi ngày, hiệu quả sẽ rõ rệt hơn.", "If we can turn ideas into small daily actions, the results will be more noticeable."],
+        ["因此，学习者可以先观察，再作出合适的选择。", "Yīncǐ, xuéxízhě kěyǐ xiān guānchá, zài zuòchū héshì de xuǎnzé.", "Vì vậy, người học có thể quan sát trước rồi đưa ra lựa chọn phù hợp.", "Therefore, learners can observe first and then make an appropriate choice."],
+        ["最后，定期复盘能帮助我们发现需要改进的地方。", "Zuìhòu, dìngqī fùpán néng bāngzhù wǒmen fāxiàn xūyào gǎijìn de dìfang.", "Cuối cùng, việc nhìn lại định kỳ giúp chúng ta nhận ra những điểm cần cải thiện.", "Finally, regular review helps us identify areas that need improvement."]
       ],
       5: [
         ["值得注意的是，问题往往不能只从单一角度来理解。", "Zhíde zhùyì de shì, wèntí wǎngwǎng bù néng zhǐ cóng dānyī jiǎodù lái lǐjiě."],
@@ -520,11 +562,14 @@
         ["相反，这种开放的态度能让后续的合作和判断建立在更可靠的基础上。", "Xiāngfǎn, zhè zhǒng kāifàng de tàidu néng ràng hòuxù de hézuò hé pànduàn jiànlì zài gèng kěkào de jīchǔ shàng."]
       ]
     };
-    return extensions[Number(level)] || [];
+    return (extensions[Number(level)] || []).map(([zh, py, vi, en]) => {
+      const translation = window.PandaHanTutorExtensionTranslations?.[zh] || {};
+      return [zh, py, vi || translation.vi || "", en || translation.en || ""];
+    });
   }
   function paragraphForLength(topic, length) {
     const level = Number(topic?.level || 1);
-    if (level <= 3) return { zh: String(topic?.zh || ""), pinyin: String(topic?.pinyin || "") };
+    if (level <= 3) return { zh: String(topic?.zh || ""), pinyin: String(topic?.pinyin || ""), vi: String(topic?.vi || ""), en: String(topic?.en || "") };
     const targets = {
       4: { short: 90, medium: 145, long: 200 },
       5: { short: 130, medium: 230, long: 340 },
@@ -534,12 +579,16 @@
     const base = String(topic.zh || "");
     const added = [];
     const pinyin = [String(topic.pinyin || "")];
-    for (const [zh, py] of longReadingExtensions(level)) {
+    const vietnamese = [String(topic.vi || "")];
+    const english = [String(topic.en || "")];
+    for (const [zh, py, vi, en] of longReadingExtensions(level)) {
       if (hanziCount(base + added.join("")) >= target) break;
       added.push(zh);
       pinyin.push(py);
+      vietnamese.push(vi || "");
+      english.push(en || "");
     }
-    return { zh: base + added.join(""), pinyin: pinyin.filter(Boolean).join(" ") };
+    return { zh: base + added.join(""), pinyin: pinyin.filter(Boolean).join(" "), vi: vietnamese.filter(Boolean).join(" "), en: english.filter(Boolean).join(" ") };
   }
   function hskTopicResponse(topic, language = "vi", requestedLength = "adaptive") {
     const en = language === "en";
@@ -605,6 +654,20 @@
     if (language === "en") return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\nMeaning: ${meaning || "Open the dictionary card to view the saved meaning."}\nPart of speech: ${word.pos || "—"}\n\n**Example**\n${exampleZh || `Write one sentence about yourself using “${word.char}”.`}\n${exampleMeaning ? `Meaning cue: ${exampleMeaning}` : ""}\n\nWrite your own sentence with this word. Offline can verify visible target-word use; detailed collocation and naturalness need Cloud AI.`;
     return `**${word.char}**\nPinyin: ${word.pinyin || "—"}\nNghĩa: ${meaning || "Hãy mở thẻ từ điển để xem nghĩa đã lưu."}\nTừ loại: ${word.pos || "—"}\n\n**Ví dụ**\n${exampleZh || `Hãy viết một câu về bản thân với “${word.char}”.`}\n${exampleMeaning ? `Gợi nghĩa: ${exampleMeaning}` : ""}\n\nHãy dùng từ này viết một câu. Offline kiểm tra được việc xuất hiện từ mục tiêu; giải thích kết hợp từ và độ tự nhiên chi tiết cần Cloud AI.`;
   }
+  /* AI Tutor only: learner-provided HSK 1–6 document. Never feed this into the daily schedule, Quest manifest or default dictionary. */
+  function completeHskSourceResponse(text, language) {
+    const library = window.PandaHanTutorHskCompleteLibrary;
+    const entry = library?.find?.(text);
+    if (!entry) return "";
+    const source = library.snippet?.(entry, language);
+    if (!source) return "";
+    const prompt = language === "zh"
+      ? "\n\n练习建议\n先读中文，再核对拼音和词汇；最后用自己的话回答阅读问题。你可以继续问这个主题中的词汇、语法或句子。"
+      : language === "en"
+        ? "\n\nPractice suggestion\nRead the Chinese first, then check pinyin and vocabulary; finally answer the reading questions in your own words. You can continue by asking about a word, grammar point, or sentence from this topic."
+        : "\n\nGợi ý luyện tập\nHãy đọc phần tiếng Trung trước, sau đó đối chiếu pinyin và từ vựng; cuối cùng tự trả lời câu hỏi đọc hiểu. Bạn có thể hỏi tiếp về một từ, mẫu ngữ pháp hoặc câu trong chủ đề này.";
+    return `${source}${prompt}`;
+  }
   function missionAssignmentResponse(m, language, mistakeCount) {
     const zh = language === "zh";
     const en = language === "en";
@@ -618,8 +681,9 @@
       : (zh ? "请按下方顺序学习；自由练习不会提前解锁下一天。" : en ? "Follow this order; free practice never unlocks the next day early." : "Hãy làm theo đúng thứ tự dưới đây; học tự do không mở khóa ngày tiếp theo sớm.");
     const gate = zh ? `解锁条件：必做任务必须有真实 evidence，且分数达到 ${m.requiredScore}%；错题仍需复习。` : en ? `Unlock rule: required tasks need real evidence and the score must reach ${m.requiredScore}%; wrong items still require review.` : `Điều kiện mở khóa: nhiệm vụ bắt buộc cần evidence thật và điểm phải đạt ${m.requiredScore}%; câu sai vẫn phải ôn lại.`;
     const mistakes = mistakeCount ? (zh ? `当前有 ${mistakeCount} 个错题待复习。` : en ? `${mistakeCount} wrong item(s) are still queued for redo.` : `Hiện có ${mistakeCount} câu/từ sai đang chờ ôn lại.`) : "";
+    const pathUpdate = routeStatusChatText(m, zh ? "zh" : en ? "en" : "vi");
     const action = zh ? "请直接点击 khung kế hoạch中的任务按钮开始。" : en ? "Tap an Open task button in the plan card to start." : "Hãy bấm nút nhiệm vụ trong khung kế hoạch để bắt đầu.";
-    return `${title}\n${zh ? "主题" : en ? "Topic" : "Chủ đề"}: ${m.topic || "—"}\n\n${taskRows}\n\n${carry}\n${gate}${mistakes ? `\n${mistakes}` : ""}\n${action}`;
+    return `${title}\n${pathUpdate}\n${zh ? "主题" : en ? "Topic" : "Chủ đề"}: ${m.topic || "—"}\n\n${taskRows}\n\n${carry}\n${gate}${mistakes ? `\n${mistakes}` : ""}\n${action}`;
   }
   function replyTo(text, options = {}) {
     const m = activeMission || mission();
@@ -633,6 +697,8 @@
     const grammarEntry = window.PandaHanGrammarPack?.find?.(text);
     if (grammarEntry) return grammarLessonResponse(grammarEntry, language);
     if (/(ngữ pháp|grammar|语法|cách dùng|dùng.*thế nào|how.*use|giải thích.*mẫu|explain.*pattern|句式)/i.test(q)) return grammarMenuResponse(language);
+    const completeSourceAnswer = options.context === "ai-tutor" && !options.selectedStandardTopic ? completeHskSourceResponse(text, language) : "";
+    if (completeSourceAnswer) return completeSourceAnswer;
     const vocabularyAnswer = vocabularyTutorResponse(text, language);
     if (vocabularyAnswer) return vocabularyAnswer;
     const hskMatch = q.match(/hsk\s*([1-6])/i);
@@ -709,9 +775,9 @@
     if (!topic) return null;
     const length = topicLengthProfile(topic.level, requestedLength);
     const paragraph = paragraphForLength(topic, length);
-    return { id: topic.id, level: topic.level, length, zh: paragraph.zh, pinyin: paragraph.pinyin, topicVi: topic.topicVi, topicEn: topic.topicEn };
+    return { id: topic.id, level: topic.level, length, zh: paragraph.zh, pinyin: paragraph.pinyin, vi: paragraph.vi, en: paragraph.en, topicVi: topic.topicVi, topicEn: topic.topicEn };
   }
-  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
+  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getRouteStatusText: (language) => routeStatusChatText(mission(), language || "vi"), detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
   let coachPlanRefreshQueued = false;
   function refreshCoachPlanSoon() {
     if (coachPlanRefreshQueued) return;
@@ -727,6 +793,6 @@
     if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(flush);
     else window.setTimeout(flush, 0);
   }
-  ["pandahan-vocab-phase-updated", "pandahan-schedule-updated", "pandahan-mistake-recorded", "pandahan-mistake-resolved", "pandahan-learning-evaluation", "pandahan-ai-coach-assessment"].forEach((eventName) => window.addEventListener(eventName, refreshCoachPlanSoon));
+  ["pandahan-vocab-phase-updated", "pandahan-schedule-updated", "pandahan-mistake-recorded", "pandahan-mistake-resolved", "pandahan-learning-evaluation", "pandahan-ai-coach-assessment", "pandahan-language-changed"].forEach((eventName) => window.addEventListener(eventName, refreshCoachPlanSoon));
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load); else load();
 })();
