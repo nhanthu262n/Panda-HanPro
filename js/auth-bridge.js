@@ -66,16 +66,32 @@
     return [...remote, ...readLocalNotifications().filter((item) => !remoteIds.has(item.id))]
       .sort((a, b) => Number(b.created_at || b.createdAt || 0) - Number(a.created_at || a.createdAt || 0)).slice(0, 30);
   }
+  function scheduleRouteSnapshot(schedule, current) {
+    const days = Array.isArray(schedule?.days) ? schedule.days : [];
+    const plannedDays = Math.max(120, ...days.map((day) => Number(day.sequence_index || 0)));
+    const extensionCount = Math.max(0, Number(schedule?._meta?.extension_count || 0), plannedDays - 120);
+    return { startedAt: String(schedule?._meta?.started_at || current?.scheduled_date || ""), plannedDays, extensionCount };
+  }
+  function formatRouteStart(date) {
+    const parts = String(date || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return parts ? `${parts[3]}/${parts[2]}/${parts[1]}` : "—";
+  }
 
   function renderNotificationDropdown() {
     const dropdown = document.getElementById("notifDropdown");
     if (!dropdown || dropdown.dataset.rendered === "open") return;
     const items = Array.isArray(window.PandaHanNotifications) ? window.PandaHanNotifications : [];
     const unread = items.filter((item) => item.read !== true && item.is_read !== true).length;
+    const route = items.filter((item) => Number(item.route_total_days || 0) >= 120 || Number(item.sequence_index || 0) > 120)
+      .sort((a, b) => Number(b.route_total_days || b.sequence_index || 0) - Number(a.route_total_days || a.sequence_index || 0) || Number(b.created_at || 0) - Number(a.created_at || 0))[0];
+    const routeDays = Math.max(120, Number(route?.route_total_days || 120));
+    const routeStatus = routeDays > 120
+      ? (window.LANG_MODE === "en" ? `Path extended: 120 → ${routeDays} days` : `Lộ trình đã kéo dài: 120 → ${routeDays} ngày`)
+      : (window.LANG_MODE === "en" ? `120-day path · started ${formatRouteStart(route?.started_at)}` : `Lộ trình 120 ngày · bắt đầu ${formatRouteStart(route?.started_at)}`);
     const summary = unread > 0
       ? (window.LANG_MODE === "en" ? `${unread} learning update${unread === 1 ? "" : "s"} to review` : `${unread} cập nhật học tập đang chờ xem`)
       : (window.LANG_MODE === "en" ? "Your plan and feedback are in AI Coach" : "Kế hoạch và nhận xét nằm trong AI Coach");
-    dropdown.innerHTML = `<div style="padding:4px 0 10px;text-align:center;color:#5b4964;line-height:1.45;"><b>🔔 ${summary}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${window.LANG_MODE === "en" ? "Scores, review items and next steps are kept in one place." : "Điểm, phần cần ôn và bước tiếp theo được lưu trong một nơi."}</div></div><button type="button" id="notifAiCoachBtn" style="display:block;width:100%;border:0;border-radius:9px;padding:8px 10px;background:var(--pink,#ec4899);color:#fff;font-weight:800;cursor:pointer;">💬 ${window.LANG_MODE === "en" ? "Open AI Coach" : "Mở AI Coach"}</button>`;
+    dropdown.innerHTML = `<div style="padding:4px 0 10px;text-align:center;color:#5b4964;line-height:1.45;"><b>🔔 ${summary}</b><div style="margin-top:6px;padding:6px 8px;border-radius:8px;background:${routeDays > 120 ? "#fffbeb" : "#f0fdfa"};color:${routeDays > 120 ? "#92400e" : "#0f766e"};font-size:11px;font-weight:800;">${routeStatus}</div><div style="font-size:11px;color:#64748b;margin-top:4px;">${window.LANG_MODE === "en" ? "Scores, unfinished tasks and next steps are in AI Coach." : "Điểm, việc chưa hoàn thành và bước tiếp theo nằm trong AI Coach."}</div></div><button type="button" id="notifAiCoachBtn" style="display:block;width:100%;border:0;border-radius:9px;padding:8px 10px;background:var(--pink,#ec4899);color:#fff;font-weight:800;cursor:pointer;">💬 ${window.LANG_MODE === "en" ? "Open AI Coach" : "Mở AI Coach"}</button>`;
     const coachBtn = document.getElementById("notifAiCoachBtn");
     if (coachBtn) coachBtn.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -124,8 +140,9 @@
       const current = days.filter((day) => day.status === "unlocked").sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
       if (!current) return;
       const today = window.PandaHanSchedule?.todayVietnam?.() || new Date().toISOString().slice(0, 10);
+      const route = scheduleRouteSnapshot(schedule, current);
       window.dispatchEvent(new CustomEvent("pandahan-daily-plan", { detail: {
-        dayNumber: Number(current.day_number), sequenceIndex: Number(current.sequence_index), isRepeat: !!current.is_repeat_of || current.day_type === "repeat", repeatReason: current.repeat_reason || null, carriedCompletedTasks: Array.isArray(current.carried_completed_tasks) ? current.carried_completed_tasks.slice() : Object.keys(current.completed_tasks || {}), missingTaskIds: (current.required_tasks || []).filter((id) => !current.completed_tasks?.[id]), topic: current.topic || "", date: today, force: true
+        dayNumber: Number(current.day_number), sequenceIndex: Number(current.sequence_index), isRepeat: !!current.is_repeat_of || current.day_type === "repeat", repeatReason: current.repeat_reason || null, carriedCompletedTasks: Array.isArray(current.carried_completed_tasks) ? current.carried_completed_tasks.slice() : Object.keys(current.completed_tasks || {}), missingTaskIds: (current.required_tasks || []).filter((id) => !current.completed_tasks?.[id]), topic: current.topic || "", date: today, startedAt: route.startedAt, routeTotalDays: route.plannedDays, extensionCount: route.extensionCount, force: true
       }}));
     } catch (error) { console.warn("Daily plan notification fallback:", error.message || error); }
   }
@@ -151,18 +168,25 @@
     const repeat = !!detail.isRepeat;
     const carried = Array.isArray(detail.carriedCompletedTasks) ? detail.carriedCompletedTasks : [];
     const missing = Array.isArray(detail.missingTaskIds) ? detail.missingTaskIds : [];
+    const routeDays = Math.max(120, Number(detail.routeTotalDays || seq || 120));
+    const extensionCount = Math.max(0, Number(detail.extensionCount || 0), routeDays - 120);
+    const startedAt = String(detail.startedAt || "");
+    const pathExtended = routeDays > 120 || repeat;
     const item = {
       id: `local_daily_plan_${detail.date}_${seq}`,
       type: "daily_plan",
-      title_vi: repeat ? `Buổi tiếp tục ${seq} — Ngày ${day}` : `Kế hoạch học buổi ${seq}`,
-      title_en: repeat ? `Continuation session ${seq} — Day ${day}` : `Study plan for session ${seq}`,
-      body_vi: repeat ? `Tiếp tục nội dung Ngày ${day}${detail.topic ? `: ${detail.topic}` : ""}. Đã giữ ${carried.length ? carried.join(", ") : "chưa có"}; còn thiếu ${missing.length ? missing.join(", ") : "không còn"}.` : `Hôm nay học nội dung Ngày ${day}${detail.topic ? `: ${detail.topic}` : ""}. Hoàn thành bài để mở buổi tiếp theo.`,
-      body_en: repeat ? `Continue curriculum Day ${day}${detail.topic ? `: ${detail.topic}` : ""}. Carried ${carried.length ? carried.join(", ") : "none"}; still missing ${missing.length ? missing.join(", ") : "none"}.` : `Today: study curriculum Day ${day}${detail.topic ? `: ${detail.topic}` : ""}. Complete the lesson to unlock the next session.`,
+      title_vi: pathExtended ? `Lộ trình 120 → ${routeDays} ngày · Buổi ${seq}` : `Kế hoạch học Ngày ${day}/120`,
+      title_en: pathExtended ? `Path 120 → ${routeDays} days · Session ${seq}` : `Study plan · Day ${day}/120`,
+      body_vi: pathExtended ? `Bắt đầu từ ${formatRouteStart(startedAt)}. Buổi ${seq} tiếp tục Ngày giáo trình ${day}${detail.topic ? `: ${detail.topic}` : ""}; đã thêm ${extensionCount} ngày do nhiệm vụ có evidence chưa hoàn thành đúng hạn. Còn thiếu: ${missing.length ? missing.join(", ") : "không còn"}.` : `Bắt đầu từ ${formatRouteStart(startedAt)}. Hôm nay học nội dung Ngày ${day}/120${detail.topic ? `: ${detail.topic}` : ""}. Cần hoàn thành: ${missing.length ? missing.join(", ") : "tất cả evidence đã có"}.`,
+      body_en: pathExtended ? `Started ${formatRouteStart(startedAt)}. Session ${seq} continues curriculum Day ${day}${detail.topic ? `: ${detail.topic}` : ""}; ${extensionCount} day(s) were added because required evidence was not finished on time. Still required: ${missing.length ? missing.join(", ") : "none"}.` : `Started ${formatRouteStart(startedAt)}. Today: curriculum Day ${day}/120${detail.topic ? `: ${detail.topic}` : ""}. Required: ${missing.length ? missing.join(", ") : "all evidence recorded"}.`,
       read: false,
       created_at: Date.now(),
       day_number: day,
       sequence_index: seq,
       is_repeat: repeat,
+      started_at: startedAt,
+      route_total_days: routeDays,
+      extension_count: extensionCount,
       carried_task_ids: carried,
       missing_task_ids: missing,
     };
@@ -205,19 +229,24 @@
     const day = Number(detail.sourceDayNumber || 0);
     const seq = Number(detail.newSequenceIndex || 0);
     if (!day) return;
+    const route = scheduleRouteSnapshot(detail.schedule, null);
+    const routeDays = Math.max(121, Number(route.plannedDays || seq || 121));
     const item = {
       id: `local_missed_day_${day}_${seq}`,
       type: "missed_day_after_midnight",
-      title_vi: `Nhiệm vụ chưa xong đã chuyển sang Buổi ${seq || "tiếp tục"}`,
-      title_en: `Incomplete work moved to continuation session ${seq || "next"}`,
-      body_vi: `Ngày ${day} chưa hoàn thành trước 00:00. Đã tạo Buổi ${seq || "tiếp theo"} — tiếp tục Ngày ${day}; đã giữ ${(detail.carriedTaskIds || []).join(", ") || "chưa có"}, còn thiếu ${(detail.missingTaskIds || []).join(", ") || "không còn"}.`,
-      body_en: `Day ${day} was incomplete before midnight. Session ${seq || "the next"} continues Day ${day}; carried ${(detail.carriedTaskIds || []).join(", ") || "none"}, still missing ${(detail.missingTaskIds || []).join(", ") || "none"}.`,
+      title_vi: `Lộ trình đã kéo dài: 120 → ${routeDays} ngày`,
+      title_en: `Learning path extended: 120 → ${routeDays} days`,
+      body_vi: `Ngày ${day} chưa hoàn thành trước 00:00. Đã tạo Buổi ${seq || "tiếp theo"} — tiếp tục Ngày ${day}; lộ trình bắt đầu ${formatRouteStart(route.startedAt)} đã tăng lên ${routeDays} ngày. Đã giữ ${(detail.carriedTaskIds || []).join(", ") || "chưa có"}, còn thiếu ${(detail.missingTaskIds || []).join(", ") || "không còn"}.`,
+      body_en: `Day ${day} was incomplete before midnight. Session ${seq || "the next"} continues Day ${day}; the path started ${formatRouteStart(route.startedAt)} and has increased to ${routeDays} days. Carried ${(detail.carriedTaskIds || []).join(", ") || "none"}, still missing ${(detail.missingTaskIds || []).join(", ") || "none"}.`,
       read: false,
       created_at: Date.now(),
       day_number: day,
       sequence_index: seq,
       carried_task_ids: Array.isArray(detail.carriedTaskIds) ? detail.carriedTaskIds : [],
       missing_task_ids: Array.isArray(detail.missingTaskIds) ? detail.missingTaskIds : [],
+      started_at: route.startedAt,
+      route_total_days: routeDays,
+      extension_count: Math.max(1, Number(route.extensionCount || 0), routeDays - 120),
     };
     saveLocalNotification(item);
     window.PandaHanNotifications = [item, ...(window.PandaHanNotifications || []).filter((n) => n.id !== item.id)].slice(0, 30);
