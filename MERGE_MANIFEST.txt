@@ -1,5 +1,0 @@
-PandaHan merge manifest
-
-Base retained: PandaHan_AI_Coach_Vocab60_Sequence_MistakeGate_Final
-Integrated from Quest Sync: AI Tutor workspace UI, HSK topic libraries, grammar pack, Tutor-aware Offline response helpers, Tutor SRS/highlight support, and AI Teacher/Tutor title-area labels.
-Explicitly retained from base: scoring algorithms, adaptive-learning engine, mission assignment/rendering, schedule gates, Quest loader, Firebase/auth, teacher messaging, and all unrelated UI.
