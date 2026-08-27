@@ -1232,6 +1232,11 @@ button, input, select, textarea { max-width: 100%; }
 }
 .ai-tutor-reading-text::selection { background: #f6b8d2; color: #2a1721; }
 .ai-tutor-reading-pinyin { margin: 7px 2px 0; color: #77636f; font-size: 10.5px; line-height: 1.55; }
+/* AI Tutor reading: show Hanzi, pinyin, then one unambiguous meaning in the selected response language. */
+.ai-tutor-reading-meaning { margin: 10px 0 0; padding: 9px 10px; border-left: 3px solid #d7437d; border-radius: 0 9px 9px 0; background: #fff0f6; color: #503743; }
+.ai-tutor-reading-meaning b { display: block; color: #a41953; font-size: 11px; font-weight: 900; }
+.ai-tutor-reading-meaning p { margin: 4px 0 0; font-size: 12px; line-height: 1.65; }
+.ai-tutor-reading-meaning small { display: block; margin-top: 5px; color: #846975; font-size: 10px; line-height: 1.4; }
 .ai-tutor-reading-actions { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
 .ai-tutor-reading-actions button,
 .ai-tutor-inline-term button { flex: 0 0 auto; border: 0; border-radius: 8px; padding: 7px 9px; background: #b71c5c; color: #fff; font-size: 10.5px; font-weight: 900; cursor: pointer; }
