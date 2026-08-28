@@ -206,16 +206,16 @@
     const item = {
       id: `quest_score_${day}_${score}`,
       type: "quest_score_saved",
-      title_vi: passed ? `Pinyin Tone Quest ngày ${day}: đạt ${score}%` : `Pinyin Tone Quest ngày ${day}: ${score}% — cần ôn lại`,
-      title_en: passed ? `Pinyin Tone Quest day ${day}: ${score}% passed` : `Pinyin Tone Quest day ${day}: ${score}% — review required`,
-      body_vi: passed ? `Bạn đã đạt ngưỡng ${Number(detail.threshold || 30)}%. Buổi tiếp theo đã được xét mở theo lộ trình.` : `Bạn chưa đạt ngưỡng ${Number(detail.threshold || 30)}%. Hệ thống giữ gate và tạo ${Number(detail.repeatCount || 1)} buổi ôn trước khi mở nội dung mới.`,
-      body_en: passed ? `You met the ${Number(detail.threshold || 30)}% threshold. The next session was evaluated for unlock.` : `You did not meet the ${Number(detail.threshold || 30)}% threshold. The gate stays in place and ${Number(detail.repeatCount || 1)} review session(s) were created before new content unlocks.`,
+      title_vi: passed ? `Ôn tập 120 ngày · Bài ${day}: đạt ${score}%` : `Ôn tập 120 ngày · Bài ${day}: ${score}% — cần ôn lại`,
+      title_en: passed ? `120-Day Review · Lesson ${day}: ${score}% passed` : `120-Day Review · Lesson ${day}: ${score}% — review required`,
+      body_vi: passed ? `Bạn đã đạt trên 60%. Bài tiếp theo đã được mở.` : `Bạn cần đạt trên 60% để mở bài mới. Hãy ôn lại bài hiện tại và các câu sai.`,
+      body_en: passed ? `You scored above 60%. The next lesson is now unlocked.` : `You need a score above 60% to unlock the next lesson. Review this lesson and its wrong items.`,
       read: false,
       created_at: Date.now(),
       day_number: day,
       score_percent: score,
       passed,
-      threshold: Number(detail.threshold || 30),
+      threshold: Number(detail.threshold || 60),
       repeat_count: Number(detail.repeatCount || 0)
     };
     saveLocalNotification(item);
