@@ -1,4 +1,4 @@
-/* PandaHan Pro — Quest split-parts loader + adaptive progress gate. */
+/* PandaHán Pro — Ôn tập 120 ngày: cổng >60%, audio offline và chrome Việt–English đồng bộ. */
 (() => {
   "use strict";
 
@@ -21,6 +21,8 @@
     } catch (_) { return "guest"; }
   }
   function parentProgressKey() { return `pandahan_quest_progress_summary_${userNamespace()}`; }
+  function questLanguage() { return window.LANG_MODE === "en" ? "en" : "vi"; }
+  function questText(vi, en) { return questLanguage() === "en" ? en : vi; }
   function outerStatus(text, isError = false) {
     const node = document.getElementById("questProgressSyncStatus");
     if (!node) return;
@@ -37,7 +39,10 @@
       const summary = JSON.parse(localStorage.getItem(parentProgressKey()) || "null");
       if (!summary) return;
       renderReviewCount(summary.mistakesCount);
-      outerStatus(`Quest đã lưu: ${Number(summary.completedCount || 0)}/120 ngày · ${Number(summary.mistakesCount || 0)} câu trong sổ ôn`);
+      outerStatus(questText(
+        `Ôn tập 120 ngày đã lưu: ${Number(summary.completedCount || 0)}/120 bài · ${Number(summary.mistakesCount || 0)} câu trong sổ ôn`,
+        `120-Day Review saved: ${Number(summary.completedCount || 0)}/120 lessons · ${Number(summary.mistakesCount || 0)} items in the mistake log`
+      ));
     } catch (_) {}
   }
 
@@ -49,25 +54,32 @@
     target.style.opacity = isError ? "0.35" : "0.7";
   }
 
-  async function getScheduleForQuest() {
+  function getQuestProgress() {
     try {
-      const api = window.PandaHanSchedule;
-      const schedule = api?.getScheduleAsync ? await api.getScheduleAsync() : api?.getSchedule?.();
-      const days = Array.isArray(schedule?.days) ? schedule.days : [];
-      const active = days.filter((d) => d.status === "unlocked")
-        .sort((a, b) => Number(a.sequence_index || a.day_number) - Number(b.sequence_index || b.day_number))[0] || null;
-      // Quest is fail-closed: only the single schedule day that is currently
-      // unlocked can be started. Completed/legacy Quest days are reviewed via
-      // the mistake notebook, never reopened as a route to bypass the chain.
-      const unlocked = active && Number(active.day_number) > 0 && Number(active.day_number) <= 120 ? [Number(active.day_number)] : (days.length ? [] : [1]);
-      const completed = [];
-      const mission = window.PandaHanMission?.getCurrent?.() || window.PandaHanMission?.mission?.();
-      const chain = mission?.chain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" };
-      return { unlocked: Array.from(new Set(unlocked)), completed, chain, schedule: schedule || null };
-    } catch (error) {
-      console.warn("Quest schedule gate fallback:", error.message || error);
-      return { unlocked: [1], completed: [], chain: { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" }, schedule: null };
-    }
+      return JSON.parse(localStorage.getItem(`pinyin-tone-quest-offline-progress-v2_${userNamespace()}`) || "{}") || {};
+    } catch (_) { return {}; }
+  }
+  function getQuestGate() {
+    try {
+      const api = window.PandaHanQuestProgression;
+      if (api?.gateFor) return api.gateFor(getQuestProgress());
+    } catch (_) {}
+    return { unlocked: [1], completed: [], progress: {} };
+  }
+  function currentQuestSummary() {
+    const progress = getQuestGate().progress || getQuestProgress();
+    const dayProgress = progress.dayProgress || {};
+    const completed = Object.keys(dayProgress).filter((key) => dayProgress[key]?.completed);
+    const last = completed.map((key) => ({ day: Number(key), record: dayProgress[key] })).sort((a, b) => Number(b.record?.updatedAt || 0) - Number(a.record?.updatedAt || 0))[0];
+    return { completedCount: completed.length, mistakesCount: Array.isArray(progress.mistakes) ? progress.mistakes.length : 0, mistakes: Array.isArray(progress.mistakes) ? progress.mistakes.slice(-120) : [], lastDay: last?.day || 0, lastScorePercent: Number(last?.record?.scorePercent || 0), updatedAt: Number(last?.record?.updatedAt || Date.now()) };
+  }
+  function saveQuestSummary(summary) {
+    try { localStorage.setItem(parentProgressKey(), JSON.stringify(summary)); } catch (_) {}
+    renderReviewCount(summary.mistakesCount);
+    outerStatus(questText(
+      `Ôn tập 120 ngày đã lưu: ${summary.completedCount}/120 bài · ${summary.mistakesCount} câu trong sổ ôn`,
+      `120-Day Review saved: ${summary.completedCount}/120 lessons · ${summary.mistakesCount} items in the mistake log`
+    ));
   }
 
   function sendGateToQuest(gate) {
@@ -75,11 +87,13 @@
       type: "PANDAHAN_QUEST_GATE",
       unlockedDays: gate.unlocked,
       completedDays: gate.completed,
-      chain: gate.chain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" },
     }, "*");
   }
+  function sendLanguageToQuest() {
+    if (activeFrameWindow) activeFrameWindow.postMessage({ type: "PANDAHAN_QUEST_LANGUAGE", lang: questLanguage() }, "*");
+  }
 
-  async function refreshQuestGate() { sendGateToQuest(await getScheduleForQuest()); }
+  function refreshQuestGate() { sendGateToQuest(getQuestGate()); sendLanguageToQuest(); }
 
   async function handleQuestMessage(event) {
     const target = frame();
@@ -87,22 +101,17 @@
     const data = event.data || {};
     if (data.type === "PANDAHAN_QUEST_READY") {
       activeFrameWindow = target.contentWindow;
-      await refreshQuestGate();
+      refreshQuestGate();
       showPersistedSummary();
       return;
     }
     if (data.type === "PANDAHAN_QUEST_PROGRESS") {
-      const summary = {
-        completedCount: Number(data.completedCount || 0),
-        mistakesCount: Number(data.mistakesCount || 0),
-        mistakes: Array.isArray(data.mistakes) ? data.mistakes.slice(-120) : [],
-        lastDay: Number(data.lastDay || 0),
-        lastScorePercent: Number(data.lastScorePercent || 0),
-        updatedAt: Number(data.updatedAt || Date.now()),
-      };
-      try { localStorage.setItem(parentProgressKey(), JSON.stringify(summary)); } catch (_) {}
-      renderReviewCount(summary.mistakesCount);
-      outerStatus(`Quest đã lưu: ${summary.completedCount}/120 ngày · ${summary.mistakesCount} câu trong sổ ôn`);
+      if (data.progress && typeof data.progress === "object") {
+        try { localStorage.setItem(`pinyin-tone-quest-offline-progress-v2_${userNamespace()}`, JSON.stringify(data.progress)); } catch (_) {}
+      }
+      const summary = currentQuestSummary();
+      saveQuestSummary(summary);
+      refreshQuestGate();
       return;
     }
     if (data.type !== "PANDAHAN_QUEST_DAY_RESULT") return;
@@ -111,51 +120,30 @@
     const resultKey = `${day}:${score}:${data.resultToken || ""}`;
     if (!day || !Number.isFinite(score) || lastQuestResultKey === resultKey || questResultInFlight === resultKey) return;
     questResultInFlight = resultKey;
-    try {
-      if (window.PandaHanSchedule?.submitDayResult) {
-        const result = await (window.PandaHanSchedule.submitQuestResult
-          ? window.PandaHanSchedule.submitQuestResult(day, score, data.resultToken)
-          : window.PandaHanSchedule.submitDayResult(day, score));
-        await refreshQuestGate();
-        const evaluation = {
-          dayNumber: day,
-          scorePercent: score,
-          passed: !!result?.result?.passed,
-          threshold: Number(result?.result?.threshold || 30),
-          reviewType: result?.result?.reviewType || "daily",
-          repeatCount: Number(result?.result?.repeatCount || 0),
-          action: result?.result?.action || "advance"
-        };
-        const chainBlocked = evaluation.action === "linked_chain_incomplete";
-        outerStatus(chainBlocked ? "Quest chưa được tính vào lộ trình: hãy hoàn thành Ngữ âm và Từ vựng liên kết trước rồi làm lại Quest." : `Quest ngày ${day}: ${score}% · ${evaluation.passed ? "Đã đạt ngưỡng và đã lưu" : "Đã lưu, cần ôn lại"}`, chainBlocked);
-        window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
-        window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "quest", rawSource: "pinyin-tone-quest", evidenceType: "quest_result", verified: true, ...evaluation, evaluatedAt: Date.now() } }));
-        lastQuestResultKey = resultKey;
-      }
-    } catch (error) {
-      outerStatus("Chưa đồng bộ được kết quả Quest vào lộ trình; dữ liệu ôn tập offline vẫn được giữ.", true);
-      console.warn("Quest result was not committed to schedule:", error.message || error);
-    } finally {
-      questResultInFlight = null;
-    }
+    const passed = score > 60;
+    const evaluation = { dayNumber: day, scorePercent: score, passed, threshold: 60, reviewType: "quest_lesson", repeatCount: 0, action: passed ? "unlock_next_lesson" : "retry_lesson" };
+    outerStatus(questText(
+      `Ôn tập 120 ngày · Bài ${day}: ${score}% · ${passed ? "Đã vượt 60% — mở bài tiếp theo" : "Cần đạt trên 60% để mở bài mới"}`,
+      `120-Day Review · Lesson ${day}: ${score}% · ${passed ? "Above 60% — next lesson unlocked" : "Score above 60% to unlock the next lesson"}`
+    ));
+    window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
+    lastQuestResultKey = resultKey;
+    questResultInFlight = null;
   }
 
   const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();</script>`;
   const GATE_SCRIPT = `<script>(function(){
-    var gate={unlockedDays:[1],completedDays:[],chain:{lessonId:0,vocabularyIds:[],vocabularyChars:[],vocabulary:[],phoneticFocus:[],focusLabel:''}};window.__PANDAHAN_QUEST_ALLOWED_DAYS__=[1];
+    var gate={unlockedDays:[1],completedDays:[]};
     function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
-    var lastProgressFingerprint='';
-    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[],tail=mistakes[mistakes.length-1]||{},fingerprint=[completed.length,mistakes.length,last?last.day:0,last?Number(last.record.updatedAt||last.record.completedAt||0):0,String(tail.id||tail.updatedAt||tail.timestamp||tail.word||tail.char||'')].join('|');if(fingerprint===lastProgressFingerprint)return;lastProgressFingerprint=fingerprint;parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}
+    function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',progress:p,completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
+    setInterval(reportProgress,700);
     var resultSent={}; var lastStartedDay=0;
-    function allowed(day){return gate.unlockedDays.indexOf(Number(day))>=0;}
+    function allowed(day){return gate.unlockedDays.indexOf(day)>=0||gate.completedDays.indexOf(day)>=0;}
     function apply(){
       document.querySelectorAll('[data-day]').forEach(function(btn){
         var day=Number(btn.getAttribute('data-day')); var ok=allowed(day);
         btn.disabled=!ok; btn.setAttribute('aria-disabled',String(!ok));
-        btn.setAttribute('tabindex',ok?'0':'-1');
-        btn.classList.toggle('ph-locked',!ok); btn.title=ok?'Mở buổi học':'Buổi này đang khóa theo lộ trình. Hoàn thành buổi hiện tại trước.';
-        btn.style.pointerEvents=ok?'':'none';
-        if(!ok){btn.dataset.questLocked='true';btn.classList.remove('is-complete');}else{delete btn.dataset.questLocked;}
+        btn.classList.toggle('ph-locked',!ok); btn.title=ok?'Mở bài ôn tập':'Đạt trên 60% ở bài trước để mở bài này';
       });
       var start=document.getElementById('oh-start-day'); if(start){var ok=allowed(1);start.disabled=!ok;start.setAttribute('aria-disabled',String(!ok));}
     }
@@ -167,21 +155,67 @@
       var p=title.match(/(\\d+(?:[.,]\\d+)?)\\s*%/); if(!p)return;
       var score=Math.max(0,Math.min(100,Math.round(Number(String(p[1]).replace(',','.')))));
       var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
+      try{var key=progressKey(),stored=JSON.parse(localStorage.getItem(key)||'{}')||{},rows=stored.dayProgress||{},row=rows[String(day)]||{};row.scorePercent=score;row.completed=score>60;row.threshold=60;row.updatedAt=Date.now();rows[String(day)]=row;stored.dayProgress=rows;localStorage.setItem(key,JSON.stringify(stored));}catch(_){}
+      reportProgress();
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
-    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[]).map(Number);gate.completedDays=[];window.__PANDAHAN_QUEST_ALLOWED_DAYS__=gate.unlockedDays.slice();gate.chain=d.chain||gate.chain;window.__PANDAHAN_QUEST_CHAIN=gate.chain;document.documentElement.dataset.chainLesson=String(gate.chain.lessonId||0);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
-    function blockLockedDay(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return false;var chosen=Number(b.getAttribute('data-day'));if(!allowed(chosen)){e.preventDefault();e.stopImmediatePropagation();alert('Buổi này đang khóa. Hãy hoàn thành evidence và các câu ôn của buổi hiện tại trước.');return true;}lastStartedDay=chosen;return false;}
-    document.addEventListener('click',blockLockedDay,true);
-    document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&blockLockedDay(e))return;},true);
+    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
+    document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy đạt trên 60% ở bài trước để mở bài này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
-    setInterval(function(){reportProgress();reportResult();},1800);
+    setInterval(reportResult,700);
     document.documentElement.classList.add('ph-content-only');
     parent.postMessage({type:'PANDAHAN_QUEST_READY'},'*'); apply(); reportProgress();
   })();</script>`;
+  const QUEST_I18N_SCRIPT = `<script>(function(){
+    var lang='vi';
+    var exact={
+      'Từ điển':'Dictionary','Ôn tập':'Review','Luyện tập':'Practice','Ngữ âm':'Phonetics','Tiến độ':'Progress','Học liên tiếp':'Learning streak','Giáo viên':'Teacher',
+      'Bắt đầu một ngày học, mọi lỗi sẽ tự vào sổ ôn.':'Start a daily review; every mistake is added to your review log.',
+      '120 đề gốc, nghe · nói · đọc · viết.':'120 source lessons: listen · speak · read · write.',
+      'Mỗi ngày một đề gốc, đủ nghe · nói · đọc · viết.':'Each day has one source lesson with listening, speaking, reading and writing.',
+      'Mỗi ngày có đề nguồn đầy đủ: nghe · đọc · viết · nói.':'Each day has a complete source lesson: listen · read · write · speak.',
+      'Pinyin Race Quest · Lộ trình 120 ngày':'Pinyin Race Quest · 120-Day Review','Pinyin Tone Quest — Bản HTML độc lập':'Pinyin Tone Quest — Standalone HTML edition',
+      'HSK 3.0 · BỘ ĐỀ NGUỒN 120 NGÀY':'HSK 3.0 · 120-DAY SOURCE LESSONS','Bạn chọn:':'You chose:','Căn cứ nguồn:':'Source basis:',
+      'CHỌN ĐỀ NGUỒN THEO NGÀY':'SELECT A SOURCE LESSON BY DAY','Hành trình đề nguồn':'Source lesson journey',
+      'SỔ LỖI · ĐỀ NGUỒN':'MISTAKE LOG · SOURCE LESSONS','THỐNG KÊ LỖI CẦN ÔN':'REVIEW MISTAKE SUMMARY',
+      'Chưa có câu sai':'No incorrect answers yet','Chưa có câu sai nào':'No incorrect answers yet','Khi trả lời sai, mục này sẽ tự ghi lại.':'Incorrect answers are saved here automatically.',
+      '← Lộ trình 120 ngày':'← 120-Day Review','Lộ trình 120 ngày':'120-Day Review','Làm lại ngày này':'Retry this lesson',
+      'Tiến độ, điểm và câu sai đã được lưu ngay trên thiết bị này.':'Progress, scores and incorrect answers are saved on this device.',
+      'Câu đúng':'Correct answers','Độ chính xác':'Accuracy','Xem kết quả →':'View results →','Tiếp theo →':'Next →',
+      'Nghe audio và chọn đáp án đúng':'Listen to the audio and choose the correct answer','LUYỆN TẬP':'PRACTICE','Nghe lại':'Listen again','Audio MP3 nhúng · offline':'Embedded MP3 audio · offline',
+      'Đúng rồi!':'Correct!','Chưa đúng':'Not quite','Đáp án đúng:':'Correct answer:','Đúng:':'Correct:',
+      'Vào Đề Ngày 1 · 20 mục':'Start Day 1 · 20 items','Xem thống kê chi tiết →':'View detailed statistics →','♫ Bật nhạc nền':'♫ Enable background music',
+      '📒 Ôn':'📒 Review','🔊 Nghe MP3 gốc':'🔊 Play original MP3','🗣 Nói theo rubric':'🗣 Speak with the rubric','✍️ Viết':'✍️ Write','📖 Đọc':'📖 Read','🔔 Nhắc nhở':'🔔 Reminder'
+    };
+    function translate(value){
+      var raw=String(value==null?'':value);if(!raw)return raw;
+      if(lang!=='en')return raw;
+      var trimmed=raw.trim(),lead=(raw.match(/^\s*/)||[''])[0],trail=(raw.match(/\s*$/)||[''])[0],out=exact[trimmed]||trimmed;
+      out=out.replace(/^Hoàn thành Ngày\s+(\d+)/,'Completed Day $1').replace(/^NGÀY\s*(\d+)/,'DAY $1').replace(/^TUẦN\s*(\d+)/,'WEEK $1').replace(/^Ôn Ngày\s*(\d+)/,'Review Day $1').replace(/^(\d+)\s+mục$/,'$1 items').replace(/^(\d+)\s+ngày$/,'$1 days').replace(/^(\d+)%\s*·\s*chơi lại$/,'$1% · retry').replace(/^Chạm để bắt đầu$/,'Tap to start').replace(/^✓ Hoàn thành$/,'✓ Completed').replace(/^đề nguồn · nghe · nói · đọc · viết$/,'source lesson · listen · speak · read · write').replace(/^câu cần ôn$/,'items to review').replace(/^câu sai$/,'incorrect answers').replace(/^bạn đang sai\.$/,'you answered incorrectly.').replace(/^Đáp án đúng:\s*/,'Correct answer: ').replace(/^Đúng:\s*/,'Correct: ').replace(/^Bạn chọn:\s*/,'You chose: ').replace(/^Căn cứ nguồn:\s*/,'Source basis: ').replace(/^(\d+)\s+câu cần ôn$/,'$1 items to review').replace(/^(\d+)\s+câu sai$/,'$1 incorrect answers');
+      return lead+out+trail;
+    }
+    function localize(){
+      document.title=lang==='en'?'Pinyin Tone Quest — 120-Day Review':'Pinyin Tone Quest — Ôn tập 120 ngày';
+      document.querySelectorAll('button,h1,h2,h3,h4,p,small,span,strong,b,em,i,label,div').forEach(function(el){
+        if(el.children.length)return;
+        var source=el.dataset.questVi;if(source==null){source=el.textContent||'';el.dataset.questVi=source;}
+        var localized=lang==='en'?translate(source):source;
+        if(el.textContent!==localized)el.textContent=localized;
+      });
+      document.querySelectorAll('[data-day]').forEach(function(button){
+        var original=button.title||'';if(!button.dataset.questViTitle)button.dataset.questViTitle=original;
+        if(button.dataset.questViTitle==='Mở bài ôn tập'||button.dataset.questViTitle==='Đạt trên 60% ở bài trước để mở bài này')button.title=lang==='en'?(button.dataset.questViTitle==='Mở bài ôn tập'?'Open review lesson':'Score above 60% on the previous lesson to open this lesson'):button.dataset.questViTitle;
+      });
+    }
+    try{lang=(parent&&parent.LANG_MODE==='en')?'en':'vi';}catch(_){};
+    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_LANGUAGE'){lang=d.lang==='en'?'en':'vi';localize();}});
+    var observer=new MutationObserver(function(){localize();});observer.observe(document.documentElement,{subtree:true,childList:true});
+    setTimeout(localize,0);
+  })();</script>`;
 
-  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}.ph-locked[data-quest-locked="true"] em{font-style:normal!important;font-size:0!important}.ph-locked[data-quest-locked="true"] em:after{content:"🔒 Khóa theo lộ trình";font-size:12px!important;color:#7c3aed!important}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
+  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
 
-  function extractQuestContentOnlyHtml(html, initialChain = null) {
+  function extractQuestContentOnlyHtml(html) {
     const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
     const main = parsed.querySelector("main.oh-main");
     const gameData = parsed.getElementById("game-data");
@@ -194,39 +228,8 @@
     app.appendChild(main.cloneNode(true));
     output.body.appendChild(app);
     output.body.appendChild(gameData.cloneNode(true));
-    const safeChain = initialChain || { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" };
-    const chainBootstrap = output.createElement("script");
-    chainBootstrap.textContent = `window.__PANDAHAN_QUEST_CHAIN=${JSON.stringify(safeChain)};`;
-    output.body.appendChild(chainBootstrap);
-    const chainFilter = output.createElement("script");
-    chainFilter.textContent = `(function(){
-      try {
-        var chain = window.__PANDAHAN_QUEST_CHAIN || {};
-        var chars = Array.from(new Set((chain.vocabularyChars || []).map(String).filter(Boolean)));
-        var node = document.getElementById('game-data');
-        if (!node || !chars.length) return;
-        var data = JSON.parse(node.textContent || '{}');
-        var contains = function(item){ var raw = JSON.stringify(item || {}); return chars.some(function(ch){ return raw.indexOf(ch) >= 0; }); };
-        var fallbackItems = (chain.vocabulary || []).filter(function(w){ return w && w.char; }).map(function(w, i){
-          var meaning = String(w.meaningEn || w.meaning || 'Review this linked word');
-          return { section:'vocabulary', heading:'Từ liên kết ' + (i + 1), prompt:String(w.char) + ' · ' + String(w.pinyin || ''), passage:meaning, options:[{label:'A',text:meaning},{label:'B',text:'Not this word'},{label:'C',text:'Choose again'}], answerLabel:'A', explanation:'This item was generated from the exact vocabulary manifest for this lesson.', audioTranscript:String(w.char), chainVocabularyId:String(w.id || '') };
-        });
-        var restrict = function(day){
-          if (!day) return day;
-          var isSession = Array.isArray(day.questions);
-          var items = isSession ? day.questions : (Array.isArray(day.items) ? day.items : []);
-          var matched = items.filter(contains);
-          var nextItems = matched.length ? matched : fallbackItems;
-          return isSession ? Object.assign({}, day, { questions: nextItems }) : Object.assign({}, day, { items: nextItems });
-        };
-        if (Array.isArray(data.sourceDays)) data.sourceDays = data.sourceDays.map(function(day){ return Number(day.day) === Number(chain.lessonId) ? restrict(day) : day; });
-        if (Array.isArray(data.hanziSessions) && Number(chain.lessonId) >= 1 && Number(chain.lessonId) <= data.hanziSessions.length) data.hanziSessions[Number(chain.lessonId) - 1] = restrict(data.hanziSessions[Number(chain.lessonId) - 1]);
-        node.textContent = JSON.stringify(data);
-      } catch (error) { console.warn('Quest chain vocabulary filter failed', error); }
-    })();`;
-    output.body.appendChild(chainFilter);
     runtime.forEach((script) => output.body.appendChild(script.cloneNode(true)));
-    output.body.insertAdjacentHTML("beforeend", STORAGE_BOOTSTRAP + GATE_SCRIPT);
+    output.body.insertAdjacentHTML("beforeend", STORAGE_BOOTSTRAP + GATE_SCRIPT + QUEST_I18N_SCRIPT);
     return "<!doctype html>" + output.documentElement.outerHTML;
   }
 
@@ -235,8 +238,7 @@
     if (!target) throw new Error("Không tìm thấy iframe Quest.");
     if (objectUrl) { target.src = objectUrl; return objectUrl; }
     if (loadPromise) return loadPromise;
-    setStatus("Đang ghép nội dung Pinyin Tone Quest…");
-    const initialGate = await getScheduleForQuest().catch(() => ({ chain: { lessonId: 0, vocabularyIds: [], vocabularyChars: [], vocabulary: [], phoneticFocus: [], focusLabel: "" } }));
+    setStatus(questText("Đang ghép nội dung Pinyin Tone Quest…", "Preparing Pinyin Tone Quest…"));
     loadPromise = Promise.all(PARTS.map(async (part) => {
       const response = await fetch(part, { cache: "force-cache" });
       if (!response.ok) throw new Error(`Không tải được ${part} (${response.status})`);
@@ -249,29 +251,15 @@
         let html = decoder.decode(bytes);
         const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
         html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
-        const dayMarker = "const getDay = (day) => {";
-        const startDayMarker = "const startDay = (day) => {";
-        const choiceMarker = "const getChoiceItems = (day) =>";
-        const dayStart = html.indexOf(dayMarker);
-        const choiceStart = html.indexOf(choiceMarker, dayStart);
-        if (dayStart >= 0 && choiceStart > dayStart) {
-          const originalBody = html.slice(dayStart + dayMarker.length, choiceStart);
-          const chainBranch = `const getDay = (day) => { const chain = window.__PANDAHAN_QUEST_CHAIN || {}; if (Number(chain.lessonId || 0) === Number(day) && Array.isArray(chain.vocabulary) && chain.vocabulary.length) { const items = chain.vocabulary.map((w, i) => { const toneMarks = {a:'āáǎà',e:'ēéěè',i:'īíǐì',o:'ōóǒò',u:'ūúǔù',ü:'ǖǘǚǜ'}; const toneIndex = {'ā':1,'á':2,'ǎ':3,'à':4,'ē':1,'é':2,'ě':3,'è':4,'ī':1,'í':2,'ǐ':3,'ì':4,'ō':1,'ó':2,'ǒ':3,'ò':4,'ū':1,'ú':2,'ǔ':3,'ù':4,'ǖ':1,'ǘ':2,'ǚ':3,'ǜ':4}; const pinyin = String(w.pinyin || ''); const detectedTone = Number(w.tone || [...pinyin].map((c) => toneIndex[c] || 0).find((n) => n > 0) || 0); const base = pinyin.replace(/[āáǎà]/g,'a').replace(/[ēéěè]/g,'e').replace(/[īíǐì]/g,'i').replace(/[ōóǒò]/g,'o').replace(/[ūúǔù]/g,'u').replace(/[ǖǘǚǜ]/g,'ü').replace(/[1-5]/g,''); const options = Array.isArray(w.toneOptions) && w.toneOptions.length ? w.toneOptions : [1,2,3,4].map((n) => { let at = base.indexOf('a'); if (at < 0) at = base.indexOf('e'); if (at < 0) { const ou = base.indexOf('ou'); at = ou >= 0 ? ou + 1 : -1; } if (at < 0) for (let j = base.length - 1; j >= 0; j -= 1) if ('aeiouü'.includes(base[j])) { at = j; break; } const v = at >= 0 ? base[at] : ''; return at >= 0 ? base.slice(0, at) + (toneMarks[v]?.[n - 1] || v) + base.slice(at + 1) : base; }); const labels = ['A','B','C','D']; const answerLabel = labels[Math.max(0, Math.min(3, detectedTone - 1))]; return { section:'vocabulary', heading:'Từ liên kết ' + (i + 1), prompt:w.char, passage:w.meaning || '', options:options.slice(0,4).map((text, n) => ({label:labels[n], text})), answerLabel, explanation:'Tập từ này được truyền từ AI Coach theo lesson/day manifest; không lấy từ ngoài ngày.', audioUrl:null, audioTranscript:w.pinyin || '', vocabularyId:w.id }; }); return { day, title:'AI Coach · Từ vựng liên kết ngày ' + day, items }; }` + originalBody;
-          html = html.slice(0, dayStart) + chainBranch + html.slice(choiceStart);
-        }
-        if (html.includes(startDayMarker)) {
-          const guardedStartDay = `${startDayMarker} if((window.__PANDAHAN_QUEST_ALLOWED_DAYS__||[1]).indexOf(Number(day))<0){alert('Buổi này đang khóa theo lộ trình.');return;}`;
-          html = html.replace(startDayMarker, guardedStartDay);
-        }
-        html = extractQuestContentOnlyHtml(html, initialGate.chain);
+        html = extractQuestContentOnlyHtml(html);
       objectUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
       target.onload = () => { activeFrameWindow = target.contentWindow; refreshQuestGate(); };
       target.src = objectUrl; target.style.opacity = "1";
-      outerStatus("Quest đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản");
+    outerStatus(questText("Ôn tập 120 ngày đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản", "120-Day Review is ready · results and the mistake log will be saved for this account"));
       return objectUrl;
     }).catch((error) => {
       loadPromise = null; target.style.opacity = "1";
-      target.srcdoc = `<body style="font-family:system-ui;padding:24px;color:#991b1b;background:#fff7ed"><h3>Không tải được Quest offline</h3><p>${String(error.message || error)}</p><p>Hãy kiểm tra đủ 3 file <code>pinyin-tone-quest.part-00/01/02</code>.</p></body>`;
+      target.srcdoc = `<body style="font-family:system-ui;padding:24px;color:#991b1b;background:#fff7ed"><h3>${questText("Không tải được Quest offline", "Unable to load offline Quest")}</h3><p>${String(error.message || error)}</p><p>${questText("Hãy kiểm tra đủ 3 file", "Check that all 3 files are available")}: <code>pinyin-tone-quest.part-00/01/02</code>.</p></body>`;
       throw error;
     });
     return loadPromise;
@@ -284,14 +272,19 @@
     if (reviewButton) reviewButton.addEventListener("click", () => {
       const target = frame();
       if (!target || !activeFrameWindow) {
-        outerStatus("Hãy mở Pinyin Tone Quest trước để tải sổ ôn.", true);
+        outerStatus(questText("Hãy mở Ôn tập 120 ngày trước để tải sổ ôn.", "Open 120-Day Review first to load the mistake log."), true);
         return;
       }
       activeFrameWindow.postMessage({ type: "PANDAHAN_QUEST_OPEN_REVIEW" }, "*");
     });
+  });
+  document.addEventListener("DOMContentLoaded", () => {
     const card = document.getElementById("pCardPinyinQuest");
     if (card) card.addEventListener("click", () => loadQuestOffline().catch(() => {}));
     showPersistedSummary();
   });
-  window.addEventListener("pandahan-schedule-updated", refreshQuestGate);
+  window.addEventListener("pandahan-language-changed", () => {
+    showPersistedSummary();
+    sendLanguageToQuest();
+  });
 })();
