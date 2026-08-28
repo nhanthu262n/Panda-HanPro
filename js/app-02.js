@@ -9,8 +9,8 @@ const LEGACY_UI_EN = {
   "Hệ thống học tập thông minh & đồng bộ": "Smart, synced learning system", "Đăng nhập bằng Google": "Sign in with Google", "Đăng nhập ngay": "Sign in now", "Tiếp tục Offline": "Continue offline", "Mật khẩu": "Password", "hoặc": "or",
   "Từ điển": "Dictionary", "Luyện tập": "Practice", "Tiến độ": "Progress", "Ngữ âm": "Phonetics", "Nhắn tin (Lộ trình)": "Messages (Learning Path)", "Giáo viên": "Teacher", "Ôn tập": "Review", "Cần ôn": "Due for review", "Chưa học": "Not studied", "Mới học": "New", "Đang ôn": "Reinforcing", "Đã nắm": "Familiar", "Thành thạo": "Mastered", "Không có dữ liệu": "No data", "Đóng": "Close", "Quay lại": "Back", "Nghe": "Listen", "Bắt đầu": "Start", "Hoàn thành": "Completed",
   "Làm lại": "Retry", "Thoát": "Exit", "Câu tiếp theo": "Next question", "Kiểm tra": "Check", "Đáp án": "Answer", "Đúng": "Correct", "Sai": "Incorrect", "Điểm": "Score", "Mục tiêu": "Target", "Thời lượng dự kiến": "Estimated time", "Bài luyện": "Practice activity", "Bài tập": "Exercise", "Câu hỏi": "Question", "Kết quả": "Result", "Hướng dẫn": "Guide", "Lưu": "Save", "Đã lưu": "Saved", "Mở bài": "Open task", "Ôn lại câu sai": "Redo wrong items", "Học liên tiếp": "Learning streak", "Tất cả cấp độ": "All levels", "Tất cả mức độ": "All levels", "Tất cả loại từ": "All parts of speech",
-  "Động từ": "Verb", "Danh từ": "Noun", "Tính từ": "Adjective", "Trạng từ": "Adverb", "Phó từ": "Adverb", "Số từ": "Numeral", "Lượng từ": "Measure word", "Trợ từ": "Particle", "Trợ động từ": "Modal verb", "Giới từ": "Preposition", "Liên từ": "Conjunction", "Thán từ": "Interjection", "Cụm từ/thành ngữ": "Phrase / idiom", "Danh từ / Tính từ": "Noun / adjective", "Tính từ / Động từ": "Adjective / verb", "Đại từ chỉ định": "Demonstrative pronoun", "Đại từ nghi vấn": "Interrogative pronoun", "Đại từ nhân xưng": "Personal pronoun", "Động từ / Liên từ": "Verb / conjunction",
-  "Trắc nghiệm": "Multiple choice", "Multiple choice · nghĩa, pinyin, chữ Hán, ngữ cảnh": "Multiple choice · meaning, pinyin, Hanzi, context", "Sắp xếp câu": "Sentence unscramble", "Sentence unscramble · dựa trên câu ví dụ thật": "Sentence unscramble · based on real example sentences", "Ghép chữ · nghĩa": "Match Hanzi · meaning", "Viết nghĩa": "Type the meaning", "Đề HSK3 3.0": "HSK3 3.0 practice", "Đoạn văn điền từ · Đồng/trái nghĩa · Sắp xếp hội thoại": "Cloze paragraph · synonyms/antonyms · dialogue order", "Đua xe thanh điệu": "Tone race", "Chọn đúng thanh điệu để Panda về đích · Video-inspired tone race": "Choose the correct tone to guide Panda to the finish · Video-inspired tone race", "Luyện nghe và chọn thanh điệu trong không gian Quest offline": "Listen and choose tones in the offline Quest space",
+  "Động từ": "Verb", "Danh từ": "Noun", "Tính từ": "Adjective", "Trạng từ": "Adverb", "Phó từ": "Adverb", "Số từ": "Numeral", "Lượng từ": "Measure word", "Trợ từ": "Particle", "Trợ động từ": "Modal verb", "Giới từ": "Preposition", "Liên từ": "Conjunction", "Thán từ": "Interjection", "Cụm từ/thành ngữ": "Phrase / idiom", "Danh từ / Tính từ": "Noun / adjective", "Tính từ / Động từ": "Adjective / verb", "Đại từ chỉ định": "Demonstrative pronoun", "Đại từ nghi vấn": "Interrogative pronoun", "Đại từ nhân xưng": "Personal pronoun", "Động từ / Liên từ": "Verb / conjunction", "Hán Việt": "Sino-Vietnamese", "Cụm từ": "Phrases", "Câu ví dụ": "Example sentences", "Mức độ ghi nhớ": "Retention level",
+  "Trắc nghiệm": "Multiple choice", "Multiple choice · nghĩa, pinyin, chữ Hán, ngữ cảnh": "Multiple choice · meaning, pinyin, Hanzi, context", "Sắp xếp câu": "Sentence unscramble", "Sentence unscramble · dựa trên câu ví dụ thật": "Sentence unscramble · based on real example sentences", "Ghép chữ · nghĩa": "Match Hanzi · meaning", "Viết nghĩa": "Type the meaning", "Đề HSK3 3.0": "HSK3 3.0 practice", "Đoạn văn điền từ · Đồng/trái nghĩa · Sắp xếp hội thoại": "Cloze paragraph · synonyms/antonyms · dialogue order", "Đua xe thanh điệu": "Tone race", "Chọn đúng thanh điệu để Panda về đích · Video-inspired tone race": "Choose the correct tone to guide Panda to the finish · Video-inspired tone race", "Ôn tập 120 ngày": "120-Day Review", "Luyện nghe, chọn thanh điệu và mở bài mới khi điểm trên 60%": "Listen, choose tones, and unlock the next lesson only above 60%", "Luyện nghe và chọn thanh điệu trong không gian Quest offline": "Listen and choose tones in the offline Quest space",
   "Điểm, phần cần ôn và bước tiếp theo được lưu trong một nơi.": "Scores, review items and next steps are kept in one place.", "💬 Mở AI Coach": "💬 Open AI Coach", "Đến giờ ôn từ vựng rồi!": "Time to review vocabulary!", "🔊 Nghe nhắc nhở": "🔊 Hear reminder", "▶️ Ôn tập ngay": "▶️ Review now", "Streak sắp mất!": "Your streak is at risk!", "⚡ Học ngay!": "⚡ Study now!", "🚪 Thoát / Log out": "🚪 Log out",
   "Đang tải Ngữ âm Pinyin…": "Loading Pinyin Phonetics…", "Lần đầu cần tải dữ liệu âm thanh và flashcard.": "Audio and flashcard data load on first use.", "phần đã tải": "parts loaded", "Không tải được module Ngữ âm.": "Unable to load the Phonetics module.", "Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.": "Check your network, then press Ctrl + F5 to retry.", "Nghe mẫu": "Hear model", "Tất cả": "All", "Phát âm đúng": "Correct pronunciation", "Phát âm sai": "Incorrect pronunciation", "Lịch sử phát âm": "Pronunciation history", "Xóa lịch sử": "Clear history", "Chưa có lần thu âm nào.": "No recording attempts yet.", "Thẻ tiếp theo": "Next card", "Thẻ trước": "Previous card",
   "Buổi 1": "Session 1", "Buổi 2": "Session 2", "Buổi 3": "Session 3", "Buổi 4": "Session 4", "Buổi 5": "Session 5", "Buổi 6": "Session 6", "Buổi 7": "Session 7", "Buổi 8": "Session 8", "Buổi 9": "Session 9", "Buổi 10": "Session 10", "Tuần 1": "Week 1", "Tuần 2": "Week 2", "4 Thanh Điệu + Nguyên Âm": "4 Tones + Vowels", "Nền tảng: 4 thanh cơ bản + a o e i u": "Foundation: 4 core tones + a o e i u", "Phụ Âm b/p/m/f · d/t/n/l": "Initials b/p/m/f · d/t/n/l", "Nhóm âm môi + nhóm âm đầu lưỡi": "Labial and tongue-tip initials", "Phụ Âm j / q / x": "Initials j / q / x", "Âm mặt lưỡi — dễ nhầm với zh/ch/sh": "Blade-palatal initials — easily confused with zh/ch/sh", "Âm Cuộn Lưỡi zh/ch/sh/r · z/c/s": "Retroflex initials zh/ch/sh/r · z/c/s", "Phân biệt uốn lưỡi (zh/ch/sh/r) vs không uốn (z/c/s)": "Contrast retroflex zh/ch/sh/r with non-retroflex z/c/s", "Vận Mẫu Mũi -n và -ng": "Nasal finals -n and -ng", "Biến Điệu — Tone Sandhi": "Tone sandhi", "Ôn Tập Tuần 1": "Week 1 review", "Tổng Ôn + Thi Thử Đọc": "Final review + reading mock test",
@@ -22,6 +22,11 @@ function englishFallback(value) {
   return LEGACY_UI_EN[raw] || raw;
 }
 function L(viText, enText) { return LANG_MODE === "vi" ? (viText ?? "") : (enText || englishFallback(viText)); }
+const POS_EN = { "Danh từ": "Noun", "Động từ": "Verb", "Tính từ": "Adjective", "Trạng từ": "Adverb", "Phó từ": "Adverb", "Liên từ": "Conjunction", "Giới từ": "Preposition", "Lượng từ": "Measure word", "Trợ từ": "Particle", "Trợ động từ": "Modal verb", "Đại từ nhân xưng": "Personal pronoun", "Đại từ nghi vấn": "Interrogative pronoun", "Đại từ chỉ định": "Demonstrative pronoun", "Cụm từ/thành ngữ": "Phrase / idiom", "Số từ": "Numeral", "Thán từ": "Interjection", "Danh từ / Tính từ": "Noun / adjective", "Tính từ / Động từ": "Adjective / verb", "Động từ / Liên từ": "Verb / conjunction", "Danh từ / Động từ": "Noun / verb", "Tính từ / Phó từ": "Adjective / adverb", "Động từ / Tính từ": "Verb / adjective" };
+function localizedPos(pos) { const raw = String(pos || ""); return LANG_MODE === "en" ? (POS_EN[raw] || englishFallback(raw) || raw) : raw; }
+function sinoVietnameseLabel() { return L("Hán Việt", "Sino-Vietnamese"); }
+function localizedQuizOption(value) { const raw = String(value ?? ""); return POS_EN[raw] ? localizedPos(raw) : biL(raw); }
+window.PandaHanLocalizePos = localizedPos;
 function collapseBilingualText(root = document.body) {
   // Legacy slash labels are intentionally left untouched: rewriting arbitrary
   // text nodes made vi→en→vi irreversible and could alter examples/Quest data.
@@ -774,16 +779,16 @@ function setPracticeSaveStatus(message, isError = false) {
 }
 function practiceTaskId(source) {
   // Chỉ các hoạt động có bằng chứng đúng loại mới hoàn thành task Excel bắt buộc.
-  const map = { quest: "quest", "pinyin-tone-quest": "quest", speaking: "speaking", srs: "srs", flashcards: "srs", write: "reading_writing" };
+  const map = { quest: "quest", "pinyin-tone-quest": "quest", "ai-coach-tone-quest": "quest", speaking: "speaking", srs: "srs", flashcards: "srs", write: "reading_writing" };
   return map[String(source || "").toLowerCase()] || "";
 }
 function practiceEvidenceTaskId(source) {
-  const map = { quiz: "vocabulary", match: "vocabulary", unscramble: "sentence_unscramble", "tone-race": "tone_practice", advanced: "advanced_reading", practice: "practice" };
+  const map = { quiz: "vocabulary", match: "vocabulary", unscramble: "sentence_unscramble", "tone-race": "tone_practice", "ai-coach-tone-quest": "ai_coach_tone_challenge", advanced: "advanced_reading", practice: "practice" };
   return map[String(source || "").toLowerCase()] || practiceTaskId(source) || "practice";
 }
 function practiceMissingText(result) {
   const missing = Array.isArray(result?.result?.missingTaskIds) ? result.result.missingTaskIds : [];
-  const labels = { listening: "Nghe", speaking: "Nói", reading_writing: "Đọc/Viết", srs: "SRS", quest: "Pinyin Quest" };
+  const labels = { listening: "Nghe", speaking: "Nói", reading_writing: "Đọc/Viết", srs: "SRS", quest: "Thử thách thanh điệu AI Coach" };
   return missing.map((id) => labels[id] || id).join(", ");
 }
 async function savePracticeCompletion(score, source = "practice", metadata = {}) {
@@ -1102,7 +1107,7 @@ function showDictLookupCard(text) {
         <div style="font-size:24px;font-weight:800;">${esc(w.char)}</div>
         <span class="hsk-tag" style="background:${hskColor};flex:none;">HSK${w.hsk}</span>
       </div>
-      <div style="font-size:13px;color:var(--text-light);margin-top:2px;">${esc(w.pinyin)} · ${esc(w.hanviet)} · ${esc(w.pos)}</div>
+      <div style="font-size:13px;color:var(--text-light);margin-top:2px;">${esc(w.pinyin)} · ${esc(w.hanviet)} · ${esc(localizedPos(w.pos))}</div>
       <div style="font-size:14px;font-weight:600;margin-top:6px;">${esc(L(w.meaning, w.meaning_en))}</div>
       ${w.chietu_vi ? `<div style="background:#fffbeb;border-radius:8px;padding:9px 11px;margin-top:9px;font-size:12.5px;line-height:1.6;">🎨 ${esc(L(w.chietu_vi, w.chietu_en))}</div>` : ""}
       <div style="display:flex;gap:8px;margin-top:12px;">
@@ -1297,11 +1302,11 @@ function explainAnswer(q) {
   const w = VOCAB_BY_CHAR[q.char];
   if (!w) return "";
   const qt = biL(q.question);
-  const posLower = L(w.pos.toLowerCase(), w.pos.toLowerCase());
+  const posLower = localizedPos(w.pos).toLowerCase();
   if (/có nghĩa là gì|mean\?/i.test(q.question)) {
     return L(
-      `✅ <b>${w.char}</b> (${w.pinyin}) là <b>${w.pos}</b>, nghĩa là "<b>${w.meaning}</b>". 释义: ${w.def_zh}. Ba lựa chọn còn lại là nghĩa của những từ ${posLower} <i>khác</i> trong bộ từ vựng — chúng bị đưa vào để gây nhiễu, không liên quan đến chữ ${w.char}.`,
-      `✅ <b>${w.char}</b> (${w.pinyin}) is a <b>${w.pos}</b> meaning "<b>${w.meaning_en}</b>". Chinese definition: ${w.def_zh}. The other three options are meanings belonging to <i>different</i> ${posLower}s in the vocabulary set — added as distractors, unrelated to ${w.char}.`
+      `✅ <b>${w.char}</b> (${w.pinyin}) là <b>${localizedPos(w.pos)}</b>, nghĩa là "<b>${w.meaning}</b>". 释义: ${w.def_zh}. Ba lựa chọn còn lại là nghĩa của những từ ${posLower} <i>khác</i> trong bộ từ vựng — chúng bị đưa vào để gây nhiễu, không liên quan đến chữ ${w.char}.`,
+      `✅ <b>${w.char}</b> (${w.pinyin}) is a <b>${localizedPos(w.pos)}</b> meaning "<b>${w.meaning_en}</b>". Chinese definition: ${w.def_zh}. The other three options are meanings belonging to <i>different</i> ${posLower}s in the vocabulary set — added as distractors, unrelated to ${w.char}.`
     );
   }
   if (/Chữ Hán nào|Which character/i.test(q.question)) {
@@ -1319,8 +1324,8 @@ function explainAnswer(q) {
   if (/điền vào chỗ trống|fill in the blank/i.test(q.question)) {
     const ex = w.examples[0];
     return L(
-      `✅ <b>${w.char}</b> là lựa chọn đúng vì vừa hợp nghĩa "${w.meaning}" vừa đúng ngữ pháp (${w.pos}) trong câu: <i>"${ex ? ex[0] : ''}"</i> (${ex ? ex[2] : ''}). Ba lựa chọn kia tuy cùng loại từ nhưng nghĩa không phù hợp với ngữ cảnh câu này — đây chính là điểm khác biệt giữa "biết nghĩa" và "biết dùng đúng chỗ".`,
-      `✅ <b>${w.char}</b> is correct because it fits both the meaning "${w.meaning_en}" and the grammar (${w.pos}) in the sentence: <i>"${ex ? ex[0] : ''}"</i> (${ex ? ex[3] : ''}). The other options share the part of speech but don't fit this context — this is exactly the difference between "knowing a meaning" and "knowing how to use it correctly".`
+      `✅ <b>${w.char}</b> là lựa chọn đúng vì vừa hợp nghĩa "${w.meaning}" vừa đúng ngữ pháp (${localizedPos(w.pos)}) trong câu: <i>"${ex ? ex[0] : ''}"</i> (${ex ? ex[2] : ''}). Ba lựa chọn kia tuy cùng loại từ nhưng nghĩa không phù hợp với ngữ cảnh câu này — đây chính là điểm khác biệt giữa "biết nghĩa" và "biết dùng đúng chỗ".`,
+      `✅ <b>${w.char}</b> is correct because it fits both the meaning "${w.meaning_en}" and the grammar (${localizedPos(w.pos)}) in the sentence: <i>"${ex ? ex[0] : ''}"</i> (${ex ? ex[3] : ''}). The other options share the part of speech but don't fit this context — this is exactly the difference between "knowing a meaning" and "knowing how to use it correctly".`
     );
   }
   return L(`✅ Đáp án đúng là "${q.answer_text}".`, `✅ The correct answer is "${q.answer_text}".`);
@@ -1358,7 +1363,7 @@ function initCherryBlossoms() {
 /* ---------- Utility ---------- */
 function esc(s) { return (s == null ? "" : String(s)).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }
-function fmtDate(t) { const d = new Date(t); return d.toLocaleDateString("vi-VN"); }
+function fmtDate(t) { const d = new Date(t); return d.toLocaleDateString(LANG_MODE === "en" ? "en-GB" : "vi-VN"); }
 
 /* ===================== RENDER: Dictionary grid ===================== */
 function tierDotHtml(char) {
@@ -1373,7 +1378,7 @@ function cardHtml(w) {
     <div class="char-row"><span class="char">${esc(w.char)}</span>
       <button class="audio-mini" data-speak="${esc(w.char)}" title="🔊">🔊</button></div>
     <div class="pinyin">${esc(w.pinyin)}</div>
-    <div class="pos-tag">${esc(w.pos)}</div>
+    <div class="pos-tag">${esc(localizedPos(w.pos))}</div>
     <div class="meaning">${esc(meaning)}</div>
     ${due}
   </div>`;
@@ -1414,7 +1419,7 @@ function renderGrids() {
         const allLevel = VOCAB.filter(w => w.hsk === level);
         const learnedLevel = allLevel.filter(w => getTier(w.char) > 0).length;
         const countEl = document.getElementById("hsk" + level + "Count");
-        if (countEl) countEl.textContent = `${learnedLevel}/${allLevel.length} đã học`;
+        if (countEl) countEl.textContent = L(`${learnedLevel}/${allLevel.length} đã học`, `${learnedLevel}/${allLevel.length} studied`);
         resolve();
       }, 0);
     });
@@ -1688,8 +1693,8 @@ function openDetail(char) {
 
   document.getElementById("dMeta").innerHTML =
     `<span class="tag tag-hsk${w.hsk}">HSK ${w.hsk}</span>` +
-    `<span class="tag tag-pos">${esc(w.pos)}</span>` +
-    (w.hanviet ? `<span class="tag tag-hanviet">Hán Việt: ${esc(w.hanviet)}</span>` : "");
+    `<span class="tag tag-pos">${esc(localizedPos(w.pos))}</span>` +
+    (w.hanviet ? `<span class="tag tag-hanviet">${esc(sinoVietnameseLabel())}: ${esc(w.hanviet)}</span>` : "");
 
   const cumtuBox = document.getElementById("dCumtuBox");
   if (w.cumtu.length) {
@@ -2034,13 +2039,13 @@ function startQuizForWords(words, options = {}) {
     const qs = genReadingQuestions(w);
     if (qs.length) quizQueue.push({ ...shuffle(qs)[0], char: w.char });
   });
-  if (!quizQueue.length) { alert("Chưa có đủ dữ liệu bài tập từ nhóm từ đã học / Not enough evidence-based vocabulary exercises yet."); return; }
+  if (!quizQueue.length) { alert(L("Chưa có đủ dữ liệu bài tập từ nhóm từ đã học.", "Not enough evidence-based vocabulary exercises yet.")); return; }
   runQuiz();
 }
 function startQuizLevel(level, options = {}) {
   beginPracticeSession(options);
   const pool = window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []);
-  if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để kiểm tra. Hãy hoàn thành Ngữ âm và giới thiệu từ trước / No evidence-based practice words are ready yet."); return; }
+  if (!pool.length) { alert(L("Chưa có từ đã học/đến hạn đủ điều kiện để kiểm tra. Hãy hoàn thành Ngữ âm và giới thiệu từ trước.", "No evidence-based practice words are ready yet.")); return; }
   startQuizForWords(shuffle(pool), options);
 }
 
@@ -2305,7 +2310,7 @@ function showQuizQuestion() {
     `${diffLabel ? `<div class="quiz-diff ${diffClass}">${diffLabel}</div>` : ""}
      ${passageHtml}
      <div class="quiz-question lookup-text">${esc(biL(q.question))}</div>
-     <div class="quiz-options">${opts.map(o => `<button data-letter="${o[0]}">${esc(biL(o[1]))}</button>`).join("")}</div>`;
+     <div class="quiz-options">${opts.map(o => `<button data-letter="${o[0]}">${esc(localizedQuizOption(o[1]))}</button>`).join("")}</div>`;
   document.querySelectorAll("#qContent .quiz-options button").forEach(b => {
     b.addEventListener("click", () => answerQuiz(b, q));
   });
@@ -2488,8 +2493,8 @@ function showFlashcard() {
   if (WORD_ICONS[w.char]) { iconEl.innerHTML = WORD_ICONS[w.char]; iconEl.style.display = "block"; }
   else { iconEl.innerHTML = ""; iconEl.style.display = "none"; }
   document.getElementById("fcAudioBtn").dataset.speak = w.char;
-  document.getElementById("fcPinyin").textContent = w.pinyin + (w.hanviet ? "  ·  Hán Việt: " + w.hanviet : "");
-  document.getElementById("fcMeaning").textContent = L(w.meaning, w.meaning_en) + "  ·  " + w.pos;
+  document.getElementById("fcPinyin").textContent = w.pinyin + (w.hanviet ? "  ·  " + sinoVietnameseLabel() + ": " + w.hanviet : "");
+  document.getElementById("fcMeaning").textContent = L(w.meaning, w.meaning_en) + "  ·  " + localizedPos(w.pos);
   document.getElementById("fcMeaningEn").textContent = w.def_zh;
   document.getElementById("fcExample").innerHTML = w.examples[0] ? `${esc(w.examples[0][0])}<br><span style="color:var(--pink);">${esc(w.examples[0][1])}</span><br>${esc(L(w.examples[0][2], w.examples[0][3]))}` : "";
   document.getElementById("fcHidden").classList.remove("show");
@@ -2528,7 +2533,7 @@ function startUnscrambleForWord(char, options = {}) {
 function startUnscrambleLevel(level, options = {}) {
   beginPracticeSession(options);
   let pool = Array.isArray(options.words) && options.words.length ? options.words.slice() : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []));
-  if (!pool.length) { alert("Chưa có từ đã học/đến hạn đủ điều kiện để sắp xếp câu / No evidence-based words are ready for unscramble."); return; }
+  if (!pool.length) { alert(L("Chưa có từ đã học/đến hạn đủ điều kiện để sắp xếp câu.", "No evidence-based words are ready for unscramble.")); return; }
   pool = shuffle(pool).slice(0, 10);
   uQueue = [];
   pool.forEach(w => { if (Array.isArray(w.unscramble) && w.unscramble.length) uQueue.push({ ...shuffle(w.unscramble)[0], char: w.char }); });
@@ -2621,8 +2626,8 @@ function checkUnscramble() {
   playTing(correct ? "correct" : "wrong");
   const w = VOCAB_BY_CHAR[uCurrentQ.char];
   const explain = uCurrentQ.explain ? biL(uCurrentQ.explain) : (w ? L(
-    `Câu đúng dùng "<b>${w.char}</b>" (${w.pos.toLowerCase()}, nghĩa "${w.meaning}") đúng vị trí ngữ pháp tiếng Trung: Chủ ngữ → Trạng ngữ → Động từ → Tân ngữ.`,
-    `The correct sentence places "<b>${w.char}</b>" (${w.pos.toLowerCase()}, meaning "${w.meaning_en}") in proper Chinese word order: Subject → Adverbial → Verb → Object.`
+    `Câu đúng dùng "<b>${w.char}</b>" (${localizedPos(w.pos).toLowerCase()}, nghĩa "${w.meaning}") đúng vị trí ngữ pháp tiếng Trung: Chủ ngữ → Trạng ngữ → Động từ → Tân ngữ.`,
+    `The correct sentence places "<b>${w.char}</b>" (${localizedPos(w.pos).toLowerCase()}, meaning "${w.meaning_en}") in proper Chinese word order: Subject → Adverbial → Verb → Object.`
   ) : "");
   if (correct) {
     fb.innerHTML = `✅ ${L("Chính xác!", "Correct!")} <b>${uCurrentQ.answer}</b> (${uCurrentQ.answer_pinyin})<div class="quiz-explain-body" style="margin-top:8px;">${explain}</div>`;
@@ -3410,7 +3415,7 @@ async function renderTeacherDashboard() {
               <div>
                 <div style="font-weight:700;">${esc(u.name)} <span class="role-badge role-student" style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:11px;">🎓 HS</span></div>
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
-                <div style="font-size:11px;color:var(--pink);margin-top:3px;">📚 ${learnedCount} từ đã học${lastSeenLabel !== "–" ? " · Cập nhật: " + lastSeenLabel : ""}</div>
+                <div style="font-size:11px;color:var(--pink);margin-top:3px;">📚 ${L(`${learnedCount} từ đã học${lastSeenLabel !== "–" ? " · Cập nhật: " + lastSeenLabel : ""}`, `${learnedCount} words studied${lastSeenLabel !== "–" ? " · Updated: " + lastSeenLabel : ""}`)}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
                 <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 Chi tiết</button>
@@ -3508,7 +3513,7 @@ async function viewStudentProgress(uid, name) {
         document.getElementById("teacherDetailStats").innerHTML = `
             <div style="margin-bottom:14px;font-size:11px;color:var(--text-light);">Cập nhật lần cuối: ${lastUpdatedStr}</div>
             <div class="time-grid" style="grid-template-columns:1fr 1fr;">
-              <div class="time-box"><div class="num">${learned}</div><div class="lbl">Từ đã học</div></div>
+              <div class="time-box"><div class="num">${learned}</div><div class="lbl">${L("Từ đã học", "Words studied")}</div></div>
               <div class="time-box"><div class="num">${mastered}</div><div class="lbl">Từ thành thạo</div></div>
               <div class="time-box"><div class="num">${quizAccuracy}%</div><div class="lbl">Tỉ lệ đúng quiz</div></div>
               <div class="time-box"><div class="num">${totalQuizAttempts}</div><div class="lbl">Tổng lượt quiz</div></div>
@@ -4264,31 +4269,34 @@ function startToneRaceGame(options = {}){
   const level=document.getElementById("practiceHskFilter");
   const selected=level ? level.value : "all";
   const currentMission = window.PandaHanMission?.getCurrent?.();
+  const coachQuest = options.coachQuest === true;
   const explicitPool = Array.isArray(options.words) && options.words.length ? options.words.slice() : [];
   const missionPool = explicitPool.length ? explicitPool : (currentMission?.chainVocabulary?.length ? currentMission.chainVocabulary : (window.PandaHanMission?.getTargetVocabulary?.() || []));
-  const chainLaunch = explicitPool.length > 0 || window.PandaHanMission?.getActiveTask?.()?.type === "tone-race";
+  const chainLaunch = coachQuest || explicitPool.length > 0 || window.PandaHanMission?.getActiveTask?.()?.type === "tone-race";
   let pool = chainLaunch ? missionPool.map(makeMissionToneQuestion).filter(Boolean) : [];
-  if (chainLaunch && !pool.length) { alert("Chưa có từ vựng đúng theo chuỗi Ngữ âm của ngày này / No exact phonetics-linked words are ready for this day's chain."); return; }
+  if (chainLaunch && !pool.length) { alert(L("Chưa có từ vựng đúng theo chuỗi Ngữ âm của ngày này.", "No exact phonetics-linked words are ready for this day's chain.")); return; }
   if (!chainLaunch) {
     const missionChars = new Set(missionPool.map(w => w.char));
     pool = missionChars.size ? TONE_RACE_BANK.filter(q => missionChars.has(q.char)) : [];
     if(pool.length < 4) pool = TONE_RACE_BANK.filter(q=>selected==="all" || q.hsk===Number(selected));
     if(pool.length<4) pool=TONE_RACE_BANK.slice();
   }
-  toneRaceState={queue:shuffle(pool).slice(0,Math.min(8,pool.length)),index:0,score:0,correctCount:0,streak:0,answered:false};
+  toneRaceState={queue:shuffle(pool).slice(0,Math.min(8,pool.length)),index:0,score:0,correctCount:0,streak:0,answered:false,coachQuest,runOptions:{...options}};
   renderToneRaceQuestion();
 }
 function renderToneRaceQuestion(){
   const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState) return;
   if(toneRaceState.index>=toneRaceState.queue.length){ renderToneRaceResult(); return; }
   const q=toneRaceState.queue[toneRaceState.index]; toneRaceState.answered=false;
+  const coachLabel = toneRaceState.coachQuest ? L("AI Coach · Thử thách thanh điệu", "AI Coach · Tone challenge") : L("Đua xe thanh điệu", "Tone race");
+  const coachIntro = toneRaceState.coachQuest ? L("Game riêng của AI Coach dùng đúng nhóm từ theo kế hoạch; không thay đổi tiến độ Ôn tập 120 ngày.", "A separate AI Coach game using this plan's vocabulary; it does not change 120-Day Review progress.") : L("Chọn đúng đường cao độ để chiếc xe vượt qua biển báo và về đích.", "Choose the correct pitch path to drive past the signs and reach the finish.");
   gc.innerHTML=`<div class="tone-race-shell">
-    <div class="tone-race-head"><div><h2>🚗 Đua xe thanh điệu</h2><p>Chọn đúng đường cao độ để chiếc xe vượt qua biển báo và về đích.</p></div><div class="tone-race-hud"><span class="tone-race-chip">Câu ${toneRaceState.index+1}/${toneRaceState.queue.length}</span><span class="tone-race-chip">⭐ <b id="toneRaceScore">${toneRaceState.score}</b></span><span class="tone-race-chip">🔥 <b id="toneRaceStreak">${toneRaceState.streak}</b></span></div></div>
+    <div class="tone-race-head"><div><h2>🚗 ${coachLabel}</h2><p>${coachIntro}</p></div><div class="tone-race-hud"><span class="tone-race-chip">${L("Câu", "Question")} ${toneRaceState.index+1}/${toneRaceState.queue.length}</span><span class="tone-race-chip">⭐ <b id="toneRaceScore">${toneRaceState.score}</b></span><span class="tone-race-chip">🔥 <b id="toneRaceStreak">${toneRaceState.streak}</b></span></div></div>
     <div class="tone-race-scene"><div class="tone-race-sun">☀️</div><div class="tone-race-cloud one">☁️</div><div class="tone-race-cloud two">☁️</div><div class="tone-race-hill"></div><div class="tone-race-sign">${esc(q.syllable)} + ?</div><div class="tone-race-finish">🏁</div><div class="tone-race-road"><svg id="toneRaceTonePath" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${toneRacePath(q.tone)}"></polyline></svg><div id="toneRaceCar">🚗</div></div></div>
-    <div class="tone-race-question"><div class="tone-race-character">${q.emoji}</div><div class="tone-race-prompt"><strong>${esc(q.char)}</strong> · ${esc(L(q.meaning,q.meaningEn))}<small>Âm tiết: <b>${esc(q.syllable)}</b> · Chọn thanh điệu đúng</small></div><button class="tone-race-speak" id="toneRaceSpeak" title="Nghe phát âm">🔊</button></div>
-    <div class="tone-race-options">${q.options.map((opt,i)=>`<button class="tone-race-option" data-tone="${i+1}" type="button"><span class="tone-symbol">${["—","↗","∨","↘"][i]}</span><span>${esc(opt)}</span><span class="tone-label">Thanh ${i+1}</span></button>`).join("")}</div>
-    <div class="tone-race-feedback" id="toneRaceFeedback">Chọn một thẻ thanh điệu để xe bắt đầu chạy.</div>
-    <div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceExit" type="button">✕ Thoát</button><button class="btn btn-pink" id="toneRaceNext" type="button" style="display:none;">Câu tiếp theo →</button></div>
+    <div class="tone-race-question"><div class="tone-race-character">${q.emoji}</div><div class="tone-race-prompt"><strong>${esc(q.char)}</strong> · ${esc(L(q.meaning,q.meaningEn))}<small>${L("Âm tiết", "Syllable")}: <b>${esc(q.syllable)}</b> · ${L("Chọn thanh điệu đúng", "Choose the correct tone")}</small></div><button class="tone-race-speak" id="toneRaceSpeak" title="${L("Nghe phát âm", "Listen to pronunciation")}">🔊</button></div>
+    <div class="tone-race-options">${q.options.map((opt,i)=>`<button class="tone-race-option" data-tone="${i+1}" type="button"><span class="tone-symbol">${["—","↗","∨","↘"][i]}</span><span>${esc(opt)}</span><span class="tone-label">${L("Thanh", "Tone")} ${i+1}</span></button>`).join("")}</div>
+    <div class="tone-race-feedback" id="toneRaceFeedback">${L("Chọn một thẻ thanh điệu để xe bắt đầu chạy.", "Choose a tone card to start the car.")}</div>
+    <div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceExit" type="button">✕ ${L("Thoát", "Exit")}</button><button class="btn btn-pink" id="toneRaceNext" type="button" style="display:none;">${L("Câu tiếp theo", "Next question")} →</button></div>
   </div>`;
   document.getElementById("toneRaceSpeak").addEventListener("click",()=>speak(q.pinyin));
   document.querySelectorAll(".tone-race-option").forEach(btn=>btn.addEventListener("click",()=>answerToneRace(Number(btn.dataset.tone),btn,q)));
@@ -4301,20 +4309,22 @@ function answerToneRace(tone,button,q){
   const correct=tone===q.tone;
   document.querySelectorAll(".tone-race-option").forEach(b=>{b.disabled=true;if(Number(b.dataset.tone)===q.tone)b.classList.add("correct");});
   const car=document.getElementById("toneRaceCar"); const feedback=document.getElementById("toneRaceFeedback");
-  if(correct){toneRaceState.score+=10+toneRaceState.streak*2;toneRaceState.correctCount++;toneRaceState.streak++;button.classList.add("correct");if(car)car.classList.add("drive");feedback.className="tone-race-feedback ok";feedback.textContent=`✅ Chính xác! ${q.pinyin} là thanh ${q.tone}. Xe tăng tốc về đích!`;}else{toneRaceState.streak=0;button.classList.add("wrong");if(car)car.classList.add("bump");feedback.className="tone-race-feedback bad";feedback.textContent=`💡 Chưa đúng. Đáp án là ${q.pinyin} — thanh ${q.tone}. Hãy nghe lại và ghi nhớ đường cao độ.`;}
+  if(correct){toneRaceState.score+=10+toneRaceState.streak*2;toneRaceState.correctCount++;toneRaceState.streak++;button.classList.add("correct");if(car)car.classList.add("drive");feedback.className="tone-race-feedback ok";feedback.textContent=L(`✅ Chính xác! ${q.pinyin} là thanh ${q.tone}. Xe tăng tốc về đích!`,`✅ Correct! ${q.pinyin} is Tone ${q.tone}. The car speeds to the finish!`);}else{toneRaceState.streak=0;button.classList.add("wrong");if(car)car.classList.add("bump");feedback.className="tone-race-feedback bad";feedback.textContent=L(`💡 Chưa đúng. Đáp án là ${q.pinyin} — thanh ${q.tone}. Hãy nghe lại và ghi nhớ đường cao độ.`,`💡 Not quite. The answer is ${q.pinyin} — Tone ${q.tone}. Listen again and remember the pitch path.`);}
   const s=document.getElementById("toneRaceScore");if(s)s.textContent=toneRaceState.score;const st=document.getElementById("toneRaceStreak");if(st)st.textContent=toneRaceState.streak;
-  if(typeof recordQuizResult==="function" && VOCAB_BY_CHAR[q.char]) recordQuizResult(q.char,correct,{ source:"tone-race", prompt:`${q.char} · ${q.syllable}`, expected:q.pinyin, selected:button?.textContent || "" });
+  if(typeof recordQuizResult==="function" && VOCAB_BY_CHAR[q.char]) recordQuizResult(q.char,correct,{ source:toneRaceState.coachQuest ? "ai-coach-tone-quest" : "tone-race", prompt:`${q.char} · ${q.syllable}`, expected:q.pinyin, selected:button?.textContent || "" });
   const next=document.getElementById("toneRaceNext");if(next)next.style.display="inline-flex";
 }
 function renderToneRaceResult(){
   const gc=document.getElementById("gameContent"); if(!gc || !toneRaceState)return;
-  const total=toneRaceState.queue.length; const correct=toneRaceState.correctCount; const best=Math.max(Number(localStorage.getItem("pandahanToneRaceBest")||0),toneRaceState.score);localStorage.setItem("pandahanToneRaceBest",String(best));
+  const total=toneRaceState.queue.length; const correct=toneRaceState.correctCount; const bestKey=toneRaceState.coachQuest ? "pandahanCoachToneQuestBest" : "pandahanToneRaceBest"; const best=Math.max(Number(localStorage.getItem(bestKey)||0),toneRaceState.score);localStorage.setItem(bestKey,String(best));
   const scorePercent = total ? Math.round((correct / total) * 100) : 0;
   const chainMission = window.PandaHanMission?.getCurrent?.();
-  if (chainMission && window.PandaHanVocabularyPhase?.completeGame) window.PandaHanVocabularyPhase.completeGame(Number(chainMission.dayNumber), (chainMission.chainVocabulary || chainMission.adaptivePlan?.introWords || chainMission.newVocab || []).map((w) => w.char), scorePercent);
-  savePracticeCompletion(scorePercent, "tone-race");
-  gc.innerHTML=`<div class="tone-race-shell"><div class="tone-race-result"><div class="result-emoji">🏆🚗</div><h3>Hoàn thành đường đua!</h3><p>Bạn đạt <b>${toneRaceState.score} điểm</b> trong ${total} câu. Kỷ lục hiện tại: <b>${best} điểm</b>.<br>${correct>=Math.ceil(total*.8)?"Tuyệt vời! Bạn đã kiểm soát thanh điệu rất tốt.":"Hãy chơi lại một lượt để củng cố các thanh điệu còn nhầm lẫn."}</p><div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceBack" type="button">← Về luyện tập</button><button class="btn btn-pink" id="toneRaceReplay" type="button">🚗 Chơi lại</button></div></div></div>`;
-  document.getElementById("toneRaceBack").addEventListener("click",exitToneRace);document.getElementById("toneRaceReplay").addEventListener("click",startToneRaceGame);
+  if (!toneRaceState.coachQuest && chainMission && window.PandaHanVocabularyPhase?.completeGame) window.PandaHanVocabularyPhase.completeGame(Number(chainMission.dayNumber), (chainMission.chainVocabulary || chainMission.adaptivePlan?.introWords || chainMission.newVocab || []).map((w) => w.char), scorePercent);
+  savePracticeCompletion(scorePercent, toneRaceState.coachQuest ? "ai-coach-tone-quest" : "tone-race", toneRaceState.runOptions || {});
+  const resultTitle = toneRaceState.coachQuest ? L("Hoàn thành thử thách AI Coach!", "AI Coach challenge complete!") : L("Hoàn thành đường đua!", "Race complete!");
+  const resultNote = toneRaceState.coachQuest ? L("Kết quả này là evidence riêng của AI Coach; tiến độ Ôn tập 120 ngày không thay đổi.", "This result is AI Coach evidence only; 120-Day Review progress does not change.") : (correct>=Math.ceil(total*.8)?L("Tuyệt vời! Bạn đã kiểm soát thanh điệu rất tốt.", "Excellent! You controlled the tones very well."):L("Hãy chơi lại một lượt để củng cố các thanh điệu còn nhầm lẫn.", "Play once more to strengthen the tones that are still confusing."));
+  gc.innerHTML=`<div class="tone-race-shell"><div class="tone-race-result"><div class="result-emoji">🏆🚗</div><h3>${resultTitle}</h3><p>${L("Bạn đạt", "You scored")} <b>${toneRaceState.score} ${L("điểm", "points")}</b> ${L("trong", "in")} ${total} ${L("câu", "questions")}. ${L("Kỷ lục hiện tại", "Current best")}: <b>${best} ${L("điểm", "points")}</b>.<br>${resultNote}</p><div class="tone-race-actions"><button class="btn btn-outline" id="toneRaceBack" type="button">← ${L("Về luyện tập", "Back to practice")}</button><button class="btn btn-pink" id="toneRaceReplay" type="button">🚗 ${L("Chơi lại", "Play again")}</button></div></div></div>`;
+  const replayOptions={...(toneRaceState.runOptions||{})};document.getElementById("toneRaceBack").addEventListener("click",exitToneRace);document.getElementById("toneRaceReplay").addEventListener("click",()=>startToneRaceGame(replayOptions));
 }
 function exitToneRace(){
   const gc=document.getElementById("gameContainer");if(gc){gc.classList.remove("visible");gc.style.display="none";}
@@ -4331,7 +4341,7 @@ function startMatchGame(options = {}) {
   window.scrollTo({ top: 0, behavior: "instant" });
   const level = document.getElementById("practiceHskFilter").value;
   const missionPool = Array.isArray(options.words) && options.words.length ? options.words.slice() : (window.PandaHanAdaptiveLearning ? (window.PandaHanAdaptiveLearning.getPracticePool?.(level) || []) : (window.PandaHanMission?.getTargetVocabulary?.() || []));
-  if (!missionPool.length) { alert("Chưa có nhóm từ đã học/đến hạn đủ điều kiện để ghép nghĩa / No evidence-based words are ready for matching."); return; }
+  if (!missionPool.length) { alert(L("Chưa có nhóm từ đã học/đến hạn đủ điều kiện để ghép nghĩa.", "No evidence-based words are ready for matching.")); return; }
   let pool = shuffle(missionPool).slice(0, 6);
   let matched = 0, selectedChar = null, selectedMeaning = null;
   const chars = shuffle(pool.map(w => ({ char: w.char, id: w.id })));
