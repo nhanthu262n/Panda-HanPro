@@ -13,13 +13,21 @@
     return text !== "" && text !== "-" && !/^n\/a$/i.test(text);
   }
 
+  // AI Coach learning design: reading/writing is introduced only after the
+  // first 30 curriculum days. Existing pre-Day-31 evidence is retained as
+  // history, but it never remains a required gate for those sessions.
+  const READING_WRITING_UNLOCK_DAY = 31;
+  function isReadingWritingUnlocked(item = {}) {
+    return Number(item.day_number || item.original_day_number || item.dayNumber || 0) >= READING_WRITING_UNLOCK_DAY;
+  }
+
   // These IDs mirror the authoritative Excel columns. A learner may only
   // advance after every non-empty important column has a real completion event.
   function getMandatoryTaskIds(item = {}) {
     const ids = ["quest"];
     if (hasCurriculumTask(item.listening_task)) ids.push("listening");
     if (hasCurriculumTask(item.speaking_task)) ids.push("speaking");
-    if (hasCurriculumTask(item.reading_writing_task)) ids.push("reading_writing");
+    if (isReadingWritingUnlocked(item) && hasCurriculumTask(item.reading_writing_task)) ids.push("reading_writing");
     if (hasCurriculumTask(item.srs_review_task)) ids.push("srs");
     return ids;
   }
@@ -27,7 +35,8 @@
   function ensureDayRequirements(day, curriculumItem) {
     const derived = getMandatoryTaskIds(curriculumItem || day || {});
     const existing = Array.isArray(day.required_tasks) && day.required_tasks.length ? day.required_tasks : derived;
-    day.required_tasks = Array.from(new Set(existing.map(String)));
+    const scoped = isReadingWritingUnlocked(curriculumItem || day || {}) ? existing : existing.filter((id) => String(id) !== "reading_writing");
+    day.required_tasks = Array.from(new Set(scoped.map(String)));
     day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
     day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
     day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
@@ -386,6 +395,8 @@
     applySubmit,
     recordTaskCompletion,
     getMandatoryTaskIds,
+    isReadingWritingUnlocked,
+    READING_WRITING_UNLOCK_DAY,
     applyDailyExtension,
   };
 });
