@@ -1,13 +1,8 @@
 /* PandaHán Pro — Ôn tập 120 ngày: cổng >60%, audio offline và chrome Việt–English đồng bộ. */
 (() => {
   "use strict";
-  const TEST_UNLOCK_ALL = true;
 
-  const PARTS = [
-    "assets/pinyin-tone-quest.part-00?v=quest-loader-fix-20260830",
-    "assets/pinyin-tone-quest.part-01?v=quest-loader-fix-20260830",
-    "assets/pinyin-tone-quest.part-02?v=quest-loader-fix-20260830",
-  ];
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?v=pinyin-latest-20260830";
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
@@ -134,7 +129,7 @@
 
   const STORAGE_BOOTSTRAP = `<script>(function(){try{var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}ns=ns.replace(/[^a-zA-Z0-9_-]/g,'_');var key='pinyin-tone-quest-offline-progress-v2_'+ns;var old='pinyin-tone-quest-offline-progress-v2';if(!localStorage.getItem(key)){var raw=localStorage.getItem(old);if(raw)localStorage.setItem(key,raw);}}catch(_){}})();</script>`;
   const GATE_SCRIPT = `<script>(function(){
-    var TEST_UNLOCK_ALL=true;var gate={unlockedDays:Array.from({length:120},function(_,i){return i+1;}),completedDays:Array.from({length:120},function(_,i){return i+1;})};
+    var gate={unlockedDays:[1],completedDays:[]};
     function progressKey(){var ns='guest';try{if(parent&&typeof parent.storageNamespace==='function'){ns=String(parent.storageNamespace()||'guest');}else if(parent&&parent.CURRENT_USER){ns=String(parent.CURRENT_USER.uid||parent.CURRENT_USER.username||'guest');}}catch(_){}return 'pinyin-tone-quest-offline-progress-v2_'+ns.replace(/[^a-zA-Z0-9_-]/g,'_');}
     function reportProgress(){try{var raw=localStorage.getItem(progressKey());if(!raw)return;var p=JSON.parse(raw)||{},dp=p.dayProgress||{},keys=Object.keys(dp),completed=keys.filter(function(k){return dp[k]&&dp[k].completed;});var last=completed.map(function(k){return dp[k]&&{day:Number(k),record:dp[k]};}).filter(Boolean).sort(function(a,b){return Number(b.record.updatedAt||b.record.completedAt||0)-Number(a.record.updatedAt||a.record.completedAt||0);})[0];var mistakes=Array.isArray(p.mistakes)?p.mistakes.slice(-120):[];parent.postMessage({type:'PANDAHAN_QUEST_PROGRESS',progress:p,completedCount:completed.length,mistakesCount:mistakes.length,mistakes:mistakes,lastDay:last?last.day:0,lastScorePercent:last&&last.record.answered?Math.round(Number(last.record.correct||0)/Number(last.record.answered||1)*100):0,updatedAt:Date.now()},'*');}catch(_){}}
     setInterval(reportProgress,700);
@@ -160,7 +155,7 @@
       reportProgress();
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
-    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){if(!TEST_UNLOCK_ALL){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);}apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
+    window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
     document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy đạt trên 60% ở bài trước để mở bài này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
@@ -214,18 +209,18 @@
     setTimeout(localize,0);
   })();</script>`;
 
-  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-launcher,.ph-content-only .oh-sidebar,.ph-content-only .quest-sidebar,.ph-content-only aside{display:none!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-content-only .quest-shell{display:block!important;min-height:100vh!important;background:linear-gradient(135deg,#fff7fc 0%,#f7efff 100%)!important}.ph-content-only .quest-main{width:100%!important;max-width:1280px!important;margin:0 auto!important;padding:0 24px 44px!important}.ph-content-only .quest-head{position:sticky!important;top:0!important;z-index:5!important;background:rgba(255,249,253,.94)!important;border-bottom:1px solid #f4d4e7!important;padding:16px 0!important}.ph-content-only .quest-original-intro{max-width:1180px!important;margin:24px auto 14px!important;padding:26px 30px!important;border-radius:26px!important;background:linear-gradient(135deg,#fff,#fff3fb)!important;box-shadow:0 10px 28px rgba(201,91,154,.1)!important}.ph-content-only .quest-hero{max-width:1180px!important;margin:0 auto 18px!important;border-radius:24px!important}.ph-content-only .quest-day-list{max-width:1180px!important;margin:0 auto!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important}.ph-content-only .quest-day-card{min-height:248px!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:10px!important;padding:20px 16px 16px!important;border-radius:22px!important;background:#fff!important;border:2px solid var(--day-accent,#e85588)!important;box-shadow:0 6px 18px rgba(123,87,135,.1)!important;text-align:left!important}.ph-content-only .quest-day-card:hover{transform:translateY(-3px)!important;box-shadow:0 12px 24px rgba(123,87,135,.16)!important}.ph-content-only .quest-day-card .day-art{width:64px!important;height:64px!important;display:grid!important;place-items:center!important;font-size:42px!important;border-radius:18px!important;background:#fff8fc!important}.ph-content-only .quest-day-card>span:nth-last-child(1){display:flex!important;flex:1!important;flex-direction:column!important;gap:7px!important;width:100%!important}.ph-content-only .quest-day-card strong{font-size:16px!important;line-height:1.25!important;min-height:42px!important}.ph-content-only .quest-day-card small{min-height:30px!important}.ph-content-only .quest-day-card .day-start{margin-top:auto!important;font-weight:900!important;color:#df3e89!important}.ph-content-only .quest-legend{max-width:1180px!important;margin:18px auto!important}@media(max-width:980px){.ph-content-only .quest-day-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:600px){.ph-content-only .quest-main{padding:0 10px 28px!important}.ph-content-only .quest-head{position:relative!important}.ph-content-only .quest-day-list{grid-template-columns:1fr!important}.ph-content-only .quest-day-card{min-height:210px!important}.ph-content-only .quest-original-intro{padding:20px!important;border-radius:20px!important}.ph-content-only .quest-hero{border-radius:20px!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
+  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
 
   function extractQuestContentOnlyHtml(html) {
     const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
-    const main = parsed.querySelector("main.oh-main, main.quest-original-ui");
-    const gameData = parsed.getElementById("game-data") || parsed.getElementById("game-index");
-    const runtime = Array.from(parsed.body.querySelectorAll(":scope > script")).filter((script) => script.id !== "game-data" && script.id !== "game-index");
-    if (!main || !gameData || !runtime.length) throw new Error("Quest source thiếu main, game-data/game-index hoặc runtime.");
+    const main = parsed.querySelector("main.oh-main");
+    const gameData = parsed.getElementById("game-data");
+    const runtime = Array.from(parsed.body.querySelectorAll(":scope > script:not(#game-data)"));
+    if (!main || !gameData || !runtime.length) throw new Error("Quest source thiếu main, game-data hoặc runtime.");
     const output = document.implementation.createHTMLDocument("Pinyin Tone Quest");
     output.head.innerHTML = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pinyin Tone Quest</title>${CONTENT_ONLY_STYLE}${Array.from(parsed.head.querySelectorAll("style")).map((style) => style.outerHTML).join("")}`;
     const app = output.createElement("div");
-    app.className = main.classList.contains("quest-original-ui") ? "ph-content-only" : "oh-app ph-content-only";
+    app.className = "oh-app ph-content-only";
     app.appendChild(main.cloneNode(true));
     output.body.appendChild(app);
     output.body.appendChild(gameData.cloneNode(true));
@@ -237,40 +232,27 @@
   async function loadQuestOffline() {
     const target = frame();
     if (!target) throw new Error("Không tìm thấy iframe Quest.");
-    if (objectUrl) { target.src = objectUrl; return objectUrl; }
     if (loadPromise) return loadPromise;
-    setStatus(questText("Đang ghép nội dung Pinyin Tone Quest…", "Preparing Pinyin Tone Quest…"));
-    target.style.opacity = "1";
-    target.srcdoc = `<body style="margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui;background:linear-gradient(135deg,#fff7fc,#f7efff);color:#6d4a7c"><main style="padding:28px;text-align:center"><div style="font-size:42px">🐼</div><h2>${questText("Đang mở Ôn tập 120 ngày…", "Opening 120-Day Review…")}</h2><p>${questText("Đang tải giao diện và dữ liệu theo cách không khóa trang.", "Loading the interface and data without blocking the page.")}</p><progress max="3" value="0" style="width:240px"></progress></main></body>`;
-    await new Promise((resolve) => (window.requestAnimationFrame ? window.requestAnimationFrame(resolve) : setTimeout(resolve, 0)));
-    loadPromise = Promise.all(PARTS.map(async (part) => {
-      const response = await fetch(part, { cache: "force-cache" });
-      if (!response.ok) throw new Error(`Không tải được ${part} (${response.status})`);
-      return response.arrayBuffer();
-    })).then(async (buffers) => {
-      const decoder = new TextDecoder("utf-8");
-      const total = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
-      const bytes = new Uint8Array(total); let offset = 0;
-      buffers.forEach((buffer) => { bytes.set(new Uint8Array(buffer), offset); offset += buffer.byteLength; });
-        let html = decoder.decode(bytes); await new Promise((resolve) => (window.requestIdleCallback ? window.requestIdleCallback(resolve, { timeout: 120 }) : setTimeout(resolve, 0)));
-        const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
-        html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
-        html = html.replace('</head>', CONTENT_ONLY_STYLE + '</head>');
-        html = html.replace('</body>', STORAGE_BOOTSTRAP + GATE_SCRIPT + QUEST_I18N_SCRIPT + '</body>');
-      objectUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
-      target.onload = () => { activeFrameWindow = target.contentWindow; refreshQuestGate(); };
-      target.src = objectUrl; target.style.opacity = "1"; target.removeAttribute("loading");
-    outerStatus(questText("Ôn tập 120 ngày đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản", "120-Day Review is ready · results and the mistake log will be saved for this account"));
-      return objectUrl;
-    }).catch((error) => {
-      loadPromise = null; target.style.opacity = "1";
-      target.srcdoc = `<body style="font-family:system-ui;padding:24px;color:#991b1b;background:#fff7ed"><h3>${questText("Không tải được Quest offline", "Unable to load offline Quest")}</h3><p>${String(error.message || error)}</p><p>${questText("Hãy kiểm tra đủ 3 file", "Check that all 3 files are available")}: <code>pinyin-tone-quest.part-00/01/02</code>.</p></body>`;
-      throw error;
+    setStatus(questText("Đang mở Pinyin Tone Quest…", "Opening Pinyin Tone Quest…"));
+    loadPromise = new Promise((resolve, reject) => {
+      target.onload = () => {
+        activeFrameWindow = target.contentWindow;
+        refreshQuestGate();
+        target.style.opacity = "1";
+        outerStatus(questText("Ôn tập 120 ngày đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản", "120-Day Review is ready · results and the mistake log will be saved for this account"));
+        resolve(QUEST_APP);
+      };
+      target.onerror = () => {
+        loadPromise = null; target.style.opacity = "1";
+        target.srcdoc = '<body style="font-family:system-ui;padding:24px;color:#991b1b;background:#fff7ed"><h3>Unable to load Pinyin Tone Quest</h3><p>Please check the integrated app files.</p></body>';
+        reject(new Error("Unable to load integrated Pinyin Tone Quest"));
+      };
+      target.src = QUEST_APP;
+      target.style.opacity = "0.7";
     });
     return loadPromise;
   }
-
-  window.PandaHanQuestParts = { parts: PARTS.slice(), loadQuestOffline, refreshQuestGate, extractQuestContentOnlyHtml };
+  window.PandaHanQuestParts = { parts: [QUEST_APP], loadQuestOffline, refreshQuestGate, extractQuestContentOnlyHtml };
   window.addEventListener("message", handleQuestMessage);
   document.addEventListener("DOMContentLoaded", () => {
     const reviewButton = document.getElementById("questReviewErrorsBtn");
