@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Bảng Pinyin Tương Tác — PandaHán Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & base ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pink:#ec4899;--pink-l:#f9a8d4;--pink-ll:#fce7f3;--pink-lll:#fdf2f8;
+  --purple:#a855f7;--purple-l:#e9d5ff;
+  --rose:#f43f5e;
+  --white:#ffffff;
+  --gray-8:#1f2937;--gray-6:#4b5563;--gray-4:#9ca3af;--gray-2:#f3f4f6;
+}
+body{font-family:'Nunito',system-ui,sans-serif;background:var(--pink-lll);min-height:100vh;overflow-x:hidden}
+
+/* ── Sakura ── */
+@keyframes petal-fall{
+  0%{transform:translateY(-60px) rotate(0deg);opacity:0}
+  6%{opacity:1}
+  88%{opacity:.6}
+  100%{transform:translateY(105vh) rotate(var(--spin)) translateX(var(--drift));opacity:0}
+}
+.petal{position:fixed;top:0;pointer-events:none;z-index:0;animation:petal-fall var(--dur) var(--delay) linear infinite}
+.petal svg{width:100%;height:100%}
+
+/* ── Animated gradient bg ── */
+@keyframes grad{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+body{
+  background:linear-gradient(135deg,#fce7f3,#fdf2f8,#ede9fe,#dbeafe,#fce7f3);
+  background-size:300% 300%;
+  animation:grad 10s ease infinite;
+}
+
+/* ── Layout ── */
+.app{position:relative;z-index:1;min-height:100vh}
+
+/* ── Header ── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;
+  background:rgba(255,255,255,0.82);
+  backdrop-filter:blur(14px);
+  border-bottom:1.5px solid var(--pink-ll);
+  position:sticky;top:0;z-index:50;
+  box-shadow:0 2px 16px rgba(236,72,153,.07);
+}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-badge{
+  width:44px;height:44px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(168,85,247,.15));
+  border:2px solid var(--pink-ll);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+}
+.logo-text{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.15rem}
+.logo-text span{background:linear-gradient(135deg,#ec4899,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-sub{font-size:.72rem;color:var(--gray-4);font-weight:600;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:10px}
+.btn-tone{
+  padding:6px 14px;border-radius:20px;font-size:.78rem;font-weight:800;
+  border:2px solid transparent;cursor:pointer;transition:all .2s;
+  font-family:'Nunito',sans-serif;
+}
+.btn-tone.active{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;border-color:transparent;box-shadow:0 3px 12px rgba(236,72,153,.35)}
+.btn-tone:not(.active){background:var(--pink-ll);color:var(--pink);border-color:var(--pink-l)}
+.btn-tone:not(.active):hover{background:var(--pink-l);transform:scale(1.05)}
+
+/* ── Hero ── */
+.hero{padding:36px 32px 28px;max-width:1100px;margin:0 auto}
+.hero h1{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.75rem;color:var(--gray-8);margin-bottom:6px}
+.hero h1 span{background:linear-gradient(135deg,#ec4899,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--gray-4);font-weight:600;font-size:.9rem}
+
+/* ── Search ── */
+.search-wrap{padding:0 32px 24px;max-width:1100px;margin:0 auto}
+.search-box{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.9);
+  border:2px solid var(--pink-ll);
+  border-radius:18px;padding:11px 18px;
+  box-shadow:0 2px 12px rgba(236,72,153,.07);
+  transition:border-color .2s;max-width:420px;
+}
+.search-box:focus-within{border-color:var(--pink-l)}
+.search-box svg{flex-shrink:0;color:var(--pink-l)}
+.search-box input{border:none;outline:none;background:transparent;font-size:.88rem;font-weight:700;color:var(--gray-8);width:100%;font-family:'Nunito',sans-serif}
+.search-box input::placeholder{color:#e0a0bf;font-weight:600}
+
+/* ── Tone legend ── */
+.tone-legend{
+  display:flex;gap:10px;flex-wrap:wrap;
+  padding:0 32px 20px;max-width:1100px;margin:0 auto;
+}
+.tone-pill{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 14px 6px 10px;border-radius:20px;
+  background:rgba(255,255,255,.85);
+  border:1.5px solid;font-size:.78rem;font-weight:800;cursor:pointer;
+  transition:all .18s;
+}
+.tone-pill:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.09)}
+.tone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── Main table area ── */
+.table-wrap{padding:0 32px 48px;max-width:1100px;margin:0 auto;overflow-x:auto}
+
+/* ── Section header ── */
+.section-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:16px;padding:14px 20px;
+  border-radius:18px;
+  background:linear-gradient(135deg,var(--pink-ll),var(--purple-l));
+  border:1.5px solid var(--pink-l);
+}
+.section-icon{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;
+  background:linear-gradient(135deg,var(--pink),var(--purple));box-shadow:0 3px 10px rgba(236,72,153,.3)}
+.section-title{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1rem;color:var(--gray-8)}
+.section-sub{font-size:.75rem;color:var(--gray-4);font-weight:600;margin-top:1px}
+
+/* ── Grid of cells ── */
+.pinyin-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.initial-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+
+/* ── Pinyin cell ── */
+.cell{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:72px;height:72px;border-radius:16px;cursor:pointer;
+  background:rgba(255,255,255,.9);
+  border:2px solid var(--pink-ll);
+  transition:all .16s cubic-bezier(.22,1,.36,1);
+  position:relative;overflow:hidden;
+  box-shadow:0 2px 10px rgba(236,72,153,.06);
+  user-select:none;
+}
+.cell::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.5),transparent);
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+.cell:hover{
+  transform:translateY(-3px) scale(1.06);
+  border-color:var(--pink-l);
+  box-shadow:0 6px 20px rgba(236,72,153,.2);
+}
+.cell:hover::before{opacity:1}
+.cell:active{transform:scale(.97)}
+.cell.playing{
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  border-color:transparent;
+  box-shadow:0 6px 20px rgba(236,72,153,.45);
+  transform:translateY(-3px) scale(1.08);
+}
+.cell.playing .cell-pinyin,.cell.playing .cell-tone{color:#fff!important}
+.cell.playing .cell-hanzi{color:rgba(255,255,255,.85)!important}
+.cell-pinyin{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:.92rem;color:var(--gray-8);line-height:1;transition:color .15s}
+.cell-tone{font-size:.68rem;font-weight:700;color:var(--pink);margin-top:2px;transition:color .15s}
+.cell-hanzi{font-size:.72rem;font-weight:600;color:var(--gray-4);font-family:serif;transition:color .15s}
+
+/* table variant for finals */
+.pinyin-table{border-collapse:separate;border-spacing:6px;width:100%;margin-bottom:32px}
+.pinyin-table th{
+  font-family:'Baloo 2',sans-serif;font-weight:800;font-size:.78rem;
+  padding:8px 12px;border-radius:12px;text-align:center;
+  background:linear-gradient(135deg,var(--pink-ll),var(--purple-l));
+  color:var(--gray-6);border:1.5px solid var(--pink-l);white-space:nowrap;
+}
+.pinyin-table th.row-header{
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  color:#fff;box-shadow:0 2px 8px rgba(236,72,153,.3);min-width:52px;
+}
+.pinyin-table td{padding:3px}
+.pinyin-table .cell{width:100%;min-width:64px;height:60px}
+
+/* ── Tone curve diagram ── */
+.tone-diagram{
+  display:flex;gap:16px;flex-wrap:wrap;
+  padding:20px 24px;
+  background:rgba(255,255,255,.82);
+  border:1.5px solid var(--pink-ll);
+  border-radius:20px;
+  margin-bottom:24px;
+}
+.tone-card{
+  flex:1;min-width:100px;padding:14px 16px;border-radius:16px;
+  border:2px solid;text-align:center;cursor:pointer;transition:all .18s;
+}
+.tone-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.1)}
+.tone-card .t-num{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.4rem}
+.tone-card .t-name{font-size:.72rem;font-weight:700;margin:3px 0}
+.tone-card .t-ex{font-size:1.1rem;font-weight:800;font-family:'Baloo 2',sans-serif}
+.tone-card .t-curve{font-size:.65rem;font-weight:600;opacity:.7;margin-top:2px}
+
+/* ── Playing indicator ── */
+@keyframes ripple{0%{transform:scale(.8);opacity:.7}100%{transform:scale(2.2);opacity:0}}
+.ripple{
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.45),transparent 70%);
+  animation:ripple .5s ease-out forwards;
+}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;
+  padding:10px 22px;border-radius:24px;font-weight:800;font-size:.85rem;
+  box-shadow:0 6px 24px rgba(236,72,153,.4);z-index:200;
+  transition:transform .35s cubic-bezier(.22,1,.36,1);pointer-events:none;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── Stats bar ── */
+.stats-bar{
+  display:flex;gap:10px;flex-wrap:wrap;
+  padding:0 32px 20px;max-width:1100px;margin:0 auto;
+}
+.stat-chip{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 16px;border-radius:20px;
+  background:rgba(255,255,255,.85);
+  border:1.5px solid;font-size:.8rem;font-weight:800;
+}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Footer note ── */
+.tip{
+  padding:0 32px 16px;max-width:1100px;margin:0 auto;
+  font-size:.75rem;color:var(--gray-4);font-weight:600;
+  display:flex;align-items:center;gap:6px;
+}
+
+/* ── No result ── */
+.no-result{
+  text-align:center;padding:48px 0;color:var(--gray-4);
+  font-size:.9rem;font-weight:700;
+}
+.no-result .emoji{font-size:2.5rem;display:block;margin-bottom:8px}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  header{padding:14px 18px}
+  .hero,.search-wrap,.tone-legend,.table-wrap,.stats-bar,.tip{padding-left:18px;padding-right:18px}
+  .cell{width:60px;height:60px}
+  .cell-pinyin{font-size:.8rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Sakura petals -->
+<div id="petals"></div>
+
+<div class="app">
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-badge">🐼</div>
+    <div>
+      <div class="logo-text">Panda<span>Hán</span> Pro</div>
+      <div class="header-sub">Bảng Pinyin Tương Tác</div>
+    </div>
+  </div>
+  <div class="header-right" id="toneButtons"></div>
+</header>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>Bảng Phiên Âm <span>Pinyin</span> Tiếng Trung 🎵</h1>
+  <p>Nhấn vào bất kỳ ô nào để nghe phát âm · Chọn thanh điệu để luyện tập</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- Search -->
+<div class="search-wrap">
+  <div class="search-box">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+      <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2.5"/>
+      <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <input id="searchInput" type="text" placeholder="Tìm âm tiết (vd: ba, ma, zh...)"/>
+  </div>
+</div>
+
+<!-- Tone cards -->
+<div class="stats-bar" style="padding-top:0">
+  <div class="tone-diagram" id="toneDiagram"></div>
+</div>
+
+<!-- Tip -->
+<div class="tip">💡 Nhấn ô để phát âm • Giữ Shift để so sánh 2 âm cùng lúc • Cần giọng tiếng Trung trong cài đặt hệ thống</div>
+
+<!-- Main table -->
+<div class="table-wrap" id="tableWrap"></div>
+
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span>🔊</span><span id="toastText"></span>
+</div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+
+// Tone marks for each vowel
+const TONE_MARKS = {
+  a:['ā','á','ǎ','à','a'],
+  e:['ē','é','ě','è','e'],
+  i:['ī','í','ǐ','ì','i'],
+  o:['ō','ó','ǒ','ò','o'],
+  u:['ū','ú','ǔ','ù','u'],
+  ü:['ǖ','ǘ','ǚ','ǜ','ü'],
+}
+
+// Active tone (1-4, 0=neutral)
+let activeTone = 0 // 0 = show all / neutral
+
+// Initials & finals
+const INITIALS = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w','(zero)']
+
+const FINALS_BASIC = ['a','o','e','i','u','ü','er']
+
+// Full syllable grid: initials x finals, valid combos only
+// Format: { initial, final, tones: [hanzi for each tone] }
+// null = invalid combination
+
+const SYLLABLE_MAP = {
+  // ── Simple finals ──
+  'b-a':['爸','拔','把','爸','吧'],'b-o':['波','帛','玻','播','哦'],'b-i':['逼','鼻','比','壁','呢'],
+  'b-u':['布','步','补','哺','不'],'b-ai':['百','白','摆','拜',''],'b-ei':['杯','背','北','贝',''],
+  'b-ao':['包','薄','宝','报',''],'b-an':['斑','板','版','半',''],'b-en':['奔','本','笨',''],'b-ang':['帮','棒','磅',''],'b-eng':['崩','蹦','绷',''],
+  'b-ie':['鳖','别',''],'b-in':['宾','品',''],'b-ing':['冰','病','并',''],
+
+  'p-a':['啪','爬','跑','怕',''],'p-o':['泼','婆','叵','破',''],'p-i':['批','皮','匹','屁',''],
+  'p-u':['铺','葡','普','谱',''],'p-ai':['拍','牌','派',''],'p-ei':['胚','培','佩',''],'p-ao':['泡','袍','跑','炮',''],
+  'p-an':['攀','盘','判','叛',''],'p-en':['喷','盆',''],'p-ang':['旁','胖',''],'p-eng':['烹','朋','碰',''],
+  'p-ie':['撇','瞥',''],'p-in':['拼','品','聘',''],'p-ing':['平','瓶','乒',''],
+
+  'm-a':['妈','麻','马','骂','吗'],'m-o':['摸','模','抹','漠',''],'m-i':['咪','迷','米','密',''],
+  'm-u':['母','木','目',''],'m-ai':['埋','买','卖',''],'m-ei':['没','美','妹',''],'m-ao':['猫','毛','冒',''],
+  'm-an':['慢','满',''],'m-en':['门','闷',''],'m-ang':['忙','芒',''],'m-eng':['梦','猛',''],
+  'm-ie':['蔑',''],'m-in':['民','敏',''],'m-ing':['明','名','命',''],
+
+  'f-a':['发','罚','法','法',''],'f-o':['佛',''],'f-u':['夫','服','府','付',''],
+  'f-an':['番','凡','反','饭',''],'f-en':['分','粉','份',''],'f-ang':['方','房','访','放',''],'f-eng':['风','冯','粉',''],
+
+  'd-a':['搭','答','打','大',''],'d-e':['的','德','得',''],'d-i':['低','笛','底','地',''],
+  'd-u':['督','毒','度',''],'d-ai':['呆','带',''],'d-ei':['得',''],'d-ao':['刀','岛','道',''],
+  'd-an':['单','但','蛋',''],'d-en':['等',''],'d-ang':['当','党',''],'d-eng':['灯','等','凳',''],
+  'd-ie':['爹','蝶',''],'d-iu':['丢',''],'d-in':['订',''],'d-ing':['钉','顶','定',''],
+  'd-ong':['东','冻','洞',''],'d-ou':['斗','豆',''],'d-uan':['断','端',''],'d-ui':['对','队',''],
+  'd-un':['顿','蹲',''],'d-uo':['多','朵','躲','夺',''],
+
+  't-a':['他','她','塔','踏',''],'t-e':['特',''],'t-i':['梯','蹄','体','替',''],
+  't-u':['图','土',''],'t-ai':['台','泰',''],'t-ao':['逃','讨','套',''],'t-an':['贪','弹','叹',''],
+  't-ang':['汤','趟',''],'t-eng':['腾','疼',''],'t-ie':['贴','铁',''],'t-ing':['厅','停','听',''],
+  't-ong':['通','铜',''],'t-ou':['偷','头',''],'t-uan':['团',''],'t-ui':['推','腿','退',''],
+  't-un':['吞',''],'t-uo':['托','脱',''],
+
+  'n-a':['那','纳','哪',''],'n-e':['呢',''],'n-i':['你','尼','泥',''],'n-u':['努','怒',''],
+  'n-ü':['女',''],'n-ai':['奶','呐',''],'n-ao':['脑','闹',''],'n-an':['难',''],'n-ang':['囊',''],
+  'n-eng':['能',''],'n-ie':['茄',''],'n-in':['您',''],'n-ing':['宁','柠',''],'n-ong':['农','浓',''],
+  'n-uan':['暖',''],'n-uo':['懦',''],'n-ü':['女',''],
+
+  'l-a':['拉','腊',''],'l-e':['乐',''],'l-i':['离','里','力','粒',''],'l-u':['鲁','路',''],'l-ü':['旅','律',''],
+  'l-ai':['来',''],'l-ao':['老','捞','劳',''],'l-an':['蓝','兰','栏',''],'l-ang':['狼','浪',''],
+  'l-eng':['冷',''],'l-ie':['列','裂',''],'l-in':['林','邻',''],'l-ing':['零','铃',''],
+  'l-ong':['龙','笼',''],'l-ou':['楼','漏',''],'l-uan':['乱',''],'l-un':['论',''],'l-uo':['罗','落',''],
+
+  'g-a':['嘎',''],'g-e':['格','歌','哥',''],'g-u':['孤','谷','故','',],'g-ai':['改','盖',''],
+  'g-ao':['高','告',''],'g-an':['干','赶','感',''],'g-ang':['钢','港',''],'g-eng':['更',''],
+  'g-ei':['给',''],'g-ong':['工','功','共',''],'g-ou':['狗',''],'g-ua':['瓜','挂',''],
+  'g-uai':['拐','怪',''],'g-uan':['关','管',''],'g-uang':['光','广',''],'g-ui':['归','贵',''],
+  'g-un':['滚','棍',''],'g-uo':['国','果','过',''],
+
+  'k-a':['卡',''],'k-e':['可','科','客',''],'k-u':['哭','苦','库',''],'k-ai':['开',''],
+  'k-ao':['考','靠',''],'k-an':['看','刊',''],'k-ang':['炕','抗',''],'k-eng':['坑',''],
+  'k-ong':['空','控',''],'k-ou':['口','扣',''],'k-ua':['夸',''],'k-uai':['块','筷',''],
+  'k-uan':['宽','款',''],'k-uang':['狂',''],'k-ui':['亏',''],'k-un':['困','昆',''],'k-uo':['括','阔',''],
+
+  'h-a':['哈',''],'h-e':['河','合','喝',''],'h-u':['胡','虎','护',''],'h-ai':['海','害',''],
+  'h-ao':['好','号',''],'h-an':['汉','喊',''],'h-ang':['行','航',''],'h-ei':['黑',''],
+  'h-eng':['衡',''],'h-ong':['红','洪',''],'h-ou':['后',''],'h-ua':['花','画',''],
+  'h-uai':['坏','怀',''],'h-uan':['欢',''],'h-uang':['黄','皇',''],'h-ui':['会','回',''],
+  'h-un':['婚','混',''],'h-uo':['火','活','或',''],
+
+  'j-i':['机','几','计','鸡',''],'j-ia':['家','假','价',''],'j-ian':['间','见','建',''],
+  'j-iang':['江','讲',''],'j-iao':['叫','脚',''],'j-ie':['结','姐',''],'j-in':['金','今','近',''],
+  'j-ing':['京','经',''],'j-iong':['炯',''],'j-iu':['就','酒',''],
+  'j-u':['居','局','举',''],'j-uan':['卷','圈',''],'j-ue':['决','觉','绝',''],'j-un':['军','君',''],
+
+  'q-i':['期','起','气',''],'q-ia':['恰','掐',''],'q-ian':['千','前',''],'q-iang':['强','墙',''],
+  'q-iao':['桥','巧',''],'q-ie':['切','且',''],'q-in':['勤','亲',''],'q-ing':['情','青','清',''],
+  'q-iong':['穷',''],'q-iu':['球','秋',''],'q-u':['去','曲','取',''],'q-uan':['全','圈',''],
+  'q-ue':['确','缺',''],'q-un':['裙','群',''],
+
+  'x-i':['希','西','喜','细',''],'x-ia':['虾','下',''],'x-ian':['先','现',''],'x-iang':['香','想',''],
+  'x-iao':['小','笑',''],'x-ie':['写','鞋',''],'x-in':['心','信','新',''],'x-ing':['行','星','兴',''],
+  'x-iong':['熊',''],'x-iu':['秀','修',''],'x-u':['需','许',''],'x-uan':['选','宣',''],
+  'x-ue':['学','血',''],'x-un':['训','寻',''],
+
+  'zh-a':['扎','炸',''],'zh-e':['这','者','折',''],'zh-i':['之','只','知','制',''],
+  'zh-u':['主','著','猪',''],'zh-ai':['摘','宅',''],'zh-ao':['找','照','早',''],
+  'zh-an':['展','战','站',''],'zh-ang':['长','张',''],'zh-eng':['正','整',''],'zh-ei':['',''],
+  'zh-en':['阵','震','真',''],'zh-ong':['中','种','重',''],'zh-ou':['州','粥',''],
+  'zh-ua':['抓',''],'zh-uai':['拽',''],'zh-uan':['转','专',''],'zh-uang':['装','状',''],
+  'zh-ui':['追',''],'zh-un':['准',''],'zh-uo':['桌','作',''],
+
+  'ch-a':['茶','差','查',''],'ch-e':['车','彻',''],'ch-i':['吃','迟','尺',''],'ch-u':['初','出','础',''],
+  'ch-ai':['柴','差',''],'ch-ao':['炒','超',''],'ch-an':['产','长',''],'ch-ang':['长','场','常',''],
+  'ch-en':['陈','称',''],'ch-eng':['成','程','乘',''],'ch-ong':['冲','虫',''],'ch-ou':['丑','抽',''],
+  'ch-ua':['刷',''],'ch-uai':['拽',''],'ch-uan':['川','传','船',''],'ch-uang':['床','窗',''],
+  'ch-ui':['吹','垂',''],'ch-un':['春','纯',''],'ch-uo':['错',''],
+
+  'sh-a':['沙','杀',''],'sh-e':['蛇','舌',''],'sh-i':['是','时','事',''],'sh-u':['书','树',''],
+  'sh-ai':['晒',''],'sh-ao':['烧','少',''],'sh-an':['山','闪',''],'sh-ang':['上','商',''],
+  'sh-en':['深','神',''],'sh-eng':['生','声',''],'sh-ong':[''],'sh-ou':['手','收','兽',''],
+  'sh-ua':['刷',''],'sh-uai':['帅',''],'sh-uan':['拴',''],'sh-uang':['双','霜',''],
+  'sh-ui':['水','谁',''],'sh-un':['顺','瞬',''],'sh-uo':['说','朔',''],
+
+  'r-e':['热',''],'r-i':['日',''],'r-u':['如','入',''],'r-ao':['绕','扰',''],
+  'r-an':['然','燃',''],'r-ang':['让',''],'r-en':['人','认','任',''],'r-eng':['扔','仍',''],
+  'r-ong':['荣','融',''],'r-ou':['肉',''],'r-uan':['软',''],'r-ui':['瑞','锐',''],
+  'r-un':['润',''],'r-uo':['若','弱',''],
+
+  'z-a':['杂',''],'z-e':['则','责',''],'z-i':['子','字','自','紫',''],'z-u':['足','族',''],
+  'z-ai':['再','在',''],'z-ao':['早','造',''],'z-an':['赞',''],'z-ang':['脏',''],
+  'z-en':['怎',''],'z-eng':['增',''],'z-ong':['总','棕',''],'z-ou':['走',''],'z-uan':['钻',''],
+  'z-ui':['最','嘴',''],'z-un':['尊',''],'z-uo':['做','左','',],
+
+  'c-a':['擦',''],'c-e':['测','册',''],'c-i':['次','词',''],'c-u':['粗','促','醋',''],
+  'c-ai':['猜','菜',''],'c-ao':['操','草',''],'c-an':['参','残',''],'c-ang':['藏','苍',''],
+  'c-en':['参',''],'c-eng':['层',''],'c-ong':['从','聪',''],'c-ou':['凑',''],'c-uan':['窜',''],
+  'c-ui':['催','翠',''],'c-un':['村','存',''],'c-uo':['错','挫',''],
+
+  's-a':['撒',''],'s-e':['色',''],'s-i':['四','死','丝',''],'s-u':['速','俗','素',''],
+  's-ai':['赛','腮',''],'s-ao':['扫','嫂',''],'s-an':['三','散',''],'s-ang':['桑',''],
+  's-en':['森',''],'s-eng':['僧',''],'s-ong':['松','宋',''],'s-ou':['搜',''],
+  's-uan':['算','酸',''],'s-ui':['随','岁',''],'s-un':['孙','损',''],'s-uo':['所','锁',''],
+
+  // ── y/w initials ──
+  'y-a':['压','牙','雅','亚','呀'],'y-an':['研','盐','眼','燕',''],'y-ang':['羊','洋','养','样',''],
+  'y-ao':['腰','摇','要',''],'y-e':['夜','业','叶',''],'y-i':['一','义','椅','意',''],
+  'y-in':['因','音','引','印',''],'y-ing':['英','赢','影','映',''],'y-ong':['用','勇','永',''],
+  'y-ou':['有','游','友','又',''],'y-u':['鱼','语','雨','玉','与'],'y-uan':['元','园','远','院',''],
+  'y-ue':['月','约','跃',''],'y-un':['云','运','晕',''],
+
+  'w-a':['蛙','娃','瓦',''],'w-an':['完','碗','晚','万',''],'w-ang':['王','网','往',''],'w-ei':['微','为','味',''],
+  'w-en':['文','问',''],'w-eng':['翁','嗡',''],'w-o':['我','窝',''],'w-u':['无','武','物',''],
+
+  // ── zero initial ──
+  '(zero)-a':['啊','阿',''],'(zero)-ai':['爱','哀',''],'(zero)-an':['安','岸',''],'(zero)-ang':['昂',''],
+  '(zero)-ao':['澳','熬',''],'(zero)-e':['饿','鹅',''],'(zero)-ei':['诶',''],'(zero)-en':['恩',''],
+  '(zero)-eng':['噷',''],'(zero)-er':['儿','耳','二',''],'(zero)-o':['哦','喔',''],
+  '(zero)-ou':['偶','欧',''],'(zero)-yi':['一','已',''],'(zero)-wu':['五','无',''],
+}
+
+// Finals to show in the grid
+const FINALS_LIST = [
+  'a','o','e','i','u','ü',
+  'ai','ei','ui','ao','ou','iu',
+  'ie','üe','er',
+  'an','en','in','un','ün',
+  'ang','eng','ing','ong',
+  'ia','ua','uo','iao','uai','uang','uan','ian','iong',
+]
+
+// Tone descriptions
+const TONES = [
+  {num:1, name:'Thanh 1 — Bằng',  color:'#ec4899', bg:'#fdf2f8', border:'#fbcfe8', curve:'— — — —', ex:'māmāmāmā', hanzi:'妈'},
+  {num:2, name:'Thanh 2 — Sắc',   color:'#f97316', bg:'#fff7ed', border:'#fed7aa', curve:'/ / / /', ex:'máguǒ',    hanzi:'麻'},
+  {num:3, name:'Thanh 3 — Hỏi',   color:'#8b5cf6', bg:'#f5f3ff', border:'#ddd6fe', curve:'\\/ \\/',  ex:'nǐhǎo',   hanzi:'马'},
+  {num:4, name:'Thanh 4 — Nặng',  color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', curve:'\\ \\ \\', ex:'wǒmén',   hanzi:'骂'},
+  {num:0, name:'Thanh nhẹ',        color:'#6b7280', bg:'#f9fafb', border:'#e5e7eb', curve:'· · · ·', ex:'māma',     hanzi:'吗'},
+]
+
+/* ============================================================
+   TONE MARKS HELPER
+   ============================================================ */
+function addToneMark(syllable, tone) {
+  if (tone === 0) return syllable // neutral, no change
+  // Priority: a > e > o > then last of ui/iu
+  const order = ['a','e','o','ü','u','i']
+  for (const v of order) {
+    if (syllable.includes(v)) {
+      return syllable.replace(v, TONE_MARKS[v]?.[tone-1] || v)
+    }
+  }
+  return syllable
+}
+
+function buildDisplayPinyin(initial, final, tone) {
+  const syl = initial === '(zero)' ? final : initial + final
+  return addToneMark(syl, tone)
+}
+
+/* ============================================================
+   WEB SPEECH API
+   ============================================================ */
+function speak(_syllable, cellEl) {
+  cellEl.classList.remove('playing');
+  removeRipple(cellEl);
+  showToast('Âm thanh Pinyin legacy đã tắt để tránh phát sai. Hãy dùng Pinyin Race Quest với giọng Quan thoại zh-CN.');
+}
+
+function addRipple(el) {
+  const r = document.createElement('div'); r.className='ripple'; el.appendChild(r)
+  r.addEventListener('animationend', ()=>r.remove())
+}
+function removeRipple(el) { el.querySelectorAll('.ripple').forEach(r=>r.remove()) }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer = null
+function showToast(msg) {
+  const t = document.getElementById('toast'), tx = document.getElementById('toastText')
+  tx.textContent = msg
+  t.classList.add('show')
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200)
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let selectedTone = 1
+let searchQ = ''
+
+/* ============================================================
+   RENDER TONE BUTTONS (header)
+   ============================================================ */
+function renderToneButtons() {
+  const wrap = document.getElementById('toneButtons')
+  wrap.innerHTML = ''
+  TONES.forEach(t => {
+    const btn = document.createElement('button')
+    btn.className = 'btn-tone' + (t.num === selectedTone ? ' active' : '')
+    btn.textContent = t.num === 0 ? '·' : `${t.num}声`
+    btn.title = t.name
+    btn.onclick = () => { selectedTone = t.num; renderAll() }
+    wrap.appendChild(btn)
+  })
+}
+
+/* ============================================================
+   RENDER STATS
+   ============================================================ */
+function renderStats() {
+  const bar = document.getElementById('statsBar')
+  const total = Object.keys(SYLLABLE_MAP).length
+  const chips = [
+    {label:'Tổng âm tiết',val:total,       c:'#ec4899',bg:'#fdf2f8',b:'#fbcfe8'},
+    {label:'Thanh mẫu',   val:INITIALS.length-1,c:'#8b5cf6',bg:'#f5f3ff',b:'#ddd6fe'},
+    {label:'Vận mẫu',     val:FINALS_LIST.length, c:'#3b82f6',bg:'#eff6ff',b:'#bfdbfe'},
+    {label:'Thanh điệu',  val:'1·2·3·4·轻', c:'#f97316',bg:'#fff7ed',b:'#fed7aa'},
+  ]
+  bar.innerHTML = chips.map(c=>`
+    <div class="stat-chip" style="color:${c.c};background:${c.bg};border-color:${c.b}">
+      <div class="stat-dot" style="background:${c.c}"></div>
+      <span style="color:#9ca3af;font-size:.72rem">${c.label}</span>
+      <span>${c.val}</span>
+    </div>`).join('')
+}
+
+/* ============================================================
+   RENDER TONE DIAGRAM
+   ============================================================ */
+function renderToneDiagram() {
+  const wrap = document.getElementById('toneDiagram')
+  wrap.innerHTML = TONES.map(t=>`
+    <div class="tone-card" style="color:${t.color};background:${t.bg};border-color:${t.border}"
+         onclick="selectedTone=${t.num};renderAll()">
+      <div class="t-num">${t.num===0?'·':t.num+'声'}</div>
+      <div class="t-name">${t.name}</div>
+      <div class="t-ex">${addToneMark('ma',t.num)}</div>
+      <div class="t-curve">${t.curve}</div>
+    </div>`).join('')
+}
+
+/* ============================================================
+   BUILD CELL
+   ============================================================ */
+function buildCell(key, display) {
+  const data = SYLLABLE_MAP[key]
+  if (!data) return null
+
+  const [init, fin] = key.split('-')
+  const syllable = display || (init==='(zero)' ? fin : init+fin)
+  const pinyin = addToneMark(syllable, selectedTone)
+  // get example hanzi for this tone
+  const hanzi = (data[selectedTone] || data[0] || '')
+
+  const div = document.createElement('div')
+  div.className = 'cell'
+  div.innerHTML = `
+    <div class="cell-pinyin">${pinyin}</div>
+    <div class="cell-tone">${selectedTone===0?'轻声':selectedTone+'声'}</div>
+    ${hanzi ? `<div class="cell-hanzi">${hanzi}</div>` : ''}
+  `
+  div.title = `${pinyin} (${key})`
+  div.onclick = () => speak(pinyin, div)
+  return div
+}
+
+/* ============================================================
+   MAIN RENDER
+   ============================================================ */
+function renderAll() {
+  renderToneButtons()
+  renderTable()
+}
+
+function renderTable() {
+  const wrap = document.getElementById('tableWrap')
+  wrap.innerHTML = ''
+  const q = searchQ.toLowerCase().trim()
+
+  // ── Section 1: Single finals (zero initial) ──
+  const s1 = document.createElement('div')
+  s1.innerHTML = `
+    <div class="section-header">
+      <div class="section-icon">🎵</div>
+      <div>
+        <div class="section-title">Âm đơn — Vận mẫu độc lập</div>
+        <div class="section-sub">Các âm tiết không có thanh mẫu đầu</div>
+      </div>
+    </div>`
+  const grid1 = document.createElement('div')
+  grid1.className = 'pinyin-grid'
+
+  const zeroFinals = FINALS_BASIC.concat(['ai','ei','ao','ou','an','en','ang','eng','er','yi','wu'])
+  let count1 = 0
+  zeroFinals.forEach(f => {
+    const key = `(zero)-${f}`
+    if (SYLLABLE_MAP[key]) {
+      const syl = f
+      if (!q || syl.includes(q) || (SYLLABLE_MAP[key][selectedTone]||'').includes(q)) {
+        const cell = buildCell(key, syl)
+        if (cell) { grid1.appendChild(cell); count1++ }
+      }
+    }
+  })
+  if (count1 > 0) { s1.appendChild(grid1); wrap.appendChild(s1) }
+  else if (!q) { s1.appendChild(grid1); wrap.appendChild(s1) }
+
+  // ── Section 2: Full table ──
+  const s2 = document.createElement('div')
+  s2.innerHTML = `
+    <div class="section-header" style="margin-top:28px">
+      <div class="section-icon">📊</div>
+      <div>
+        <div class="section-title">Bảng phiên âm đầy đủ — Thanh mẫu × Vận mẫu</div>
+        <div class="section-sub">Nhấn ô để phát âm · Màu ô thay đổi theo thanh điệu đang chọn</div>
+      </div>
+    </div>`
+
+  const SHOW_INITIALS = ['b','p','m','f','d','t','n','l','g','k','h','j','q','x','zh','ch','sh','r','z','c','s','y','w']
+  const SHOW_FINALS   = ['a','o','e','i','u','ü','ai','ei','ao','ou','an','en','ang','eng','ie','in','ing','ong','ua','uo','ui','iu','ian','uan','ue']
+
+  const table = document.createElement('table')
+  table.className = 'pinyin-table'
+
+  // header row
+  const thead = document.createElement('tr')
+  thead.innerHTML = '<th>声母 \\ 韵母</th>' +
+    SHOW_FINALS.map(f=>`<th>${f}</th>`).join('')
+  table.appendChild(thead)
+
+  let totalVisible = 0
+  SHOW_INITIALS.forEach(init => {
+    const tr = document.createElement('tr')
+    const th = document.createElement('th')
+    th.className = 'row-header'
+    th.textContent = init
+    tr.appendChild(th)
+
+    let rowHasVisible = false
+    SHOW_FINALS.forEach(fin => {
+      const td = document.createElement('td')
+      const key = `${init}-${fin}`
+      if (SYLLABLE_MAP[key]) {
+        const syl = init + fin
+        if (!q || syl.includes(q) || (SYLLABLE_MAP[key][selectedTone]||'').includes(q)) {
+          const cell = buildCell(key, syl)
+          if (cell) { td.appendChild(cell); rowHasVisible = true; totalVisible++ }
+        } else {
+          td.innerHTML = '<div class="cell" style="opacity:.18;cursor:default"></div>'
+        }
+      } else {
+        // empty invalid combination
+        td.innerHTML = '<div style="width:100%;height:56px;border-radius:12px;background:rgba(0,0,0,.025)"></div>'
+      }
+      tr.appendChild(td)
+    })
+    table.appendChild(tr)
+  })
+
+  s2.appendChild(table)
+
+  if (totalVisible === 0 && q) {
+    s2.innerHTML += `<div class="no-result"><span class="emoji">🔍</span>Không tìm thấy âm tiết "<strong>${q}</strong>"</div>`
+  }
+  wrap.appendChild(s2)
+}
+
+/* ============================================================
+   SAKURA
+   ============================================================ */
+function createPetals() {
+  const container = document.getElementById('petals')
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div')
+    p.className = 'petal'
+    const size = 16 + Math.random() * 20
+    const dur  = 7 + Math.random() * 9
+    const del  = Math.random() * 15
+    const drift= (Math.random()-0.5)*200
+    const spin = 180 + Math.random()*400
+    const sway = (Math.random()-0.5)*60
+    p.style.cssText = `
+      left:${Math.random()*100}%;
+      width:${size}px;height:${size}px;
+      --dur:${dur}s;--delay:${del}s;
+      --drift:${drift}px;--spin:${spin}deg;--sway:${sway}px;
+      opacity:${.5+Math.random()*.45};
+    `
+    p.innerHTML = `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      ${[0,72,144,216,288].map(a=>{
+        const cx = 20 + 9*Math.cos((a-90)*Math.PI/180)
+        const cy = 20 + 9*Math.sin((a-90)*Math.PI/180)
+        return `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="7.5" ry="5"
+          transform="rotate(${a} ${cx.toFixed(1)} ${cy.toFixed(1)})"
+          fill="#fda4af" opacity="0.88"/>`
+      }).join('')}
+      <circle cx="20" cy="20" r="4" fill="#fb7185"/>
+      <circle cx="20" cy="20" r="2" fill="#fecdd3"/>
+    </svg>`
+    container.appendChild(p)
+  }
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQ = e.target.value
+  renderTable()
+})
+
+createPetals()
+renderStats()
+renderToneDiagram()
+renderAll()
+</script>
+</body>
+</html>
