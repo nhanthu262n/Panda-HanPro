@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=pinyin-writing-fix-20260830";
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=pinyin-transition-fix-20260830";
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
