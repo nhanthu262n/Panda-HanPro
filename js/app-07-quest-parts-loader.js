@@ -3,9 +3,9 @@
   "use strict";
 
   const PARTS = [
-    "assets/pinyin-tone-quest.part-00?v=quest-source-20260823-final8",
-    "assets/pinyin-tone-quest.part-01?v=quest-source-20260823-final8",
-    "assets/pinyin-tone-quest.part-02?v=quest-source-20260823-final8",
+    "assets/pinyin-tone-quest.part-00?v=quest-source-20260830-full-pinyin-v1",
+    "assets/pinyin-tone-quest.part-01?v=quest-source-20260830-full-pinyin-v1",
+    "assets/pinyin-tone-quest.part-02?v=quest-source-20260830-full-pinyin-v1",
   ];
   let loadPromise = null;
   let objectUrl = null;
