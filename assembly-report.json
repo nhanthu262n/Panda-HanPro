@@ -1,0 +1,13 @@
+{
+  "output": "/home/ubuntu/pandahan-integration/full-integrated/source",
+  "totalFiles": 45,
+  "changedFiles": [
+    "assets/pinyin-tone-quest.part-00",
+    "assets/pinyin-tone-quest.part-01",
+    "assets/pinyin-tone-quest.part-02"
+  ],
+  "unchangedFileCount": 38,
+  "changedFileCount": 3,
+  "questBytes": 113808687,
+  "oldQuestBytes": 114227675
+}
