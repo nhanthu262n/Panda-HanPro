@@ -4,9 +4,9 @@
   const TEST_UNLOCK_ALL = true;
 
   const PARTS = [
-    "assets/pinyin-tone-quest.part-00?v=quest-source-20260830-ui-original-v3",
-    "assets/pinyin-tone-quest.part-01?v=quest-source-20260830-ui-original-v3",
-    "assets/pinyin-tone-quest.part-02?v=quest-source-20260830-ui-original-v3",
+    "assets/pinyin-tone-quest.part-00?v=quest-loader-fix-20260830",
+    "assets/pinyin-tone-quest.part-01?v=quest-loader-fix-20260830",
+    "assets/pinyin-tone-quest.part-02?v=quest-loader-fix-20260830",
   ];
   let loadPromise = null;
   let objectUrl = null;
@@ -214,7 +214,7 @@
     setTimeout(localize,0);
   })();</script>`;
 
-  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
+  const CONTENT_ONLY_STYLE = `<style id="pandahan-content-only-style">.ph-content-only{margin:0;min-height:100vh;background:#fff;color:#1f2937;overflow-x:hidden}.ph-content-only .oh-app{display:block!important;min-height:100vh!important}.ph-content-only .oh-launcher,.ph-content-only .oh-sidebar,.ph-content-only .quest-sidebar,.ph-content-only aside{display:none!important}.ph-content-only .oh-main{display:block!important;grid-column:1!important;grid-row:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:18px!important}.ph-content-only .oh-launcher,.ph-content-only .oh-exam{max-width:1200px!important;margin-left:auto!important;margin-right:auto!important}.ph-locked{opacity:.48!important;filter:grayscale(.65);cursor:not-allowed!important}.ph-locked:after{content:" 🔒"}button[aria-disabled="true"]{cursor:not-allowed!important}</style>`;
 
   function extractQuestContentOnlyHtml(html) {
     const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
@@ -244,18 +244,18 @@
       const response = await fetch(part, { cache: "force-cache" });
       if (!response.ok) throw new Error(`Không tải được ${part} (${response.status})`);
       return response.arrayBuffer();
-    })).then((buffers) => {
+    })).then(async (buffers) => {
       const decoder = new TextDecoder("utf-8");
       const total = buffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
       const bytes = new Uint8Array(total); let offset = 0;
       buffers.forEach((buffer) => { bytes.set(new Uint8Array(buffer), offset); offset += buffer.byteLength; });
-        let html = decoder.decode(bytes);
+        let html = decoder.decode(bytes); await new Promise((resolve) => (window.requestIdleCallback ? window.requestIdleCallback(resolve, { timeout: 120 }) : setTimeout(resolve, 0)));
         const storageDeclaration = "const OFFLINE_STORAGE_KEY = (() => { try { const ns = window.parent && typeof window.parent.storageNamespace === 'function' ? window.parent.storageNamespace() : 'guest'; return 'pinyin-tone-quest-offline-progress-v2_' + String(ns || 'guest').replace(/[^a-zA-Z0-9_-]/g, '_'); } catch (_) { return 'pinyin-tone-quest-offline-progress-v2_guest'; } })();";
         html = html.replace("const OFFLINE_STORAGE_KEY = 'pinyin-tone-quest-offline-progress-v2';", storageDeclaration);
         html = extractQuestContentOnlyHtml(html);
       objectUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
       target.onload = () => { activeFrameWindow = target.contentWindow; refreshQuestGate(); };
-      target.src = objectUrl; target.style.opacity = "1";
+      target.src = objectUrl; target.style.opacity = "1"; target.removeAttribute("loading");
     outerStatus(questText("Ôn tập 120 ngày đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản", "120-Day Review is ready · results and the mistake log will be saved for this account"));
       return objectUrl;
     }).catch((error) => {
