@@ -218,14 +218,14 @@
 
   function extractQuestContentOnlyHtml(html) {
     const parsed = new DOMParser().parseFromString(String(html || ""), "text/html");
-    const main = parsed.querySelector("main.oh-main");
-    const gameData = parsed.getElementById("game-data");
-    const runtime = Array.from(parsed.body.querySelectorAll(":scope > script:not(#game-data)"));
-    if (!main || !gameData || !runtime.length) throw new Error("Quest source thiếu main, game-data hoặc runtime.");
+    const main = parsed.querySelector("main.oh-main, main.quest-original-ui");
+    const gameData = parsed.getElementById("game-data") || parsed.getElementById("game-index");
+    const runtime = Array.from(parsed.body.querySelectorAll(":scope > script")).filter((script) => script.id !== "game-data" && script.id !== "game-index");
+    if (!main || !gameData || !runtime.length) throw new Error("Quest source thiếu main, game-data/game-index hoặc runtime.");
     const output = document.implementation.createHTMLDocument("Pinyin Tone Quest");
     output.head.innerHTML = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pinyin Tone Quest</title>${CONTENT_ONLY_STYLE}${Array.from(parsed.head.querySelectorAll("style")).map((style) => style.outerHTML).join("")}`;
     const app = output.createElement("div");
-    app.className = "oh-app ph-content-only";
+    app.className = main.classList.contains("quest-original-ui") ? "ph-content-only" : "oh-app ph-content-only";
     app.appendChild(main.cloneNode(true));
     output.body.appendChild(app);
     output.body.appendChild(gameData.cloneNode(true));
