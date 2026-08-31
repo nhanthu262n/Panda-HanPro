@@ -2339,9 +2339,27 @@ function answerQuiz(btn, q) {
   explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 function showQuizResult() {
-  finishMistakeReviewIfClear();
+  const wasMistakeReview = !!mistakeReviewActive;
   const pct = Math.round((quizScore / quizQueue.length) * 100);
   const missionDay = Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
+  if (wasMistakeReview && missionDay && window.PandaHanSchedule?.recordTaskScore) {
+    window.PandaHanSchedule.recordTaskScore(
+      missionDay,
+      "mistake_review",
+      pct,
+      "verified:mistake-redo-score",
+      {
+        completeSet: (window.PandaHanMistakes?.getOpenQueue?.() || window.PandaHanMistakes?.getQueue?.() || []).length === 0,
+        evidenceType: "objective_wrong_item_redo",
+        attempts: Number(quizQueue.length || 0),
+        total: Number(quizQueue.length || 0),
+        correct: Number(quizScore || 0),
+        scorePercent: pct,
+        details: "Mistake-review score calculated from the actual redo answers."
+      }
+    ).catch((error) => console.warn("Record mistake-review score:", error.message || error));
+  }
+  finishMistakeReviewIfClear();
   const wrongItems = quizAttemptRows.filter((row) => !row.correct).map((row) => ({ char: row.char, expected: row.expected, selected: row.selected, explanation: row.explanation }));
   const feedback = pct >= 80 ? L("Nắm tốt nhóm từ. Hãy ôn ngắt quãng để giữ độ chắc.", "Strong linked-vocabulary result. Use spaced review to retain it.") : pct >= 30 ? L("Đã có điểm, nhưng hãy ôn lại các câu sai trước buổi mới.", "The score is recorded, but redo the wrong items before the next session.") : L("Chưa đạt mục tiêu. Hãy nghe lại audio mẫu và làm lại nhóm từ này.", "Below target. Replay the model audio and retry this linked-vocabulary set.");
   const owner = String(typeof storageNamespace === "function" ? storageNamespace() : (window.CURRENT_USER?.uid || "guest")).replace(/[^a-zA-Z0-9_-]/g, "_");
