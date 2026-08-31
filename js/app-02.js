@@ -1876,6 +1876,7 @@ function renderSrsPanel(char) {
 /* ===================== QUIZ (multiple choice) — HSK3 阅读理解 (reading comprehension) format ===================== */
 let quizQueue = [], quizIdx = 0, quizScore = 0;
 let pendingDialogueQueue = null;
+let vocabularyQuizCompletion = null;
 let currentAdvancedSetId = null, advancedMcTotal = 0, advancedDlgScore = 0, advancedDlgTotal = 0;
 let inAdvancedSetMode = false, advancedSetTimerInterval = null, advancedSetSecondsLeft = 3600;
 function updateAdvancedSetTimerDisplay() {
@@ -2017,6 +2018,7 @@ function startQuizForWord(char, options = {}) {
   }
   quizQueue = genReadingQuestions(w).map(q => ({ ...q, char }));
   if (!quizQueue.length) { alert("Từ này chưa có câu trắc nghiệm / No quiz available for this word."); return; }
+  vocabularyQuizCompletion = options.vocabularyFlow ? (result) => window.PandaHanVocabularyFlow?.quizCompleted?.(result) : null;
   runQuiz();
 }
 function startQuizForWords(words, options = {}) {
@@ -2353,9 +2355,13 @@ function showQuizResult() {
   window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { ...assessment, rawSource: "vocabulary-quiz", evidenceType: "linked_vocabulary_quiz", verified: true } }));
   const goingToReview = postQuizGoToReview && pendingFlashcardQueue && pendingFlashcardQueue.length;
   const goingToDialogue = pendingDialogueQueue && pendingDialogueQueue.length;
+  const goingToVocabularyFlow = typeof vocabularyQuizCompletion === "function";
   let btnHtml, noteHtml = "";
   if (!inAdvancedSetMode) savePracticeCompletion(pct, "quiz");
-  if (goingToDialogue) {
+  if (goingToVocabularyFlow) {
+    btnHtml = `<button class="btn btn-hsk2" id="qContinueVocabBtn" style="margin-top:14px;">➡️ ${L("Học từ tiếp theo", "Continue to next word")}</button>`;
+    noteHtml = `<p style="font-size:12.5px;color:var(--text-light);">${L("Điểm đã được lấy từ câu trả lời được chấm và lưu vào SM-2 hôm nay.", "The score came from the graded answers and was saved to today’s SM-2 data.")}</p>`;
+  } else if (goingToDialogue) {
     btnHtml = `<button class="btn btn-hsk3" id="qContinueDialogueBtn" style="margin-top:14px;">➡️ ${L("Tiếp tục: Sắp xếp hội thoại", "Continue: Dialogue Reorder")}</button>`;
     noteHtml = `<p style="font-size:12.5px;color:var(--text-light);">${L("Phần 1 (trắc nghiệm) xong! Còn phần 2: sắp xếp hội thoại.", "Part 1 (multiple choice) done! Part 2: dialogue reordering next.")}</p>`;
   } else if (goingToReview) {
@@ -2372,7 +2378,13 @@ function showQuizResult() {
      ${btnHtml}</div>`;
   document.getElementById("qProgress").textContent = quizQueue.length;
   logActivity(`📝 Trắc nghiệm: ${quizScore}/${quizQueue.length} đúng (${pct}%)`);
-  if (goingToDialogue) {
+  if (goingToVocabularyFlow) {
+    document.getElementById("qContinueVocabBtn").addEventListener("click", () => {
+      const done = vocabularyQuizCompletion;
+      vocabularyQuizCompletion = null;
+      done?.({ char: quizQueue[0]?.char || "", scorePercent: pct, correct: quizScore, total: quizQueue.length, completedAt: Date.now() });
+    });
+  } else if (goingToDialogue) {
     document.getElementById("qContinueDialogueBtn").addEventListener("click", () => {
       uQueue = pendingDialogueQueue;
       pendingDialogueQueue = null;
