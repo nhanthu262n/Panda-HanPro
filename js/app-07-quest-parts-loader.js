@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-gate-v15-no-calendar-repeat-20260901";
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-result-bridge-v17-20260901";
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
@@ -19,6 +19,16 @@
     } catch (_) { return "guest"; }
   }
   function parentProgressKey() { return `pandahan_quest_progress_summary_${userNamespace()}`; }
+  function questBridgeKey() { return `pandahan_quest_bridge_scores_v17_${userNamespace()}`; }
+  function saveQuestBridgeScore(day, score) {
+    try {
+      const rows = JSON.parse(localStorage.getItem(questBridgeKey()) || "{}") || {};
+      const d = Number(day), v = Number(score);
+      if (!Number.isInteger(d) || d < 1 || d > 120 || !Number.isFinite(v)) return;
+      rows[String(d)] = Math.max(Number(rows[String(d)] || 0), Math.max(0, Math.min(100, v)));
+      localStorage.setItem(questBridgeKey(), JSON.stringify(rows));
+    } catch (_) {}
+  }
   function questLanguage() { return window.LANG_MODE === "en" ? "en" : "vi"; }
   function questText(vi, en) { return questLanguage() === "en" ? en : vi; }
   function outerStatus(text, isError = false) {
@@ -167,6 +177,7 @@
     if (!day || !Number.isFinite(score) || lastQuestResultKey === resultKey || questResultInFlight === resultKey) return;
     questResultInFlight = resultKey;
     const passed = score > 30;
+    saveQuestBridgeScore(day, score);
     const evaluation = { dayNumber: day, scorePercent: score, passed, threshold: 30, reviewType: "quest_lesson", repeatCount: 0, action: passed ? "unlock_next_lesson" : "retry_lesson", resultToken: String(data.resultToken || resultKey), scheduleSyncOwner: "quest-loader" };
     outerStatus(questText(
       `Ôn tập 120 ngày · Bài ${day}: ${score}% · ${passed ? "Đã vượt 30% — mở bài tiếp theo" : "Cần đạt trên 30% để mở bài mới"}`,
@@ -195,11 +206,18 @@
       var start=document.getElementById('oh-start-day'); if(start){var ok=allowed(1);start.disabled=!ok;start.setAttribute('aria-disabled',String(!ok));}
     }
     function reportResult(){
-      var exam=document.getElementById('exam'); if(!exam||!exam.classList.contains('visible'))return;
-      var title=exam.innerText||'';
-      var m=title.match(/(?:Hoàn thành|Complete|Completed|Finished)\\s+(?:Ngày|Day)\\s*#?\\s*(\\d+)/i) || title.match(/(?:Ngày|Day)\\s*#?\\s*(\\d+)/i);
-      var day=m?Number(m[1]):Number(lastStartedDay||0); if(!day)return;
-      var p=title.match(/(\\d+(?:[.,]\\d+)?)\\s*%/); if(!p)return;
+      var title=(document.body&&document.body.innerText)||'';
+      if(!title)return;
+      // React Quest result screen: "COMPLETION CERTIFICATE · DAY 001" + "83% accuracy · 正确率".
+      // Do not rely on the old #exam.visible wrapper; the current Quest build does not use it.
+      var m=title.match(/COMPLETION\s+CERTIFICATE\s*[·•\-–—:]*\s*DAY\s*0*(\d+)/i)
+        || title.match(/(?:Hoàn thành|Complete|Completed|Finished)\s+(?:Ngày|Day)\s*#?\s*0*(\d+)/i)
+        || title.match(/第\s*0*(\d+)\s*天/);
+      var day=m?Number(m[1]):Number(lastStartedDay||0); if(!day||day<1||day>120)return;
+      var p=title.match(/(\d+(?:[.,]\d+)?)\s*%\s*(?:accuracy|正确率)/i)
+        || title.match(/(?:accuracy|正确率)\s*[:：]?\s*(\d+(?:[.,]\d+)?)\s*%/i);
+      if(!p&&m)p=title.match(/(\d+(?:[.,]\d+)?)\s*%/);
+      if(!p)return;
       var score=Math.max(0,Math.min(100,Math.round(Number(String(p[1]).replace(',','.')))));
       var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
       try{var key=progressKey(),stored=JSON.parse(localStorage.getItem(key)||'{}')||{},rows=stored.dayProgress||{},row=rows[String(day)]||{};row.scorePercent=score;row.completed=score>30;row.threshold=30;row.updatedAt=Date.now();rows[String(day)]=row;stored.dayProgress=rows;localStorage.setItem(key,JSON.stringify(stored));}catch(_){}
