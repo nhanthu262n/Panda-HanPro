@@ -276,6 +276,7 @@
 
   async function submitDayResult(dayNumber, score, options = {}) {
     const result = await submitWithRtdb(dayNumber, score, core.todayVietnam(), options);
+    if (result?.schedule) publishLocalDailyPlan(result.schedule);
     window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
     return result;
   }
