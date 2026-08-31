@@ -39,7 +39,8 @@
     schedule.days.forEach((day) => {
       const item = byDay.get(Number(day.day_number));
       if (item) {
-        if (!Array.isArray(day.required_tasks) || !day.required_tasks.length) day.required_tasks = core.getMandatoryTaskIds(item);
+        // Migrate every legacy schedule to the new single Quest gate.
+        day.required_tasks = core.getMandatoryTaskIds(item);
         day.topic = day.topic || item.topic || "";
         day.week_number = day.week_number || item.week_number || null;
         day.day_type = day.day_type || item.day_type || "new_content";
@@ -49,48 +50,25 @@
       day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
     });
     const ordered = schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0));
-    // Ôn tập/câu sai không phải cổng mở ngày; dọn dữ liệu cũ trước khi đánh giá.
-    schedule.days.forEach((day) => {
-      day.required_tasks = (Array.isArray(day.required_tasks) ? day.required_tasks : []).filter((id) => String(id) !== "mistake_review");
-    });
-    // Các buổi tiếp tục đã có đủ bằng chứng chính được xem là hoàn tất,
-    // sau đó mở tuần tự ngày kế tiếp thay vì giữ ngày gốc bị khóa.
-    for (let index = 0; index < ordered.length; index += 1) {
-      const day = ordered[index];
-      const next = ordered[index + 1];
-      const repeat = !!day.is_repeat_of || day.day_type === "repeat";
-      const complete = Array.isArray(day.required_tasks) && day.required_tasks.every((id) => day.completed_tasks[id]);
-      if (repeat && complete && day.status !== "completed") {
-        day.status = "completed";
-        day.completed_at = day.completed_at || todayVietnam();
-      }
-      if (day.status === "completed" && next && (next.status === "pending_unlock" || next.status === "locked")) {
-        next.status = "unlocked";
-        next.scheduled_date = todayVietnam();
-        delete next.unlock_date;
-      }
-    }
-    // Legacy schedules may have marked a day completed from score alone. Do
-    // not let that legacy flag unlock later content: the learner must repeat
-    // the first day lacking real task evidence.
+    // Migration: only a Quest score strictly >30 validates a completed day.
+    const today = core.todayVietnam();
+    schedule.days.forEach((day) => { day.required_tasks = ["quest"]; });
     let gateBroken = false;
-    ordered.forEach((day) => {
-      const isComplete = Array.isArray(day.required_tasks) && day.required_tasks.filter((id) => id !== "mistake_review").every((id) => day.completed_tasks[id]);
-      if (!gateBroken && day.status === "completed" && !isComplete) {
+    ordered.forEach((day, index) => {
+      const score = Number(day.last_score ?? day.best_score);
+      const questPassed = Number.isFinite(score) && score > 30;
+      const next = ordered[index + 1];
+      if (!gateBroken && day.status === "completed" && !questPassed) {
         day.status = "unlocked";
         day.completed_at = null;
+        delete day.completed_tasks?.quest;
         gateBroken = true;
-      } else if (gateBroken && day.status === "unlocked") {
+      } else if (gateBroken && (day.status === "unlocked" || day.status === "pending_unlock")) {
         day.status = "locked";
         day.scheduled_date = null;
+        delete day.unlock_date;
       }
-    });
-    // Migration cho schedule cũ: các phiên đã hoàn thành đủ task không bị giữ ở pending_unlock.
-    const today = core.todayVietnam();
-    ordered.forEach((day, index) => {
-      const next = ordered[index + 1];
-      const complete = day.status === "completed" && Array.isArray(day.required_tasks) && day.required_tasks.every((id) => day.completed_tasks?.[id]) && Number.isFinite(Number(day.last_score));
-      if (complete && next && (next.status === "pending_unlock" || next.status === "locked")) {
+      if (!gateBroken && day.status === "completed" && questPassed && next && (next.status === "locked" || next.status === "pending_unlock")) {
         next.status = "unlocked";
         next.scheduled_date = today;
         delete next.unlock_date;
@@ -314,7 +292,7 @@
     const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber));
     if (!day) return null;
     const threshold = Number(day.required_score || 30);
-    const passed = Number(score) >= threshold;
+    const passed = Number(score) > threshold;
     const alreadyCompleted = day.status === "completed";
     return {
       schedule,
@@ -333,26 +311,8 @@
   }
 
   async function submitQuestResult(dayNumber, score, resultToken) {
-    const mission = window.PandaHanMission?.getCurrent?.();
-    const isCurrentMission = Number(mission?.dayNumber) === Number(dayNumber);
-    const linkedWords = isCurrentMission && Array.isArray(mission?.chainVocabulary) ? mission.chainVocabulary : [];
-    const phase = linkedWords.length ? window.PandaHanVocabularyPhase?.get?.(Number(dayNumber)) : null;
-    const prerequisiteMissing = linkedWords.length && (!mission?.adaptivePlan?.phoneticsReady || !phase?.introCompleted);
-    if (prerequisiteMissing) {
-      const schedule = loadLocal() || await initScheduleIfNeeded();
-      const missingLinkedSteps = [
-        ...(!mission?.adaptivePlan?.phoneticsReady ? ["listening", "speaking"] : []),
-        ...(!phase?.introCompleted ? ["vocab-intro"] : [])
-      ];
-      return {
-        schedule,
-        result: {
-          dayNumber: Number(dayNumber), score: Number(score), threshold: Number(mission?.requiredScore || 30), passed: false,
-          action: "linked_chain_incomplete", code: "LINKED_CHAIN_INCOMPLETE", repeatCount: 0,
-          missingTaskIds: missingLinkedSteps, requiredTaskIds: schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber))?.required_tasks || []
-        }
-      };
-    }
+    // Quest is intentionally independent from Listening/Speaking/Vocabulary completion.
+    // Those activities still save evidence, but cannot block submitting the Quest score.
     let result = null;
     let submitError = null;
     try {
