@@ -2,7 +2,7 @@
   "use strict";
 
   const LISTENING_THRESHOLD = 20;
-  const LISTENING_QUIZ_PASS_SCORE = 30;
+  const LISTENING_QUIZ_PASS_SCORE = 30; // native Ngữ âm quiz evidence threshold for AI Coach tracking only
   const REPORT_STEP = 5;
   let completionInFlight = {};
   let lastPronunciationId = "";
@@ -143,6 +143,34 @@
     return { completed: !!output, passed, action, result: output?.result || null, evidence };
   }
 
+  async function processNativePhoneticsQuiz(result) {
+    const day = await currentDay();
+    if (!day || !result) return null;
+    const excelDay = Number(day.day_number || 0);
+    const sessionId = Number(result.sessionId || 0);
+    if (excelDay < 1 || excelDay > 10 || sessionId !== excelDay) return null;
+    const score = Math.max(0, Math.min(100, Number(result.scorePercent) || 0));
+    const correct = Math.max(0, Number(result.correct) || 0);
+    const total = Math.max(1, Number(result.total) || 20);
+    const evidence = {
+      evidenceType: "phonetics_native_quiz_score",
+      quizId: `native-phonetics-day-${sessionId}`,
+      sessionId, excelDay, scorePercent: score, threshold: 30, passed: score >= 30,
+      correct, total, attempts: 1, date: String(result.completedAt || new Date().toISOString()),
+      rawSource: "pinyin-phonetics-native-quiz", completeSet: true
+    };
+    // User requirement: ONE real score from Ngữ âm quiz supplies AI Coach Listening and Reading/Writing evidence.
+    const outputs = [];
+    for (const taskId of ["listening", "reading_writing"]) {
+      try {
+        const out = await window.PandaHanSchedule?.recordTaskScore?.(excelDay, taskId, score, "verified:pinyin-phonetics-native-quiz", evidence);
+        outputs.push(out || null);
+      } catch (error) { console.warn("Native phonetics quiz evidence sync:", taskId, error?.code || error?.message || error); }
+      dispatchEvaluation({ source: "pinyin-phonetics-native-quiz", taskId, dayNumber: excelDay, action: score >= 30 ? "native_quiz_score_recorded" : "native_quiz_below_tracking_threshold", ...evidence });
+    }
+    return { scorePercent: score, dayNumber: excelDay, outputs };
+  }
+
   function nextListeningCount(media) {
     if (!media || String(media.src || media.currentSrc || "").match(/^(blob:|data:)/i)) return;
     const key = evidenceKey(`listening_${today()}`);
@@ -164,19 +192,41 @@
     window.__PANDAHAN_AUDIO_EVIDENCE_INSTALLED = true;
   }
 
+  async function syncStoredNativeQuizForCurrentDay() {
+    const day = await currentDay();
+    const n = Number(day?.day_number || 0);
+    if (n < 1 || n > 10) return;
+    const progress = readJson("pandahan_phonics_v2", {});
+    const row = progress?.[n] || progress?.[String(n)] || null;
+    const bestCorrect = Number(row?.bestScore || 0);
+    if (!Number.isFinite(bestCorrect) || bestCorrect <= 0) return;
+    const scorePercent = Math.max(0, Math.min(100, Math.round(bestCorrect / 20 * 100)));
+    const key = evidenceKey(`native_phonetics_synced_day_${n}`);
+    const previous = Number(localStorage.getItem(key) || -1);
+    if (previous >= scorePercent) return;
+    try { localStorage.setItem(key, String(scorePercent)); } catch (_) {}
+    await processNativePhoneticsQuiz({ sessionId:n, correct:bestCorrect, total:20, scorePercent, completedAt:new Date().toISOString(), source:"pinyin-phonetics-native-quiz-storage" });
+  }
+
   function install() {
     installAudioInstrumentation();
     window.addEventListener("pinyin-history-updated", () => processPronunciationRecord(readLatestPronunciation()));
     window.addEventListener("pinyin-mounted", () => {
       installAudioInstrumentation();
       processPronunciationRecord(readLatestPronunciation());
+      syncStoredNativeQuizForCurrentDay();
     });
+    window.addEventListener("pandahan-phonetics-native-quiz-score", (event) => processNativePhoneticsQuiz(event.detail));
+    window.addEventListener("pandahan-schedule-updated", () => syncStoredNativeQuizForCurrentDay());
     processPronunciationRecord(readLatestPronunciation());
+    syncStoredNativeQuizForCurrentDay();
   }
 
   window.PandaHanEvidence = {
     processPronunciationRecord,
     processListeningQuiz,
+    processNativePhoneticsQuiz,
+    syncStoredNativeQuizForCurrentDay,
     processListening: (count) => reportListening(Number(count) || 0, null),
     getListeningCount: () => Number(localStorage.getItem(evidenceKey(`listening_${today()}`)) || 0)
   };
