@@ -203,6 +203,7 @@
     if (key === vocabularyReconcileKey || score < 30) return;
     vocabularyReconcileKey = key;
     try {
+      window.PandaHanVocabularyPhase?.completeIntro?.(dayNumber, words.map((word) => word.char));
       await schedule?.recordTaskScore?.(dayNumber, "vocab-intro", score, "verified:linked-vocabulary-quiz-history", { evidenceType: "daily_vocabulary_quiz_history", scorePercent: score, threshold: 30, passed: true, completeSet: true, totalWords: selected.length, scores: selected, date: new Date().toISOString(), rawSource: "saved-quiz-activity-log" });
     } catch (error) { console.warn("Không đối soát được lịch sử trắc nghiệm từ vựng:", error.message || error); }
   }
@@ -224,6 +225,7 @@
         const dailyScore = rows.length ? Math.round(rows.reduce((sum, item) => sum + Number(item.scorePercent || 0), 0) / rows.length) : scorePercent;
         const evidence = { evidenceType: "daily_vocabulary_sm2_average", scorePercent: dailyScore, threshold: 30, passed: dailyScore >= 30, completeSet: true, totalWords: rows.length, scores: rows, date: new Date().toISOString(), rawSource: "linked-vocabulary-quiz" };
         try {
+          window.PandaHanVocabularyPhase?.completeIntro?.(flowDay, flow.words.map((word) => word.char));
           const schedule = window.PandaHanSchedule;
           if (schedule?.recordTaskScore) await schedule.recordTaskScore(flowDay, "vocab-intro", dailyScore, "verified:linked-vocabulary-quiz-sm2", evidence);
         } catch (error) { console.warn("Không ghi được điểm Từ vựng liên kết vào task:", error.message || error); }
