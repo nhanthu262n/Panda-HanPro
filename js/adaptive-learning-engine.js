@@ -98,9 +98,10 @@
     const map = getMap();
     const groups = focusGroups(curriculum);
     const isPinyinBootcamp = dayNumber <= 10 || curriculum.stage_code === "stage_0";
-    // Days 1-10 are exclusively Pinyin/phonetics training. The Excel vocab cells there
-    // are pronunciation examples, not a vocabulary-learning queue. Vocabulary starts Day 11.
-    const raw = isPinyinBootcamp ? [] : parseNewVocab(curriculum.new_vocab_raw);
+    // Day 1-10 remain Pinyin/phonetics-first, but Excel vocabulary cells are kept as
+    // PHONETICS-LINKED listening examples. They are NOT added to cumulative/general SRS
+    // until the regular vocabulary phase starts on Day 11.
+    const raw = parseNewVocab(curriculum.new_vocab_raw);
     const linkedNew = raw.map((item) => map[item.char]).filter(Boolean).filter((word) => matchesFocus(word, groups));
     // Strict chain rule: when a phonetics focus exists, never inject a raw day word
     // that does not match that focus merely to fill the intro quota.
@@ -119,7 +120,7 @@
     const canPracticeNew = introState.completed || !introWords.length;
     const eligible = canPracticeNew ? practiceWords : practiceWords.filter((word) => !exactNew.some((newWord) => newWord.char === word.char));
     return {
-      dayNumber, date: today(), isPinyinBootcamp, vocabularyMode: isPinyinBootcamp ? "phonetics_only" : "daily_vocab_plus_cumulative_srs", focusGroups: groups, focusLabel: groups.map((group) => group.label).join(" · ") || "theo chủ đề ngày",
+      dayNumber, date: today(), isPinyinBootcamp, vocabularyMode: isPinyinBootcamp ? "phonetics_with_linked_listening" : "daily_vocab_plus_cumulative_srs", focusGroups: groups, focusLabel: groups.map((group) => group.label).join(" · ") || "theo chủ đề ngày",
       phoneticsReady, vocabIntroReady, introCompleted: !!introState.completed, introWords, newWords: exactNew,
       practiceWords: eligible, reviewWords: reviewPool, linkedNewWords: exactNew,
       counts: { new: exactNew.length, intro: introWords.length, review: reviewPool.length, practice: eligible.length },
