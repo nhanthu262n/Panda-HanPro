@@ -460,13 +460,8 @@
   }
   function renderRequiredChecklist(m, langEn) {
     const c = m.curriculum || {};
+    const completed = m.scheduleDay?.completed_tasks || {};
     const day = Number(m.dayNumber || 1);
-    const completed = { ...(m.scheduleDay?.completed_tasks || {}) };
-    const questScoreV20 = questScoreForDayV20(day);
-    if (questScoreV20 > 30) {
-      completed.quest = completed.quest || { source: 'quest-score-direct-v20', score: questScoreV20 };
-      ensureQuestScheduleSyncV20(day, questScoreV20);
-    }
     const entries = [];
     const add = (id, description, done) => entries.push({ id, description, done: !!done });
     if (c.listening_task && c.listening_task !== "-") add("listening", workbookTaskDescription("listening", c, langEn), completed.listening);
