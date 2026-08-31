@@ -15,7 +15,10 @@
     const next = { ...source, dayProgress: { ...dayProgress } };
     Object.keys(next.dayProgress).forEach((day) => {
       const row = next.dayProgress[day] || {};
-      const scorePercent = percentage(row.correct, row.answered);
+      const answered = number(row.answered, 0);
+      const explicit = Number(row.scorePercent);
+      const derived = answered > 0 ? percentage(row.correct, answered) : NaN;
+      const scorePercent = Math.max(Number.isFinite(explicit) ? explicit : 0, Number.isFinite(derived) ? derived : 0);
       next.dayProgress[day] = { ...row, scorePercent, completed: isPassing(scorePercent), threshold: PASS_PERCENT };
     });
     return next;
