@@ -185,14 +185,14 @@
       flow.grades[char] = { scorePercent, correct: Number(result?.correct || 0), total: Number(result?.total || 0), reviewedAt: Date.now(), source: "graded-vocabulary-quiz" };
       flow.index += 1;
       const isLast = flow.index >= flow.words.length;
-      if (isLast && flow.dayNumber) {
+      const flowDay = Number(flow.dayNumber || window.PandaHanMission?.getCurrent?.()?.dayNumber || window.PandaHanMission?.getCurrent?.()?.day_number || 0);
+      if (isLast && flowDay) {
         const rows = Object.values(flow.grades);
         const dailyScore = rows.length ? Math.round(rows.reduce((sum, item) => sum + Number(item.scorePercent || 0), 0) / rows.length) : scorePercent;
         const evidence = { evidenceType: "daily_vocabulary_sm2_average", scorePercent: dailyScore, threshold: 30, passed: dailyScore >= 30, completeSet: true, totalWords: rows.length, scores: rows, date: new Date().toISOString(), rawSource: "linked-vocabulary-quiz" };
         try {
           const schedule = window.PandaHanSchedule;
-          if (schedule?.recordTaskScore) await schedule.recordTaskScore(Number(flow.dayNumber), "vocab-intro", dailyScore, "verified:linked-vocabulary-quiz-sm2", evidence);
-          if (dailyScore >= 30 && schedule?.completeTask) await schedule.completeTask(Number(flow.dayNumber), "vocab-intro", "verified:linked-vocabulary-quiz-sm2", evidence);
+          if (schedule?.recordTaskScore) await schedule.recordTaskScore(flowDay, "vocab-intro", dailyScore, "verified:linked-vocabulary-quiz-sm2", evidence);
         } catch (error) { console.warn("Không ghi được điểm Từ vựng liên kết vào task:", error.message || error); }
         const returnToCoach = () => {
           if (typeof window.switchTab === "function") window.switchTab("chat");
