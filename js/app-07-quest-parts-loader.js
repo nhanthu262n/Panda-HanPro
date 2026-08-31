@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-result-bridge-v17-20260901";
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-result-bridge-v21-20260901";
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
