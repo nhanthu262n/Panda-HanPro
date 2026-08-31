@@ -564,41 +564,29 @@ window.gradeWord = function(char, q) {
   };
 })();
 
-/* ---------- Auto-assessment for the flashcard "review" step ----------
-   Instead of letting the learner self-rate (prone to overconfidence bias),
-   quality (1-5, SM-2 scale) is derived from that word's actual quiz
-   performance (multiple-choice, unscramble, fill-blank) recorded so far. */
+/* ---------- Objective SM-2 daily assessment for the flashcard review step ----------
+   The learner must not self-rate. Quality is calculated only from this word's
+   SM-2 grades recorded during the current Vietnam calendar day. */
+function sm2CalendarDay(timestamp) {
+  try { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(timestamp)); }
+  catch (_) { return new Date(timestamp).toISOString().slice(0, 10); }
+}
 function computeAutoQuality(char) {
   const s = getStat(char);
-  if (!s.quizAttempts || s.quizAttempts === 0) {
-    // No quiz data yet for this word: neutral default, flagged as low-confidence.
-    return { quality: 3, label: L("Chưa có dữ liệu quiz", "No quiz data yet"), ratio: null };
-  }
-  // Weighted moving average: recent attempts count more than old ones, so a
-  // couple of lucky/unlucky guesses don't swing the score as hard as a raw
-  // lifetime ratio would, while genuine recent improvement/decline still shows.
-  const log = (s.quizLog && s.quizLog.length) ? s.quizLog : null;
-  let ratio;
-  if (log) {
-    let weightedSum = 0, weightTotal = 0;
-    log.forEach((entry, i) => {
-      const recencyWeight = 1 + (i / log.length); // oldest ~1x, most recent ~2x
-      weightedSum += (entry.correct ? 1 : 0) * recencyWeight;
-      weightTotal += recencyWeight;
-    });
-    ratio = weightedSum / weightTotal;
-  } else {
-    ratio = s.quizCorrect / s.quizAttempts; // fallback for stats saved before quizLog existed
-  }
+  const today = sm2CalendarDay(Date.now());
+  const dailyGrades = (Array.isArray(s.studyLog) ? s.studyLog : [])
+    .filter((entry) => sm2CalendarDay(Number(entry.t)) === today && Number.isFinite(Number(entry.grade)))
+    .map((entry) => Math.max(1, Math.min(5, Number(entry.grade))));
+  if (!dailyGrades.length) return { quality: null, label: L("Chưa có điểm SM-2 hôm nay", "No SM-2 score today"), ratio: null, dailyAverage: null, dailyCount: 0, source: "sm2-daily" };
+  const dailyAverage = dailyGrades.reduce((sum, grade) => sum + grade, 0) / dailyGrades.length;
   let quality, label;
-  if (ratio >= 0.9)      { quality = 5; label = L("Hoàn hảo", "Perfect"); }
-  else if (ratio >= 0.7) { quality = 4; label = L("Tốt", "Good"); }
-  else if (ratio >= 0.5) { quality = 3; label = L("Chần chờ", "Hesitant"); }
-  else if (ratio >= 0.25){ quality = 2; label = L("Không nhớ", "Forgot"); }
-  else                    { quality = 1; label = L("Rất kém", "Very poor"); }
-  return { quality, label, ratio };
+  if (dailyAverage >= 4.5) { quality = 5; label = L("Hoàn hảo", "Perfect"); }
+  else if (dailyAverage >= 3.5) { quality = 4; label = L("Tốt", "Good"); }
+  else if (dailyAverage >= 2.5) { quality = 3; label = L("Chần chờ", "Hesitant"); }
+  else if (dailyAverage >= 1.5) { quality = 2; label = L("Không nhớ", "Forgot"); }
+  else { quality = 1; label = L("Rất kém", "Very poor"); }
+  return { quality, label, ratio: dailyAverage / 5, dailyAverage, dailyCount: dailyGrades.length, source: "sm2-daily" };
 }
-
 /* ---------- Objective wrong-answer queue ----------
    Every objectively wrong vocabulary item is queued for AI Coach review.
    This is learner evidence, not a self-confirmation control. */
@@ -3957,23 +3945,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const auto = computeAutoQuality(fcQueue[fcIdx]);
       const assessEl = document.getElementById("fcAutoAssess");
       if (assessEl) {
-        if (auto.ratio === null) {
+        if (auto.quality === null) {
           assessEl.innerHTML = L(
-            `📊 Đánh giá tự động: <b>${auto.label}</b> (chưa làm quiz cho từ này — hãy làm phần trắc nghiệm/sắp xếp câu để hệ thống đánh giá chính xác hơn)`,
-            `📊 Auto-assessment: <b>${auto.label}</b> (no quiz done for this word yet — try the quiz/unscramble sections for a more accurate rating)`
+            `📊 Chưa thể chấm tự động: <b>${auto.label}</b> (hãy làm bài có chấm điểm hôm nay; hệ thống không dùng tự đánh giá)`,
+            `📊 Cannot grade automatically: <b>${auto.label}</b> (complete a scored activity today; self-assessment is not used)`
           );
         } else {
           assessEl.innerHTML = L(
-            `📊 Đánh giá tự động (SM-2, dựa trên quiz): <b>${auto.label}</b> — đúng ${Math.round(auto.ratio*100)}% các lần làm quiz từ này`,
-            `📊 Auto-assessment (SM-2, quiz-based): <b>${auto.label}</b> — ${Math.round(auto.ratio*100)}% correct across quizzes on this word`
+            `📊 Điểm SM-2 hôm nay: <b>${auto.label}</b> · ${auto.dailyAverage.toFixed(1)}/5 · ${auto.dailyCount} lượt`,
+            `📊 Today's SM-2 score: <b>${auto.label}</b> · ${auto.dailyAverage.toFixed(1)}/5 · ${auto.dailyCount} attempt(s)`
           );
         }
       }
-      const fcb = document.getElementById("fcContinueBtn"); if (fcb) fcb.dataset.grade = String(auto.quality);
+      const fcb = document.getElementById("fcContinueBtn");
+      if (fcb) {
+        fcb.dataset.grade = auto.quality === null ? "" : String(auto.quality);
+        fcb.disabled = auto.quality === null;
+      }
     }
   });
   safeAdd("fcContinueBtn", "click", (e) => {
-    const grade = Number(e.currentTarget.dataset.grade || 3);
+    const grade = Number(e.currentTarget.dataset.grade);
+    if (!Number.isFinite(grade) || grade < 1 || grade > 5) {
+      alert(L("Chưa có điểm SM-2 hôm nay cho từ này. Hãy làm bài có chấm điểm trước; hệ thống không dùng tự đánh giá.", "There is no SM-2 score for this word today. Complete a scored activity first; self-assessment is not used."));
+      return;
+    }
     const char = fcQueue[fcIdx];
     const prevTier = getTier(char);
     if (typeof gradeWord === "function") gradeWord(char, grade);
