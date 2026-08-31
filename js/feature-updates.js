@@ -155,43 +155,17 @@
     const panel = ensureFlowPanel();
     if (!panel || !flow) return;
     const word = flow.words[flow.index];
-    if (!word) { panel.innerHTML = `<b>${text("Đã hoàn thành toàn bộ từ vựng hôm nay.", "All vocabulary for today is complete.")}</b>`; return; }
+    if (!word) {
+      panel.innerHTML = `<b>${text("Đã hoàn thành toàn bộ từ vựng hôm nay.", "All vocabulary for today is complete.")}</b>`;
+      return;
+    }
     const stat = window.getStat?.(word.char) || {};
     const graded = Object.values(flow.grades || {});
     const dailyAverage = graded.length ? Math.round(graded.reduce((sum, item) => sum + Number(item.scorePercent || 0), 0) / graded.length) : 0;
-    const allWordsReviewed = graded.length >= flow.words.length;
-    panel.innerHTML = `<div style="font-weight:800;font-size:12px;">${text("Ôn tập từ vựng", "Vocabulary review")} · ${flow.index + 1}/${flow.words.length}</div><div style="font-size:10.5px;color:#7e2258;margin:4px 0 7px;">${text("Điểm ngày", "Daily score")}: <b>${dailyAverage}%</b> · ${graded.length}/${flow.words.length} ${text("từ đã đánh giá", "words graded")} · ${allWordsReviewed && dailyAverage >= 30 ? text("Đạt ≥ 30%", "Pass ≥ 30%") : text("Chưa đủ điều kiện", "Not passed yet")}</div><div style="font-size:11px;color:#64748b;margin:5px 0 9px;">${text("Xem nghĩa, câu ví dụ và Hán tự ở phía trên, sau đó chọn mức độ nhớ.", "Review the meaning, examples and character information above, then grade recall.")}</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${[[0,"Quên"],[2,"Khó"],[3,"Được"],[4,"Tốt"],[5,"Rất tốt"]].map(([q,label]) => `<button type="button" data-srs-grade="${q}" style="border:1px solid #e9a9c5;border-radius:8px;background:#fff;padding:6px 9px;color:#7e2258;font-weight:800;font-size:11px;cursor:pointer;">${q} · ${text(label, ["Forgot","Hard","Good","Good","Excellent"][q === 5 ? 4 : q])}</button>`).join("")}</div><div style="font-size:10.5px;color:#64748b;margin-top:7px;">SM-2: ${Number(stat.repetitions || 0)} ${text("lần đúng", "successful repetitions")} · EF ${Number(stat.ef || 2.5).toFixed(2)}</div>`;
-    panel.querySelectorAll("[data-srs-grade]").forEach((button) => button.addEventListener("click", () => {
-      const grade = Number(button.dataset.srsGrade);
-      const sm2 = typeof window.gradeWord === "function" ? window.gradeWord(word.char, grade) : (window.getStat?.(word.char) || {});
-      const scorePercent = Math.max(0, Math.min(100, grade * 20));
-      flow.grades = flow.grades || {};
-      flow.grades[word.char] = { grade, scorePercent, repetitions: Number(sm2?.repetitions || 0), interval: Number(sm2?.interval || 0), ef: Number(sm2?.ef || 2.5), reviewedAt: Date.now() };
-      const graded = Object.values(flow.grades);
-      const dailyAverage = Math.round(graded.reduce((sum, item) => sum + Number(item.scorePercent || 0), 0) / Math.max(1, graded.length));
-      const allWordsReviewed = graded.length >= flow.words.length;
-      if (flow.dayNumber && typeof window.PandaHanSchedule?.recordTaskScore === "function") {
-        window.PandaHanSchedule.recordTaskScore(flow.dayNumber, "vocab-intro", dailyAverage, "verified:vocabulary-sm2", {
-          evidenceType: "daily_vocabulary_sm2_average",
-          totalWords: flow.words.length,
-          reviewedWords: graded.length,
-          completedWords: allWordsReviewed ? flow.words.length : graded.length,
-          completeSet: allWordsReviewed,
-          passed: allWordsReviewed && dailyAverage >= 30,
-          threshold: 30,
-          scorePercent: dailyAverage,
-          grade,
-          sm2: flow.grades[word.char]
-        }).catch((error) => console.warn("Ghi điểm SM-2 từ vựng:", error.message || error));
-      }
-      window.dispatchEvent(new CustomEvent("pandahan-srs-updated", { detail: { source: "daily-vocabulary-flow", char: word.char, grade, scorePercent, dailyAverage, reviewedWords: graded.length, totalWords: flow.words.length, dayNumber: flow.dayNumber, sm2: flow.grades[word.char] } }));
-      flow.index += 1;
-      const next = flow.words[flow.index];
-      if (next && typeof window.openDetail === "function") window.openDetail(next.char);
-      renderFlowPanel();
-    }));
+    panel.innerHTML = `<div style="font-weight:800;font-size:12px;">${text("Học từ vựng liên kết", "Linked vocabulary study")} · ${flow.index + 1}/${flow.words.length}</div><div style="font-size:10.5px;color:#7e2258;margin:4px 0 7px;">${text("Điểm SM-2 trong ngày", "Today's SM-2 score")}: <b>${dailyAverage}%</b> · ${graded.length}/${flow.words.length}</div><div style="font-size:11px;color:#64748b;margin:5px 0 9px;">${text("Xem nghĩa và ví dụ ở phía trên, sau đó bấm Trắc nghiệm. Điểm được lấy từ câu trả lời được chấm, không tự đánh giá.", "Review the meaning and examples above, then start the quiz. Scores come from graded answers, not self-assessment.")}</div><button type="button" data-vocab-quiz="1" style="border:0;border-radius:9px;background:#db2777;color:#fff;padding:8px 13px;font-weight:800;font-size:11px;cursor:pointer;">📝 ${text("Trắc nghiệm từ này", "Quiz this word")} · ${flow.index + 1 === flow.words.length ? text("Từ cuối", "Last word") : text("Tiếp", "Next")}</button><div style="font-size:10.5px;color:#64748b;margin-top:7px;">SM-2: ${Number(stat.repetitions || 0)} ${text("lần đúng", "successful repetitions")} · EF ${Number(stat.ef || 2.5).toFixed(2)}</div>`;
+    panel.querySelector("[data-vocab-quiz]")?.addEventListener("click", () => window.startQuizForWord?.(word.char, { vocabularyFlow: true }));
   }
-  function startVocabularyFlow(words, dayNumber = null) {
+    function startVocabularyFlow(words, dayNumber = null) {
     const normalized = (words || []).map((w) => typeof w === "string" ? getWord(w) : w).filter(Boolean);
     if (!normalized.length) return false;
     flow = { words: normalized, index: 0, dayNumber: Number(dayNumber || 0) || null, grades: {} };
@@ -199,7 +173,29 @@
     setTimeout(renderFlowPanel, 0);
     return true;
   }
-  window.PandaHanVocabularyFlow = { start: startVocabularyFlow, startForDay: (day) => startVocabularyFlow(getDayWords(day), day), getState: () => flow };
+  window.PandaHanVocabularyFlow = {
+    start: startVocabularyFlow,
+    startForDay: (day) => startVocabularyFlow(getDayWords(day), day),
+    getState: () => flow,
+    quizCompleted: (result) => {
+      if (!flow) return;
+      const char = String(result?.char || flow.words[flow.index]?.char || "");
+      const scorePercent = Math.max(0, Math.min(100, Number(result?.scorePercent) || 0));
+      flow.grades = flow.grades || {};
+      flow.grades[char] = { scorePercent, correct: Number(result?.correct || 0), total: Number(result?.total || 0), reviewedAt: Date.now(), source: "graded-vocabulary-quiz" };
+      flow.index += 1;
+      const next = flow.words[flow.index];
+      if (next && typeof window.openDetail === "function") window.openDetail(next.char);
+      else {
+        const returnToCoach = () => {
+          if (typeof window.switchTab === "function") window.switchTab("chat");
+          setTimeout(() => window.openAiCoachChat?.(), 0);
+        };
+        returnToCoach();
+      }
+      renderFlowPanel();
+    }
+  };
   document.addEventListener("click", (event) => {
     const card = event.target.closest?.("#wordListContent [data-char]");
     if (card) {
