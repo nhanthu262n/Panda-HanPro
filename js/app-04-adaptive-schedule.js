@@ -474,7 +474,7 @@
     const apply = (schedule) => {
       const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
       if (!day) return null;
-      day.required_tasks = Array.from(new Set([...(Array.isArray(day.required_tasks) ? day.required_tasks : core.getMandatoryTaskIds(day)), "mistake_review"]));
+      // Ôn câu sai chỉ là hoạt động tùy chọn; không thêm vào required_tasks.
       day.mistake_review_required = true;
       day.mistake_review_added_at = day.mistake_review_added_at || today;
       return { schedule, result: { dayNumber: Number(dayNumber), taskId: "mistake_review", action: "review_required", missingTaskIds: core ? day.required_tasks.filter((id) => !day.completed_tasks?.[id]) : [] } };
