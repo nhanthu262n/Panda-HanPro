@@ -406,7 +406,7 @@
     if (c.srs_review_task && c.srs_review_task !== "-") add("srs", workbookTaskDescription("srs", c, langEn), completed.srs);
     add("quest", langEn ? "ONLY unlock gate: Pinyin Tone Quest >30%." : "CỔNG mở ngày DUY NHẤT: Pinyin Tone Quest >30%.", completed.quest);
     const openMistakes = window.PandaHanMistakes?.getQueue?.().length || 0;
-    const savedMistakeScore = Number(scheduleDay?.task_scores?.mistake_review);
+    const savedMistakeScore = Number(m.scheduleDay?.task_scores?.mistake_review);
     if (openMistakes || completed.mistake_review || Number.isFinite(savedMistakeScore)) add("mistake_review", langEn ? (openMistakes ? `${openMistakes} wrong item(s) to redo; score is tracked, never blocks unlock.` : `Saved review score${Number.isFinite(savedMistakeScore) ? `: ${savedMistakeScore}%` : ""}.`) : (openMistakes ? `${openMistakes} câu/từ sai cần ôn lại; có ghi điểm nhưng không chặn mở ngày.` : `Đã ghi nhận ôn lỗi${Number.isFinite(savedMistakeScore) ? `: ${savedMistakeScore}%` : ""}.`), completed.mistake_review);
     const rows = entries.map((entry) => {
       const action = entry.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : `<button type="button" data-mission-task="${entry.id}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
