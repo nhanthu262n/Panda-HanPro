@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-schedule-reconcile-20260901-v14";
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-gate-v15-no-calendar-repeat-20260901";
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
