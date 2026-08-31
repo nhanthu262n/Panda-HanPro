@@ -81,6 +81,80 @@ Error generating stack: `+l.message+`
 </script>
 
     <div id="root"></div>
+    <script id="pandahan-quest-result-bridge-v21">
+(function(){
+  "use strict";
+  var sent = Object.create(null);
+  var syncing = Object.create(null);
+  function ns(){
+    try {
+      if (parent && typeof parent.storageNamespace === "function") return String(parent.storageNamespace() || "guest").replace(/[^a-zA-Z0-9_-]/g,"_");
+      if (parent && parent.CURRENT_USER) return String(parent.CURRENT_USER.uid || parent.CURRENT_USER.username || "guest").replace(/[^a-zA-Z0-9_-]/g,"_");
+    } catch(_){}
+    return "guest";
+  }
+  function saveLocal(day, score){
+    try {
+      var owner=ns();
+      var bkey="pandahan_quest_bridge_scores_v17_"+owner;
+      var bridge=JSON.parse(localStorage.getItem(bkey)||"{}")||{};
+      bridge[String(day)]=Math.max(Number(bridge[String(day)]||0), score);
+      localStorage.setItem(bkey,JSON.stringify(bridge));
+
+      var pkey="pinyin-tone-quest-offline-progress-v2_"+owner;
+      var progress=JSON.parse(localStorage.getItem(pkey)||"{}")||{};
+      var rows=progress.dayProgress&&typeof progress.dayProgress==="object"?progress.dayProgress:{};
+      var row=rows[String(day)]&&typeof rows[String(day)]==="object"?rows[String(day)]:{};
+      row.scorePercent=Math.max(Number(row.scorePercent||0),score);
+      row.completed=score>30;
+      row.threshold=30;
+      row.updatedAt=Date.now();
+      rows[String(day)]=row;
+      progress.dayProgress=rows;
+      localStorage.setItem(pkey,JSON.stringify(progress));
+    } catch(_){}
+  }
+  function notify(day,score){
+    saveLocal(day,score);
+    var token="certificate-v21:"+day+":"+score;
+    try { parent.postMessage({type:"PANDAHAN_QUEST_DAY_RESULT",day:day,scorePercent:score,resultToken:token,source:"certificate-v21"},"*"); } catch(_){}
+    try { parent.dispatchEvent(new CustomEvent("pandahan-quest-score-saved",{detail:{dayNumber:day,scorePercent:score,passed:score>30,threshold:30,source:"certificate-v21",resultToken:token}})); } catch(_){}
+    if(score<=30 || syncing[token]) return;
+    syncing[token]=1;
+    try {
+      var api=parent && parent.PandaHanSchedule;
+      if(api && typeof api.submitQuestResult==="function"){
+        Promise.resolve(api.submitQuestResult(day,score,token)).then(function(result){
+          try { parent.dispatchEvent(new CustomEvent("pandahan-quest-schedule-saved",{detail:result||{dayNumber:day,score:score}})); } catch(_){}
+        }).catch(function(err){ console.warn("Quest certificate v21 schedule sync failed",err); }).finally(function(){ delete syncing[token]; });
+      }
+    } catch(err){ delete syncing[token]; console.warn("Quest certificate v21 direct sync failed",err); }
+  }
+  function scan(){
+    var text=(document.body&&document.body.innerText)||"";
+    if(!text) return;
+    var dm=text.match(/COMPLETION\s+CERTIFICATE\s*[·•\-–—:]*\s*DAY\s*0*(\d+)/i) || text.match(/第\s*0*(\d+)\s*天/);
+    if(!dm) return;
+    var day=Number(dm[1]);
+    if(!Number.isInteger(day)||day<1||day>120) return;
+    var sm=text.match(/(\d+(?:[.,]\d+)?)\s*%\s*(?:accuracy|正确率)/i) || text.match(/(?:accuracy|正确率)\s*[:：]?\s*(\d+(?:[.,]\d+)?)\s*%/i);
+    if(!sm) return;
+    var score=Math.max(0,Math.min(100,Math.round(Number(String(sm[1]).replace(",",".")))));
+    if(!Number.isFinite(score)) return;
+    var key=day+":"+score;
+    if(sent[key]) return;
+    sent[key]=1;
+    notify(day,score);
+  }
+  var obs=new MutationObserver(scan);
+  function start(){
+    try { obs.observe(document.documentElement,{subtree:true,childList:true,characterData:true}); } catch(_){}
+    setInterval(scan,500);
+    scan();
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",start,{once:true}); else start();
+})();
+    </script>
     <script
       defer
       src="https://manus-analytics.com/umami"
