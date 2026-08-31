@@ -1,0 +1,54 @@
+PandaHan AI Coach patch — 2026-09-01
+
+1. Unlock gate
+- Pinyin Tone Quest is the only mandatory day-unlock gate.
+- Strict condition: score > 30%.
+- 30% exactly does NOT unlock; 31% and above unlocks.
+- Listening, Speaking, Vocabulary, Reading/Writing and SRS still save progress/evidence but do not block unlock.
+- Removed legacy >60% gates from Quest progression, 120-day Quest loader, notifications and UI copy.
+
+2. Curriculum phases
+- Day 1-10: Pinyin/phonetics-only AI Coach mode.
+- Day 1-10 vocabulary cells are treated as pronunciation examples, not a vocabulary-learning queue.
+- Pinyin writing tasks are available during Day 1-10.
+- Day 10 >=90% / 60-syllable reading remains a mastery goal from Excel, not a replacement unlock gate.
+- Day 11-120: daily vocabulary from Excel + cumulative SRS.
+
+3. Vocabulary/SRS
+- Daily vocabulary starts Day 11.
+- AI Coach can use the full daily word set (limit raised to cover normal 8-11 word days).
+- SRS review pool is cumulative across previously learned due/weak words.
+
+4. Master curriculum
+- Existing curriculum_days.json remains the runtime JSON source generated from the uploaded workbook.
+- The uploaded workbook is included in assets as MASTER_KeHoach_PandaHan_120Ngay_HSK3.xlsx for audit/reference.
+
+5. Tested flow
+- Day 1 Quest 30% -> Day 2 stays locked.
+- Day 1 Quest 31% -> Day 1 completed -> Day 2 unlocked.
+- Day 2 Quest 50% -> Day 3 unlocked.
+
+v14 — 2026-09-01 — Quest/Schedule reconciliation fix
+- Fixed the split-brain bug where Pinyin Tone Quest could show Day N as passed/verified while studentSchedules still kept Day N unlocked and Day N+1 locked.
+- app-07 now reconciles every saved Quest day with scorePercent >30 directly into PandaHanSchedule, on QUEST_READY, QUEST_PROGRESS, and QUEST_DAY_RESULT.
+- Existing saved Day 1 results are migrated automatically after reload; learner does not need to replay Day 1.
+- Quest loader is now the single owner of Quest->Schedule score submission; feature-updates skips duplicate submissions from this bridge.
+- Cache-bust version raised to quest-schedule-reconcile-20260901-v14.
+
+
+v15 — 2026-09-01 — ROOT FIX: Quest >30 opens next ORIGINAL curriculum day
+- Root cause: runCatchUpCheck/applyDailyExtension treated old registration dates as missed days and inserted repeat Day-1 sessions. A passed Quest could therefore advance to another Day-1 repeat instead of Day 2.
+- Removed calendar-missed repeat sessions from the 120-day main progression. SRS/mistake reviews remain separate.
+- Added migration that compacts legacy repeat rows back to exactly 120 original curriculum days.
+- Added Quest-evidence reconciliation from both offline progress and quest result history.
+- Added forceQuestAdvance: score >30 directly marks original Day N completed and original Day N+1 unlocked locally and in RTDB transaction.
+- Saved explicit Quest score is preserved during progression normalization.
+- Updated AI Coach copy and cache-bust token.
+
+
+V16 2026-09-01 — Native Phonetics Quiz integration
+- Removed standalone AI Coach phonetics listening multiple-choice quiz.
+- AI Coach Day 1-10 routes Listening/Speaking/Reading-Writing to the exact native Pinyin Bootcamp session matching Excel Day N.
+- Native Ngữ âm Trắc nghiệm emits its real score; that score is recorded as Listening + Reading/Writing evidence (non-gating).
+- Existing stored native bestScore is reconciled on load so prior quiz attempts are recognized.
+- Quest >30% remains the ONLY 120-day progression gate.
