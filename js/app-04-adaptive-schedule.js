@@ -51,6 +51,8 @@
       });
       const history = JSON.parse(localStorage.getItem(`pandahan_quest_results_${ns}`) || "[]") || [];
       (Array.isArray(history) ? history : []).forEach((row) => put(row.dayNumber, row.scorePercent));
+      const bridge = JSON.parse(localStorage.getItem(`pandahan_quest_bridge_scores_v17_${ns}`) || "{}") || {};
+      Object.entries(bridge).forEach(([day, score]) => put(day, score));
     } catch (_) {}
     return scores;
   }
