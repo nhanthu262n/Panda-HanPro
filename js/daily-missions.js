@@ -38,8 +38,8 @@
     },
     speaking: {
       titleVi: "Nói", titleEn: "Speaking", icon: "🗣️", minutes: 8,
-      instructionVi: "Ghi âm trong Ngữ âm; hệ thống dùng điểm chấm phát âm thật.",
-      instructionEn: "Record in Phonetics; the system uses the real pronunciation score."
+      instructionVi: "Ghi âm câu/đoạn trong Ngữ âm; hệ thống dùng điểm phát âm thật theo âm vị, thanh điệu và độ trôi chảy.",
+      instructionEn: "Record a sentence/passage in Phonetics; the system uses the real phoneme, tone and fluency score."
     },
     reading_writing: {
       titleVi: "Đọc / Viết", titleEn: "Reading / Writing", icon: "📖", minutes: 8,
@@ -58,8 +58,8 @@
     },
     "vocab-speaking": {
       titleVi: "Nói từ vựng", titleEn: "Speak the vocabulary", icon: "🗣️", minutes: 8,
-      instructionVi: "Nghe mẫu rồi nói từng từ vào micro; hệ thống lưu kết quả nhận diện thật.",
-      instructionEn: "Play the model and say each word into the microphone; real recognition attempts are saved."
+      instructionVi: "Nghe mẫu rồi nói từng từ vựng liên kết vào micro; đây là bài nhận diện từ riêng, không thay thế điểm phát âm câu trong Ngữ âm.",
+      instructionEn: "Play the model and say each linked vocabulary word; this is a separate word-recognition task and does not replace sentence pronunciation scoring."
     },
     "vocab-writing": {
       titleVi: "Viết nghĩa từ vựng", titleEn: "Write vocabulary meanings", icon: "✍️", minutes: 7,
@@ -198,7 +198,7 @@
     return ordered.map((type, index) => {
       const meta = TASK_META[type] || TASK_META.reading_writing;
       const chainWords = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : (adaptivePlan?.practiceWords || []));
-      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook", lessonId: Number(day.day_number), vocabularyIds: chainWords.map((word) => word.id), vocabularyChars: chainWords.map((word) => word.char) };
+      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook", evidenceType: type === "speaking" ? "phonetics_sentence_pronunciation" : type === "vocab-speaking" ? "linked_vocabulary_word_recognition" : type, lessonId: Number(day.day_number), vocabularyIds: chainWords.map((word) => word.id), vocabularyChars: chainWords.map((word) => word.char) };
       const workbookText = { listening: day.listening_task, speaking: day.speaking_task, reading_writing: day.reading_writing_task, srs: day.srs_review_task }[type];
       if (workbookText && workbookText !== "-") {
         task.instructionVi = workbookText;
