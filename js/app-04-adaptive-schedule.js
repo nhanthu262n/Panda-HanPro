@@ -31,63 +31,116 @@
     return window.firebase.database();
   }
 
+  function questEvidenceScores() {
+    const scores = new Map();
+    const put = (day, score) => {
+      const d = Number(day), v = Number(score);
+      if (!Number.isInteger(d) || d < 1 || d > 120 || !Number.isFinite(v)) return;
+      scores.set(d, Math.max(Number(scores.get(d) || 0), Math.max(0, Math.min(100, v))));
+    };
+    try {
+      const ns = String(storageNamespace());
+      const progress = JSON.parse(localStorage.getItem(`pinyin-tone-quest-offline-progress-v2_${ns}`) || "{}") || {};
+      Object.entries(progress.dayProgress || {}).forEach(([day, row]) => {
+        row = row || {};
+        const explicit = Number(row.scorePercent);
+        const answered = Number(row.answered || 0), correct = Number(row.correct || 0);
+        const derived = answered > 0 ? Math.round((Math.max(0, correct) / answered) * 100) : NaN;
+        if (Number.isFinite(explicit)) put(day, explicit);
+        if (Number.isFinite(derived)) put(day, derived);
+      });
+      const history = JSON.parse(localStorage.getItem(`pandahan_quest_results_${ns}`) || "[]") || [];
+      (Array.isArray(history) ? history : []).forEach((row) => put(row.dayNumber, row.scorePercent));
+    } catch (_) {}
+    return scores;
+  }
+
+  function compactLegacyRepeats(schedule) {
+    if (!schedule || !Array.isArray(schedule.days)) return schedule;
+    const originals = schedule.days.filter((day) => !day.is_repeat_of && day.day_type !== "repeat");
+    if (originals.length >= 120) {
+      const unique = new Map();
+      originals.forEach((day) => {
+        const n = Number(day.day_number);
+        if (n >= 1 && n <= 120 && !unique.has(n)) unique.set(n, day);
+      });
+      if (unique.size === 120) {
+        schedule.days = Array.from(unique.values()).sort((a,b) => Number(a.day_number)-Number(b.day_number));
+        schedule.days.forEach((day, index) => {
+          day.sequence_index = index + 1;
+          if (day.status === "extended" || day.status === "pending_unlock") day.status = "locked";
+          delete day.is_repeat_of;
+          delete day.repeat_reason;
+          delete day.extension_index;
+          delete day.continuation_from_sequence;
+          delete day.extended_at;
+          delete day.unlock_date;
+        });
+        schedule._meta = { ...(schedule._meta || {}), extension_count: 0, quest_gate_migrated_v15: true };
+      }
+    }
+    return schedule;
+  }
+
+  function applyQuestEvidenceGate(schedule) {
+    if (!schedule || !Array.isArray(schedule.days)) return schedule;
+    compactLegacyRepeats(schedule);
+    const scores = questEvidenceScores();
+    const ordered = schedule.days.slice().sort((a,b) => Number(a.day_number)-Number(b.day_number));
+    const today = core.todayVietnam();
+    let firstIncompleteSeen = false;
+    ordered.forEach((day, index) => {
+      day.required_tasks = ["quest"];
+      day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
+      day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
+      const evidenceScore = Number(scores.get(Number(day.day_number)) || 0);
+      const storedScore = Math.max(Number(day.last_score || 0), Number(day.best_score || 0), Number(day.task_scores.quest || 0));
+      const score = Math.max(evidenceScore, storedScore);
+      const passed = Number.isFinite(score) && score > 30;
+      if (!firstIncompleteSeen && passed) {
+        day.last_score = score;
+        day.best_score = Math.max(Number(day.best_score || 0), score);
+        day.task_scores.quest = score;
+        day.completed_tasks.quest = day.completed_tasks.quest || { completed_at: day.completed_at || today, source: "quest-evidence-reconcile-v15", score };
+        day.status = "completed";
+        day.completed_at = day.completed_at || today;
+        day.scheduled_date = day.scheduled_date || today;
+      } else if (!firstIncompleteSeen) {
+        firstIncompleteSeen = true;
+        day.status = "unlocked";
+        day.completed_at = null;
+        day.scheduled_date = today;
+        delete day.completed_tasks.quest;
+      } else if (day.status !== "completed") {
+        day.status = "locked";
+        day.completed_at = null;
+        day.scheduled_date = null;
+        delete day.unlock_date;
+      }
+    });
+    return schedule;
+  }
+
   function hydrateScheduleSync(schedule) {
     if (!schedule || !Array.isArray(schedule.days)) return schedule;
+    compactLegacyRepeats(schedule);
     let curriculum = [];
     try { curriculum = JSON.parse(localStorage.getItem(CURRICULUM_CACHE_KEY) || "[]"); } catch (_) { curriculum = []; }
     const byDay = new Map((Array.isArray(curriculum) ? curriculum : []).map((item) => [Number(item.day_number), item]));
     schedule.days.forEach((day) => {
       const item = byDay.get(Number(day.day_number));
       if (item) {
-        // Migrate every legacy schedule to the new single Quest gate.
-        day.required_tasks = core.getMandatoryTaskIds(item);
+        day.required_tasks = ["quest"];
         day.topic = day.topic || item.topic || "";
         day.week_number = day.week_number || item.week_number || null;
-        day.day_type = day.day_type || item.day_type || "new_content";
+        day.day_type = item.day_type || day.day_type || "new_content";
         day.required_score = 30;
       }
       day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
       day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
+      day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
     });
-    const ordered = schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0));
-    // Migration: only a Quest score strictly >30 validates a completed day.
-    const today = core.todayVietnam();
-    schedule.days.forEach((day) => { day.required_tasks = ["quest"]; });
-    let gateBroken = false;
-    ordered.forEach((day, index) => {
-      const score = Number(day.last_score ?? day.best_score);
-      const questPassed = Number.isFinite(score) && score > 30;
-      const next = ordered[index + 1];
-      if (!gateBroken && day.status === "completed" && !questPassed) {
-        day.status = "unlocked";
-        day.completed_at = null;
-        delete day.completed_tasks?.quest;
-        gateBroken = true;
-      } else if (gateBroken && (day.status === "unlocked" || day.status === "pending_unlock")) {
-        day.status = "locked";
-        day.scheduled_date = null;
-        delete day.unlock_date;
-      }
-      if (!gateBroken && day.status === "completed" && questPassed && next && (next.status === "locked" || next.status === "pending_unlock")) {
-        next.status = "unlocked";
-        next.scheduled_date = today;
-        delete next.unlock_date;
-      }
-    });
-    const enforceSingleActiveSession = () => {
-      let foundActive = false;
-      schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0)).forEach((day) => {
-        if (day.status !== "unlocked" && day.status !== "pending_unlock") return;
-        if (!foundActive) { foundActive = true; return; }
-        day.status = "locked";
-        day.scheduled_date = null;
-        delete day.unlock_date;
-      });
-    };
-    enforceSingleActiveSession();
-    if (typeof core.promoteDueDays === "function") core.promoteDueDays(schedule, core.todayVietnam());
-    enforceSingleActiveSession();
-    return schedule;
+    return applyQuestEvidenceGate(schedule);
   }
 
   function loadLocal() {
@@ -310,13 +363,97 @@
     };
   }
 
+  function forceQuestAdvanceOnSchedule(schedule, dayNumber, score, today = core.todayVietnam()) {
+    schedule = hydrateScheduleSync(schedule);
+    compactLegacyRepeats(schedule);
+    const numericDay = Math.max(1, Math.min(120, Number(dayNumber) || 0));
+    const numericScore = Math.max(0, Math.min(100, Number(score)));
+    const day = schedule.days.find((item) => Number(item.day_number) === numericDay && !item.is_repeat_of);
+    if (!day) throw new Error(`Không tìm thấy ngày ${numericDay}.`);
+    day.required_tasks = ["quest"];
+    day.completed_tasks = day.completed_tasks || {};
+    day.task_scores = day.task_scores || {};
+    day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
+    day.attempt_count = Number(day.attempt_count || 0) + 1;
+    day.last_score = numericScore;
+    day.best_score = Math.max(Number(day.best_score || 0), numericScore);
+    day.task_scores.quest = numericScore;
+    day.task_events.push({ task_id: "quest", score: numericScore, completed: numericScore > 30, completed_at: today, source: "pinyin-tone-quest-force-v15" });
+    if (numericScore > 30) {
+      day.completed_tasks.quest = { completed_at: today, source: "pinyin-tone-quest-force-v15", score: numericScore };
+      day.status = "completed";
+      day.completed_at = today;
+      const next = schedule.days.find((item) => Number(item.day_number) === numericDay + 1 && !item.is_repeat_of);
+      if (next) {
+        next.status = "unlocked";
+        next.scheduled_date = today;
+        next.completed_at = null;
+        delete next.unlock_date;
+      }
+      schedule.days.forEach((item) => {
+        const n = Number(item.day_number);
+        if (n > numericDay + 1 && item.status !== "completed") {
+          item.status = "locked";
+          item.scheduled_date = null;
+          delete item.unlock_date;
+        }
+      });
+    } else {
+      day.status = "unlocked";
+      day.completed_at = null;
+      delete day.completed_tasks.quest;
+    }
+    schedule._meta = { ...(schedule._meta || {}), quest_gate_migrated_v15: true, last_quest_day: numericDay, last_quest_score: numericScore, updated_at: Date.now() };
+    return {
+      schedule,
+      result: { dayNumber: numericDay, score: numericScore, threshold: 30, reviewType: "daily", passed: numericScore > 30, action: numericScore > 30 ? "advance" : "quest_below_threshold", repeatCount: 0, missingTaskIds: numericScore > 30 ? [] : ["quest"], requiredTaskIds: ["quest"] }
+    };
+  }
+
+  async function forceQuestAdvance(dayNumber, score) {
+    const today = core.todayVietnam();
+    let local = loadLocal() || await initScheduleIfNeeded();
+    let result = forceQuestAdvanceOnSchedule(local, dayNumber, score, today);
+    saveLocal(result.schedule);
+    publishLocalDailyPlan(result.schedule);
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
+
+    const uid = getUid(), rtdb = getRtdb();
+    if (uid && rtdb) {
+      try {
+        const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
+        let committedOutput = null;
+        const tx = await ref.transaction((current) => {
+          try {
+            const base = normalizeSchedule(current) || result.schedule;
+            committedOutput = forceQuestAdvanceOnSchedule(base, dayNumber, score, today);
+            committedOutput.schedule._meta = { ...(committedOutput.schedule._meta || {}), version: Number(base?._meta?.version || 0) + 1 };
+            return committedOutput.schedule;
+          } catch (error) {
+            console.warn("Quest force RTDB transaction:", error?.message || error);
+            return;
+          }
+        });
+        if (tx.committed && committedOutput) {
+          result = committedOutput;
+          saveLocal(result.schedule);
+          publishLocalDailyPlan(result.schedule);
+          window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
+        }
+      } catch (error) {
+        console.warn("Quest force RTDB fallback keeps local progression:", error?.message || error);
+      }
+    }
+    return result;
+  }
+
   async function submitQuestResult(dayNumber, score, resultToken) {
     // Quest is intentionally independent from Listening/Speaking/Vocabulary completion.
     // Those activities still save evidence, but cannot block submitting the Quest score.
     let result = null;
     let submitError = null;
     try {
-      result = await submitDayResult(dayNumber, score, { taskId: "quest", source: "pinyin-tone-quest" });
+      result = await forceQuestAdvance(dayNumber, score);
     } catch (error) {
       submitError = error;
       try {
@@ -324,7 +461,7 @@
         if (!local) local = await initScheduleIfNeeded();
         const active = local?.days?.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
         if (active) {
-          const applied = core.applySubmit(local, dayNumber, score, core.todayVietnam(), { taskId: "quest", source: "pinyin-tone-quest" });
+          const applied = forceQuestAdvanceOnSchedule(local, dayNumber, score, core.todayVietnam());
           saveLocal(applied.schedule);
           result = { ...applied, offlineFallback: true };
           window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
@@ -509,40 +646,16 @@
   }
 
   async function runCatchUpCheck() {
-    const uid = getUid();
-    const today = core.todayVietnam();
-    const rtdb = getRtdb();
-    if (!uid || !rtdb) {
-      const local = loadLocal();
-      if (!local) return { changed: false, reason: "no_schedule" };
-      const result = core.applyDailyExtension(local, today);
-      saveLocal(result.schedule);
-      if (result.changed) window.dispatchEvent(new CustomEvent("pandahan-schedule-missed", { detail: result }));
-      window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: result }));
-      return result;
+    // v15: Calendar gaps must NEVER create repeat Day-N sessions in the 120-day main path.
+    // SRS/mistake review remains independent; main progression is only Quest >30%.
+    const schedule = loadLocal() || await initScheduleIfNeeded();
+    if (schedule) {
+      compactLegacyRepeats(schedule);
+      applyQuestEvidenceGate(schedule);
+      saveLocal(schedule);
+      publishLocalDailyPlan(schedule);
     }
-    const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
-    let extensionResult = null;
-    const transaction = await ref.transaction((current) => {
-      const schedule = hydrateScheduleSync(normalizeSchedule(current) || loadLocal());
-      if (!schedule) return;
-      extensionResult = core.applyDailyExtension(schedule, today);
-      extensionResult.schedule._meta = { ...(extensionResult.schedule._meta || {}), version: Number(schedule._meta?.version || 0) + 1 };
-      return extensionResult.schedule;
-    });
-    if (!transaction.committed || !extensionResult) return { changed: false, reason: "not_committed" };
-    saveLocal(extensionResult.schedule);
-    if (extensionResult.changed) {
-      await writeReviewLog(uid, "daily", {
-        action: "extended",
-        sourceDayNumber: extensionResult.sourceDayNumber,
-        newSequenceIndex: extensionResult.newSequenceIndex,
-        date: today,
-      });
-      window.dispatchEvent(new CustomEvent("pandahan-schedule-missed", { detail: extensionResult }));
-    }
-    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: extensionResult }));
-    return extensionResult;
+    return { schedule, changed: false, reason: "quest_gate_no_calendar_repeat_v15" };
   }
 
   function computeWeeklyReview(schedule) {
@@ -561,6 +674,7 @@
     initScheduleIfNeeded,
     submitDayResult,
     submitQuestResult,
+    forceQuestAdvance,
     recordTaskScore,
     completeTask,
     requireMistakeReview,
