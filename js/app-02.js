@@ -802,8 +802,9 @@ async function savePracticeCompletion(score, source = "practice", metadata = {})
     try {
       const schedule = typeof api.getScheduleAsync === "function" ? await api.getScheduleAsync() : api.getSchedule?.();
       const days = Array.isArray(schedule?.days) ? schedule.days : [];
-      const current = days.filter((d) => d.status === "unlocked")
-        .sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
+      const requestedDay = Number(metadata.scheduleDayNumber || metadata.dayNumber || 0);
+      const current = (requestedDay ? days.find((d) => Number(d.day_number) === requestedDay && d.status === "unlocked") : null)
+        || days.filter((d) => d.status === "unlocked").sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0];
       if (!current) {
         setPracticeSaveStatus("⚠️ Không tìm thấy buổi đang mở; bài luyện vẫn đã lưu ở thiết bị.", true);
         return { committed: false, reason: "no_unlocked_day", source };
@@ -812,10 +813,9 @@ async function savePracticeCompletion(score, source = "practice", metadata = {})
       const taskId = practiceTaskId(source);
       const evidenceTaskId = practiceEvidenceTaskId(source);
       const key = practiceSaveKey(current.day_number, today) + "_" + (taskId || evidenceTaskId) + "_" + numericScore;
-      if (localStorage.getItem(key) === "1") {
-        setPracticeSaveStatus(`✅ Kết quả ${evidenceTaskId} với điểm ${numericScore}% của ngày ${current.day_number} đã được lưu.`, false);
-        return { committed: true, idempotent: true, source, dayNumber: Number(current.day_number), taskId, evidenceTaskId, score: numericScore };
-      }
+      // Không dừng ở cờ idempotent: cùng một điểm có thể đã được ghi trước khi
+      // các task còn lại hoàn tất. Phải submit lại để finishDayIfReady kiểm tra
+      // và unlock ngày tiếp theo ngay khi bộ điều kiện đã đủ.
       const result = taskId
         ? await api.submitDayResult(Number(current.day_number), numericScore, { taskId, source })
         : { result: { dayNumber: Number(current.day_number), score: numericScore, threshold: null, passed: false, action: "evidence_recorded", missingTaskIds: [], requiredTaskIds: [] }, evidenceOnly: true };
