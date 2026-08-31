@@ -336,6 +336,66 @@
     return String(value || "").replace(/[&<>\"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
   }
 
+
+  // v20 — Canonical Quest score reader. The Quest result may be persisted before
+  // the schedule/RTDB transaction is ready, so AI Coach must never rely only on
+  // schedule.completed_tasks.quest to decide whether Day N has passed.
+  const questSyncRequestedV20 = new Map();
+  function questOwnerCandidatesV20() {
+    const out = [];
+    const add = (v) => { v = String(v || '').replace(/[^a-zA-Z0-9_-]/g, '_'); if (v && !out.includes(v)) out.push(v); };
+    try { if (typeof window.storageNamespace === 'function') add(window.storageNamespace()); } catch (_) {}
+    try { add(window.CURRENT_USER?.uid); add(window.CURRENT_USER?.username); } catch (_) {}
+    add('guest');
+    return out;
+  }
+  function questScoreForDayV20(dayNumber) {
+    const day = Number(dayNumber);
+    if (!Number.isInteger(day) || day < 1 || day > 120) return 0;
+    let best = 0;
+    const put = (v) => { v = Number(v); if (Number.isFinite(v)) best = Math.max(best, Math.max(0, Math.min(100, v))); };
+    try {
+      const scheduleDay = window.PandaHanSchedule?.getSchedule?.()?.days?.find?.((row) => Number(row?.day_number) === day && !row?.is_repeat_of);
+      put(scheduleDay?.last_score); put(scheduleDay?.best_score); put(scheduleDay?.task_scores?.quest);
+    } catch (_) {}
+    for (const owner of questOwnerCandidatesV20()) {
+      try {
+        const bridge = JSON.parse(localStorage.getItem(`pandahan_quest_bridge_scores_v17_${owner}`) || '{}') || {};
+        put(bridge[String(day)]);
+      } catch (_) {}
+      try {
+        const progress = JSON.parse(localStorage.getItem(`pinyin-tone-quest-offline-progress-v2_${owner}`) || '{}') || {};
+        const row = progress?.dayProgress?.[String(day)] || {};
+        put(row.scorePercent);
+        const answered = Number(row.answered || 0), correct = Number(row.correct || 0);
+        if (answered > 0) put(Math.round((Math.max(0, correct) / answered) * 100));
+      } catch (_) {}
+      try {
+        const history = JSON.parse(localStorage.getItem(`pandahan_quest_results_${owner}`) || '[]') || [];
+        (Array.isArray(history) ? history : []).forEach((row) => { if (Number(row?.dayNumber) === day) put(row?.scorePercent); });
+      } catch (_) {}
+    }
+    return best;
+  }
+  function ensureQuestScheduleSyncV20(dayNumber, score) {
+    const day = Number(dayNumber), value = Number(score);
+    if (!(day >= 1 && day <= 120) || !(value > 30)) return;
+    const key = `${day}:${value}`;
+    if (questSyncRequestedV20.has(key)) return;
+    questSyncRequestedV20.set(key, Date.now());
+    Promise.resolve().then(async () => {
+      try {
+        const api = window.PandaHanSchedule;
+        if (api?.forceQuestAdvance) await api.forceQuestAdvance(day, value);
+        else if (api?.submitQuestResult) await api.submitQuestResult(day, value, `ai-coach-v20:${day}:${value}`);
+        window.dispatchEvent(new CustomEvent('pandahan-quest-score-saved', { detail: { dayNumber: day, scorePercent: value, passed: true, threshold: 30, source: 'ai-coach-v20-reconcile' } }));
+      } catch (error) {
+        console.warn('AI Coach v20 Quest reconcile:', error?.message || error);
+        questSyncRequestedV20.delete(key);
+      }
+    });
+  }
+
   function requiredTaskLabel(taskId, langEn) {
     const labels = { mistake_review: langEn ? "Redo wrong items" : "Ôn lại câu sai", quest: "Pinyin Tone Quest", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS", "vocab-intro": langEn ? "Linked vocabulary" : "Từ vựng liên kết — nghe" };
     return labels[taskId] || taskId;
@@ -352,8 +412,13 @@
   }
   function renderLearningSequence(m, langEn) {
     const c = m.curriculum || {};
-    const completed = m.scheduleDay?.completed_tasks || {};
     const day = Number(m.dayNumber || 1);
+    const completed = { ...(m.scheduleDay?.completed_tasks || {}) };
+    const questScoreV20 = questScoreForDayV20(day);
+    if (questScoreV20 > 30) {
+      completed.quest = completed.quest || { source: 'quest-score-direct-v20', score: questScoreV20 };
+      ensureQuestScheduleSyncV20(day, questScoreV20);
+    }
     const words = Array.isArray(m.chainVocabulary) ? m.chainVocabulary : [];
     const sequence = [];
     const add = (type, title, description, done) => sequence.push({ type, title, description, done: !!done });
@@ -395,8 +460,13 @@
   }
   function renderRequiredChecklist(m, langEn) {
     const c = m.curriculum || {};
-    const completed = m.scheduleDay?.completed_tasks || {};
     const day = Number(m.dayNumber || 1);
+    const completed = { ...(m.scheduleDay?.completed_tasks || {}) };
+    const questScoreV20 = questScoreForDayV20(day);
+    if (questScoreV20 > 30) {
+      completed.quest = completed.quest || { source: 'quest-score-direct-v20', score: questScoreV20 };
+      ensureQuestScheduleSyncV20(day, questScoreV20);
+    }
     const entries = [];
     const add = (id, description, done) => entries.push({ id, description, done: !!done });
     if (c.listening_task && c.listening_task !== "-") add("listening", workbookTaskDescription("listening", c, langEn), completed.listening);
