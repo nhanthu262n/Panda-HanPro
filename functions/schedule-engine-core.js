@@ -152,7 +152,7 @@
     const reviewType = reviewTypeFor(day, { days: [] });
     const threshold = reviewThreshold(reviewType, day);
     const score = Number(day.last_score);
-    const questPassed = !!day.completed_tasks.quest && Number.isFinite(score) && score >= threshold;
+    const questPassed = !!day.completed_tasks.quest && Number.isFinite(score) && score > threshold;
     return { today, resetTaskIds: questPassed ? [] : ["quest"], resetScore: !questPassed };
   }
 
@@ -372,35 +372,8 @@
 
   function applyDailyExtension(scheduleInput, today = todayVietnam()) {
     const schedule = clone(scheduleInput);
-    schedule._meta = schedule._meta || { version: 1, extension_count: 0 };
-    if (schedule._meta.last_extension_date === today) {
-      return { schedule, changed: false, idempotent: true, reason: "already_processed" };
-    }
-
-    promoteDueDays(schedule, today);
-    const overdue = schedule.days
-      .filter((day) => day.status === "unlocked" && day.scheduled_date && day.scheduled_date < today)
-      .sort((a, b) => a.sequence_index - b.sequence_index)[0];
-    schedule._meta.last_checked_date = today;
-    schedule._meta.last_extension_date = today;
-    if (!overdue) return { schedule, changed: false, idempotent: false, reason: "nothing_overdue" };
-
-    overdue.status = "extended";
-    overdue.extended_at = today;
-    const missedCount = Math.max(1, calendarDaysBetween(overdue.scheduled_date, today));
-    const repeats = insertRepeatsAfter(schedule, overdue, missedCount, "missed_day", today, continuationOptions(overdue, today));
-    schedule._meta.extension_count = Number(schedule._meta.extension_count || 0) + repeats.length;
-    return {
-      schedule,
-      changed: true,
-      idempotent: false,
-      reason: "missed_day_extended",
-      sourceDayNumber: overdue.day_number,
-      repeatCount: repeats.length,
-      newSequenceIndex: repeats[0].sequence_index,
-      carriedTaskIds: Array.isArray(repeats[0].carried_completed_tasks) ? repeats[0].carried_completed_tasks.slice() : [],
-      missingTaskIds: (repeats[0].required_tasks || []).filter((id) => !repeats[0].completed_tasks?.[id]),
-    };
+    schedule._meta = { ...(schedule._meta || {}), last_checked_date: today, last_extension_date: today, extension_count: 0, calendar_repeat_disabled_v15: true };
+    return { schedule, changed: false, idempotent: true, reason: "quest_gate_no_calendar_repeat_v15" };
   }
 
   return {
