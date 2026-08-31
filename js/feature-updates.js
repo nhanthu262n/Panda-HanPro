@@ -50,6 +50,7 @@
   let lastSubmittedQuestKey = "";
   async function submitQuestScoreFromReview(event) {
     const detail = event?.detail || {};
+    if (detail.scheduleSyncOwner === "quest-loader") return null;
     const dayNumber = Number(detail.dayNumber || detail.day || 0);
     const scorePercent = Number(detail.scorePercent ?? detail.score);
     if (!dayNumber || !Number.isFinite(scorePercent)) return null;
