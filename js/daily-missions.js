@@ -257,6 +257,16 @@
     return activeTask && m.adaptivePlan ? (m.adaptivePlan.practiceWords || []) : [];
   }
 
+
+  async function openExcelPhoneticsSession(m, focus) {
+    const day = Math.max(1, Math.min(10, Number(m?.dayNumber || 1)));
+    try { localStorage.setItem("pandahan_phonetics_focus", String(focus || "phonetics")); } catch (_) {}
+    window.switchTab?.("pinyin");
+    try { await window.loadPinyinPhonetics?.(); } catch (_) {}
+    window.dispatchEvent(new CustomEvent("pandahan-open-phonetics-session", { detail: { sessionId: day, excelDay: day, focus: String(focus || "phonetics") } }));
+    window.setTimeout(() => document.getElementById("pinyin-phonetics-root")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }
+
   function startTask(type) {
     const m = activeMission || mission();
     activeTask = m.tasks.find((task) => task.type === type) || { type };
@@ -290,21 +300,16 @@
       }, 120);
     }
     else if (type === "listening") {
-      try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {}
-      window.switchTab?.("pinyin");
-      setTimeout(() => {
-        document.getElementById("pinyin-phonetics-root")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        window.PandaHanPhoneticsListeningQuiz?.startScheduledQuiz?.();
-      }, 180);
+      if (Number(m.dayNumber) <= 10) openExcelPhoneticsSession(m, "listening");
+      else { window.switchTab?.("practice"); setTimeout(() => window.startQuizForWords?.(m.chainVocabulary || [], scheduledContext), 80); }
     }
     else if (type === "speaking") {
-      try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {}
-      window.switchTab?.("pinyin");
-      setTimeout(() => document.getElementById("pinyin-phonetics-root")?.scrollIntoView({ behavior: "smooth", block: "start" }), 160);
+      if (Number(m.dayNumber) <= 10) openExcelPhoneticsSession(m, "speaking");
+      else { try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {} window.switchTab?.("pinyin"); }
     }
     else if (type === "reading_writing") {
-      window.switchTab?.("practice");
-      setTimeout(() => window.startWriteGame?.(scheduledContext), 80);
+      if (Number(m.dayNumber) <= 10) openExcelPhoneticsSession(m, "reading_writing");
+      else { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.(scheduledContext), 80); }
     }
     else if (type === "srs") {
       window.setPracticeMode?.("scheduled");
@@ -347,9 +352,9 @@
     const add = (type, title, description, done) => sequence.push({ type, title, description, done: !!done });
 
     if (day <= 10) {
-      if (c.listening_task && c.listening_task !== "-") add("listening", langEn ? "Pinyin Bootcamp · Listening" : "Pinyin Bootcamp · Nghe", workbookTaskDescription("listening", c, langEn), completed.listening);
+      if (c.listening_task && c.listening_task !== "-") add("listening", langEn ? "Pinyin Bootcamp · Listening" : "Pinyin Bootcamp · Nghe (điểm từ Trắc nghiệm Ngữ âm)", workbookTaskDescription("listening", c, langEn), completed.listening);
       if (c.speaking_task && c.speaking_task !== "-") add("speaking", langEn ? "Pinyin Bootcamp · Speaking" : "Pinyin Bootcamp · Nói", workbookTaskDescription("speaking", c, langEn), completed.speaking);
-      if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", langEn ? "Pinyin Bootcamp · Reading/Writing" : "Pinyin Bootcamp · Đọc/Viết", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
+      if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", langEn ? "Pinyin Bootcamp · Reading/Writing" : "Pinyin Bootcamp · Đọc/Viết (điểm từ Trắc nghiệm Ngữ âm)", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
       if (c.srs_review_task && c.srs_review_task !== "-") add("srs", "SRS", workbookTaskDescription("srs", c, langEn), completed.srs);
     } else {
       if (c.srs_review_task && c.srs_review_task !== "-") add("srs", langEn ? "SRS due review" : "Ôn SRS đến hạn", workbookTaskDescription("srs", c, langEn), completed.srs);
