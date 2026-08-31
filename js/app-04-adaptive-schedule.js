@@ -48,13 +48,34 @@
       day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
       day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
     });
+    const ordered = schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0));
+    // Ôn tập/câu sai không phải cổng mở ngày; dọn dữ liệu cũ trước khi đánh giá.
+    schedule.days.forEach((day) => {
+      day.required_tasks = (Array.isArray(day.required_tasks) ? day.required_tasks : []).filter((id) => String(id) !== "mistake_review");
+    });
+    // Các buổi tiếp tục đã có đủ bằng chứng chính được xem là hoàn tất,
+    // sau đó mở tuần tự ngày kế tiếp thay vì giữ ngày gốc bị khóa.
+    for (let index = 0; index < ordered.length; index += 1) {
+      const day = ordered[index];
+      const next = ordered[index + 1];
+      const repeat = !!day.is_repeat_of || day.day_type === "repeat";
+      const complete = Array.isArray(day.required_tasks) && day.required_tasks.every((id) => day.completed_tasks[id]);
+      if (repeat && complete && day.status !== "completed") {
+        day.status = "completed";
+        day.completed_at = day.completed_at || todayVietnam();
+      }
+      if (day.status === "completed" && next && (next.status === "pending_unlock" || next.status === "locked")) {
+        next.status = "unlocked";
+        next.scheduled_date = todayVietnam();
+        delete next.unlock_date;
+      }
+    }
     // Legacy schedules may have marked a day completed from score alone. Do
     // not let that legacy flag unlock later content: the learner must repeat
     // the first day lacking real task evidence.
     let gateBroken = false;
-    const ordered = schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0));
     ordered.forEach((day) => {
-      const isComplete = Array.isArray(day.required_tasks) && day.required_tasks.every((id) => day.completed_tasks[id]);
+      const isComplete = Array.isArray(day.required_tasks) && day.required_tasks.filter((id) => id !== "mistake_review").every((id) => day.completed_tasks[id]);
       if (!gateBroken && day.status === "completed" && !isComplete) {
         day.status = "unlocked";
         day.completed_at = null;
@@ -475,6 +496,7 @@
       const day = schedule?.days?.find((item) => Number(item.day_number) === Number(dayNumber) && item.status === "unlocked");
       if (!day) return null;
       // Ôn câu sai chỉ là hoạt động tùy chọn; không thêm vào required_tasks.
+      day.required_tasks = (Array.isArray(day.required_tasks) ? day.required_tasks : []).filter((id) => String(id) !== "mistake_review");
       day.mistake_review_required = true;
       day.mistake_review_added_at = day.mistake_review_added_at || today;
       return { schedule, result: { dayNumber: Number(dayNumber), taskId: "mistake_review", action: "review_required", missingTaskIds: core ? day.required_tasks.filter((id) => !day.completed_tasks?.[id]) : [] } };
