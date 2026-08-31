@@ -56,11 +56,6 @@
       instructionVi: "Nghe từng từ mới có âm đầu/thanh điệu liên quan; chỉ sau lượt nghe thật mới sang từ tiếp theo.",
       instructionEn: "Play each new word linked to the phonetics focus; only real playback unlocks the next word."
     },
-    "vocab-speaking": {
-      titleVi: "Nói từ vựng", titleEn: "Speak the vocabulary", icon: "🗣️", minutes: 8,
-      instructionVi: "Nghe mẫu rồi nói từng từ vựng liên kết vào micro; đây là bài nhận diện từ riêng, không thay thế điểm phát âm câu trong Ngữ âm.",
-      instructionEn: "Play the model and say each linked vocabulary word; this is a separate word-recognition task and does not replace sentence pronunciation scoring."
-    },
     "vocab-writing": {
       titleVi: "Viết nghĩa từ vựng", titleEn: "Write vocabulary meanings", icon: "✍️", minutes: 7,
       instructionVi: "Sau khi nghe/nói, tự nhập nghĩa các từ đã mở; câu trả lời từ đơn được chấm tự động.",
@@ -180,11 +175,10 @@
     const speakingComplete = !!vocabPhase?.speakingCompleted;
     const gameComplete = !!vocabPhase?.gameCompleted;
     const hasPendingLinkedIntro = hasNewIntro && !introComplete;
-    const canOpenVocabSpeaking = introComplete && hasPracticeWords;
-    const canOpenGame = canOpenVocabSpeaking && speakingComplete;
+    // Mục 4 "Từ vựng liên kết nói" đã được loại bỏ; AI Coach chuyển thẳng sang game sau khi hoàn tất Ngữ âm và bước nghe từ vựng.
+    const canOpenGame = introComplete;
     const canOpenVocabWriting = canOpenGame && gameComplete;
     const vocabFollowups = [
-      ...(canOpenVocabSpeaking ? ["vocab-speaking"] : []),
       ...(canOpenGame ? ["tone-race", "quest"] : []),
       ...(canOpenVocabWriting ? ["vocab-writing"] : [])
     ];
@@ -192,13 +186,13 @@
     const workbookPrimary = questModeToTask(day.quest_main_mode);
     const allowedAdaptivePractice = canOpenVocabWriting ? adaptivePracticeTypes : [];
     const chainMode = !!(adaptivePlan?.linkedNewWords?.length || adaptivePlan?.introWords?.length || hasNewIntro);
-    const preChain = [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : []), ...(canOpenVocabSpeaking ? ["vocab-speaking"] : [])];
+    const preChain = [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : [])];
     const postChain = [...(canOpenGame ? ["tone-race", "quest"] : []), ...(canOpenVocabWriting ? ["vocab-writing"] : []), ...allowedAdaptivePractice, ...(canOpenVocabWriting && workbookTypes.includes("reading_writing") ? ["reading_writing"] : []), ...workbookAfterPractice, ...(canOpenGame ? [workbookPrimary] : [])];
     const ordered = [...new Set([...(mistakeCount ? ["wrong-review"] : []), ...(chainMode ? [...preChain, ...postChain] : [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : []), ...vocabFollowups, ...allowedAdaptivePractice, ...(readingWritingUnlocked ? ["reading_writing"] : []), ...workbookAfterPractice, ...(canOpenGame ? ["quest"] : []), workbookPrimary])])];
     return ordered.map((type, index) => {
       const meta = TASK_META[type] || TASK_META.reading_writing;
       const chainWords = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : (adaptivePlan?.practiceWords || []));
-      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook", evidenceType: type === "speaking" ? "phonetics_sentence_pronunciation" : type === "vocab-speaking" ? "linked_vocabulary_word_recognition" : type, lessonId: Number(day.day_number), vocabularyIds: chainWords.map((word) => word.id), vocabularyChars: chainWords.map((word) => word.char) };
+      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook", evidenceType: type === "speaking" ? "phonetics_sentence_pronunciation" : type, lessonId: Number(day.day_number), vocabularyIds: chainWords.map((word) => word.id), vocabularyChars: chainWords.map((word) => word.char) };
       const workbookText = { listening: day.listening_task, speaking: day.speaking_task, reading_writing: day.reading_writing_task, srs: day.srs_review_task }[type];
       if (workbookText && workbookText !== "-") {
         task.instructionVi = workbookText;
@@ -288,16 +282,14 @@
     }
     activeTask = m.tasks.find((task) => task.type === type) || { type };
     const phase = m.vocabPhase || {};
-    if (["vocab-intro", "vocab-speaking", "tone-race", "quest", "vocab-writing"].includes(type) && m.chainVocabulary?.length && !m.adaptivePlan?.phoneticsReady) { alert(L("Hãy hoàn thành Nghe và Nói Ngữ âm có evidence thật trước khi học nhóm từ liên kết.", "Complete the verified Phonetics listening and speaking steps before linked vocabulary.")); return; }
-    if (type === "vocab-speaking" && !phase.introCompleted) { alert(L("Hãy hoàn thành phần nghe giới thiệu từ trước.", "Complete the vocabulary listening introduction first.")); return; }
-    if ((type === "tone-race" || type === "quest") && m.chainVocabulary?.length && !phase.speakingCompleted) { alert(L("Hãy hoàn thành lượt nói từng từ trước khi vào game thanh điệu.", "Complete one real speaking attempt for each linked word before the tone game.")); return; }
-    if (type === "vocab-writing" && (!phase.speakingCompleted || !phase.gameCompleted)) { alert(L("Hãy hoàn thành nghe → nói → game trước khi viết nghĩa.", "Complete listening → speaking → game before vocabulary writing.")); return; }
+    if (["vocab-intro", "tone-race", "quest", "vocab-writing"].includes(type) && m.chainVocabulary?.length && !m.adaptivePlan?.phoneticsReady) { alert(L("Hãy hoàn thành Nghe và Nói Ngữ âm có evidence thật trước khi học nhóm từ liên kết.", "Complete the verified Phonetics listening and speaking steps before linked vocabulary.")); return; }
+    if ((type === "tone-race" || type === "quest") && m.chainVocabulary?.length && !m.adaptivePlan?.phoneticsReady) { alert(L("Hãy hoàn thành Ngữ âm có điểm thật trước khi vào game thanh điệu.", "Complete Phonetics with an objective score before the tone game.")); return; }
+    if (type === "vocab-writing" && !phase.gameCompleted) { alert(L("Hãy hoàn thành nghe → game trước khi viết nghĩa.", "Complete listening → game before vocabulary writing.")); return; }
     if (["quiz", "match", "unscramble", "write"].includes(type) && m.chainVocabulary?.length && !phase.gameCompleted) { alert(L("Bài này chỉ mở sau game của đúng nhóm từ trong ngày.", "This exercise opens only after the game for the exact day word set.")); return; }
     setFilterForMission(m);
     const scheduledContext = { practiceMode: "scheduled", scheduleDayNumber: m.dayNumber, sequenceIndex: m.sequenceIndex };
     const level = document.getElementById("practiceHskFilter")?.value || "all";
     if (type === "vocab-intro") { window.switchTab?.("practice"); setTimeout(() => window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords || [], m.dayNumber), 80); }
-    else if (type === "vocab-speaking") { window.switchTab?.("practice"); setTimeout(() => window.startAdaptiveVocabularySpeaking?.(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), m.dayNumber), 80); }
     else if (type === "vocab-writing") { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.({ words: m.chainVocabulary || [], ...scheduledContext }), 80); }
     else if (type === "wrong-review") window.startMistakeReview?.();
     else if (type === "quiz") {
@@ -366,12 +358,11 @@
     if (c.speaking_task && c.speaking_task !== "-") sequence.push({ type: "speaking", title: langEn ? "2. Phonetics — Speaking" : "2. Ngữ âm — Nói", description: workbookTaskDescription("speaking", c, langEn), done: !!completed.speaking });
     if (hasLinkedVocabulary) {
       sequence.push({ type: "vocab-intro", title: langEn ? "3. Linked vocabulary — listen" : "3. Từ vựng liên kết — nghe", description: langEn ? `${linkedWords.length} words use the phonetics focus of this session.` : `${linkedWords.length} từ dùng đúng âm/thanh điệu trọng tâm của buổi này.`, done: !!phase.introCompleted, locked: !phoneticsReady, lockText: langEn ? "Complete verified Phonetics first." : "Hoàn thành evidence Ngữ âm trước." });
-      sequence.push({ type: "vocab-speaking", title: langEn ? "4. Linked vocabulary — speak" : "4. Từ vựng liên kết — nói", description: langEn ? "Record one real speaking attempt for every linked word." : "Ghi nhận ít nhất một lượt nói thật cho từng từ liên kết.", done: !!phase.speakingCompleted, locked: !phoneticsReady || !phase.introCompleted, lockText: langEn ? "Finish the previous linked-vocabulary step first." : "Hoàn thành bước từ vựng liền trước trước." });
     }
-    sequence.push({ type: "quest", title: hasLinkedVocabulary ? (langEn ? "5. AI Coach Tone Challenge" : "5. Thử thách thanh điệu AI Coach") : (langEn ? "3. AI Coach Tone Challenge" : "3. Thử thách thanh điệu AI Coach"), description: hasLinkedVocabulary ? (langEn ? "A dedicated Coach game uses this session’s linked words. Its verified score supplies Coach evidence only and never changes the restored Pinyin Tone Quest source game." : "Game riêng của AI Coach dùng đúng nhóm từ liên kết. Điểm thật chỉ là evidence AI Coach và không thay đổi Pinyin Tone Quest gốc vừa khôi phục.") : (langEn ? "Complete the dedicated Coach tone game. The restored main Pinyin Tone Quest remains on its own schedule-linked source flow." : "Hoàn thành game thanh điệu riêng của AI Coach. Pinyin Tone Quest chính đã khôi phục theo luồng nguồn liên kết schedule riêng."), done: !!completed.quest, locked: hasLinkedVocabulary && (!phoneticsReady || !phase.introCompleted || !phase.speakingCompleted), lockText: langEn ? "Finish Phonetics and linked vocabulary speaking first." : "Hoàn thành Ngữ âm và nói nhóm từ liên kết trước." });
+    sequence.push({ type: "quest", title: hasLinkedVocabulary ? (langEn ? "4. AI Coach Tone Challenge" : "4. Thử thách thanh điệu AI Coach") : (langEn ? "3. AI Coach Tone Challenge" : "3. Thử thách thanh điệu AI Coach"), description: hasLinkedVocabulary ? (langEn ? "A dedicated Coach game uses this session’s linked words. Its verified score supplies Coach evidence only and never changes the restored Pinyin Tone Quest source game." : "Game riêng của AI Coach dùng đúng nhóm từ liên kết. Điểm thật chỉ là evidence AI Coach và không thay đổi Pinyin Tone Quest gốc vừa khôi phục.") : (langEn ? "Complete the dedicated Coach tone game. The restored main Pinyin Tone Quest remains on its own schedule-linked source flow." : "Hoàn thành game thanh điệu riêng của AI Coach. Pinyin Tone Quest chính đã khôi phục theo luồng nguồn liên kết schedule riêng."), done: !!completed.quest, locked: hasLinkedVocabulary && (!phoneticsReady || !phase.introCompleted), lockText: langEn ? "Finish verified Phonetics and linked vocabulary listening first." : "Hoàn thành Ngữ âm đã xác minh và nghe từ vựng liên kết trước." });
     if (c.reading_writing_task && c.reading_writing_task !== "-") {
       const readingWritingUnlocked = readingWritingUnlockedForCoach(c);
-      sequence.push({ type: "reading_writing", title: hasLinkedVocabulary ? (langEn ? "6. Reading / Writing" : "6. Đọc / Viết") : (langEn ? "4. Reading / Writing" : "4. Đọc / Viết"), description: readingWritingUnlocked ? workbookTaskDescription("reading_writing", c, langEn) : (langEn ? "Unlocks on Day 31, after the first 30 learning days." : "Mở từ Ngày 31, sau khi hoàn thành 30 ngày học đầu."), done: !!completed.reading_writing, locked: !readingWritingUnlocked, lockText: langEn ? "Reading / Writing opens on Day 31." : "Đọc / Viết mở từ Ngày 31." });
+      sequence.push({ type: "reading_writing", title: hasLinkedVocabulary ? (langEn ? "5. Reading / Writing" : "5. Đọc / Viết") : (langEn ? "4. Reading / Writing" : "4. Đọc / Viết"), description: readingWritingUnlocked ? workbookTaskDescription("reading_writing", c, langEn) : (langEn ? "Unlocks on Day 31, after the first 30 learning days." : "Mở từ Ngày 31, sau khi hoàn thành 30 ngày học đầu."), done: !!completed.reading_writing, locked: !readingWritingUnlocked, lockText: langEn ? "Reading / Writing opens on Day 31." : "Đọc / Viết mở từ Ngày 31." });
     }
     const mistakes = window.PandaHanMistakes?.getQueue?.().length || 0;
     if (mistakes) sequence.push({ type: "wrong-review", title: langEn ? "Redo wrong items" : "Ôn lại câu sai", description: langEn ? `${mistakes} unresolved item(s) must be redone before the next day unlocks.` : `${mistakes} câu/từ sai còn tồn đọng phải được làm lại trước khi mở ngày mới.`, done: !!completed.mistake_review });
@@ -403,15 +394,14 @@
     if (mandatory.includes("listening")) entries.push({ id: "listening", done: !!completed.listening, schedule: true, description: workbookTaskDescription("listening", c, langEn) });
     if (mandatory.includes("speaking")) entries.push({ id: "speaking", done: !!completed.speaking, schedule: true, description: workbookTaskDescription("speaking", c, langEn) });
     if (hasLinkedVocabulary) entries.push({ id: "vocab-intro", done: !!phase.introCompleted, chain: true, locked: !phoneticsReady, description: langEn ? "Learn the exact phonetics-linked word set for this session." : "Học đúng nhóm từ liên kết với Ngữ âm của buổi này." });
-    if (hasLinkedVocabulary) entries.push({ id: "vocab-speaking", done: !!phase.speakingCompleted, chain: true, locked: !phoneticsReady || !phase.introCompleted, description: langEn ? "Speak every linked word before the tone game." : "Nói từng từ liên kết trước game thanh điệu." });
-    if (mandatory.includes("quest")) entries.push({ id: "quest", done: !!completed.quest, schedule: true, locked: hasLinkedVocabulary && (!phoneticsReady || !phase.introCompleted || !phase.speakingCompleted), description: langEn ? "Open only the currently unlocked Quest day; its real score is submitted to schedule." : "Chỉ mở đúng ngày Quest đang unlock; điểm thật mới được nộp vào schedule." });
+    if (mandatory.includes("quest")) entries.push({ id: "quest", done: !!completed.quest, schedule: true, locked: hasLinkedVocabulary && (!phoneticsReady || !phase.introCompleted), description: langEn ? "Open only the currently unlocked Quest day; its real score is submitted to schedule." : "Chỉ mở đúng ngày Quest đang unlock; điểm thật mới được nộp vào schedule." });
     const readingWritingUnlocked = readingWritingUnlockedForCoach(c);
     if (mandatory.includes("reading_writing") || (c.reading_writing_task && c.reading_writing_task !== "-")) entries.push({ id: "reading_writing", done: !!completed.reading_writing, schedule: readingWritingUnlocked, deferred: !readingWritingUnlocked, locked: !readingWritingUnlocked, description: readingWritingUnlocked ? workbookTaskDescription("reading_writing", c, langEn) : (langEn ? "Unlocks on Day 31, after the first 30 learning days." : "Mở từ Ngày 31, sau khi hoàn thành 30 ngày học đầu.") });
     if (mandatory.includes("srs")) entries.push({ id: "srs", done: !!completed.srs, schedule: true, description: workbookTaskDescription("srs", c, langEn) });
     const hasMistakes = (window.PandaHanMistakes?.getQueue?.().length || 0) > 0;
     if (hasMistakes || mandatory.includes("mistake_review")) entries.push({ id: "mistake_review", done: !hasMistakes && !!completed.mistake_review, schedule: true, description: langEn ? "Redo every unresolved wrong item before the next session can unlock." : "Làm lại toàn bộ câu/từ sai còn tồn đọng trước khi mở buổi mới." });
-    const labels = { "vocab-intro": langEn ? "Linked vocabulary — learn" : "Từ vựng liên kết — học", "vocab-speaking": langEn ? "Linked vocabulary — speak" : "Từ vựng liên kết — nói" };
-    const launchType = { mistake_review: "wrong-review", quest: "quest", listening: "listening", speaking: "speaking", reading_writing: "reading_writing", srs: "srs", "vocab-intro": "vocab-intro", "vocab-speaking": "vocab-speaking" };
+    const labels = { "vocab-intro": langEn ? "Linked vocabulary — learn" : "Từ vựng liên kết — học" };
+    const launchType = { mistake_review: "wrong-review", quest: "quest", listening: "listening", speaking: "speaking", reading_writing: "reading_writing", srs: "srs", "vocab-intro": "vocab-intro" };
     const rows = entries.map((entry, index) => {
       const title = labels[entry.id] || requiredTaskLabel(entry.id, langEn);
       const action = entry.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : entry.locked ? `<small style="color:#b45309;font-weight:800;white-space:nowrap;">${langEn ? "locked" : "đang khóa"}</small>` : `<button type="button" data-mission-task="${launchType[entry.id]}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open step" : "Vào học"}</button>`;
