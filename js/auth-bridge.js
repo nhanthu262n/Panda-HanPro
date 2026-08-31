@@ -208,14 +208,14 @@
       type: "quest_score_saved",
       title_vi: passed ? `Ôn tập 120 ngày · Bài ${day}: đạt ${score}%` : `Ôn tập 120 ngày · Bài ${day}: ${score}% — cần ôn lại`,
       title_en: passed ? `120-Day Review · Lesson ${day}: ${score}% passed` : `120-Day Review · Lesson ${day}: ${score}% — review required`,
-      body_vi: passed ? `Bạn đã đạt trên 60%. Bài tiếp theo đã được mở.` : `Bạn cần đạt trên 60% để mở bài mới. Hãy ôn lại bài hiện tại và các câu sai.`,
-      body_en: passed ? `You scored above 60%. The next lesson is now unlocked.` : `You need a score above 60% to unlock the next lesson. Review this lesson and its wrong items.`,
+      body_vi: passed ? `Bạn đã đạt trên 30%. Bài tiếp theo đã được mở.` : `Bạn cần đạt trên 30% để mở bài mới. Hãy ôn lại bài hiện tại và các câu sai.`,
+      body_en: passed ? `You scored above 30%. The next lesson is now unlocked.` : `You need a score above 30% to unlock the next lesson. Review this lesson and its wrong items.`,
       read: false,
       created_at: Date.now(),
       day_number: day,
       score_percent: score,
       passed,
-      threshold: Number(detail.threshold || 60),
+      threshold: Number(detail.threshold || 30),
       repeat_count: Number(detail.repeatCount || 0)
     };
     saveLocalNotification(item);
