@@ -47,7 +47,29 @@
     fail(text("Chưa tải được roadmap Ôn tập 120 ngày.", "The 120-day roadmap could not be loaded."));
     return false;
   }
-  window.PandaHanFeatureUpdates = { jumpToReviewDay };
+  let lastSubmittedQuestKey = "";
+  async function submitQuestScoreFromReview(event) {
+    const detail = event?.detail || {};
+    const dayNumber = Number(detail.dayNumber || detail.day || 0);
+    const scorePercent = Number(detail.scorePercent ?? detail.score);
+    if (!dayNumber || !Number.isFinite(scorePercent)) return null;
+    const key = `${dayNumber}:${scorePercent}:${detail.resultToken || ""}`;
+    if (key === lastSubmittedQuestKey) return null;
+    lastSubmittedQuestKey = key;
+    const api = window.PandaHanSchedule;
+    if (!api || typeof api.submitQuestResult !== "function") return null;
+    try {
+      const result = await api.submitQuestResult(dayNumber, scorePercent, detail.resultToken || key);
+      window.dispatchEvent(new CustomEvent("pandahan-quest-schedule-saved", { detail: result }));
+      return result;
+    } catch (error) {
+      lastSubmittedQuestKey = "";
+      console.warn("Không ghi được điểm Ôn tập 120 ngày vào schedule:", error);
+      return null;
+    }
+  }
+  window.PandaHanFeatureUpdates = { jumpToReviewDay, submitQuestScoreFromReview };
+  window.addEventListener("pandahan-quest-score-saved", submitQuestScoreFromReview);
   document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("questDaySearch");
     if (input) {
