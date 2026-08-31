@@ -229,6 +229,38 @@
     return "<!doctype html>" + output.documentElement.outerHTML;
   }
 
+  let searchFrameWindow = null;
+  function installQuestDaySearch(target) {
+    const doc = target?.contentDocument;
+    if (!doc || searchFrameWindow === target.contentWindow) return;
+    const main = doc.querySelector('main.oh-main') || doc.body;
+    if (!main) return;
+    searchFrameWindow = target.contentWindow;
+    const bar = doc.createElement('div');
+    bar.id = 'pandahan-quest-day-search';
+    bar.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 auto 14px;max-width:1200px;padding:9px 12px;border:1px solid #f3bfd8;border-radius:14px;background:rgba(255,255,255,.92);box-shadow:0 4px 14px rgba(157,23,77,.06);position:sticky;top:8px;z-index:20;';
+    bar.innerHTML = '<strong style="color:#9d174d;font-size:12px">Tìm ngày / Find day</strong><input id="pandahanQuestDayInput" inputmode="numeric" type="search" min="1" max="120" placeholder="1–120" aria-label="Tìm ngày từ 1 đến 120" style="width:86px;border:1px solid #f1a8c7;border-radius:9px;padding:7px 9px;background:#fff;color:#4c1d95;font-weight:800;outline:0"><button id="pandahanQuestDayGo" type="button" style="border:0;border-radius:9px;padding:7px 11px;background:#e5488d;color:#fff;font-weight:800;cursor:pointer">Đến ngày / Go</button><span id="pandahanQuestDayError" role="alert" style="display:none;color:#b42318;font-size:11px;font-weight:800"></span>';
+    main.prepend(bar);
+    const input = bar.querySelector('#pandahanQuestDayInput');
+    const error = bar.querySelector('#pandahanQuestDayError');
+    const buttons = () => Array.from(doc.querySelectorAll('[data-day]'));
+    const clearHighlight = () => buttons().forEach((el) => { el.style.outline = ''; el.style.outlineOffset = ''; el.removeAttribute('data-quest-search-hit'); });
+    const showError = (message) => { error.textContent = message; error.style.display = message ? 'inline' : 'none'; };
+    const jump = () => {
+      const raw = String(input.value || '').trim();
+      clearHighlight();
+      if (!/^\d+$/.test(raw)) { showError(raw ? 'Vui lòng nhập số từ 1 đến 120.' : 'Hãy nhập số ngày.'); return; }
+      const day = Number(raw);
+      if (day < 1 || day > 120) { showError('Ngày phải nằm trong khoảng 1–120.'); return; }
+      const hit = buttons().find((el) => Number(el.getAttribute('data-day')) === day);
+      if (!hit) { showError('Chưa tìm thấy ngày này trong roadmap.'); return; }
+      showError(''); hit.style.outline = '4px solid #f59e0b'; hit.style.outlineOffset = '3px'; hit.setAttribute('data-quest-search-hit', 'true'); hit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    bar.querySelector('#pandahanQuestDayGo').addEventListener('click', jump);
+    input.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); jump(); } });
+    input.addEventListener('input', () => { if (!input.value) { clearHighlight(); showError(''); } });
+  }
+
   async function loadQuestOffline() {
     const target = frame();
     if (!target) throw new Error("Không tìm thấy iframe Quest.");
@@ -247,6 +279,7 @@
         target.srcdoc = '<body style="font-family:system-ui;padding:24px;color:#991b1b;background:#fff7ed"><h3>Unable to load Pinyin Tone Quest</h3><p>Please check the integrated app files.</p></body>';
         reject(new Error("Unable to load integrated Pinyin Tone Quest"));
       };
+      target.loading = "eager";
       target.src = QUEST_APP;
       target.style.opacity = "0.7";
     });
@@ -268,6 +301,22 @@
   document.addEventListener("DOMContentLoaded", () => {
     const card = document.getElementById("pCardPinyinQuest");
     if (card) card.addEventListener("click", () => loadQuestOffline().catch(() => {}));
+    const searchInput = document.getElementById("questDaySearch");
+    const searchError = document.getElementById("questDaySearchError");
+    const jumpToDay = () => {
+      const raw = String(searchInput?.value || "").trim();
+      if (searchError) { searchError.textContent = ""; searchError.style.display = "none"; }
+      if (!/^\d+$/.test(raw)) { if (searchError) { searchError.textContent = raw ? "Nhập số từ 1 đến 120." : "Nhập số ngày."; searchError.style.display = "inline"; } return; }
+      const day = Number(raw);
+      if (day < 1 || day > 120) { if (searchError) { searchError.textContent = "Ngày phải từ 1 đến 120."; searchError.style.display = "inline"; } return; }
+      const target = frame();
+      const doc = target?.contentDocument;
+      const hit = doc ? Array.from(doc.querySelectorAll(".day-quest-card")).find((node) => { const label = String(node.getAttribute("aria-label") || node.textContent || ""); const match = label.match(/(?:Day|Ngày)\s*#?\s*(\d+)/i); return Number(match?.[1] || 0) === day; }) : null;
+      if (!hit) { if (searchError) { searchError.textContent = "Hãy mở Ôn tập 120 ngày trước."; searchError.style.display = "inline"; } loadQuestOffline().catch(() => {}); return; }
+      doc.querySelectorAll("[data-quest-search-hit]").forEach((node) => { node.style.outline = ""; node.removeAttribute("data-quest-search-hit"); });
+      hit.style.outline = "4px solid #f59e0b"; hit.style.outlineOffset = "3px"; hit.setAttribute("data-quest-search-hit", "true"); hit.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    if (searchInput) { searchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); jumpToDay(); } }); searchInput.addEventListener("input", () => { if (!searchInput.value && searchError) { searchError.textContent = ""; searchError.style.display = "none"; } }); }
     showPersistedSummary();
   });
   window.addEventListener("pandahan-language-changed", () => {
