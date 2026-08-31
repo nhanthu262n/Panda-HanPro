@@ -52,9 +52,9 @@
       instructionEn: "Review due words with SRS flashcards; completion comes from real actions."
     },
     "vocab-intro": {
-      titleVi: "Nghe từ vựng liên kết Ngữ âm", titleEn: "Listen to phonetics-linked vocabulary", icon: "🎧", minutes: 8,
-      instructionVi: "Nghe từng từ mới có âm đầu/thanh điệu liên quan; chỉ sau lượt nghe thật mới sang từ tiếp theo.",
-      instructionEn: "Play each new word linked to the phonetics focus; only real playback unlocks the next word."
+      titleVi: "Học từ vựng theo Excel", titleEn: "Excel daily vocabulary", icon: "🎧", minutes: 8,
+      instructionVi: "Học đủ toàn bộ từ mới được quy định cho ngày hiện tại trong Excel, sau đó đưa kết quả vào SRS.",
+      instructionEn: "Learn the complete new-word set assigned to the current Excel day, then feed the results into SRS."
     },
     "vocab-writing": {
       titleVi: "Viết nghĩa từ vựng", titleEn: "Write vocabulary meanings", icon: "✍️", minutes: 7,
@@ -67,9 +67,9 @@
       instructionEn: "Redo words/items answered incorrectly recently; unresolved mistakes stay in the queue."
     },
     quest: {
-      titleVi: "Thử thách thanh điệu AI Coach", titleEn: "AI Coach Tone Challenge", icon: "🎯", minutes: 12,
-      instructionVi: "Game riêng của AI Coach theo nhóm từ trong kế hoạch; không thay đổi mở khóa Pinyin Tone Quest chính.",
-      instructionEn: "A dedicated AI Coach game using planned vocabulary; it never changes main Pinyin Tone Quest unlocking."
+      titleVi: "Pinyin Tone Quest", titleEn: "Pinyin Tone Quest", icon: "🎯", minutes: 12,
+      instructionVi: "Mở Pinyin Tone Quest đúng ngày hiện tại. Chỉ điểm Quest trên 30% mới hoàn thành ngày và mở ngày kế tiếp.",
+      instructionEn: "Open Pinyin Tone Quest for the current day. Only a Quest score above 30% completes the day and unlocks the next one."
     },
     advanced: {
       titleVi: "Đề HSK3 3.0", titleEn: "HSK3 3.0 set", icon: "🚀", minutes: 20,
@@ -145,107 +145,91 @@
   function readingWritingUnlockedForCoach(day) {
     const core = window.PandaHanScheduleCore;
     if (typeof core?.isReadingWritingUnlocked === "function") return core.isReadingWritingUnlocked(day || {});
-    return Number(day?.day_number || day?.original_day_number || 0) >= 31;
+    return Number(day?.day_number || day?.original_day_number || 0) >= 1;
   }
 
   function buildTasks(day, adaptivePlan = null, vocabPhase = {}) {
-    const stage = day.stage_code;
-    const review = day.day_type === "review";
-    const hasPracticeWords = !!adaptivePlan?.practiceWords?.length;
-    const hasNewIntro = !!adaptivePlan?.vocabIntroReady && !!adaptivePlan?.introWords?.length;
-    const practiceTypes = stage === "stage_0"
-      ? (review ? ["quest", "tone-race", "quiz", "flashcards"] : ["quest", "tone-race", "quiz", "write"])
-      : stage === "stage_1"
-        ? (review ? ["quest", "flashcards", "quiz", "match", "write"] : ["quest", "quiz", "match", "write", "unscramble"])
-        : stage === "stage_2"
-          ? (review ? ["quest", "flashcards", "quiz", "unscramble", "tone-race"] : ["quest", "quiz", "unscramble", "match", "write"])
-          : (review ? ["quest", "flashcards", "quiz", "unscramble", "advanced"] : ["quest", "quiz", "unscramble", "write", "match", ...(Number(day.day_number) >= 75 ? ["advanced"] : [])]);
-    const adaptivePracticeTypes = hasPracticeWords ? practiceTypes.filter((type) => ["quiz", "unscramble", "match", "write", "flashcards", "tone-race", "advanced"].includes(type) && !(type === "write" && adaptivePlan?.introCompleted)) : [];
-    const mistakeCount = window.PandaHanMistakes?.getQueue?.().length || 0;
-    if (mistakeCount && window.PandaHanSchedule?.requireMistakeReview) window.PandaHanSchedule.requireMistakeReview(Number(day.day_number)).catch((error) => console.warn("Require mistake review from plan:", error.message || error));
-    const readingWritingUnlocked = readingWritingUnlockedForCoach(day);
-    const workbookTypes = [
-      ["listening", day.listening_task],
-      ["speaking", day.speaking_task],
-      ["reading_writing", day.reading_writing_task],
-      ["srs", day.srs_review_task],
-    ].filter(([type, value]) => value && value !== "-" && (type !== "reading_writing" || readingWritingUnlocked)).map(([type]) => type);
-    const phoneticsTypes = workbookTypes.filter((type) => type === "listening" || type === "speaking");
-    const introComplete = !!(vocabPhase?.introCompleted || adaptivePlan?.introCompleted);
-    const speakingComplete = !!vocabPhase?.speakingCompleted;
-    const gameComplete = !!vocabPhase?.gameCompleted;
-    const hasPendingLinkedIntro = hasNewIntro && !introComplete;
-    // Mục 4 "Từ vựng liên kết nói" đã được loại bỏ; AI Coach chuyển thẳng sang game sau khi hoàn tất Ngữ âm và bước nghe từ vựng.
-    const canOpenGame = introComplete;
-    const canOpenVocabWriting = canOpenGame && gameComplete;
-    const vocabFollowups = [
-      ...(canOpenGame ? ["tone-race", "quest"] : []),
-      ...(canOpenVocabWriting ? ["vocab-writing"] : [])
-    ];
-    const workbookAfterPractice = workbookTypes.filter((type) => !phoneticsTypes.includes(type) && type !== "reading_writing");
-    const workbookPrimary = questModeToTask(day.quest_main_mode);
-    const allowedAdaptivePractice = canOpenVocabWriting ? adaptivePracticeTypes : [];
-    const chainMode = !!(adaptivePlan?.linkedNewWords?.length || adaptivePlan?.introWords?.length || hasNewIntro);
-    const preChain = [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : [])];
-    const postChain = [...(canOpenGame ? ["tone-race", "quest"] : []), ...(canOpenVocabWriting ? ["vocab-writing"] : []), ...allowedAdaptivePractice, ...(canOpenVocabWriting && workbookTypes.includes("reading_writing") ? ["reading_writing"] : []), ...workbookAfterPractice, ...(canOpenGame ? [workbookPrimary] : [])];
-    const ordered = [...new Set([...(mistakeCount ? ["wrong-review"] : []), ...(chainMode ? [...preChain, ...postChain] : [...phoneticsTypes, ...(hasPendingLinkedIntro ? ["vocab-intro"] : []), ...vocabFollowups, ...allowedAdaptivePractice, ...(readingWritingUnlocked ? ["reading_writing"] : []), ...workbookAfterPractice, ...(canOpenGame ? ["quest"] : []), workbookPrimary])])];
-    return ordered.map((type, index) => {
+    const dayNumber = Number(day.day_number || 1);
+    const tasks = [];
+    const seen = new Set();
+    const has = (value) => value && value !== "-";
+    const add = (type) => { if (!seen.has(type)) { seen.add(type); tasks.push(type); } };
+
+    // Excel is the master curriculum. Day 1-10 is Pinyin Bootcamp: vocabulary
+    // strings are examples for pronunciation only, never a general vocab lesson.
+    if (dayNumber >= 11 && has(day.srs_review_task)) add("srs");
+    if (dayNumber >= 11 && adaptivePlan?.introWords?.length) add("vocab-intro");
+    if (has(day.listening_task)) add("listening");
+    if (has(day.speaking_task)) add("speaking");
+    if (has(day.reading_writing_task)) add("reading_writing");
+    if (dayNumber <= 10 && has(day.srs_review_task)) add("srs");
+
+    // Quest is always available. It is the ONLY progression gate.
+    add("quest");
+    if ((window.PandaHanMistakes?.getQueue?.().length || 0) > 0) add("wrong-review");
+
+    return tasks.map((type, index) => {
       const meta = TASK_META[type] || TASK_META.reading_writing;
-      const chainWords = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : (adaptivePlan?.practiceWords || []));
-      const task = { id: `${day.day_number}-${type}-${index}`, type, ...meta, order: index + 1, source: "excel_workbook", evidenceType: type === "speaking" ? "phonetics_sentence_pronunciation" : type, lessonId: Number(day.day_number), vocabularyIds: chainWords.map((word) => word.id), vocabularyChars: chainWords.map((word) => word.char) };
-      const workbookText = { listening: day.listening_task, speaking: day.speaking_task, reading_writing: day.reading_writing_task, srs: day.srs_review_task }[type];
-      if (workbookText && workbookText !== "-") {
-        task.instructionVi = workbookText;
-        task.instructionEn = meta.instructionEn;
+      const exactWords = dayNumber >= 11
+        ? (adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords || []))
+        : [];
+      const task = {
+        id: `${dayNumber}-${type}-${index}`,
+        type, ...meta, order: index + 1,
+        source: "excel_master_curriculum",
+        evidenceType: type === "speaking" ? "phonetics_sentence_pronunciation" : type,
+        lessonId: dayNumber,
+        vocabularyIds: exactWords.map((word) => word.id),
+        vocabularyChars: exactWords.map((word) => word.char)
+      };
+      const workbookText = {
+        listening: day.listening_task,
+        speaking: day.speaking_task,
+        reading_writing: day.reading_writing_task,
+        srs: day.srs_review_task
+      }[type];
+      if (has(workbookText)) task.instructionVi = workbookText;
+      if (type === "vocab-intro") {
+        task.titleVi = `Từ vựng theo Excel · ${exactWords.length} từ`;
+        task.titleEn = `Excel vocabulary · ${exactWords.length} words`;
+        task.instructionVi = `Học đủ ${exactWords.length} từ mới đúng theo Day ${dayNumber} trong Excel: chữ Hán → pinyin/thanh điệu → nghĩa → nghe/đọc/nói → dùng trong câu. Sau khi học, lưu kết quả vào SRS.`;
+        task.instructionEn = `Learn all ${exactWords.length} words assigned to Excel Day ${dayNumber}: Hanzi → pinyin/tone → meaning → listen/read/speak → use in context, then save the result to SRS.`;
+        task.minutes = Math.max(8, Math.min(30, exactWords.length * 2));
       }
       if (type === "quest") {
-        const workbookQuest = [day.quest_daily_task, day.quest_activity_chain].filter((value) => value && value !== "-").join(" ");
-        task.instructionVi = [task.instructionVi, workbookQuest].filter(Boolean).join(" ");
-        task.instructionEn = `${task.instructionEn} Follow the workbook tone-practice focus for this session.`;
-        task.minutes = Math.max(8, Number(day.xp_target || 60) >= 100 ? 18 : 12);
-      }
-      if (type === "vocab-intro") {
-        task.instructionVi = adaptivePlan?.focusLabel ? `Sau Ngữ âm (${adaptivePlan.focusLabel}), học ${adaptivePlan.introWords.length} từ mới liên quan rồi làm bài kiểm tra.` : task.instructionVi;
-        task.instructionEn = adaptivePlan?.focusLabel ? `After phonetics (${adaptivePlan.focusLabel}), learn ${adaptivePlan.introWords.length} linked new words, then test them.` : task.instructionEn;
-        task.minutes = Math.max(6, Math.min(12, Number(adaptivePlan?.introWords.length || 4) + 3));
-      }
-      if (["quiz", "unscramble", "match", "write", "flashcards"].includes(type) && adaptivePlan) {
-        const reviewCount = adaptivePlan.reviewWords.length;
-        const newCount = adaptivePlan.introCompleted ? adaptivePlan.newWords.length : 0;
-        task.instructionVi += ` Dữ liệu hiện tại: ${reviewCount} từ cần ôn${newCount ? `, ${newCount} từ mới đã học` : ""}.`;
-        task.instructionEn += ` Current evidence: ${reviewCount} review words${newCount ? `, ${newCount} introduced words` : ""}.`;
+        const workbookQuest = [day.quest_daily_task, day.quest_activity_chain].filter(has).join(" ");
+        task.instructionVi = `${workbookQuest ? workbookQuest + " " : ""}Điểm Pinyin Tone Quest phải trên 30% để hoàn thành Day ${dayNumber} và mở Day ${dayNumber + 1}. Các evidence khác không chặn unlock.`;
+        task.instructionEn = `Complete the Excel Quest for Day ${dayNumber}. A Pinyin Tone Quest score above 30% completes this day and unlocks the next; other evidence never blocks progression.`;
+        task.minutes = 12;
       }
       return task;
     });
   }
-
   function buildMission() {
     const day = findCurriculumDay();
+    const dayNumber = Number(day.day_number || 1);
     const scheduleDay = currentScheduleDay();
     const schedule = getSchedule();
-    const adaptivePlan = window.PandaHanAdaptiveLearning?.buildPlan?.(day, getSchedule()) || null;
-    const words = adaptivePlan?.practiceWords || targetVocabulary(day);
-    const chainVocabulary = adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords?.length ? adaptivePlan.introWords : []);
-    const vocabPhase = window.PandaHanVocabularyPhase?.get?.(Number(day.day_number)) || { introCompleted: !!adaptivePlan?.introCompleted, speakingCompleted: false, gameCompleted: false };
+    const adaptivePlan = window.PandaHanAdaptiveLearning?.buildPlan?.(day, schedule) || null;
+    const words = dayNumber <= 10 ? [] : (adaptivePlan?.practiceWords || targetVocabulary(day));
+    const chainVocabulary = dayNumber <= 10 ? [] : (adaptivePlan?.linkedNewWords?.length ? adaptivePlan.linkedNewWords : (adaptivePlan?.introWords || []));
+    const vocabPhase = window.PandaHanVocabularyPhase?.get?.(dayNumber) || { introCompleted: !!adaptivePlan?.introCompleted, speakingCompleted: false, gameCompleted: false };
     const tasks = buildTasks(day, adaptivePlan, vocabPhase);
-    const sequenceIndex = Number(scheduleDay?.sequence_index || day.day_number);
-    const isRepeat = !!scheduleDay?.is_repeat_of || scheduleDay?.day_type === "repeat";
-    const sessionLabelVi = isRepeat ? `Buổi ${sequenceIndex} — tiếp tục Ngày ${Number(day.day_number)}` : `Ngày ${Number(day.day_number)}`;
-    const sessionLabelEn = isRepeat ? `Session ${sequenceIndex} — continue Day ${Number(day.day_number)}` : `Day ${Number(day.day_number)}`;
-    const carriedTaskIds = Array.isArray(scheduleDay?.carried_completed_tasks) ? scheduleDay.carried_completed_tasks.slice() : Object.keys(scheduleDay?.completed_tasks || {});
-    const requiredTaskIds = Array.isArray(scheduleDay?.required_tasks) ? scheduleDay.required_tasks.slice() : [];
+    const sequenceIndex = dayNumber;
+    const sessionLabelVi = `Ngày ${dayNumber}`;
+    const sessionLabelEn = `Day ${dayNumber}`;
+    const carriedTaskIds = Object.keys(scheduleDay?.completed_tasks || {});
+    const requiredTaskIds = Array.isArray(scheduleDay?.required_tasks) ? scheduleDay.required_tasks.slice() : ["quest"];
     const missingTaskIds = requiredTaskIds.filter((id) => !scheduleDay?.completed_tasks?.[id]);
-    const plannedDays = Math.max(120, ...(Array.isArray(schedule?.days) ? schedule.days.map((entry) => Number(entry.sequence_index || 0)) : [0]));
-    const extensionCount = Math.max(0, Number(schedule?._meta?.extension_count || 0), plannedDays - 120);
-    const startedAt = String(schedule?._meta?.started_at || scheduleDay?.scheduled_date || "");
     return {
-      dayNumber: Number(day.day_number), sequenceIndex, isRepeat, sessionLabelVi, sessionLabelEn, plannedDays, extensionCount, startedAt,
+      dayNumber, sequenceIndex, isRepeat: false, sessionLabelVi, sessionLabelEn,
+      plannedDays: 120, extensionCount: 0, startedAt: String(schedule?._meta?.started_at || scheduleDay?.scheduled_date || ""),
       carriedTaskIds, requiredTaskIds, missingTaskIds, scheduleDay,
-      weekNumber: Number(day.week_number || Math.ceil(Number(day.day_number) / 7)),
+      weekNumber: Number(day.week_number || Math.ceil(dayNumber / 7)),
       stageCode: day.stage_code, stage: day.stage, dayType: day.day_type, topic: day.topic || "",
-      requiredScore: Number(scheduleDay?.required_score || day.required_score || 30), newVocab: words,
+      requiredScore: 30, newVocab: words,
       curriculum: day, workbook: day.workbook_row || null, tasks, adaptivePlan, vocabPhase,
-      chain: { lessonId: Number(day.day_number), vocabularyIds: chainVocabulary.map((word) => word.id), vocabularyChars: chainVocabulary.map((word) => word.char), vocabulary: chainVocabulary.map((word) => ({ id: word.id, char: word.char, pinyin: word.pinyin, meaning: word.meaning, meaningEn: word.meaning_en })), phoneticFocus: adaptivePlan?.focusGroups || [], focusLabel: adaptivePlan?.focusLabel || "" },
+      chain: { lessonId: dayNumber, vocabularyIds: chainVocabulary.map((word) => word.id), vocabularyChars: chainVocabulary.map((word) => word.char), vocabulary: chainVocabulary.map((word) => ({ id: word.id, char: word.char, pinyin: word.pinyin, meaning: word.meaning, meaningEn: word.meaning_en })), phoneticFocus: dayNumber <= 10 ? (adaptivePlan?.focusGroups || []) : [], focusLabel: adaptivePlan?.focusLabel || "" },
       chainVocabulary,
       questStation: day.quest_station || "-", questMainMode: day.quest_main_mode || "-",
       questActivityChain: day.quest_activity_chain || "-", questDailyTask: day.quest_daily_task || "-",
@@ -254,7 +238,6 @@
       totalMinutes: tasks.reduce((sum, task) => sum + Number(task.minutes || 0), 0)
     };
   }
-
   function mission() {
     activeMission = buildMission();
     return activeMission;
@@ -276,115 +259,117 @@
 
   function startTask(type) {
     const m = activeMission || mission();
-    if (type === "reading_writing" && !readingWritingUnlockedForCoach(m.curriculum || { day_number: m.dayNumber })) {
-      alert(L("Đọc / Viết trong AI Coach mở từ Ngày 31, sau khi hoàn thành 30 ngày đầu.", "AI Coach Reading / Writing opens on Day 31, after the first 30 days are complete."));
-      return;
-    }
     activeTask = m.tasks.find((task) => task.type === type) || { type };
-    const phase = m.vocabPhase || {};
-    if (["vocab-intro", "tone-race", "quest", "vocab-writing"].includes(type) && m.chainVocabulary?.length && !m.adaptivePlan?.phoneticsReady) { alert(L("Hãy hoàn thành Nghe và Nói Ngữ âm có evidence thật trước khi học nhóm từ liên kết.", "Complete the verified Phonetics listening and speaking steps before linked vocabulary.")); return; }
-    if ((type === "tone-race" || type === "quest") && m.chainVocabulary?.length && !m.adaptivePlan?.phoneticsReady) { alert(L("Hãy hoàn thành Ngữ âm có điểm thật trước khi vào game thanh điệu.", "Complete Phonetics with an objective score before the tone game.")); return; }
-    if (type === "vocab-writing" && !phase.gameCompleted) { alert(L("Hãy hoàn thành nghe → game trước khi viết nghĩa.", "Complete listening → game before vocabulary writing.")); return; }
-    if (["quiz", "match", "unscramble", "write"].includes(type) && m.chainVocabulary?.length && !phase.gameCompleted) { alert(L("Bài này chỉ mở sau game của đúng nhóm từ trong ngày.", "This exercise opens only after the game for the exact day word set.")); return; }
     setFilterForMission(m);
-    const scheduledContext = { practiceMode: "scheduled", scheduleDayNumber: m.dayNumber, sequenceIndex: m.sequenceIndex };
+    const scheduledContext = { practiceMode: "scheduled", scheduleDayNumber: m.dayNumber, sequenceIndex: m.dayNumber };
     const level = document.getElementById("practiceHskFilter")?.value || "all";
-    if (type === "vocab-intro") { window.switchTab?.("practice"); setTimeout(() => window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords || [], m.dayNumber), 80); }
-    else if (type === "vocab-writing") { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.({ words: m.chainVocabulary || [], ...scheduledContext }), 80); }
+    if (type === "vocab-intro") {
+      if (Number(m.dayNumber) <= 10) return;
+      window.switchTab?.("practice");
+      setTimeout(() => window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords || m.chainVocabulary || [], m.dayNumber), 80);
+    }
     else if (type === "wrong-review") window.startMistakeReview?.();
     else if (type === "quiz") {
       if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), scheduledContext);
       else window.startQuizLevel?.(level, scheduledContext);
-    } else if (type === "unscramble") window.startUnscrambleLevel?.(level, { words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
+    }
+    else if (type === "unscramble") window.startUnscrambleLevel?.(level, { words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
     else if (type === "match") window.startMatchGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
-    else if (type === "write") window.startWriteGame?.(scheduledContext);
+    else if (type === "write" || type === "vocab-writing") window.startWriteGame?.({ words: m.chainVocabulary || [], ...scheduledContext });
     else if (type === "tone-race") window.startToneRaceGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
     else if (type === "quest") {
-      // Mục 4 AI Coach dùng game thanh điệu riêng; không mở Pinyin Tone Quest gốc.
-      if (m.chainVocabulary?.length && typeof window.startToneRaceGame === "function") {
-        window.switchTab?.("practice");
-        setTimeout(() => window.startToneRaceGame?.({ coachQuest: true, words: m.chainVocabulary, ...scheduledContext }), 100);
-      } else {
-        // Chỉ khi không có nhóm từ liên kết mới mở Pinyin Tone Quest gốc.
-        window.switchTab?.("practice");
-        setTimeout(async () => {
-          document.getElementById("pCardPinyinQuest")?.click();
-          try { await window.PandaHanQuestParts?.loadQuestOffline?.(); } catch (_) {}
-          const input = document.getElementById("questDaySearch");
-          if (input) input.value = String(m.dayNumber || 1);
-          await window.PandaHanFeatureUpdates?.jumpToReviewDay?.(m.dayNumber || 1);
-        }, 120);
-      }
-    } else if (type === "listening") {
+      // Always open the restored/main Pinyin Tone Quest for this exact Excel day.
+      // No Listening/Speaking/Vocabulary prerequisite is allowed to block it.
+      window.switchTab?.("practice");
+      setTimeout(async () => {
+        document.getElementById("pCardPinyinQuest")?.click();
+        try { await window.PandaHanQuestParts?.loadQuestOffline?.(); } catch (_) {}
+        const input = document.getElementById("questDaySearch");
+        if (input) input.value = String(m.dayNumber || 1);
+        await window.PandaHanFeatureUpdates?.jumpToReviewDay?.(m.dayNumber || 1);
+      }, 120);
+    }
+    else if (type === "listening") {
       try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {}
       window.switchTab?.("pinyin");
       setTimeout(() => {
         document.getElementById("pinyin-phonetics-root")?.scrollIntoView({ behavior: "smooth", block: "start" });
         window.PandaHanPhoneticsListeningQuiz?.startScheduledQuiz?.();
       }, 180);
-    } else if (type === "speaking") {
+    }
+    else if (type === "speaking") {
       try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {}
       window.switchTab?.("pinyin");
       setTimeout(() => document.getElementById("pinyin-phonetics-root")?.scrollIntoView({ behavior: "smooth", block: "start" }), 160);
-    } else if (type === "reading_writing") {
+    }
+    else if (type === "reading_writing") {
       window.switchTab?.("practice");
       setTimeout(() => window.startWriteGame?.(scheduledContext), 80);
-    } else if (type === "srs") {
+    }
+    else if (type === "srs") {
       window.setPracticeMode?.("scheduled");
       window.switchTab?.("reviewIntro");
-    } else if (type === "advanced") {
+    }
+    else if (type === "advanced") {
       document.getElementById("advancedSetsView")?.style && (document.getElementById("advancedSetsView").style.display = "block");
       window.renderAdvancedSetsList?.();
-    } else if (type === "flashcards") {
+    }
+    else if (type === "flashcards") {
       const first = m.newVocab[0];
       if (first) window.startReviewForWord?.(first.char, scheduledContext);
       else window.switchTab?.("dashboard");
     }
   }
-
   function esc(value) {
     return String(value || "").replace(/[&<>\"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
   }
 
   function requiredTaskLabel(taskId, langEn) {
-    const labels = { mistake_review: langEn ? "Redo wrong items" : "Ôn lại câu sai", quest: langEn ? "AI Coach Tone Challenge" : "Thử thách thanh điệu AI Coach", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS", "vocab-intro": langEn ? "Linked vocabulary" : "Từ vựng liên kết" };
+    const labels = { mistake_review: langEn ? "Redo wrong items" : "Ôn lại câu sai", quest: "Pinyin Tone Quest", listening: langEn ? "Listening" : "Nghe", speaking: langEn ? "Speaking" : "Nói", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS", "vocab-intro": langEn ? "Excel daily vocabulary" : "Từ vựng theo Excel" };
     return labels[taskId] || taskId;
   }
   function workbookTaskDescription(taskId, curriculum, langEn) {
-    if (!langEn) return ({ listening: "Làm Quiz nghe Ngữ âm 10 câu; đạt từ 30%. Câu sai phải ôn lại trước buổi mới.", speaking: curriculum.speaking_task, reading_writing: curriculum.reading_writing_task, srs: curriculum.srs_review_task })[taskId] || "";
-    return ({
-      listening: "Complete the 10-item Phonetics listening quiz with a score of at least 30%; redo wrong items before the next session.",
-      speaking: "Complete a recorded speaking attempt in Phonetics for this session.",
-      reading_writing: "Complete the assigned reading/writing activity using this session’s linked material.",
-      srs: "Complete the scheduled spaced review for this session."
+    const value = ({
+      listening: curriculum.listening_task,
+      speaking: curriculum.speaking_task,
+      reading_writing: curriculum.reading_writing_task,
+      srs: curriculum.srs_review_task
     })[taskId] || "";
+    if (!value || value === "-") return "";
+    return langEn ? `Excel task: ${value}` : value;
   }
   function renderLearningSequence(m, langEn) {
     const c = m.curriculum || {};
     const completed = m.scheduleDay?.completed_tasks || {};
-    const phase = m.vocabPhase || {};
-    const linkedWords = Array.isArray(m.chainVocabulary) ? m.chainVocabulary : [];
-    const hasLinkedVocabulary = linkedWords.length > 0;
-    const phoneticsReady = !!m.adaptivePlan?.phoneticsReady;
+    const day = Number(m.dayNumber || 1);
+    const words = Array.isArray(m.chainVocabulary) ? m.chainVocabulary : [];
     const sequence = [];
-    if (c.listening_task && c.listening_task !== "-") sequence.push({ type: "listening", title: langEn ? "1. Phonetics — Listening" : "1. Ngữ âm — Nghe", description: workbookTaskDescription("listening", c, langEn), done: !!completed.listening });
-    if (c.speaking_task && c.speaking_task !== "-") sequence.push({ type: "speaking", title: langEn ? "2. Phonetics — Speaking" : "2. Ngữ âm — Nói", description: workbookTaskDescription("speaking", c, langEn), done: !!completed.speaking });
-    if (hasLinkedVocabulary) {
-      sequence.push({ type: "vocab-intro", title: langEn ? "3. Linked vocabulary — listen" : "3. Từ vựng liên kết — nghe", description: langEn ? `${linkedWords.length} words use the phonetics focus of this session.` : `${linkedWords.length} từ dùng đúng âm/thanh điệu trọng tâm của buổi này.`, done: !!phase.introCompleted, locked: !phoneticsReady, lockText: langEn ? "Complete verified Phonetics first." : "Hoàn thành evidence Ngữ âm trước." });
+    const add = (type, title, description, done) => sequence.push({ type, title, description, done: !!done });
+
+    if (day <= 10) {
+      if (c.listening_task && c.listening_task !== "-") add("listening", langEn ? "Pinyin Bootcamp · Listening" : "Pinyin Bootcamp · Nghe", workbookTaskDescription("listening", c, langEn), completed.listening);
+      if (c.speaking_task && c.speaking_task !== "-") add("speaking", langEn ? "Pinyin Bootcamp · Speaking" : "Pinyin Bootcamp · Nói", workbookTaskDescription("speaking", c, langEn), completed.speaking);
+      if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", langEn ? "Pinyin Bootcamp · Reading/Writing" : "Pinyin Bootcamp · Đọc/Viết", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
+      if (c.srs_review_task && c.srs_review_task !== "-") add("srs", "SRS", workbookTaskDescription("srs", c, langEn), completed.srs);
+    } else {
+      if (c.srs_review_task && c.srs_review_task !== "-") add("srs", langEn ? "SRS due review" : "Ôn SRS đến hạn", workbookTaskDescription("srs", c, langEn), completed.srs);
+      if (words.length) add("vocab-intro", langEn ? `Excel vocabulary · ${words.length} words` : `Từ vựng theo Excel · ${words.length} từ`, langEn ? `Learn the complete word set assigned to Excel Day ${day}, then save learning results to SRS.` : `Học đủ toàn bộ ${words.length} từ mới của Day ${day} trong Excel, sau đó đưa kết quả vào SRS.`, m.vocabPhase?.introCompleted);
+      if (c.listening_task && c.listening_task !== "-") add("listening", langEn ? "Listening" : "Nghe", workbookTaskDescription("listening", c, langEn), completed.listening);
+      if (c.speaking_task && c.speaking_task !== "-") add("speaking", langEn ? "Speaking" : "Nói/Hội thoại", workbookTaskDescription("speaking", c, langEn), completed.speaking);
+      if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", langEn ? "Reading/Writing" : "Đọc/Viết", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
     }
-    sequence.push({ type: "quest", title: hasLinkedVocabulary ? (langEn ? "4. AI Coach Tone Challenge" : "4. Thử thách thanh điệu AI Coach") : (langEn ? "3. AI Coach Tone Challenge" : "3. Thử thách thanh điệu AI Coach"), description: hasLinkedVocabulary ? (langEn ? "A dedicated Coach game uses this session’s linked words. Its verified score supplies Coach evidence only and never changes the restored Pinyin Tone Quest source game." : "Game riêng của AI Coach dùng đúng nhóm từ liên kết. Điểm thật chỉ là evidence AI Coach và không thay đổi Pinyin Tone Quest gốc vừa khôi phục.") : (langEn ? "Complete the dedicated Coach tone game. The restored main Pinyin Tone Quest remains on its own schedule-linked source flow." : "Hoàn thành game thanh điệu riêng của AI Coach. Pinyin Tone Quest chính đã khôi phục theo luồng nguồn liên kết schedule riêng."), done: !!completed.quest, locked: hasLinkedVocabulary && (!phoneticsReady || !phase.introCompleted), lockText: langEn ? "Finish verified Phonetics and linked vocabulary listening first." : "Hoàn thành Ngữ âm đã xác minh và nghe từ vựng liên kết trước." });
-    if (c.reading_writing_task && c.reading_writing_task !== "-") {
-      const readingWritingUnlocked = readingWritingUnlockedForCoach(c);
-      sequence.push({ type: "reading_writing", title: hasLinkedVocabulary ? (langEn ? "5. Reading / Writing" : "5. Đọc / Viết") : (langEn ? "4. Reading / Writing" : "4. Đọc / Viết"), description: readingWritingUnlocked ? workbookTaskDescription("reading_writing", c, langEn) : (langEn ? "Unlocks on Day 31, after the first 30 learning days." : "Mở từ Ngày 31, sau khi hoàn thành 30 ngày học đầu."), done: !!completed.reading_writing, locked: !readingWritingUnlocked, lockText: langEn ? "Reading / Writing opens on Day 31." : "Đọc / Viết mở từ Ngày 31." });
-    }
+    add("quest", "Pinyin Tone Quest", langEn ? `Only progression gate: Quest score must be above 30%. A score of exactly 30% does not pass.` : `Cổng tiến độ duy nhất: điểm Quest phải trên 30%. Đúng 30% không đạt.`, completed.quest);
     const mistakes = window.PandaHanMistakes?.getQueue?.().length || 0;
-    if (mistakes) sequence.push({ type: "wrong-review", title: langEn ? "Redo wrong items" : "Ôn lại câu sai", description: langEn ? `${mistakes} unresolved item(s) must be redone before the next day unlocks.` : `${mistakes} câu/từ sai còn tồn đọng phải được làm lại trước khi mở ngày mới.`, done: !!completed.mistake_review });
-    const rows = sequence.map((step) => {
-      const blocked = !step.done && !!step.locked;
-      const action = step.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : blocked ? `<small style="color:#b45309;font-weight:800;white-space:nowrap;">${langEn ? "locked" : "đang khóa"}</small>` : `<button type="button" data-mission-task="${step.type}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open step" : "Vào học"}</button>`;
-      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:16px;">${step.done ? "✅" : blocked ? "🔒" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${esc(step.title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(blocked ? step.lockText : step.description)}</small></span>${action}</div>`;
+    if (mistakes) add("wrong-review", langEn ? "Optional mistake review" : "Ôn câu sai (khuyến nghị)", langEn ? `${mistakes} item(s) are available for review; they never block the next day.` : `${mistakes} câu/từ sai đang chờ ôn; phần này không chặn mở ngày kế tiếp.`, completed.mistake_review);
+
+    const rows = sequence.map((step, index) => {
+      const action = step.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : `<button type="button" data-mission-task="${step.type}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:16px;">${step.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(step.title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(step.description)}</small></span>${action}</div>`;
     }).join("");
-    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #ddd6fe;border-radius:11px;background:#fbfaff;"><b>${langEn ? "Follow this session in order" : "Học đúng thứ tự của buổi này"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Each button opens the matching learning screen. The Quest score is accepted only after its preceding linked-vocabulary steps are complete." : "Mỗi nút mở đúng trang học tương ứng. Điểm Quest chỉ được nhận vào schedule sau khi đã xong các bước từ vựng liên kết phía trước."}</div>${rows}</div>`;
+    const phaseText = day <= 10
+      ? (langEn ? "Day 1-10: Pinyin Bootcamp. Excel vocabulary entries are pronunciation examples, not general vocabulary lessons." : "Day 1–10: Pinyin Bootcamp. Từ xuất hiện trong Excel chỉ là ngữ liệu/ví dụ phát âm, chưa mở học từ vựng đại trà.")
+      : (langEn ? "Day 11-120: exact Excel vocabulary + SRS + language skills." : "Day 11–120: học đúng nhóm từ Excel + SRS + Nghe/Nói/Đọc/Viết.");
+    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #ddd6fe;border-radius:11px;background:#fbfaff;"><b>${langEn ? "Excel master learning flow" : "Luồng học theo Excel Master"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${esc(phaseText)} ${langEn ? "The order is recommended; non-Quest tasks never block progression." : "Thứ tự là khuyến nghị; mọi nhiệm vụ ngoài Quest đều không chặn tiến độ."}</div>${rows}</div>`;
   }
   function localizedCurriculumTopic(m, langEn) {
     if (!langEn) return m.curriculum?.topic || m.topic || "";
@@ -396,34 +381,22 @@
   }
   function renderRequiredChecklist(m, langEn) {
     const c = m.curriculum || {};
-    const core = window.PandaHanScheduleCore;
-    const mandatory = core?.getMandatoryTaskIds ? core.getMandatoryTaskIds(c) : ["quest", "listening", "speaking", "reading_writing"].filter((id) => id === "quest" || (id === "listening" && c.listening_task && c.listening_task !== "-") || (id === "speaking" && c.speaking_task && c.speaking_task !== "-") || (id === "reading_writing" && c.reading_writing_task && c.reading_writing_task !== "-") || (id === "srs" && c.srs_review_task && c.srs_review_task !== "-"));
-    const scheduleDay = currentScheduleDay();
-    const completed = scheduleDay?.completed_tasks || {};
-    const phase = m.vocabPhase || {};
-    const hasLinkedVocabulary = Array.isArray(m.chainVocabulary) && m.chainVocabulary.length > 0;
-    const phoneticsReady = !!m.adaptivePlan?.phoneticsReady;
+    const completed = m.scheduleDay?.completed_tasks || {};
+    const day = Number(m.dayNumber || 1);
     const entries = [];
-    if (mandatory.includes("listening")) entries.push({ id: "listening", done: !!completed.listening, schedule: true, description: workbookTaskDescription("listening", c, langEn) });
-    if (mandatory.includes("speaking")) entries.push({ id: "speaking", done: !!completed.speaking, schedule: true, description: workbookTaskDescription("speaking", c, langEn) });
-    if (hasLinkedVocabulary) entries.push({ id: "vocab-intro", done: !!phase.introCompleted, chain: true, locked: !phoneticsReady, description: langEn ? "Learn the exact phonetics-linked word set for this session." : "Học đúng nhóm từ liên kết với Ngữ âm của buổi này." });
-    if (mandatory.includes("quest")) entries.push({ id: "quest", done: !!completed.quest, schedule: true, locked: hasLinkedVocabulary && (!phoneticsReady || !phase.introCompleted), description: langEn ? "Open only the currently unlocked Quest day; its real score is submitted to schedule." : "Chỉ mở đúng ngày Quest đang unlock; điểm thật mới được nộp vào schedule." });
-    const readingWritingUnlocked = readingWritingUnlockedForCoach(c);
-    if (mandatory.includes("reading_writing") || (c.reading_writing_task && c.reading_writing_task !== "-")) entries.push({ id: "reading_writing", done: !!completed.reading_writing, schedule: readingWritingUnlocked, deferred: !readingWritingUnlocked, locked: !readingWritingUnlocked, description: readingWritingUnlocked ? workbookTaskDescription("reading_writing", c, langEn) : (langEn ? "Unlocks on Day 31, after the first 30 learning days." : "Mở từ Ngày 31, sau khi hoàn thành 30 ngày học đầu.") });
-    if (mandatory.includes("srs")) entries.push({ id: "srs", done: !!completed.srs, schedule: true, description: workbookTaskDescription("srs", c, langEn) });
-    const hasMistakes = (window.PandaHanMistakes?.getQueue?.().length || 0) > 0;
-    if (hasMistakes || mandatory.includes("mistake_review")) entries.push({ id: "mistake_review", done: !hasMistakes && !!completed.mistake_review, schedule: true, description: langEn ? "Redo every unresolved wrong item before the next session can unlock." : "Làm lại toàn bộ câu/từ sai còn tồn đọng trước khi mở buổi mới." });
-    const labels = { "vocab-intro": langEn ? "Linked vocabulary — learn" : "Từ vựng liên kết — học" };
-    const launchType = { mistake_review: "wrong-review", quest: "quest", listening: "listening", speaking: "speaking", reading_writing: "reading_writing", srs: "srs", "vocab-intro": "vocab-intro" };
-    const rows = entries.map((entry, index) => {
-      const title = labels[entry.id] || requiredTaskLabel(entry.id, langEn);
-      const action = entry.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : entry.locked ? `<small style="color:#b45309;font-weight:800;white-space:nowrap;">${langEn ? "locked" : "đang khóa"}</small>` : `<button type="button" data-mission-task="${launchType[entry.id]}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open step" : "Vào học"}</button>`;
-      const stateText = entry.chain ? (langEn ? "Chain prerequisite" : "Bước bắt buộc trong chuỗi") : entry.deferred ? (langEn ? "Available from Day 31" : "Mở từ Ngày 31") : (langEn ? "Schedule evidence" : "Evidence schedule");
-      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:16px;">${entry.done ? "✅" : entry.locked ? "🔒" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(entry.description)} · ${stateText}</small></span>${action}</div>`;
+    const add = (id, description, done) => entries.push({ id, description, done: !!done });
+    if (c.listening_task && c.listening_task !== "-") add("listening", workbookTaskDescription("listening", c, langEn), completed.listening);
+    if (c.speaking_task && c.speaking_task !== "-") add("speaking", workbookTaskDescription("speaking", c, langEn), completed.speaking);
+    if (day >= 11 && m.chainVocabulary?.length) add("vocab-intro", langEn ? `Complete all ${m.chainVocabulary.length} exact Excel words.` : `Học đủ ${m.chainVocabulary.length} từ đúng theo Excel của ngày.`, m.vocabPhase?.introCompleted);
+    if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
+    if (c.srs_review_task && c.srs_review_task !== "-") add("srs", workbookTaskDescription("srs", c, langEn), completed.srs);
+    add("quest", langEn ? "ONLY unlock gate: Pinyin Tone Quest >30%." : "CỔNG mở ngày DUY NHẤT: Pinyin Tone Quest >30%.", completed.quest);
+    const rows = entries.map((entry) => {
+      const action = entry.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : `<button type="button" data-mission-task="${entry.id}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
+      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span>${entry.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${esc(requiredTaskLabel(entry.id, langEn))}</b><br><small style="color:#64748b;">${esc(entry.description)}</small></span>${action}</div>`;
     }).join("");
-    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fff;"><b>${langEn ? "One synced chain before the next session" : "Một chuỗi đồng bộ trước khi mở buổi mới"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Each button opens its matching screen. Quiz score, verified tasks and unresolved wrong items are the only inputs to the schedule; there is no manual confirmation." : "Mỗi nút mở đúng trang học tương ứng. Điểm quiz, evidence thật và câu sai chưa ôn là dữ liệu duy nhất của schedule; không có nút xác nhận thủ công."}</div>${rows}</div>`;
+    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fff;"><b>${langEn ? "Learning evidence" : "Evidence học tập"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Listening, Speaking, Vocabulary, Reading/Writing and SRS are recorded normally but NEVER block the next day." : "Nghe, Nói, Từ vựng, Đọc/Viết và SRS vẫn lưu bình thường nhưng KHÔNG BAO GIỜ chặn ngày kế tiếp."}</div>${rows}</div>`;
   }
-
   function coachAssessmentKey() {
     const owner = String(typeof window.storageNamespace === "function" ? window.storageNamespace() : (window.CURRENT_USER?.uid || "guest"));
     return "pandahan_ai_coach_assessments_v1_" + owner.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -464,11 +437,11 @@
         ? `Started ${start}. Scheduled session ${m.sequenceIndex} continues curriculum Day ${m.dayNumber}; ${m.extensionCount || (m.plannedDays - 120)} extra session(s) were added because required evidence was not completed before the deadline.`
         : `Bắt đầu từ ${start}. Buổi lịch ${m.sequenceIndex} đang tiếp tục Ngày giáo trình ${m.dayNumber}; đã tăng ${m.extensionCount || (m.plannedDays - 120)} ngày vì evidence bắt buộc chưa hoàn thành đúng hạn.`)
       : (langEn
-        ? `Started ${start}. You are on curriculum Day ${m.dayNumber}/120, scheduled session ${m.sequenceIndex}. Complete today’s verified tasks before the next curriculum day can be evaluated.`
-        : `Bắt đầu từ ${start}. Bạn đang ở Ngày giáo trình ${m.dayNumber}/120, buổi lịch ${m.sequenceIndex}. Hoàn thành các nhiệm vụ có evidence hôm nay trước khi xét mở ngày giáo trình tiếp theo.`);
+        ? `Started ${start}. You are on curriculum Day ${m.dayNumber}/120, scheduled session ${m.sequenceIndex}. Complete the Pinyin Tone Quest above 30% to unlock the next curriculum day; other tasks remain recommended and tracked.`
+        : `Bắt đầu từ ${start}. Bạn đang ở Ngày giáo trình ${m.dayNumber}/120, buổi lịch ${m.sequenceIndex}. Đạt Pinyin Tone Quest trên 30% để mở ngày giáo trình tiếp theo; các nhiệm vụ khác vẫn được học và lưu tiến độ nhưng không chặn mở khóa.`);
     const pending = missing
       ? (langEn ? `Still required: ${missing}.` : `Còn phải hoàn thành: ${missing}.`)
-      : (langEn ? "All required task evidence for this session is recorded; score and wrong-item gates still apply." : "Đã ghi nhận evidence của các nhiệm vụ; điều kiện điểm và câu sai cần ôn vẫn được kiểm tra.");
+      : (langEn ? "Only the Quest score controls day unlock; other evidence is learning progress." : "Chỉ điểm Quest quyết định mở ngày; evidence các nhiệm vụ khác dùng để theo dõi tiến độ học.");
     const color = hasExtension ? "#b45309" : "#0f766e";
     const bg = hasExtension ? "#fffbeb" : "#f0fdfa";
     return `<div data-ai-coach-route-status="true" style="margin-top:10px;padding:9px 10px;border:1px solid ${color}44;border-radius:11px;background:${bg};"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${title}</b><span style="color:${color};font-weight:900;white-space:nowrap;">${m.plannedDays} ${langEn ? "days" : "ngày"}</span></div><div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.45;">${esc(body)}</div><div style="font-size:11px;color:${color};margin-top:5px;font-weight:700;line-height:1.4;">${esc(pending)}</div></div>`;
@@ -481,10 +454,10 @@
       : `课程从${start}开始，共120天；当前为第${m?.dayNumber || 1}/120天。完成今天所有已验证任务后，才会评估下一天。`;
     if (language === "en") return hasExtension
       ? `Path update: the 120-day course is now ${m.plannedDays} days. Started ${start}; session ${m.sequenceIndex} continues curriculum Day ${m.dayNumber}, and unfinished required evidence remains assigned.`
-      : `The 120-day course started ${start}; you are on curriculum Day ${m?.dayNumber || 1}/120. The next day is evaluated only after today’s verified tasks are complete.`;
+      : `The 120-day course started ${start}; you are on curriculum Day ${m?.dayNumber || 1}/120. The next day unlocks when today’s Pinyin Tone Quest score is above 30%.`;
     return hasExtension
       ? `Cập nhật lộ trình: khóa 120 ngày đã tăng lên ${m.plannedDays} ngày. Bắt đầu từ ${start}; Buổi ${m.sequenceIndex} tiếp tục Ngày giáo trình ${m.dayNumber}, các evidence bắt buộc chưa hoàn thành vẫn được giữ lại.`
-      : `Lộ trình 120 ngày bắt đầu từ ${start}; bạn đang ở Ngày giáo trình ${m?.dayNumber || 1}/120. Ngày tiếp theo chỉ được xét sau khi nhiệm vụ hôm nay có evidence đầy đủ.`;
+      : `Lộ trình 120 ngày bắt đầu từ ${start}; bạn đang ở Ngày giáo trình ${m?.dayNumber || 1}/120. Ngày tiếp theo mở khi Pinyin Tone Quest hôm nay đạt trên 30%.`;
   }
   function renderCoach(container, compact = false) {
     if (!container) return;
@@ -498,9 +471,9 @@
     const workbookPlan = "";
     const questPlan = "";
     const mistakeCount = window.PandaHanMistakes?.getAllQueue?.().length || window.PandaHanMistakes?.getQueue?.().length || 0;
-    const adaptiveNote = adaptive ? `<div style="font-size:11.5px;color:#475569;margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff;border:1px dashed #c4b5fd;">${langEn ? `Adaptive source: ${adaptive.reviewWords.length} due/weak review words${adaptive.introCompleted ? ` + ${adaptive.newWords.length} introduced words` : adaptive.vocabIntroReady ? ` · ${adaptive.introWords.length} phonetics-linked new words ready` : " · finish phonetics before new vocabulary"}${mistakeCount ? ` · ${mistakeCount} wrong items to redo` : ""}.` : `Nguồn thích ứng: ${adaptive.reviewWords.length} từ đến hạn/yếu cần ôn${adaptive.introCompleted ? ` + ${adaptive.newWords.length} từ mới đã học` : adaptive.vocabIntroReady ? ` · sẵn sàng ${adaptive.introWords.length} từ mới liên kết Ngữ âm` : " · hoàn thành Ngữ âm trước khi học từ mới"}${mistakeCount ? ` · ${mistakeCount} câu sai cần làm lại` : ""}.`}</div>` : "";
-    const nextOriginalTextVi = m.dayNumber < 120 ? `Ngày gốc ${m.dayNumber + 1} vẫn khóa cho đến khi buổi này đạt.` : "Đây là phần kéo dài sau ngày 120; không có ngày giáo trình mới bị mở sớm.";
-    const nextOriginalTextEn = m.dayNumber < 120 ? `Original Day ${m.dayNumber + 1} remains locked until this session passes.` : "This is an extension after Day 120; no new curriculum day is unlocked early.";
+    const adaptiveNote = adaptive ? `<div style="font-size:11.5px;color:#475569;margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff;border:1px dashed #c4b5fd;">${adaptive.isPinyinBootcamp ? (langEn ? "Days 1-10: Pinyin/phonetics only. Vocabulary learning starts from Day 11." : "Ngày 1-10: chỉ học Pinyin/Ngữ âm. Cơ chế học từ vựng + SRS bắt đầu từ Ngày 11.") : (langEn ? `Vocabulary + cumulative SRS: ${adaptive.newWords.length} daily Excel words · ${adaptive.reviewWords.length} due/weak review words.` : `Từ vựng + SRS lũy kế: ${adaptive.newWords.length} từ mới đúng theo Excel · ${adaptive.reviewWords.length} từ đến hạn/yếu cần ôn.`)}</div>` : "";
+    const nextOriginalTextVi = m.dayNumber < 120 ? `Ngày gốc ${m.dayNumber + 1} mở khi Pinyin Tone Quest của ngày này đạt trên 30%.` : "Đây là phần kéo dài sau ngày 120; không có ngày giáo trình mới bị mở sớm.";
+    const nextOriginalTextEn = m.dayNumber < 120 ? `Original Day ${m.dayNumber + 1} unlocks when this day’s Pinyin Tone Quest is above 30%.` : "This is an extension after Day 120; no new curriculum day is unlocked early.";
     const carryNote = m.isRepeat ? `<div style="font-size:11.5px;color:#92400e;margin-top:7px;padding:8px 9px;border-radius:9px;background:#fffbeb;border:1px solid #fcd34d;">${langEn ? `Continuation session: verified work carried from Day ${m.dayNumber}: ${m.carriedTaskIds.length ? m.carriedTaskIds.join(", ") : "none"}. Still required: ${m.missingTaskIds.length ? m.missingTaskIds.join(", ") : "none"}. ${nextOriginalTextEn}` : `Buổi tiếp tục: đã giữ bằng chứng từ Ngày ${m.dayNumber}: ${m.carriedTaskIds.length ? m.carriedTaskIds.join(", ") : "chưa có"}. Còn phải làm: ${m.missingTaskIds.length ? m.missingTaskIds.join(", ") : "không còn"}. ${nextOriginalTextVi}`}</div>` : "";
     const excelDetails = langEn ? [] : [
       c.grammar_focus ? `${langEn ? "Grammar/reference" : "Ngữ pháp/tài liệu"}: ${c.grammar_focus}` : "",
@@ -696,7 +669,7 @@
     const carry = m.isRepeat
       ? (zh ? `这是延续课程：已保留 ${m.carriedTaskIds?.length || 0} 项已验证任务；仍需完成 ${m.missingTaskIds?.length || 0} 项。` : en ? `This is a continuation session: ${m.carriedTaskIds?.length || 0} verified task(s) are carried; ${m.missingTaskIds?.length || 0} still need completion.` : `Đây là buổi tiếp tục: đã giữ ${m.carriedTaskIds?.length || 0} nhiệm vụ có evidence; còn ${m.missingTaskIds?.length || 0} nhiệm vụ phải hoàn thành.`)
       : (zh ? "请按下方顺序学习；自由练习不会提前解锁下一天。" : en ? "Follow this order; free practice never unlocks the next day early." : "Hãy làm theo đúng thứ tự dưới đây; học tự do không mở khóa ngày tiếp theo sớm.");
-    const gate = zh ? `解锁条件：必做任务必须有真实 evidence，且分数达到 ${m.requiredScore}%；错题仍需复习。` : en ? `Unlock rule: required tasks need real evidence and the score must reach ${m.requiredScore}%; wrong items still require review.` : `Điều kiện mở khóa: nhiệm vụ bắt buộc cần evidence thật và điểm phải đạt ${m.requiredScore}%; câu sai vẫn phải ôn lại.`;
+    const gate = zh ? `解锁条件只有一个：当前 Pinyin Tone Quest 分数必须高于 30%。其他学习 evidence 不会锁住下一天。` : en ? `Only unlock rule: the current Pinyin Tone Quest score must be above 30%. Other learning evidence never locks the next day.` : `Điều kiện mở khóa duy nhất: Pinyin Tone Quest của ngày hiện tại phải trên 30%. Các evidence học tập khác không khóa ngày kế tiếp.`;
     const mistakes = mistakeCount ? (zh ? `当前有 ${mistakeCount} 个错题待复习。` : en ? `${mistakeCount} wrong item(s) are still queued for redo.` : `Hiện có ${mistakeCount} câu/từ sai đang chờ ôn lại.`) : "";
     const pathUpdate = routeStatusChatText(m, zh ? "zh" : en ? "en" : "vi");
     const action = zh ? "请直接点击 khung kế hoạch中的任务按钮开始。" : en ? "Tap an Open task button in the plan card to start." : "Hãy bấm nút nhiệm vụ trong khung kế hoạch để bắt đầu.";
@@ -740,10 +713,10 @@
     if (/(sửa câu|sửa.*câu|correct.*sentence|check.*sentence|改.*句|修改.*句|đúng không|correct this)/i.test(q)) return zh ? "请发送一条完整的中文句子。离线 AI Tutor 会先检查可观察的要素：主语、动词、语法标记、标点和目标词。语义、搭配与自然度的完整修改需要已部署的 Cloud AI 或老师。" : en ? "Send one complete Chinese sentence. Offline AI Tutor will first check observable elements: subject, verb, grammar markers, punctuation, and target words. Full meaning, collocation, and naturalness correction needs deployed Cloud AI or a teacher." : "Hãy gửi một câu tiếng Trung hoàn chỉnh. AI Tutor Offline sẽ kiểm tra trước các yếu tố quan sát được: chủ ngữ, động từ, dấu hiệu ngữ pháp, dấu câu và từ mục tiêu. Sửa trọn vẹn nghĩa, kết hợp từ và độ tự nhiên cần Cloud AI đã deploy hoặc giáo viên.";
     if (/sắp xếp|unscramble|xếp câu/.test(q)) return en ? `Use Sentence unscramble next. It uses the same evidence-based practice pool and sends wrong items to redo.` : zh ? "下一步可以做“句子排序”。练习使用同一套基于学习证据的词汇池，答错会进入复习队列。" : "Tiếp theo hãy làm Sắp xếp câu. Bài dùng cùng practice pool theo evidence và tự đưa câu sai vào hàng đợi làm lại.";
     if (/ghép|match|nghĩa/.test(q)) return en ? `Use Match Hanzi · meaning for a short warm-up. It uses only eligible words, not the whole HSK bank.` : `Hãy làm Ghép chữ · nghĩa để khởi động. Bài chỉ lấy từ đủ điều kiện, không lấy toàn bộ kho HSK.`;
-    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest ${m.questStation} for ${m.sessionLabelEn}. Main mode: ${m.questMainMode}. Follow: ${m.questActivityChain}. The score is saved and used with the ${m.requiredScore}% gate.` : `Hãy mở Pinyin Tone Quest ${m.questStation} của ${m.sessionLabelVi}. Chế độ chính: ${m.questMainMode}. Làm theo chuỗi: ${m.questActivityChain}. Điểm sẽ được lưu và dùng cùng ngưỡng ${m.requiredScore}% để xét mở ngày tiếp theo.`;
+    if (/quest|pinyin|thanh điệu|tone/.test(q)) return en ? `Open Pinyin Tone Quest ${m.questStation} for ${m.sessionLabelEn}. Main mode: ${m.questMainMode}. Follow: ${m.questActivityChain}. A score above 30% unlocks the next day.` : `Hãy mở Pinyin Tone Quest ${m.questStation} của ${m.sessionLabelVi}. Chế độ chính: ${m.questMainMode}. Làm theo chuỗi: ${m.questActivityChain}. Điểm trên 30% sẽ mở ngày tiếp theo.`;
     if (/nghe|listen|nói|speak|đọc|viết|read|write|srs|ôn/.test(q)) return en ? `Today's workbook tasks are: Listen — ${workbookTaskDescription("listening", m.curriculum, true)} Speak — ${workbookTaskDescription("speaking", m.curriculum, true)} Read/Write — ${workbookTaskDescription("reading_writing", m.curriculum, true)} SRS — ${workbookTaskDescription("srs", m.curriculum, true)}` : `Nhiệm vụ theo file hôm nay gồm: Nghe — ${m.curriculum.listening_task}; Nói — ${m.curriculum.speaking_task}; Đọc/Viết — ${m.curriculum.reading_writing_task}; SRS — ${m.curriculum.srs_review_task}.`;
     if (/viết|write/.test(q)) return en ? "Use Write the meaning after the recognition tasks. Try from memory before revealing the reference answer." : "Hãy làm Viết nghĩa sau các bài nhận diện. Cố nhớ trước rồi mới xem phần đáp án tham khảo.";
-    if (/xong|hoàn thành|done|next|tiếp/.test(q)) return en ? `A new day unlocks only after the current registered-day sequence has all verified required tasks and reaches ${m.requiredScore}%. Wrong items remain assigned for redo. If the day is missed, the schedule inserts a repeat extension after midnight.` : `Ngày mới chỉ mở khi ngày hiện tại theo mốc đăng ký đã đủ nhiệm vụ bắt buộc có evidence và đạt ${m.requiredScore}%. Câu sai vẫn được giao làm lại. Nếu bỏ lỡ qua 24:00, hệ thống chèn ngày repeat nối tiếp.`;
+    if (/xong|hoàn thành|done|next|tiếp/.test(q)) return en ? `The next curriculum day unlocks as soon as the current Pinyin Tone Quest score is above 30%. Exactly 30% or below does not pass. Listening, Speaking, Vocabulary, Reading/Writing, SRS and mistake review never block progression, and the route stays fixed at 120 days.` : `Ngày giáo trình kế tiếp mở ngay khi Pinyin Tone Quest của ngày hiện tại đạt trên 30%. Đúng 30% hoặc thấp hơn không đạt. Nghe, Nói, Từ vựng, Đọc/Viết, SRS và ôn câu sai không chặn tiến độ; lộ trình luôn cố định 120 ngày.`;
     return offlineTutorCapabilityResponse(language);
   }
 
