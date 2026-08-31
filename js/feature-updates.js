@@ -173,6 +173,39 @@
     setTimeout(renderFlowPanel, 0);
     return true;
   }
+  let vocabularyReconcileKey = "";
+  function vietnamToday() {
+    try { return window.PandaHanSchedule?.todayVietnam?.() || new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date()); }
+    catch (_) { return new Date().toISOString().slice(0, 10); }
+  }
+  async function reconcileSavedVocabularyQuiz() {
+    const current = window.PandaHanMission?.getCurrent?.() || {};
+    const dayNumber = Number(current.dayNumber || current.day_number || current.adaptivePlan?.dayNumber || 0);
+    const words = getDayWords(dayNumber);
+    if (!dayNumber || !words.length) return;
+    const schedule = window.PandaHanSchedule;
+    const loaded = await (schedule?.getScheduleAsync?.() || Promise.resolve(schedule?.getSchedule?.())).catch?.(() => null) || schedule?.getSchedule?.();
+    const day = loaded?.days?.find?.((item) => Number(item.day_number) === dayNumber);
+    if (day?.completed_tasks?.["vocab-intro"]) return;
+    const activity = readJson(`pandahan_pro_log_v1_${ns()}`, []);
+    const today = vietnamToday();
+    const rows = (Array.isArray(activity) ? activity : []).map((item) => {
+      const match = String(item?.text || "").match(/(?:Trắc nghiệm|Quiz):\s*(\d+)\/(\d+)\s*(?:đúng|correct)/i);
+      if (!match) return null;
+      let date = ""; try { date = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(Number(item.t))); } catch (_) {}
+      const correct = Number(match[1]); const total = Math.max(1, Number(match[2]));
+      return date === today ? { scorePercent: Math.round(correct * 100 / total), correct, total, t: Number(item.t) || 0 } : null;
+    }).filter(Boolean).sort((a, b) => a.t - b.t);
+    if (rows.length < words.length) return;
+    const selected = rows.slice(-words.length);
+    const score = Math.round(selected.reduce((sum, row) => sum + row.scorePercent, 0) / selected.length);
+    const key = `${dayNumber}:${today}:${selected.map((row) => `${row.correct}/${row.total}`).join(",")}`;
+    if (key === vocabularyReconcileKey || score < 30) return;
+    vocabularyReconcileKey = key;
+    try {
+      await schedule?.recordTaskScore?.(dayNumber, "vocab-intro", score, "verified:linked-vocabulary-quiz-history", { evidenceType: "daily_vocabulary_quiz_history", scorePercent: score, threshold: 30, passed: true, completeSet: true, totalWords: selected.length, scores: selected, date: new Date().toISOString(), rawSource: "saved-quiz-activity-log" });
+    } catch (error) { console.warn("Không đối soát được lịch sử trắc nghiệm từ vựng:", error.message || error); }
+  }
   window.PandaHanVocabularyFlow = {
     start: startVocabularyFlow,
     startForDay: (day) => startVocabularyFlow(getDayWords(day), day),
@@ -217,4 +250,7 @@
     if (task) setTimeout(() => startVocabularyFlow(getDayWords(window.PandaHanMission?.getCurrent?.()?.dayNumber)), 0);
   });
   window.addEventListener("pandahan-detail-opened", renderFlowPanel);
+  window.addEventListener("pandahan-schedule-updated", () => setTimeout(reconcileSavedVocabularyQuiz, 300));
+  window.addEventListener("pandahan-learning-evaluation", () => setTimeout(reconcileSavedVocabularyQuiz, 300));
+  document.addEventListener("DOMContentLoaded", () => setTimeout(reconcileSavedVocabularyQuiz, 1200));
 })();
