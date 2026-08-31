@@ -384,6 +384,42 @@
     return result;
   }
 
+  async function recordTaskScore(dayNumber, taskId, score, source = "unverified:vocabulary-sm2", evidence = {}) {
+    if (!/^verified:/.test(String(source || ""))) {
+      const error = new Error("Chỉ điểm có evidence xác minh mới được ghi nhận.");
+      error.code = "UNVERIFIED_TASK_EVIDENCE";
+      throw error;
+    }
+    const today = core.todayVietnam();
+    const uid = getUid();
+    const rtdb = getRtdb();
+    let output = null;
+    if (!uid || !rtdb) {
+      const local = loadLocal() || await initScheduleIfNeeded();
+      output = core.recordTaskScore(local, dayNumber, taskId, score, today, source, evidence);
+      saveLocal(output.schedule);
+    } else {
+      const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
+      let error = null;
+      const transaction = await ref.transaction((current) => {
+        try {
+          const schedule = hydrateScheduleSync(normalizeSchedule(current) || loadLocal());
+          if (!schedule) throw new Error("Chưa khởi tạo lộ trình.");
+          output = core.recordTaskScore(schedule, dayNumber, taskId, score, today, source, evidence);
+          output.schedule._meta = { ...(output.schedule._meta || {}), version: Number(schedule._meta?.version || 0) + 1 };
+          return output.schedule;
+        } catch (caught) { error = caught; return; }
+      });
+      if (error) throw error;
+      if (!transaction.committed || !output) throw new Error("Không ghi được điểm vocab-intro vào schedule RTDB.");
+      saveLocal(output.schedule);
+      await writeReviewLog(uid, "vocabulary-sm2", { dayNumber: Number(dayNumber), score: Number(score), taskId: String(taskId), source, evidence, date: today });
+    }
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: output }));
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "vocabulary-sm2", evidenceType: "daily_vocabulary_sm2_average", verified: true, dayNumber: Number(dayNumber), taskId: String(taskId), scorePercent: Number(score), threshold: 30, passed: Number(score) >= 30, ...evidence, missingTaskIds: output.result.missingTaskIds || [], requiredTaskIds: output.result.requiredTaskIds || [], evaluatedAt: Date.now() } }));
+    return output;
+  }
+
   async function completeTask(dayNumber, taskId, source = "unverified", evidence = {}) {
     if (!/^verified:/.test(String(source || ""))) {
       const error = new Error("Chỉ hoạt động đã xác minh mới được ghi nhận; không dùng xác nhận thủ công.");
@@ -542,6 +578,7 @@
     initScheduleIfNeeded,
     submitDayResult,
     submitQuestResult,
+    recordTaskScore,
     completeTask,
     requireMistakeReview,
     runCatchUpCheck,
