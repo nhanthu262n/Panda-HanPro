@@ -403,7 +403,7 @@
         <button class="btn btn-outline" style="padding:4px 14px;font-size:11px;" id="pinyinToneQuestBack" type="button" data-lang-vi="← Về luyện tập" data-lang-en="← Back to practice">← Về luyện tập</button>
         <span id="questProgressSyncStatus" data-lang-vi="Ôn tập, sổ lỗi và kết quả được lưu theo tài khoản" data-lang-en="Review, error log and results are saved to this account">Ôn tập, sổ lỗi và kết quả được lưu theo tài khoản</span><label id="questDaySearchWrap" style="display:inline-flex;align-items:center;gap:5px;border:1px solid #ddd6fe;border-radius:999px;background:#fff;padding:4px 8px;color:#6d4a7c;font-size:11px;font-weight:800;"><span data-lang-vi="Tìm ngày" data-lang-en="Find day">Tìm ngày</span><input id="questDaySearch" inputmode="numeric" type="search" min="1" max="120" placeholder="1–120" aria-label="Tìm ngày 1 đến 120" style="width:58px;border:0;outline:0;background:transparent;color:#4c1d95;font-weight:800;font-size:11px;"></label><span id="questDaySearchError" role="alert" style="display:none;color:#b42318;font-size:11px;font-weight:800;"></span><button class="quest-review-toggle" id="questReviewErrorsBtn" type="button"><span id="questReviewErrorsText" data-lang-vi="📒 Ôn câu sai" data-lang-en="📒 Redo wrong items">📒 Ôn câu sai</span> (<b id="questReviewErrorCount">0</b>)</button>
       </div>
-      <iframe id="pinyinToneQuestFrame" title="Pinyin Tone Quest" src="about:blank" data-quest-app="pinyin-tone-quest-app/index.html?embedded=1&v=quest-gate-v15-no-calendar-repeat-20260901" loading="lazy" allow="autoplay"></iframe>
+      <iframe id="pinyinToneQuestFrame" title="Pinyin Tone Quest" src="about:blank" data-quest-app="pinyin-tone-quest-app/index.html?embedded=1&v=quest-result-parser-v17-20260901" loading="lazy" allow="autoplay"></iframe>
     </div>
   </div>
 
@@ -642,23 +642,23 @@
   <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
   
 <script defer src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
-<script defer src="js/app-02.js?v=run21-i18n-20260827-v18"></script>
-<script defer src="js/adaptive-learning-engine.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
+<script defer src="js/app-02.js?v=mistake-score-linked-vocab-v17-20260901"></script>
+<script defer src="js/adaptive-learning-engine.js?v=linked-vocab-v17-20260901"></script>
 <script defer src="js/app-03.js?v=ai-coach-quest-source-restore-20260827-v21"></script>
 <script defer src="js/firebase-boot.js"></script>
 <script defer src="js/auth-bridge.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
 <script defer src="js/schedule-engine-core.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
-<script defer src="js/app-04-adaptive-schedule.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
+<script defer src="js/app-04-adaptive-schedule.js?v=quest-bridge-v17-20260901"></script>
 <script defer src="js/hsk-topic-library.js?v=hsk-topic-library-20260826-v2"></script>
 <script defer src="js/hsk-topic-library-advanced.js?v=hsk-topic-economy-culture-20260826-v2"></script>
 <script defer src="js/ai-tutor-grammar-pack.js?v=ai-tutor-grammar-pack-20260826-v1"></script>
 <script defer src="js/ai-tutor-hsk-complete-library.js?v=user-hsk1-6-reading-meaning-20260827-v2"></script>
 <script defer src="js/ai-tutor-reading-extension-translations.js?v=ai-tutor-extension-meaning-20260827-v1"></script>
-<script defer src="js/daily-missions.js?v=excel-phonetics-route-v16-20260901"></script>
+<script defer src="js/daily-missions.js?v=linked-vocab-mistake-v17-20260901"></script>
 <script defer src="js/app-05-rtdb-block1.js"></script>
 <script defer src="js/app-06-quest-ui.js"></script>
 <script defer src="js/quest-progression-core.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
-<script defer src="js/app-07-quest-parts-loader.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
+<script defer src="js/app-07-quest-parts-loader.js?v=quest-result-parser-v17-20260901"></script>
 <script defer src="js/feature-updates.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
 <script defer src="js/pinyin-phonetics-loader.js?v=excel-phonetics-route-v16-20260901"></script>
 <script defer src="js/ai-coach-evidence.js?v=phonetics-native-quiz-v16-20260901"></script>
