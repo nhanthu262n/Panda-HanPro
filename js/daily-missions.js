@@ -300,15 +300,21 @@
     else if (type === "write") window.startWriteGame?.(scheduledContext);
     else if (type === "tone-race") window.startToneRaceGame?.({ words: m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), ...scheduledContext });
     else if (type === "quest") {
-      // AI Coach dùng trực tiếp bài Ôn tập 120 ngày để điểm Quest cập nhật schedule và mở ngày kế tiếp.
-      window.switchTab?.("practice");
-      setTimeout(async () => {
-        document.getElementById("pCardPinyinQuest")?.click();
-        try { await window.PandaHanQuestParts?.loadQuestOffline?.(); } catch (_) {}
-        const input = document.getElementById("questDaySearch");
-        if (input) input.value = String(m.dayNumber || 1);
-        await window.PandaHanFeatureUpdates?.jumpToReviewDay?.(m.dayNumber || 1);
-      }, 120);
+      // Mục 4 AI Coach dùng game thanh điệu riêng; không mở Pinyin Tone Quest gốc.
+      if (m.chainVocabulary?.length && typeof window.startToneRaceGame === "function") {
+        window.switchTab?.("practice");
+        setTimeout(() => window.startToneRaceGame?.({ coachQuest: true, words: m.chainVocabulary, ...scheduledContext }), 100);
+      } else {
+        // Chỉ khi không có nhóm từ liên kết mới mở Pinyin Tone Quest gốc.
+        window.switchTab?.("practice");
+        setTimeout(async () => {
+          document.getElementById("pCardPinyinQuest")?.click();
+          try { await window.PandaHanQuestParts?.loadQuestOffline?.(); } catch (_) {}
+          const input = document.getElementById("questDaySearch");
+          if (input) input.value = String(m.dayNumber || 1);
+          await window.PandaHanFeatureUpdates?.jumpToReviewDay?.(m.dayNumber || 1);
+        }, 120);
+      }
     } else if (type === "listening") {
       try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {}
       window.switchTab?.("pinyin");
