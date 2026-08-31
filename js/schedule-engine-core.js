@@ -171,11 +171,11 @@
       if (current && Number(next.continuation_from_sequence) === Number(currentSequence)) {
         copyContinuationState(current, next, { today });
       }
-      const baseDate = current?.scheduled_date || today;
-      const unlockDate = addVietnamDays(baseDate, 1);
-      next.status = "pending_unlock";
-      next.unlock_date = unlockDate;
-      next.scheduled_date = unlockDate;
+      // Khi learner đã hoàn thành đủ task và đạt điểm, buổi kế tiếp mở ngay.
+      // Các repeat/SRS vẫn được điều phối riêng; không trì hoãn ngày mới hợp lệ.
+      next.status = "unlocked";
+      next.scheduled_date = today;
+      delete next.unlock_date;
     }
     return next;
   }
