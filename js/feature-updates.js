@@ -177,21 +177,31 @@
     start: startVocabularyFlow,
     startForDay: (day) => startVocabularyFlow(getDayWords(day), day),
     getState: () => flow,
-    quizCompleted: (result) => {
+    quizCompleted: async (result) => {
       if (!flow) return;
       const char = String(result?.char || flow.words[flow.index]?.char || "");
       const scorePercent = Math.max(0, Math.min(100, Number(result?.scorePercent) || 0));
       flow.grades = flow.grades || {};
       flow.grades[char] = { scorePercent, correct: Number(result?.correct || 0), total: Number(result?.total || 0), reviewedAt: Date.now(), source: "graded-vocabulary-quiz" };
       flow.index += 1;
-      const next = flow.words[flow.index];
-      if (next && typeof window.openDetail === "function") window.openDetail(next.char);
-      else {
+      const isLast = flow.index >= flow.words.length;
+      if (isLast && flow.dayNumber) {
+        const rows = Object.values(flow.grades);
+        const dailyScore = rows.length ? Math.round(rows.reduce((sum, item) => sum + Number(item.scorePercent || 0), 0) / rows.length) : scorePercent;
+        const evidence = { evidenceType: "daily_vocabulary_sm2_average", scorePercent: dailyScore, threshold: 30, passed: dailyScore >= 30, completeSet: true, totalWords: rows.length, scores: rows, date: new Date().toISOString(), rawSource: "linked-vocabulary-quiz" };
+        try {
+          const schedule = window.PandaHanSchedule;
+          if (schedule?.recordTaskScore) await schedule.recordTaskScore(Number(flow.dayNumber), "vocab-intro", dailyScore, "verified:linked-vocabulary-quiz-sm2", evidence);
+          if (dailyScore >= 30 && schedule?.completeTask) await schedule.completeTask(Number(flow.dayNumber), "vocab-intro", "verified:linked-vocabulary-quiz-sm2", evidence);
+        } catch (error) { console.warn("Không ghi được điểm Từ vựng liên kết vào task:", error.message || error); }
         const returnToCoach = () => {
           if (typeof window.switchTab === "function") window.switchTab("chat");
           setTimeout(() => window.openAiCoachChat?.(), 0);
         };
         returnToCoach();
+      } else {
+        const next = flow.words[flow.index];
+        if (next && typeof window.openDetail === "function") window.openDetail(next.char);
       }
       renderFlowPanel();
     }
