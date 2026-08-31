@@ -2,8 +2,8 @@
   "use strict";
 
   const DAY_MS = 86400000;
-  const INTRO_LIMIT = 6;
-  const PRACTICE_LIMIT = 10;
+  const INTRO_LIMIT = 24;
+  const PRACTICE_LIMIT = 24;
 
   function ns() {
     try {
@@ -97,16 +97,21 @@
     const all = getVocab();
     const map = getMap();
     const groups = focusGroups(curriculum);
-    const raw = parseNewVocab(curriculum.new_vocab_raw);
+    const isPinyinBootcamp = dayNumber <= 10 || curriculum.stage_code === "stage_0";
+    // Days 1-10 are exclusively Pinyin/phonetics training. The Excel vocab cells there
+    // are pronunciation examples, not a vocabulary-learning queue. Vocabulary starts Day 11.
+    const raw = isPinyinBootcamp ? [] : parseNewVocab(curriculum.new_vocab_raw);
     const linkedNew = raw.map((item) => map[item.char]).filter(Boolean).filter((word) => matchesFocus(word, groups));
     // Strict chain rule: when a phonetics focus exists, never inject a raw day word
     // that does not match that focus merely to fill the intro quota.
+    // Teach the complete daily Excel word set (normally 8-11 words), not an arbitrary 6-word slice.
     const exactNew = linkedNew.slice(0, INTRO_LIMIT);
     const introState = getIntroState(dayNumber);
     const introducedChars = new Set(Array.isArray(introState.chars) ? introState.chars : []);
     const introWords = exactNew.filter((word) => !introducedChars.has(word.char) && !hasRecallEvidence(getStatFor(word.char))).slice(0, INTRO_LIMIT);
     const learned = all.map(scoreWord).filter((item) => item.hasRecall);
-    const reviewPool = learned.filter((item) => item.due || item.weak).sort((a, b) => b.priority - a.priority).map((item) => item.word);
+    // SRS is cumulative from Day 11 onward: due/weak words from ANY prior learned day are eligible.
+    const reviewPool = isPinyinBootcamp ? [] : learned.filter((item) => item.due || item.weak).sort((a, b) => b.priority - a.priority).map((item) => item.word);
     const introducedToday = all.filter((word) => introducedChars.has(word.char)).map(scoreWord).sort((a, b) => b.priority - a.priority).map((item) => item.word);
     const practiceWords = [...new Map([...reviewPool, ...(introState.completed ? introducedToday : [])].map((word) => [word.char, word])).values()].slice(0, PRACTICE_LIMIT);
     const phoneticsReady = isPhoneticsReady(curriculum, scheduleItem);
@@ -114,7 +119,7 @@
     const canPracticeNew = introState.completed || !introWords.length;
     const eligible = canPracticeNew ? practiceWords : practiceWords.filter((word) => !exactNew.some((newWord) => newWord.char === word.char));
     return {
-      dayNumber, date: today(), focusGroups: groups, focusLabel: groups.map((group) => group.label).join(" · ") || "theo chủ đề ngày",
+      dayNumber, date: today(), isPinyinBootcamp, vocabularyMode: isPinyinBootcamp ? "phonetics_only" : "daily_vocab_plus_cumulative_srs", focusGroups: groups, focusLabel: groups.map((group) => group.label).join(" · ") || "theo chủ đề ngày",
       phoneticsReady, vocabIntroReady, introCompleted: !!introState.completed, introWords, newWords: exactNew,
       practiceWords: eligible, reviewWords: reviewPool, linkedNewWords: exactNew,
       counts: { new: exactNew.length, intro: introWords.length, review: reviewPool.length, practice: eligible.length },
