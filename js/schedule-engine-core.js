@@ -21,37 +21,26 @@
     return Number(item.day_number || item.original_day_number || item.dayNumber || 0) >= READING_WRITING_UNLOCK_DAY;
   }
 
-  // These IDs mirror the authoritative Excel columns. A learner may only
-  // advance after every non-empty important column has a real completion event.
+  // Day-unlock policy: Pinyin Tone Quest is the ONLY mandatory gate.
+  // Listening/Speaking/Vocabulary/Reading-Writing/SRS are still tracked as learning evidence,
+  // but they must never block Day N -> Day N+1.
+  const TRACKABLE_TASK_IDS = new Set(["quest", "listening", "speaking", "vocab-intro", "reading_writing", "srs", "mistake_review"]);
   function hasLinkedVocabulary(item = {}) {
     return hasCurriculumTask(item.new_vocab_raw) || Number(item.new_vocab_count || 0) > 0;
   }
-
-  function getMandatoryTaskIds(item = {}) {
-    const ids = ["quest"];
-    if (hasCurriculumTask(item.listening_task)) ids.push("listening");
-    if (hasCurriculumTask(item.speaking_task)) ids.push("speaking");
-    if (hasLinkedVocabulary(item)) ids.push("vocab-intro");
-    if (isReadingWritingUnlocked(item) && hasCurriculumTask(item.reading_writing_task)) ids.push("reading_writing");
-    if (hasCurriculumTask(item.srs_review_task)) ids.push("srs");
-    return ids;
-  }
-
-  function ensureDayRequirements(day, curriculumItem) {
-    const derived = getMandatoryTaskIds(curriculumItem || day || {});
-    const existing = Array.isArray(day.required_tasks) && day.required_tasks.length ? day.required_tasks : derived;
-    const scoped = isReadingWritingUnlocked(curriculumItem || day || {}) ? existing : existing.filter((id) => String(id) !== "reading_writing");
-    // Ôn câu sai là hoạt động bổ trợ, không phải cổng bắt buộc để mở ngày mới.
-    day.required_tasks = Array.from(new Set(scoped.map(String))).filter((id) => id !== "mistake_review");
+  function getMandatoryTaskIds() { return ["quest"]; }
+  function isTrackableTaskId(id) { return TRACKABLE_TASK_IDS.has(String(id || "")); }
+  function ensureDayRequirements(day) {
+    day.required_tasks = ["quest"];
     day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
     day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
     day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
     return day;
   }
-
   function missingRequiredTasks(day) {
     ensureDayRequirements(day);
-    return day.required_tasks.filter((id) => id !== "mistake_review" && !day.completed_tasks[id]);
+    const score = Number(day.last_score);
+    return Number.isFinite(score) && score > 30 ? [] : ["quest"];
   }
 
   function todayVietnam(now = new Date()) {
@@ -255,30 +244,25 @@
   }
 
   function finishDayIfReady(schedule, day, today) {
+    ensureDayRequirements(day);
     const reviewType = reviewTypeFor(day, schedule);
-    const threshold = reviewThreshold(reviewType, day);
-    const missingTaskIds = missingRequiredTasks(day);
-    const vocabularyScore = Number(day.task_scores?.["vocab-intro"]);
-    if (day.required_tasks?.includes("vocab-intro") && (!Number.isFinite(vocabularyScore) || vocabularyScore < 30)) {
-      return { passed: false, action: "vocabulary_below_threshold", repeatCount: 0, missingTaskIds: ["vocab-intro"], reviewType, threshold, score: Number.isFinite(Number(day.last_score)) ? Number(day.last_score) : null, vocabularyScore: Number.isFinite(vocabularyScore) ? vocabularyScore : null };
-    }
+    const threshold = 30;
     const score = Number(day.last_score);
-    if (missingTaskIds.length) {
-      return { passed: false, action: "incomplete_day_requirements", repeatCount: 0, missingTaskIds, reviewType, threshold, score: Number.isFinite(score) ? score : null };
-    }
     if (!Number.isFinite(score)) {
-      return { passed: false, action: "awaiting_score", repeatCount: 0, missingTaskIds: [], reviewType, threshold, score: null };
+      return { passed: false, action: "awaiting_quest_score", repeatCount: 0, missingTaskIds: ["quest"], reviewType, threshold, score: null };
     }
-    if (score >= threshold) {
+    // User requirement is strictly ABOVE 30%; exactly 30% does not unlock.
+    if (score > threshold) {
+      day.completed_tasks.quest = day.completed_tasks.quest || { completed_at: today, source: "pinyin-tone-quest", score };
       day.status = "completed";
       day.completed_at = today;
       unlockNextDay(schedule, day.sequence_index, today);
       return { passed: true, action: "advance", repeatCount: 0, missingTaskIds: [], reviewType, threshold, score };
     }
-    day.status = "failed_review";
-    const repeatCount = reviewType === "monthly" ? 3 : reviewType === "weekly" ? 2 : 1;
-    const repeats = insertRepeatsAfter(schedule, day, repeatCount, `${reviewType}_failed`, today, continuationOptions(day, today));
-    return { passed: false, action: "repeat_assigned", repeatCount: repeats.length, missingTaskIds: [], reviewType, threshold, score };
+    delete day.completed_tasks.quest;
+    day.status = "unlocked";
+    day.completed_at = null;
+    return { passed: false, action: "quest_below_threshold", repeatCount: 0, missingTaskIds: ["quest"], reviewType, threshold, score };
   }
 
   function applySubmit(scheduleInput, dayNumber, score, today = todayVietnam(), options = {}) {
@@ -297,13 +281,13 @@
     ensureDayRequirements(day);
     const taskId = options && options.taskId ? String(options.taskId) : "";
     if (taskId) {
-      if (!day.required_tasks.includes(taskId)) {
-        const error = new Error(`Nhiệm vụ ${taskId} không thuộc yêu cầu của ngày ${dayNumber}.`);
-        error.code = "UNKNOWN_REQUIRED_TASK";
+      if (!isTrackableTaskId(taskId)) {
+        const error = new Error(`Nhiệm vụ ${taskId} không được AI Coach nhận diện.`);
+        error.code = "UNKNOWN_TRACKABLE_TASK";
         throw error;
       }
-      day.completed_tasks[taskId] = { completed_at: today, source: options.source || "submitted" };
-      day.task_events.push({ task_id: taskId, completed_at: today, source: options.source || "submitted" });
+      if (taskId !== "quest") day.completed_tasks[taskId] = { completed_at: today, source: options.source || "submitted" };
+      day.task_events.push({ task_id: taskId, completed_at: today, source: options.source || "submitted", score: numericScore });
     }
     const reviewType = reviewTypeFor(day, schedule);
     const threshold = reviewThreshold(reviewType, day);
@@ -337,9 +321,9 @@
     }
     ensureDayRequirements(day);
     const id = String(taskId || "");
-    if (!day.required_tasks.includes(id) && id !== "mistake_review") {
-      const error = new Error(`Nhiệm vụ ${id || "trống"} không thuộc yêu cầu của ngày ${dayNumber}.`);
-      error.code = "UNKNOWN_REQUIRED_TASK";
+    if (!isTrackableTaskId(id)) {
+      const error = new Error(`Nhiệm vụ ${id || "trống"} không được AI Coach nhận diện.`);
+      error.code = "UNKNOWN_TRACKABLE_TASK";
       throw error;
     }
     if (!day.completed_tasks[id]) {
@@ -370,16 +354,16 @@
     }
     ensureDayRequirements(day);
     const id = String(taskId || "");
-    if (!day.required_tasks.includes(id)) {
-      const error = new Error(`Nhiệm vụ ${id || "trống"} không thuộc yêu cầu của ngày ${dayNumber}.`);
-      error.code = "UNKNOWN_REQUIRED_TASK";
+    if (!isTrackableTaskId(id)) {
+      const error = new Error(`Nhiệm vụ ${id || "trống"} không được AI Coach nhận diện.`);
+      error.code = "UNKNOWN_TRACKABLE_TASK";
       throw error;
     }
     const numericScore = Number(score);
     if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) throw new Error("Điểm phải nằm trong khoảng 0–100.");
     day.task_scores[id] = numericScore;
     const completeSet = evidence?.completeSet === true;
-    const passed = numericScore >= 30 && completeSet;
+    const passed = id === "quest" ? numericScore > 30 : (numericScore >= 30 && completeSet);
     day.task_events.push({ task_id: id, score: numericScore, completed: passed, completed_at: today, source, evidence });
     if (passed) day.completed_tasks[id] = { completed_at: today, source, score: numericScore, evidence };
     const evaluation = finishDayIfReady(schedule, day, today);
@@ -433,6 +417,7 @@
     recordTaskCompletion,
     recordTaskScore,
     getMandatoryTaskIds,
+    isTrackableTaskId,
     isReadingWritingUnlocked,
     READING_WRITING_UNLOCK_DAY,
     applyDailyExtension,
