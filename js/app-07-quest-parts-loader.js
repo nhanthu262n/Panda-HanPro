@@ -1,4 +1,4 @@
-/* PandaHán Pro — Ôn tập 120 ngày: cổng >60%, audio offline và chrome Việt–English đồng bộ. */
+/* PandaHán Pro — Ôn tập 120 ngày: cổng >30%, audio offline và chrome Việt–English đồng bộ. */
 (() => {
   "use strict";
 
@@ -116,11 +116,11 @@
     const resultKey = `${day}:${score}:${data.resultToken || ""}`;
     if (!day || !Number.isFinite(score) || lastQuestResultKey === resultKey || questResultInFlight === resultKey) return;
     questResultInFlight = resultKey;
-    const passed = score > 60;
-    const evaluation = { dayNumber: day, scorePercent: score, passed, threshold: 60, reviewType: "quest_lesson", repeatCount: 0, action: passed ? "unlock_next_lesson" : "retry_lesson" };
+    const passed = score > 30;
+    const evaluation = { dayNumber: day, scorePercent: score, passed, threshold: 30, reviewType: "quest_lesson", repeatCount: 0, action: passed ? "unlock_next_lesson" : "retry_lesson" };
     outerStatus(questText(
-      `Ôn tập 120 ngày · Bài ${day}: ${score}% · ${passed ? "Đã vượt 60% — mở bài tiếp theo" : "Cần đạt trên 60% để mở bài mới"}`,
-      `120-Day Review · Lesson ${day}: ${score}% · ${passed ? "Above 60% — next lesson unlocked" : "Score above 60% to unlock the next lesson"}`
+      `Ôn tập 120 ngày · Bài ${day}: ${score}% · ${passed ? "Đã vượt 30% — mở bài tiếp theo" : "Cần đạt trên 30% để mở bài mới"}`,
+      `120-Day Review · Lesson ${day}: ${score}% · ${passed ? "Above 30% — next lesson unlocked" : "Score above 30% to unlock the next lesson"}`
     ));
     window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
     lastQuestResultKey = resultKey;
@@ -139,7 +139,7 @@
       document.querySelectorAll('[data-day]').forEach(function(btn){
         var day=Number(btn.getAttribute('data-day')); var ok=allowed(day);
         btn.disabled=!ok; btn.setAttribute('aria-disabled',String(!ok));
-        btn.classList.toggle('ph-locked',!ok); btn.title=ok?'Mở bài ôn tập':'Đạt trên 60% ở bài trước để mở bài này';
+        btn.classList.toggle('ph-locked',!ok); btn.title=ok?'Mở bài ôn tập':'Đạt trên 30% ở bài trước để mở bài này';
       });
       var start=document.getElementById('oh-start-day'); if(start){var ok=allowed(1);start.disabled=!ok;start.setAttribute('aria-disabled',String(!ok));}
     }
@@ -151,12 +151,12 @@
       var p=title.match(/(\\d+(?:[.,]\\d+)?)\\s*%/); if(!p)return;
       var score=Math.max(0,Math.min(100,Math.round(Number(String(p[1]).replace(',','.')))));
       var token=String(day)+':'+String(score); if(resultSent[token])return; resultSent[token]=1;
-      try{var key=progressKey(),stored=JSON.parse(localStorage.getItem(key)||'{}')||{},rows=stored.dayProgress||{},row=rows[String(day)]||{};row.scorePercent=score;row.completed=score>60;row.threshold=60;row.updatedAt=Date.now();rows[String(day)]=row;stored.dayProgress=rows;localStorage.setItem(key,JSON.stringify(stored));}catch(_){}
+      try{var key=progressKey(),stored=JSON.parse(localStorage.getItem(key)||'{}')||{},rows=stored.dayProgress||{},row=rows[String(day)]||{};row.scorePercent=score;row.completed=score>30;row.threshold=30;row.updatedAt=Date.now();rows[String(day)]=row;stored.dayProgress=rows;localStorage.setItem(key,JSON.stringify(stored));}catch(_){}
       reportProgress();
       parent.postMessage({type:'PANDAHAN_QUEST_DAY_RESULT',day:day,scorePercent:score,resultToken:token},'*');
     }
     window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_GATE'){gate.unlockedDays=(d.unlockedDays||[1]).map(Number);gate.completedDays=(d.completedDays||[]).map(Number);apply();return;}if(d.type==='PANDAHAN_QUEST_OPEN_REVIEW'){var review=document.getElementById('oh-errors');if(review)review.click();}});
-    document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy đạt trên 60% ở bài trước để mở bài này.');return;}lastStartedDay=chosen;},true);
+    document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-day]');if(!b)return;var chosen=Number(b.getAttribute('data-day'));if(b.disabled){e.preventDefault();e.stopImmediatePropagation();alert('Hãy đạt trên 30% ở bài trước để mở bài này.');return;}lastStartedDay=chosen;},true);
     var observer=new MutationObserver(function(){apply();reportResult();}); observer.observe(document.documentElement,{subtree:true,childList:true});
     setInterval(reportResult,700);
     document.documentElement.classList.add('ph-content-only');
@@ -200,7 +200,7 @@
       });
       document.querySelectorAll('[data-day]').forEach(function(button){
         var original=button.title||'';if(!button.dataset.questViTitle)button.dataset.questViTitle=original;
-        if(button.dataset.questViTitle==='Mở bài ôn tập'||button.dataset.questViTitle==='Đạt trên 60% ở bài trước để mở bài này')button.title=lang==='en'?(button.dataset.questViTitle==='Mở bài ôn tập'?'Open review lesson':'Score above 60% on the previous lesson to open this lesson'):button.dataset.questViTitle;
+        if(button.dataset.questViTitle==='Mở bài ôn tập'||button.dataset.questViTitle==='Đạt trên 30% ở bài trước để mở bài này')button.title=lang==='en'?(button.dataset.questViTitle==='Mở bài ôn tập'?'Open review lesson':'Score above 30% on the previous lesson to open this lesson'):button.dataset.questViTitle;
       });
     }
     try{lang=(parent&&parent.LANG_MODE==='en')?'en':'vi';}catch(_){};
