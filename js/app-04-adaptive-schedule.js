@@ -39,20 +39,28 @@
       scores.set(d, Math.max(Number(scores.get(d) || 0), Math.max(0, Math.min(100, v))));
     };
     try {
-      const ns = String(storageNamespace());
-      const progress = JSON.parse(localStorage.getItem(`pinyin-tone-quest-offline-progress-v2_${ns}`) || "{}") || {};
-      Object.entries(progress.dayProgress || {}).forEach(([day, row]) => {
-        row = row || {};
-        const explicit = Number(row.scorePercent);
-        const answered = Number(row.answered || 0), correct = Number(row.correct || 0);
-        const derived = answered > 0 ? Math.round((Math.max(0, correct) / answered) * 100) : NaN;
-        if (Number.isFinite(explicit)) put(day, explicit);
-        if (Number.isFinite(derived)) put(day, derived);
+      const owners = [];
+      const addOwner = (v) => { v = String(v || '').replace(/[^a-zA-Z0-9_-]/g, '_'); if (v && !owners.includes(v)) owners.push(v); };
+      try { addOwner(storageNamespace()); } catch (_) {}
+      try { addOwner(window.CURRENT_USER?.uid); addOwner(window.CURRENT_USER?.username); } catch (_) {}
+      addOwner('guest'); // Handles Quest results saved during auth/bootstrap race.
+      owners.forEach((ns) => {
+        try {
+          const progress = JSON.parse(localStorage.getItem(`pinyin-tone-quest-offline-progress-v2_${ns}`) || "{}") || {};
+          Object.entries(progress.dayProgress || {}).forEach(([day, row]) => {
+            row = row || {};
+            const explicit = Number(row.scorePercent);
+            const answered = Number(row.answered || 0), correct = Number(row.correct || 0);
+            const derived = answered > 0 ? Math.round((Math.max(0, correct) / answered) * 100) : NaN;
+            if (Number.isFinite(explicit)) put(day, explicit);
+            if (Number.isFinite(derived)) put(day, derived);
+          });
+          const history = JSON.parse(localStorage.getItem(`pandahan_quest_results_${ns}`) || "[]") || [];
+          (Array.isArray(history) ? history : []).forEach((row) => put(row.dayNumber, row.scorePercent));
+          const bridge = JSON.parse(localStorage.getItem(`pandahan_quest_bridge_scores_v17_${ns}`) || "{}") || {};
+          Object.entries(bridge).forEach(([day, score]) => put(day, score));
+        } catch (_) {}
       });
-      const history = JSON.parse(localStorage.getItem(`pandahan_quest_results_${ns}`) || "[]") || [];
-      (Array.isArray(history) ? history : []).forEach((row) => put(row.dayNumber, row.scorePercent));
-      const bridge = JSON.parse(localStorage.getItem(`pandahan_quest_bridge_scores_v17_${ns}`) || "{}") || {};
-      Object.entries(bridge).forEach(([day, score]) => put(day, score));
     } catch (_) {}
     return scores;
   }
@@ -672,6 +680,16 @@
     return readServerSchedule(getUid());
   }
 
+  async function reconcileQuestEvidenceV20() {
+    let schedule = loadLocal() || await initScheduleIfNeeded();
+    if (!schedule) return null;
+    applyQuestEvidenceGate(schedule);
+    saveLocal(schedule);
+    publishLocalDailyPlan(schedule);
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: { schedule, source: "quest-evidence-v20" } }));
+    return schedule;
+  }
+
   window.PandaHanSchedule = {
     initScheduleIfNeeded,
     submitDayResult,
@@ -684,6 +702,7 @@
     computeWeeklyReview,
     computeMonthlyReview,
     syncScheduleFromServer,
+    reconcileQuestEvidence: reconcileQuestEvidenceV20,
     getSchedule: loadLocal,
     getScheduleAsync: () => readServerSchedule(getUid()).then((server) => server || loadLocal()),
     todayVietnam: core.todayVietnam,
