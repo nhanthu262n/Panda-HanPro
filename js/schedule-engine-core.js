@@ -41,7 +41,8 @@
     const derived = getMandatoryTaskIds(curriculumItem || day || {});
     const existing = Array.isArray(day.required_tasks) && day.required_tasks.length ? day.required_tasks : derived;
     const scoped = isReadingWritingUnlocked(curriculumItem || day || {}) ? existing : existing.filter((id) => String(id) !== "reading_writing");
-    day.required_tasks = Array.from(new Set(scoped.map(String)));
+    // Ôn câu sai là hoạt động bổ trợ, không phải cổng bắt buộc để mở ngày mới.
+    day.required_tasks = Array.from(new Set(scoped.map(String))).filter((id) => id !== "mistake_review");
     day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
     day.task_events = Array.isArray(day.task_events) ? day.task_events : [];
     day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
@@ -50,7 +51,7 @@
 
   function missingRequiredTasks(day) {
     ensureDayRequirements(day);
-    return day.required_tasks.filter((id) => !day.completed_tasks[id]);
+    return day.required_tasks.filter((id) => id !== "mistake_review" && !day.completed_tasks[id]);
   }
 
   function todayVietnam(now = new Date()) {
@@ -336,7 +337,7 @@
     }
     ensureDayRequirements(day);
     const id = String(taskId || "");
-    if (!day.required_tasks.includes(id)) {
+    if (!day.required_tasks.includes(id) && id !== "mistake_review") {
       const error = new Error(`Nhiệm vụ ${id || "trống"} không thuộc yêu cầu của ngày ${dayNumber}.`);
       error.code = "UNKNOWN_REQUIRED_TASK";
       throw error;
