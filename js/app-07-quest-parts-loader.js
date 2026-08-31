@@ -2,12 +2,14 @@
 (() => {
   "use strict";
 
-  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=pinyin-transition-fix-20260830";
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-schedule-reconcile-20260901-v14";
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
   let lastQuestResultKey = null;
   let questResultInFlight = null;
+  const scheduleSyncInFlight = new Map();
+  const scheduleSyncDone = new Set();
 
   function userNamespace() {
     try {
@@ -91,6 +93,52 @@
 
   function refreshQuestGate() { sendGateToQuest(getQuestGate()); sendLanguageToQuest(); }
 
+  async function syncQuestScoreToSchedule(day, score, resultToken = "progress-reconcile") {
+    const numericDay = Math.max(1, Math.min(120, Number(day) || 0));
+    const numericScore = Math.max(0, Math.min(100, Number(score)));
+    if (!numericDay || !Number.isFinite(numericScore) || numericScore <= 30) return null;
+    const key = `${numericDay}:${numericScore}`;
+    if (scheduleSyncDone.has(key)) return null;
+    if (scheduleSyncInFlight.has(key)) return scheduleSyncInFlight.get(key);
+    const job = (async () => {
+      const api = window.PandaHanSchedule;
+      if (!api || typeof api.submitQuestResult !== "function") return null;
+      try {
+        const current = typeof api.getSchedule === "function" ? api.getSchedule() : null;
+        const dayRow = current?.days?.find((item) => Number(item.day_number) === numericDay);
+        if (dayRow?.status === "completed" && Number(dayRow.last_score ?? dayRow.best_score) > 30) {
+          scheduleSyncDone.add(key);
+          return { schedule: current, result: { dayNumber: numericDay, score: numericScore, passed: true, action: "already_completed" } };
+        }
+        const result = await api.submitQuestResult(numericDay, numericScore, `${resultToken}:${numericDay}:${numericScore}`);
+        if (result?.result?.passed || result?.result?.action === "already_completed") {
+          scheduleSyncDone.add(key);
+          window.dispatchEvent(new CustomEvent("pandahan-quest-schedule-saved", { detail: result }));
+        }
+        return result;
+      } catch (error) {
+        console.warn("Quest → Schedule sync failed:", error?.message || error);
+        return null;
+      } finally {
+        scheduleSyncInFlight.delete(key);
+      }
+    })();
+    scheduleSyncInFlight.set(key, job);
+    return job;
+  }
+
+  async function reconcileQuestProgressToSchedule(progress) {
+    const rows = progress?.dayProgress && typeof progress.dayProgress === "object" ? progress.dayProgress : {};
+    const ordered = Object.entries(rows)
+      .map(([day, row]) => ({ day: Number(day), row: row || {} }))
+      .filter(({ day, row }) => day >= 1 && day <= 120 && Number(row.scorePercent) > 30)
+      .sort((a, b) => a.day - b.day);
+    for (const item of ordered) {
+      const score = Number(item.row.scorePercent);
+      await syncQuestScoreToSchedule(item.day, score, "saved-progress");
+    }
+  }
+
   async function handleQuestMessage(event) {
     const target = frame();
     if (!target || event.source !== target.contentWindow) return;
@@ -99,6 +147,7 @@
       activeFrameWindow = target.contentWindow;
       refreshQuestGate();
       showPersistedSummary();
+      reconcileQuestProgressToSchedule(getQuestProgress()).catch(() => {});
       return;
     }
     if (data.type === "PANDAHAN_QUEST_PROGRESS") {
@@ -108,6 +157,7 @@
       const summary = currentQuestSummary();
       saveQuestSummary(summary);
       refreshQuestGate();
+      reconcileQuestProgressToSchedule(data.progress || getQuestProgress()).catch(() => {});
       return;
     }
     if (data.type !== "PANDAHAN_QUEST_DAY_RESULT") return;
@@ -117,11 +167,12 @@
     if (!day || !Number.isFinite(score) || lastQuestResultKey === resultKey || questResultInFlight === resultKey) return;
     questResultInFlight = resultKey;
     const passed = score > 30;
-    const evaluation = { dayNumber: day, scorePercent: score, passed, threshold: 30, reviewType: "quest_lesson", repeatCount: 0, action: passed ? "unlock_next_lesson" : "retry_lesson" };
+    const evaluation = { dayNumber: day, scorePercent: score, passed, threshold: 30, reviewType: "quest_lesson", repeatCount: 0, action: passed ? "unlock_next_lesson" : "retry_lesson", resultToken: String(data.resultToken || resultKey), scheduleSyncOwner: "quest-loader" };
     outerStatus(questText(
       `Ôn tập 120 ngày · Bài ${day}: ${score}% · ${passed ? "Đã vượt 30% — mở bài tiếp theo" : "Cần đạt trên 30% để mở bài mới"}`,
       `120-Day Review · Lesson ${day}: ${score}% · ${passed ? "Above 30% — next lesson unlocked" : "Score above 30% to unlock the next lesson"}`
     ));
+    if (passed) await syncQuestScoreToSchedule(day, score, String(data.resultToken || resultKey));
     window.dispatchEvent(new CustomEvent("pandahan-quest-score-saved", { detail: evaluation }));
     lastQuestResultKey = resultKey;
     questResultInFlight = null;
