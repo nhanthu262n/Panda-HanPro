@@ -64,6 +64,17 @@
         day.scheduled_date = null;
       }
     });
+    // Migration cho schedule cũ: các phiên đã hoàn thành đủ task không bị giữ ở pending_unlock.
+    const today = core.todayVietnam();
+    ordered.forEach((day, index) => {
+      const next = ordered[index + 1];
+      const complete = day.status === "completed" && Array.isArray(day.required_tasks) && day.required_tasks.every((id) => day.completed_tasks?.[id]) && Number.isFinite(Number(day.last_score));
+      if (complete && next && (next.status === "pending_unlock" || next.status === "locked")) {
+        next.status = "unlocked";
+        next.scheduled_date = today;
+        delete next.unlock_date;
+      }
+    });
     const enforceSingleActiveSession = () => {
       let foundActive = false;
       schedule.days.slice().sort((a, b) => Number(a.sequence_index || 0) - Number(b.sequence_index || 0)).forEach((day) => {
@@ -304,13 +315,12 @@
     const isCurrentMission = Number(mission?.dayNumber) === Number(dayNumber);
     const linkedWords = isCurrentMission && Array.isArray(mission?.chainVocabulary) ? mission.chainVocabulary : [];
     const phase = linkedWords.length ? window.PandaHanVocabularyPhase?.get?.(Number(dayNumber)) : null;
-    const prerequisiteMissing = linkedWords.length && (!mission?.adaptivePlan?.phoneticsReady || !phase?.introCompleted || !phase?.speakingCompleted);
+    const prerequisiteMissing = linkedWords.length && (!mission?.adaptivePlan?.phoneticsReady || !phase?.introCompleted);
     if (prerequisiteMissing) {
       const schedule = loadLocal() || await initScheduleIfNeeded();
       const missingLinkedSteps = [
         ...(!mission?.adaptivePlan?.phoneticsReady ? ["listening", "speaking"] : []),
-        ...(!phase?.introCompleted ? ["vocab-intro"] : []),
-        ...(!phase?.speakingCompleted ? ["vocab-speaking"] : [])
+        ...(!phase?.introCompleted ? ["vocab-intro"] : [])
       ];
       return {
         schedule,
