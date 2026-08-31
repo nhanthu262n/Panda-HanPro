@@ -1,7 +1,7 @@
-/* PandaHán Pro — Quest main-path gate: a lesson unlocks only above 60%. */
+/* PandaHán Pro — Quest main-path gate: a lesson unlocks only above 30%. */
 (() => {
   "use strict";
-  const PASS_PERCENT = 60;
+  const PASS_PERCENT = 30;
   const MAX_DAYS = 120;
   const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
   const percentage = (correct, answered) => {
@@ -33,7 +33,7 @@
     const numericDay = Math.max(1, Math.min(MAX_DAYS, Math.floor(number(day, 1))));
     const gate = gateFor(progress);
     if (!gate.unlocked.includes(numericDay) && !gate.completed.includes(numericDay)) {
-      const error = new Error("Quest lesson is locked until the preceding lesson is passed above 60%.");
+      const error = new Error("Quest lesson is locked until the preceding lesson is passed above 30%.");
       error.code = "QUEST_LESSON_LOCKED";
       throw error;
     }
