@@ -94,16 +94,31 @@
     return window.PandaHanSchedule?.getSchedule?.() || null;
   }
 
+  function getTestActiveDay() {
+    try {
+      const n = Number(localStorage.getItem("pandahan_test_active_day") || 0);
+      return Number.isInteger(n) && n >= 1 && n <= 120 ? n : 0;
+    } catch (_) { return 0; }
+  }
+
   function currentScheduleDay() {
     const schedule = getSchedule();
     const days = Array.isArray(schedule?.days) ? schedule.days : [];
+    // QA day-jump is the canonical active day on this browser. Do not wait for
+    // schedule/Firebase propagation; this keeps desktop and mobile in sync instantly.
+    const testDay = getTestActiveDay();
+    if (testDay) {
+      const exact = days.find((d) => Number(d.day_number) === testDay && !d.is_repeat_of);
+      if (exact) return { ...exact, status: "unlocked", sequence_index: testDay };
+      return { day_number: testDay, sequence_index: testDay, status: "unlocked", required_tasks: ["quest"], completed_tasks: {}, task_scores: {} };
+    }
     return days.filter((d) => d.status === "unlocked")
       .sort((a, b) => Number(a.sequence_index) - Number(b.sequence_index))[0] || null;
   }
 
   function findCurriculumDay() {
     const scheduleDay = currentScheduleDay();
-    const dayNumber = Number(scheduleDay?.day_number || 1);
+    const dayNumber = Number(getTestActiveDay() || scheduleDay?.day_number || 1);
     return curriculum.find((d) => Number(d.day_number) === dayNumber) || {
       day_number: dayNumber,
       week_number: Math.ceil(dayNumber / 7),
