@@ -97,7 +97,7 @@
 </div>
 <!-- <div class="sync-badge" id="syncBadge">
         <div class="sync-dot" id="syncDot"></div>
-        <span id="syncText">Chế độ Offline</span>
+        <span id="syncText">Offline mode</span>
     </div> -->
 <div id="petalLayer"></div>
 <div class="app" id="app" style="display:none;">
@@ -109,7 +109,7 @@
 <button class="hs-item" id="notifBellBtn" style="background:#fef3c7;color:#92400e;border:none;cursor:pointer;font-size:16px;position:relative;">🔔<span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:1px 5px;line-height:1.3;">0</span></button>
 <div id="notifDropdown" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border-radius:12px;box-shadow:var(--shadow,0 4px 20px rgba(0,0,0,0.08));width:280px;max-width:90vw;max-height:70vh;overflow-y:auto;z-index:100;padding:12px;font-size:12.5px;box-sizing:border-box;"></div>
 </div>
-<button class="hs-item" id="langToggleBtn" style="background:#fde68a;color:#92400e;border:none;cursor:pointer;font-weight:700;">🌐 中文-VI / 中文-EN</button>
+<button class="hs-item" id="langToggleBtn" style="background:#fde68a;color:#92400e;border:none;cursor:pointer;font-weight:700;">🌐 中文 - English</button>
 <button class="hs-item" data-lang-en="🔊 Test reminder" id="testReminderBtn" style="background:#fbbf24;color:#78350f;border:none;cursor:pointer;font-weight:700;" title="Preview reminder audio">🔊 Test reminder</button>
 <button class="hs-item" data-lang-en="🔔 Enable notifications" id="enableNotifBtn" style="background:#fde68a;color:#92400e;border:none;cursor:pointer;font-weight:700;display:none;">🔔 Enable notifications</button>
 <!-- Statistics removed per user request -->
@@ -129,7 +129,7 @@
 <div id="streakWarningBanner" style="display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:linear-gradient(90deg,#fee2e2,#fecaca);border:1px solid #dc2626;border-radius:12px;padding:10px 14px;margin:10px 16px 0;box-shadow:0 2px 6px rgba(0,0,0,.08);animation:streakPulse 1.6s ease-in-out infinite;">
 <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#991b1b;">
 <span style="font-size:1.3em;">⚠️🔥</span>
-<span id="streakWarningText">Streak sắp mất!</span>
+<span id="streakWarningText">Your streak is at risk!</span>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;">
 <button id="streakWarningStudyBtn" style="background:#dc2626;color:#fff;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">⚡ Study now!</button>
@@ -157,7 +157,7 @@
 <div data-lang-en="🌍 中文 · English" style="font-size:9px;color:#a78bfa;font-weight:600;">🌍 中文 · English</div>
 </div>
 <div id="sidebarUserDropdown" style="display:none;position:absolute;left:0;top:calc(100% + 5px);width:100%;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1.5px solid rgba(251,207,232,0.6);z-index:1000;overflow:hidden;">
-<button id="sidebarLogoutBtnReal" style="width:100%;padding:10px;border:none;background:transparent;color:#dc2626;font-weight:800;font-size:12px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;">🚪 Thoát / Log out</button>
+<button id="sidebarLogoutBtnReal" style="width:100%;padding:10px;border:none;background:transparent;color:#dc2626;font-weight:800;font-size:12px;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;">🚪 Log out</button>
 </div>
 </div>
 <button class="active" data-lang-en="📚 Dictionary" data-tab="browse">📚 Dictionary</button>
@@ -377,12 +377,12 @@
 <div class="pinyin-tone-quest-view" id="pinyinToneQuestView">
 <div class="pinyin-tone-quest-toolbar">
 <button class="btn btn-outline" data-lang-en="← Back to practice" id="pinyinToneQuestBack" style="padding:4px 14px;font-size:11px;" type="button">← Back to practice</button>
-<span data-lang-en="Review, error log and results are saved to this account" id="questProgressSyncStatus">Review, error log and results are saved to this account</span><label id="questDaySearchWrap" style="display:inline-flex;align-items:center;gap:5px;border:1px solid #ddd6fe;border-radius:999px;background:#fff;padding:4px 8px;color:#6d4a7c;font-size:11px;font-weight:800;"><span data-lang-en="Find day">Find day</span><input aria-label="Tìm ngày 1 đến 120" id="questDaySearch" inputmode="numeric" max="120" min="1" placeholder="1–120" style="width:58px;border:0;outline:0;background:transparent;color:#4c1d95;font-weight:800;font-size:11px;" type="search"/></label><span id="questDaySearchError" role="alert" style="display:none;color:#b42318;font-size:11px;font-weight:800;"></span><button class="quest-review-toggle" id="questReviewErrorsBtn" type="button"><span data-lang-en="📒 Redo wrong items" id="questReviewErrorsText">📒 Redo wrong items</span> (<b id="questReviewErrorCount">0</b>)</button>
+<span data-lang-en="Review, error log and results are saved to this account" id="questProgressSyncStatus">Review, error log and results are saved to this account</span><label id="questDaySearchWrap" style="display:inline-flex;align-items:center;gap:5px;border:1px solid #ddd6fe;border-radius:999px;background:#fff;padding:4px 8px;color:#6d4a7c;font-size:11px;font-weight:800;"><span data-lang-en="Find day">Find day</span><input aria-label="Find day 1 to 120" id="questDaySearch" inputmode="numeric" max="120" min="1" placeholder="1–120" style="width:58px;border:0;outline:0;background:transparent;color:#4c1d95;font-weight:800;font-size:11px;" type="search"/></label><span id="questDaySearchError" role="alert" style="display:none;color:#b42318;font-size:11px;font-weight:800;"></span><button class="quest-review-toggle" id="questReviewErrorsBtn" type="button"><span data-lang-en="📒 Redo wrong items" id="questReviewErrorsText">📒 Redo wrong items</span> (<b id="questReviewErrorCount">0</b>)</button>
 </div>
 <iframe allow="autoplay" data-quest-app="pinyin-tone-quest-app/index.html?embedded=1&amp;v=quest-result-parser-v17-20260901" id="pinyinToneQuestFrame" loading="lazy" src="about:blank" title="Pinyin Tone Quest"></iframe>
 </div>
 </div>
-<!-- ═══ NGỮ ÂM — 10 BUỔI HỌC PHONICS ═══ -->
+<!-- PHONETICS — 10-SESSION BOOTCAMP -->
 <div class="dashboard-view" id="pinyinView" style="display:none;">
 <div id="pinyinContent"><div id="pinyin-phonetics-root"></div></div>
 </div>
@@ -439,7 +439,7 @@
 <h2 data-lang-en="➕ Add new vocabulary" style="font-size:18px;margin-top:8px;">➕ Add new vocabulary</h2>
 <div style="background:#fffbeb;border:2px solid var(--hsk3-light);border-radius:12px;padding:12px 14px;margin:10px 0 16px;font-size:12px;line-height:1.7;">
 <b>💡 Character breakdown / cultural mnemonic guidance:</b><br/>
-      1️⃣ <b>Tách chữ Hán thành các bộ thủ/thành phần quen thuộc</b> — example: 好 = 女 (woman) + 子 (child) → a memorable association for “good”.<br/>
+      1️⃣ <b>Break the Hanzi into familiar radicals/components</b> — example: 好 = 女 (woman) + 子 (child) → a memorable association for “good”.<br/>
       2️⃣ <b>Use a memorable image or story that is easy for international learners to recall</b> — do not only translate the meaning; give one concrete association.<br/>
       3️⃣ <b>Keep it concise: 1–2 sentences</b> — the goal is instant recall when seeing the character again, not a full linguistic analysis.<br/>
 <span style="color:var(--text-light);">Prioritize a strong cultural mnemonic; standard meaning and pinyin are already available in the dictionary.</span>
@@ -581,7 +581,7 @@
 <button id="chatSendBtn">➤</button>
 </div>
 </div>
-<!-- ═══ NGỮ ÂM — 10 BUỔI HỌC PHONICS ═══ -->
+<!-- PHONETICS — 10-SESSION BOOTCAMP -->
 <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
 <script defer="" src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
 <script defer="" src="js/app-02.js?v=mistake-score-linked-vocab-v17-20260901"></script>
@@ -608,5 +608,5 @@
 <script defer="" src="js/progress-sync.js?v=firebase-learning-progress-20260826-v2"></script>
 <script defer="" src="js/offline-enhancements.js?v=real-evidence-20260824-v2"></script>
 <script defer="" src="js/first-time-guide.js?v=english-onboarding-20260826-v3"></script>
-<script defer="" src="js/international-mode.js"></script></body>
+<script defer="" src="js/international-mode.js?v=international-v24"></script></body>
 </html>
