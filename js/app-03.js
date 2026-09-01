@@ -1439,12 +1439,14 @@ function pvNextSession() {
         return;
       }
       try {
+        // Persist first: every module (Coach, Quest, Phonetics and mobile reload) reads
+        // the same canonical QA day immediately instead of waiting for Firebase/schedule propagation.
+        try { localStorage.setItem("pandahan_test_active_day", String(dayNumber)); } catch (_) {}
         await window.PandaHanSchedule?.testUnlockToDay?.(dayNumber);
-        // Reload the Excel master curriculum and rebuild the entire AI Coach plan for the selected day.
-        // This prevents stale Day-N content from remaining after a QA jump.
         await window.PandaHanMission?.load?.();
+        window.dispatchEvent(new CustomEvent("pandahan-test-day-changed", { detail: { dayNumber, source: "AI_COACH_QA_JUMP" } }));
         if (activeChatUserId === "__pandahan_ai__") openAiCoachChat();
-        renderAiCoachMessage(`TEST ONLY: Day ${dayNumber} is now the active lesson. The AI Coach plan has been rebuilt from the Excel master curriculum for Day ${dayNumber}; earlier lesson content is no longer reused. Previous days are treated as completed for QA, later days remain locked, and this shortcut stays local to this browser.`, "bot");
+        renderAiCoachMessage(`TEST ONLY: Day ${dayNumber} is now active. All lesson modules now use Day ${dayNumber} immediately; no refresh is required.`, "bot");
       } catch (error) {
         renderAiCoachMessage(`TEST ONLY: I could not open Day ${dayNumber}. ${error?.message || error}`, "bot");
       }
