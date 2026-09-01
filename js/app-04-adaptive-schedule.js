@@ -718,6 +718,7 @@
     if (!schedule) throw new Error("Learning schedule is not ready.");
     compactLegacyRepeats(schedule);
     schedule._meta = { ...(schedule._meta || {}), test_unlock_day: target, test_unlock_local_only: true, test_unlock_at: Date.now() };
+    try { localStorage.setItem("pandahan_test_active_day", String(target)); } catch (_) {}
     const today = core.todayVietnam();
     schedule.days.forEach((day) => {
       const n = Number(day.day_number);
@@ -745,6 +746,7 @@
   async function clearTestUnlock() {
     let schedule = loadLocal() || await initScheduleIfNeeded();
     if (!schedule) return null;
+    try { localStorage.removeItem("pandahan_test_active_day"); } catch (_) {}
     if (schedule._meta) { delete schedule._meta.test_unlock_day; delete schedule._meta.test_unlock_local_only; delete schedule._meta.test_unlock_at; }
     applyQuestEvidenceGate(schedule);
     saveLocal(schedule);
