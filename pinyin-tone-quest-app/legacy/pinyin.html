@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Bảng Pinyin Tương Tác — PandaHán Pro</title>
+<title>Interactive Pinyin Chart — PandaHán Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 /* ── Reset & base ── */
@@ -261,7 +261,7 @@ header{
     <div class="logo-badge">🐼</div>
     <div>
       <div class="logo-text">Panda<span>Hán</span> Pro</div>
-      <div class="header-sub">Bảng Pinyin Tương Tác</div>
+      <div class="header-sub">Interactive Pinyin Chart</div>
     </div>
   </div>
   <div class="header-right" id="toneButtons"></div>
@@ -269,8 +269,8 @@ header{
 
 <!-- Hero -->
 <div class="hero">
-  <h1>Bảng Phiên Âm <span>Pinyin</span> Tiếng Trung 🎵</h1>
-  <p>Nhấn vào bất kỳ ô nào để nghe phát âm · Chọn thanh điệu để luyện tập</p>
+  <h1>Pinyin Chart <span>Pinyin</span> Tiếng Trung 🎵</h1>
+  <p>Tap any cell to hear pronunciation · Choose a tone to practise</p>
 </div>
 
 <!-- Stats -->
@@ -283,7 +283,7 @@ header{
       <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2.5"/>
       <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
     </svg>
-    <input id="searchInput" type="text" placeholder="Tìm âm tiết (vd: ba, ma, zh...)"/>
+    <input id="searchInput" type="text" placeholder="Search syllables (e.g. ba, ma, zh...)"/>
   </div>
 </div>
 
@@ -293,7 +293,7 @@ header{
 </div>
 
 <!-- Tip -->
-<div class="tip">💡 Nhấn ô để phát âm • Giữ Shift để so sánh 2 âm cùng lúc • Cần giọng tiếng Trung trong cài đặt hệ thống</div>
+<div class="tip">💡 Tap a cell to hear it • Hold Shift to compare two sounds • A Chinese system voice is required</div>
 
 <!-- Main table -->
 <div class="table-wrap" id="tableWrap"></div>
@@ -558,10 +558,10 @@ function renderStats() {
   const bar = document.getElementById('statsBar')
   const total = Object.keys(SYLLABLE_MAP).length
   const chips = [
-    {label:'Tổng âm tiết',val:total,       c:'#ec4899',bg:'#fdf2f8',b:'#fbcfe8'},
+    {label:'Total syllables',val:total,       c:'#ec4899',bg:'#fdf2f8',b:'#fbcfe8'},
     {label:'Thanh mẫu',   val:INITIALS.length-1,c:'#8b5cf6',bg:'#f5f3ff',b:'#ddd6fe'},
     {label:'Vận mẫu',     val:FINALS_LIST.length, c:'#3b82f6',bg:'#eff6ff',b:'#bfdbfe'},
-    {label:'Thanh điệu',  val:'1·2·3·4·轻', c:'#f97316',bg:'#fff7ed',b:'#fed7aa'},
+    {label:'Tones',  val:'1·2·3·4·轻', c:'#f97316',bg:'#fff7ed',b:'#fed7aa'},
   ]
   bar.innerHTML = chips.map(c=>`
     <div class="stat-chip" style="color:${c.c};background:${c.bg};border-color:${c.b}">
@@ -630,8 +630,8 @@ function renderTable() {
     <div class="section-header">
       <div class="section-icon">🎵</div>
       <div>
-        <div class="section-title">Âm đơn — Vận mẫu độc lập</div>
-        <div class="section-sub">Các âm tiết không có thanh mẫu đầu</div>
+        <div class="section-title">Standalone finals</div>
+        <div class="section-sub">Syllables without an initial</div>
       </div>
     </div>`
   const grid1 = document.createElement('div')
@@ -658,8 +658,8 @@ function renderTable() {
     <div class="section-header" style="margin-top:28px">
       <div class="section-icon">📊</div>
       <div>
-        <div class="section-title">Bảng phiên âm đầy đủ — Thanh mẫu × Vận mẫu</div>
-        <div class="section-sub">Nhấn ô để phát âm · Màu ô thay đổi theo thanh điệu đang chọn</div>
+        <div class="section-title">Complete Pinyin chart — Initials × Finals</div>
+        <div class="section-sub">Tap a cell to hear it · Cell color changes with the selected tone</div>
       </div>
     </div>`
 
@@ -707,7 +707,7 @@ function renderTable() {
   s2.appendChild(table)
 
   if (totalVisible === 0 && q) {
-    s2.innerHTML += `<div class="no-result"><span class="emoji">🔍</span>Không tìm thấy âm tiết "<strong>${q}</strong>"</div>`
+    s2.innerHTML += `<div class="no-result"><span class="emoji">🔍</span>No syllable found "<strong>${q}</strong>"</div>`
   }
   wrap.appendChild(s2)
 }
@@ -761,5 +761,6 @@ renderStats()
 renderToneDiagram()
 renderAll()
 </script>
+<script src="../../js/international-mode.js"></script>
 </body>
 </html>
