@@ -7,7 +7,11 @@
     const n = Number(explicitDay || localStorage.getItem("pandahan_test_active_day") || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
     return Number.isInteger(n) && n >= 1 && n <= 120 ? n : null;
   };
-  const questUrlForDay = (day) => { const n = requestedQuestDay(day); return n ? `${QUEST_APP}&day=${n}` : QUEST_APP; };
+  const questUrlForDay = (day, forceReload = false) => {
+    const n = requestedQuestDay(day);
+    const base = n ? `${QUEST_APP}&day=${n}` : QUEST_APP;
+    return forceReload ? `${base}&jump=${Date.now()}` : base;
+  };
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
@@ -335,15 +339,15 @@
     input.addEventListener('input', () => { if (!input.value) { clearHighlight(); showError(''); } });
   }
 
-  async function loadQuestOffline(dayNumber) {
+  async function loadQuestOffline(dayNumber, forceReload = false) {
     const target = frame();
     if (!target) throw new Error("Không tìm thấy iframe Quest.");
     const desiredDay = requestedQuestDay(dayNumber);
-    const desiredUrl = questUrlForDay(desiredDay);
+    const desiredUrl = questUrlForDay(desiredDay, forceReload);
     const currentSrc = String(target.getAttribute("src") || "");
     const currentDay = Number((currentSrc.match(/[?&]day=(\d+)/) || [])[1] || 0);
-    if (loadPromise && (!desiredDay || currentDay === desiredDay)) return loadPromise;
-    if (desiredDay && currentDay !== desiredDay) loadPromise = null;
+    if (!forceReload && loadPromise && (!desiredDay || currentDay === desiredDay)) return loadPromise;
+    if (forceReload || (desiredDay && currentDay !== desiredDay)) loadPromise = null;
     setStatus(questText("Opening Pinyin Tone Quest…", "Opening Pinyin Tone Quest…"));
     loadPromise = new Promise((resolve, reject) => {
       target.onload = () => {
@@ -368,7 +372,8 @@
     const day = requestedQuestDay(dayNumber);
     if (!day) return loadQuestOffline();
     try { localStorage.setItem("pandahan_test_active_day", String(day)); } catch (_) {}
-    return loadQuestOffline(day);
+    loadPromise = null;
+    return loadQuestOffline(day, true);
   }
   window.PandaHanQuestParts = { parts: [QUEST_APP], loadQuestOffline, openQuestDay, refreshQuestGate, extractQuestContentOnlyHtml };
   window.addEventListener("message", handleQuestMessage);
