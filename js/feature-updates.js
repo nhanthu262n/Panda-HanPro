@@ -38,8 +38,10 @@
     const value = Number(raw);
     if (value < DAY_MIN || value > DAY_MAX) return fail(text("Ngày phải từ 1 đến 120.", "Day must be between 1 and 120."));
     if (error) { error.textContent = ""; error.style.display = "none"; }
+    const testDay = Number(localStorage.getItem("pandahan_test_active_day") || 0);
+    if (testDay === value && window.PandaHanQuestParts?.openQuestDay) { try { await window.PandaHanQuestParts.openQuestDay(value); return true; } catch (_) {} }
     if (searchDayInFrame(value)) return true;
-    try { await window.PandaHanQuestParts?.loadQuestOffline?.(); } catch (_) {}
+    try { await window.PandaHanQuestParts?.loadQuestOffline?.(value); } catch (_) {}
     for (let i = 0; i < 20; i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 120));
       if (searchDayInFrame(value)) return true;
