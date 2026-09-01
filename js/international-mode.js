@@ -52,10 +52,8 @@ n.nodeValue=(raw.match(/^\s*/)?.[0]||"")+out+(raw.match(/\s*$/)?.[0]||"")}
 function attrs(el){["placeholder","title","aria-label"].forEach(a=>{const v=el.getAttribute?.(a);if(v&&hasVi(v)){let x=convert(v);el.setAttribute(a,hasVi(x)?"Learning content":x)}})}
 const observed=new WeakSet();
 function observe(scope){if(!scope||observed.has(scope))return;observed.add(scope);scan(scope);new MutationObserver(ms=>ms.forEach(m=>{if(m.type==="characterData")text(m.target);m.addedNodes.forEach(n=>n.nodeType===3?text(n):scan(n))})).observe(scope,{subtree:true,childList:true,characterData:true})}
-function scan(root){if(!root)return;if(root.nodeType===3){text(root);return}const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())text(n);root.querySelectorAll?.("*").forEach(el=>{attrs(el);if(el.shadowRoot)observe(el.shadowRoot)})}
-// Critical v24 fix: Phonetics creates its Shadow DOM after page boot. Observe every newly attached shadow root.
-const nativeAttach=Element.prototype.attachShadow;Element.prototype.attachShadow=function(init){const sr=nativeAttach.call(this,init);queueMicrotask(()=>observe(sr));return sr};
+function scan(root){if(!root)return;if(root.nodeType===3){text(root);return}const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())text(n);root.querySelectorAll?.("*").forEach(el=>{attrs(el);})}
 localStorage.setItem("pandahan_lang","en");try{window.LANG_MODE="en"}catch(_){}document.documentElement.lang="en";
-const boot=()=>{try{window.setLangMode?.("en")}catch(_){}observe(document.body);document.querySelectorAll("*").forEach(el=>{if(el.shadowRoot)observe(el.shadowRoot)})};
+const boot=()=>{try{window.setLangMode?.("en")}catch(_){}observe(document.body);document.querySelectorAll("*").forEach(el=>{})};
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boot):boot();
 })();
