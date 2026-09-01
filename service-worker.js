@@ -14,7 +14,7 @@ self.addEventListener("message", (event) => {
   const due = Number(data.due || 0);
   const mistakeDue = Number(data.mistakeDue || 0);
   const isEnglish = data.lang === "en";
-  const title = isEnglish ? "PandaHán Pro study reminder" : "PandaHán Pro nhắc học";
+  const title = "PandaHán Pro study reminder";
   const body = isEnglish
     ? `${due ? `${due} SRS word${due === 1 ? "" : "s"}` : ""}${due && mistakeDue ? " and " : ""}${mistakeDue ? `${mistakeDue} wrong item${mistakeDue === 1 ? "" : "s"} to redo` : ""} are ready.`
     : `${due ? `Có ${due} từ SRS` : ""}${due && mistakeDue ? " và " : ""}${mistakeDue ? `${mistakeDue} lỗi cần làm lại` : ""}.`;
