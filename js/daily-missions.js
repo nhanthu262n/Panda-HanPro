@@ -299,9 +299,12 @@
       // No Listening/Speaking/Vocabulary prerequisite is allowed to block it.
       window.switchTab?.("practice");
       setTimeout(async () => {
-        document.getElementById("pCardPinyinQuest")?.click();
         const exactDay = Number(m.dayNumber || localStorage.getItem("pandahan_test_active_day") || 1);
-        try { await window.PandaHanQuestParts?.openQuestDay?.(exactDay); } catch (_) { try { await window.PandaHanQuestParts?.loadQuestOffline?.(exactDay); } catch (_) {} }
+        try { localStorage.setItem("pandahan_test_active_day", String(exactDay)); } catch (_) {}
+        document.getElementById("pCardPinyinQuest")?.click();
+        // Force the React Quest app to mount the requested Excel day; never reuse a stale iframe session.
+        try { await window.PandaHanQuestParts?.openQuestDay?.(exactDay); } catch (_) { try { await window.PandaHanQuestParts?.loadQuestOffline?.(exactDay, true); } catch (_) {} }
+        window.setTimeout(() => window.PandaHanQuestParts?.openQuestDay?.(exactDay).catch?.(() => {}), 450);
         const input = document.getElementById("questDaySearch");
         if (input) input.value = String(exactDay);
       }, 120);
