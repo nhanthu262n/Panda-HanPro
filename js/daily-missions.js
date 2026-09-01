@@ -109,13 +109,13 @@
       week_number: Math.ceil(dayNumber / 7),
       stage_code: dayNumber <= 10 ? "stage_0" : dayNumber <= 35 ? "stage_1" : dayNumber <= 70 ? "stage_2" : "stage_3",
       day_type: "new_content",
-      topic: scheduleDay?.topic || "Lộ trình học hiện tại",
+      topic: scheduleDay?.topic || "Current learning path",
       new_vocab_raw: "-",
       required_score: 30,
-      listening_task: "Nghe audio mẫu và lặp lại.",
-      speaking_task: "Ghi âm và tự kiểm tra.",
-      reading_writing_task: "Làm bài luyện đọc và viết.",
-      srs_review_task: "Ôn lại từ cần nhớ.",
+      listening_task: "Listen to the model audio and repeat.",
+      speaking_task: "Record your response and self-check it.",
+      reading_writing_task: "Complete the reading and writing practice.",
+      srs_review_task: "Review vocabulary due for spaced repetition.",
       notes: ""
     };
   }
@@ -189,7 +189,7 @@
         reading_writing: day.reading_writing_task,
         srs: day.srs_review_task
       }[type];
-      if (has(workbookText)) task.instructionVi = workbookText;
+      if (has(workbookText)) { task.instructionVi = task.instructionEn || workbookText; }
       if (type === "vocab-intro") {
         if (dayNumber <= 10) {
           task.titleVi = `Từ vựng liên kết — nghe · ${exactWords.length} từ`;
@@ -224,7 +224,7 @@
     const vocabPhase = window.PandaHanVocabularyPhase?.get?.(dayNumber) || { introCompleted: !!adaptivePlan?.introCompleted, speakingCompleted: false, gameCompleted: false };
     const tasks = buildTasks(day, adaptivePlan, vocabPhase);
     const sequenceIndex = dayNumber;
-    const sessionLabelVi = `Ngày ${dayNumber}`;
+    const sessionLabelVi = `Day ${dayNumber}`;
     const sessionLabelEn = `Day ${dayNumber}`;
     const carriedTaskIds = Object.keys(scheduleDay?.completed_tasks || {});
     const requiredTaskIds = Array.isArray(scheduleDay?.required_tasks) ? scheduleDay.required_tasks.slice() : ["quest"];
@@ -617,7 +617,7 @@
     const m = mission();
     const c = m.curriculum;
     const adaptive = m.adaptivePlan;
-    const langEn = window.LANG_MODE === "en";
+    const langEn = true;
     const stageLabel = langEn ? (m.stageCode === "stage_0" ? "Pinyin Bootcamp" : m.stageCode === "stage_1" ? "HSK 1 foundation" : m.stageCode === "stage_2" ? "HSK 2 development" : "HSK 3 communication") : (m.stage || m.stageCode);
     const phase = m.vocabPhase || {};
     const learningSequence = renderLearningSequence(m, langEn);
@@ -732,7 +732,7 @@
     return { zh: base + added.join(""), pinyin: pinyin.filter(Boolean).join(" "), vi: vietnamese.filter(Boolean).join(" "), en: english.filter(Boolean).join(" ") };
   }
   function hskTopicResponse(topic, language = "vi", requestedLength = "adaptive") {
-    const en = language === "en";
+    const en = language !== "zh";
     const zh = language === "zh";
     const length = topicLengthProfile(topic.level, requestedLength);
     const paragraph = paragraphForLength(topic, length);
@@ -750,7 +750,7 @@
       : `HSK ${topic.level} · ${title}\n\nĐộ dài luyện tập\n${lengthLabel}\n\nĐoạn văn tiếng Trung\n${paragraph.zh}\n\nPinyin\n${paragraph.pinyin}\n\nNghĩa\n${meaning}\n\nTừ mục tiêu\n${vocabulary}\n\nMẫu ngữ pháp\n${grammar}\n\nHội thoại ngắn\n${dialogue}\n\nNhiệm vụ của bạn\n${task}${longHint}\n\nKhi viết xong hãy gửi lại. Mình sẽ kiểm tra cấu trúc, từ mục tiêu và mẫu HSK; việc chấm ngữ nghĩa/độ tự nhiên đầy đủ cần AI Coach backend đã deploy hoặc giáo viên.`;
   }
   function hskTopicMenu(level, language = "vi") {
-    const en = language === "en";
+    const en = language !== "zh";
     const zh = language === "zh";
     const library = window.PandaHanHskLibrary;
     const selected = Number(level || 0);
@@ -811,7 +811,7 @@
   }
   function missionAssignmentResponse(m, language, mistakeCount) {
     const zh = language === "zh";
-    const en = language === "en";
+    const en = language !== "zh";
     const title = zh ? (m.isRepeat ? `第 ${m.sequenceIndex} 节：继续第 ${m.dayNumber} 天` : `第 ${m.dayNumber} 天学习任务`) : en ? m.sessionLabelEn : m.sessionLabelVi;
     const taskRows = (m.tasks || []).map((task) => {
       const taskTitle = zh ? (task.titleEn || task.titleVi) : en ? task.titleEn : task.titleVi;
@@ -830,7 +830,7 @@
     const m = activeMission || mission();
     const q = String(text || "").toLowerCase();
     const language = coachResponseLanguage(text, options.language || "auto");
-    const en = language === "en";
+    const en = language !== "zh";
     const zh = language === "zh";
     const mistakeCount = window.PandaHanMistakes?.getAllQueue?.().length || window.PandaHanMistakes?.getQueue?.().length || 0;
     const writingRequest = /(viết|write|đoạn văn|paragraph|作文|article)/.test(q);
