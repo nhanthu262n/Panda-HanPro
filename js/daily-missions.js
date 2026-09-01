@@ -300,10 +300,10 @@
       window.switchTab?.("practice");
       setTimeout(async () => {
         document.getElementById("pCardPinyinQuest")?.click();
-        try { await window.PandaHanQuestParts?.loadQuestOffline?.(); } catch (_) {}
+        const exactDay = Number(m.dayNumber || localStorage.getItem("pandahan_test_active_day") || 1);
+        try { await window.PandaHanQuestParts?.openQuestDay?.(exactDay); } catch (_) { try { await window.PandaHanQuestParts?.loadQuestOffline?.(exactDay); } catch (_) {} }
         const input = document.getElementById("questDaySearch");
-        if (input) input.value = String(m.dayNumber || 1);
-        await window.PandaHanFeatureUpdates?.jumpToReviewDay?.(m.dayNumber || 1);
+        if (input) input.value = String(exactDay);
       }, 120);
     }
     else if (type === "listening") {
