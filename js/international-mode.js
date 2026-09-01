@@ -43,10 +43,10 @@ const reps=[
 ];
 function hasVi(s){return VI.test(s)||WORDS.test(s.normalize?.("NFD").replace(/[\u0300-\u036f]/g,"")||s)}
 function convert(raw){const s=String(raw||"");const map=window.PandaHanEnglishMap||{};if(map[s])return map[s];if(exact[s])return exact[s];let out=s;reps.forEach(([a,b])=>out=out.replace(a,b));return out}
-function text(n){if(!n||n.nodeType!==3)return;const raw=n.nodeValue||"",s=raw.trim();if(!s||!hasVi(s))return;let out=convert(s);if(hasVi(out)){
+function text(n){if(!n||n.nodeType!==3)return;const raw=n.nodeValue||"",s=raw.trim();if(s==="English learning guidance"){n.nodeValue="";return;}if(!s||!hasVi(s))return;let out=convert(s);if(hasVi(out)){
   // Keep Chinese/Pinyin vocabulary content; replace only the Vietnamese explanatory fragment.
   if(/[一-鿿]/.test(out)){const parts=out.split(/([·|/]|\s+—\s+)/);const kept=parts.filter(p=>!hasVi(p));out=kept.join("").replace(/^[\s·|/—]+|[\s·|/—]+$/g,"").trim()||"Chinese learning item"}
-  else out="English learning guidance";
+  else out="";
 }
 n.nodeValue=(raw.match(/^\s*/)?.[0]||"")+out+(raw.match(/\s*$/)?.[0]||"")}
 function attrs(el){["placeholder","title","aria-label"].forEach(a=>{const v=el.getAttribute?.(a);if(v&&hasVi(v)){let x=convert(v);el.setAttribute(a,hasVi(x)?"Learning content":x)}})}
