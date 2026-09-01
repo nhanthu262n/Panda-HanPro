@@ -7,7 +7,7 @@
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
   const PARTS = [
-    'pinyin-phonetics.part-01.js?v=segmental-20260820-v5',
+    'pinyin-phonetics.part-01.js?v=international-v24-20260901',
     'pinyin-phonetics.part-02.js?v=audio-setting-20260819-v1',
     'pinyin-phonetics.part-03.js',
     'pinyin-phonetics.part-04.js',
