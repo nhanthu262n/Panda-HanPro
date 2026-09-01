@@ -484,24 +484,95 @@
     return "pandahan_ai_coach_assessments_v1_" + owner.replace(/[^a-zA-Z0-9_-]/g, "_");
   }
   function latestCoachAssessment(dayNumber) {
+    const day = Number(dayNumber || 0);
+    const rows = [];
     try {
-      const rows = JSON.parse(localStorage.getItem(coachAssessmentKey()) || "[]");
-      return rows.find((row) => Number(row.dayNumber || 0) === Number(dayNumber || 0)) || rows[0] || null;
-    } catch (_) { return null; }
+      const saved = JSON.parse(localStorage.getItem(coachAssessmentKey()) || "[]");
+      if (Array.isArray(saved)) rows.push(...saved);
+    } catch (_) {}
+    try {
+      const owner = String(typeof window.storageNamespace === "function" ? window.storageNamespace() : (window.CURRENT_USER?.uid || "guest")).replace(/[^a-zA-Z0-9_-]/g, "_");
+      const phonetics = JSON.parse(localStorage.getItem(`pandahan_phonetics_evidence_${owner}`) || "[]");
+      if (Array.isArray(phonetics)) rows.push(...phonetics);
+    } catch (_) {}
+    const sameDay = rows.filter((row) => !day || Number(row?.dayNumber || 0) === day);
+    sameDay.sort((a,b) => Number(b?.evaluatedAt || b?.createdAt || 0) - Number(a?.evaluatedAt || a?.createdAt || 0));
+    return sameDay[0] || rows[0] || null;
   }
+
+  function coachSkillName(report, langEn) {
+    const src = String(report?.source || report?.rawSource || report?.evidenceType || "").toLowerCase();
+    if (/pronunciation|speaking|speak|record/.test(src)) return langEn ? "Pronunciation / Speaking" : "Phát âm / Nói";
+    if (/phonetic|listening|native-quiz|quiz/.test(src) && !/vocab|linked/.test(src)) return langEn ? "Phonetics listening / recognition" : "Nghe / nhận diện Ngữ âm";
+    if (/vocab|linked/.test(src)) return langEn ? "Linked vocabulary" : "Từ vựng liên kết";
+    if (/mistake|wrong|redo/.test(src)) return langEn ? "Mistake review" : "Ôn câu sai";
+    if (/quest|tone/.test(src)) return "Pinyin Tone Quest";
+    return langEn ? "Current learning activity" : "Hoạt động học vừa hoàn thành";
+  }
+
+  function coachDetailedFeedback(report, score, langEn) {
+    const src = String(report?.source || report?.rawSource || report?.evidenceType || "").toLowerCase();
+    const correct = Number(report?.correct);
+    const total = Number(report?.total);
+    const ratio = Number.isFinite(correct) && Number.isFinite(total) && total > 0 ? `${correct}/${total}` : "";
+    const components = report?.components && typeof report.components === "object" ? report.components : {};
+    const compPairs = Object.entries(components).filter(([,v]) => Number.isFinite(Number(v))).slice(0,4);
+    const compText = compPairs.map(([k,v]) => `${k}: ${Math.round(Number(v))}%`).join(" · ");
+
+    let level, action;
+    if (score >= 85) {
+      level = langEn ? "Very solid performance: recognition is stable and errors are now isolated." : "Bạn làm rất chắc: khả năng nhận diện đã ổn định, lỗi còn lại chỉ mang tính cục bộ.";
+      action = langEn ? "Do one short delayed review, then move on. Focus only on the remaining weak contrasts instead of repeating the whole lesson." : "Chỉ cần ôn ngắt quãng một lượt ngắn rồi học tiếp; tập trung đúng các cặp âm/từ còn nhầm, không cần làm lại toàn bộ bài.";
+    } else if (score >= 70) {
+      level = langEn ? "Good overall control, but the result is not yet fully automatic." : "Bạn đã nắm phần lớn nội dung, nhưng phản xạ vẫn chưa thật sự tự động.";
+      action = langEn ? "Review the wrong items, listen once without looking at pinyin, then repeat them aloud before the next session." : "Hãy ôn đúng các câu sai, nghe lại một lượt không nhìn pinyin rồi đọc thành tiếng các mục đó trước buổi tiếp theo.";
+    } else if (score >= 50) {
+      level = langEn ? "You understand the core pattern, but confusion still appears often enough to affect accuracy." : "Bạn đã hiểu quy tắc chính, nhưng vẫn còn nhầm khá thường xuyên nên độ chính xác chưa ổn định.";
+      action = langEn ? "Return to the lesson examples, practise the confusing sound pairs in small groups, then retry only the weak items." : "Nên quay lại ví dụ của bài, luyện từng nhóm âm dễ nhầm với số lượng nhỏ rồi làm lại riêng các mục yếu.";
+    } else if (score >= 30) {
+      level = langEn ? "The pass threshold is met, but this is an early-stage result rather than mastery." : "Bạn đã đạt ngưỡng qua bài, nhưng đây mới là mức làm quen chứ chưa thể xem là nắm chắc.";
+      action = langEn ? "Do not chase the pass mark. Re-listen to the model audio, compare the confusing sounds, say each weak item 3–5 times, then redo the mistake queue." : "Không nên dừng ở mức đủ điểm. Hãy nghe lại âm mẫu, so sánh các âm đang nhầm, đọc mỗi mục yếu 3–5 lần và làm lại hàng đợi câu sai.";
+    } else {
+      level = langEn ? "The current result shows that the sound pattern is not stable yet." : "Kết quả hiện tại cho thấy mẫu âm vẫn chưa ổn định.";
+      action = langEn ? "Relearn the model sounds slowly, practise one contrast at a time, and retry after you can hear and produce the difference consistently." : "Hãy học lại âm mẫu thật chậm, luyện từng cặp đối lập một và chỉ làm lại bài khi đã nghe/đọc phân biệt được tương đối ổn định.";
+    }
+
+    if (/pronunciation|speaking|speak|record/.test(src)) {
+      action = score >= 70
+        ? (langEn ? "Keep the same mouth position and tone contour; repeat the weakest syllables in short phrases, not as isolated sounds." : "Giữ đúng khẩu hình và đường thanh; lấy các âm tiết yếu ghép vào cụm ngắn để luyện, không chỉ đọc âm rời.")
+        : (langEn ? "Slow down, copy the model mouth position and tone contour, record again, and compare one syllable at a time." : "Giảm tốc độ, bắt chước khẩu hình và đường thanh của mẫu, ghi âm lại rồi so sánh từng âm tiết một.");
+    } else if (/vocab|linked/.test(src)) {
+      action = score >= 70
+        ? (langEn ? "Use the missed words in 2–3 short sentences and review them again later today." : "Dùng các từ còn sai đặt 2–3 câu ngắn và ôn lại một lượt vào cuối ngày.")
+        : (langEn ? "Replay each word, connect sound–pinyin–meaning, then retry the wrong words before adding more vocabulary." : "Nghe lại từng từ, nối âm–pinyin–nghĩa rồi làm lại các từ sai trước khi học thêm từ mới.");
+    } else if (/mistake|wrong|redo/.test(src)) {
+      action = score >= 80
+        ? (langEn ? "Most previous errors are corrected. Keep only the remaining weak items for spaced review." : "Phần lớn lỗi cũ đã được sửa; chỉ giữ các mục còn yếu để ôn ngắt quãng.")
+        : (langEn ? "Some old errors are repeating. Revisit the explanation and correct the same pattern before moving on." : "Một số lỗi cũ vẫn lặp lại; cần xem lại giải thích và sửa đúng mẫu lỗi đó trước khi học thêm.");
+    }
+
+    const metrics = [ratio ? (langEn ? `Correct: ${ratio}` : `Đúng: ${ratio}`) : "", compText].filter(Boolean).join(" · ");
+    return { level, action, metrics };
+  }
+
   function renderCoachAssessment(m, langEn) {
     const report = latestCoachAssessment(m.dayNumber);
     if (!report) return "";
-    const score = Math.max(0, Math.min(100, Number(report.scorePercent || 0)));
-    const wrongItems = Array.isArray(report.wrongItems) ? report.wrongItems : [];
+    const score = Math.max(0, Math.min(100, Number(report.scorePercent ?? report.score ?? 0)));
+    const wrongItems = Array.isArray(report.wrongItems) ? report.wrongItems : (Array.isArray(report.details) ? report.details : []);
     const tone = score >= 80 ? "#15803d" : score >= 30 ? "#b45309" : "#b91c1c";
-    const comment = score >= 80
-      ? (langEn ? "Strong result. Keep the linked words active with one short spaced review." : "Kết quả tốt. Hãy ôn ngắt quãng ngắn để giữ vững nhóm từ liên kết.")
-      : score >= 30
-        ? (langEn ? "The score is recorded, but redo the listed wrong items before the next session." : "Điểm đã được ghi nhận, nhưng cần làm lại các mục sai dưới đây trước buổi mới.")
-        : (langEn ? "Below the target. Reopen this linked-vocabulary quiz and practise the listed items." : "Chưa đạt mục tiêu. Hãy làm lại quiz Từ vựng liên kết và ôn các mục dưới đây.");
-    const wrongText = wrongItems.length ? wrongItems.slice(0, 6).map((item) => esc(String(item.char || item.word || item.expected || ""))).filter(Boolean).join(" · ") : (langEn ? "None" : "Không có");
-    return `<div data-ai-coach-assessment="true" style="margin-top:10px;padding:9px 10px;border:1px solid ${tone}44;border-radius:11px;background:#fff;"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${langEn ? "Latest verified learning report" : "Nhận xét bài làm mới nhất"}</b><span style="color:${tone};font-weight:900;">${score}%</span></div><div style="font-size:11px;color:#475569;margin-top:4px;line-height:1.45;">${esc(comment)}</div><div style="font-size:11px;color:#64748b;margin-top:5px;">${langEn ? "Review items" : "Mục cần ôn"}: ${wrongText}</div></div>`;
+    const skill = coachSkillName(report, langEn);
+    const fb = coachDetailedFeedback(report, score, langEn);
+    const wrongText = wrongItems.length
+      ? wrongItems.slice(0, 8).map((item) => esc(String(item?.char || item?.word || item?.expected || item?.syllable || item?.prompt || ""))).filter(Boolean).join(" · ")
+      : (langEn ? "No specific wrong item was recorded." : "Chưa ghi nhận mục sai cụ thể.");
+    return `<div data-ai-coach-assessment="true" style="margin-top:10px;padding:10px 11px;border:1px solid ${tone}44;border-radius:11px;background:#fff;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><b>${langEn ? "AI Coach teacher feedback" : "AI Coach nhận xét như giáo viên"}</b><span style="color:${tone};font-weight:900;">${score}%</span></div>
+      <div style="font-size:11.5px;color:#334155;margin-top:5px;"><b>${langEn ? "Activity" : "Nội dung vừa học"}:</b> ${esc(skill)}${fb.metrics ? ` · ${esc(fb.metrics)}` : ""}</div>
+      <div style="font-size:11.5px;color:#475569;margin-top:6px;line-height:1.5;"><b>${langEn ? "Assessment" : "Đánh giá"}:</b> ${esc(fb.level)}</div>
+      <div style="font-size:11.5px;color:#475569;margin-top:5px;line-height:1.5;"><b>${langEn ? "What to improve" : "Cần chỉnh/luyện thêm"}:</b> ${esc(fb.action)}</div>
+      <div style="font-size:11px;color:#64748b;margin-top:5px;"><b>${langEn ? "Focus items" : "Mục cần tập trung"}:</b> ${wrongText}</div>
+    </div>`;
   }
   function formatScheduleStart(date) {
     const parts = String(date || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
