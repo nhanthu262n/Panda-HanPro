@@ -95,6 +95,27 @@
   function applyQuestEvidenceGate(schedule) {
     if (!schedule || !Array.isArray(schedule.days)) return schedule;
     compactLegacyRepeats(schedule);
+    const testTarget = Number(schedule?._meta?.test_unlock_day || 0);
+    if (Number.isInteger(testTarget) && testTarget >= 1 && testTarget <= 120) {
+      const today = core.todayVietnam();
+      schedule.days.forEach((day) => {
+        const n = Number(day.day_number);
+        day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
+        day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
+        if (n < testTarget) {
+          day.status = "completed";
+          day.completed_at = day.completed_at || today;
+          day.completed_tasks.quest = day.completed_tasks.quest || { completed_at: today, source: "TEST_ONLY_CHAT_UNLOCK", score: 100 };
+          day.task_scores.quest = Math.max(Number(day.task_scores.quest || 0), 100);
+          day.last_score = Math.max(Number(day.last_score || 0), 100);
+          day.best_score = Math.max(Number(day.best_score || 0), 100);
+        } else if (n === testTarget) {
+          day.status = "unlocked";
+          day.scheduled_date = today;
+        } else day.status = "locked";
+      });
+      return schedule;
+    }
     const scores = questEvidenceScores();
     const ordered = schedule.days.slice().sort((a,b) => Number(a.day_number)-Number(b.day_number));
     const today = core.todayVietnam();
@@ -690,6 +711,48 @@
     return schedule;
   }
 
+  async function testUnlockToDay(dayNumber) {
+    const target = Math.max(1, Math.min(120, Number(dayNumber || 1)));
+    if (!Number.isInteger(target)) throw new Error("Test day must be an integer from 1 to 120.");
+    let schedule = loadLocal() || await initScheduleIfNeeded();
+    if (!schedule) throw new Error("Learning schedule is not ready.");
+    compactLegacyRepeats(schedule);
+    schedule._meta = { ...(schedule._meta || {}), test_unlock_day: target, test_unlock_local_only: true, test_unlock_at: Date.now() };
+    const today = core.todayVietnam();
+    schedule.days.forEach((day) => {
+      const n = Number(day.day_number);
+      day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
+      day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
+      if (n < target) {
+        day.status = "completed";
+        day.completed_at = day.completed_at || today;
+        day.last_score = Math.max(Number(day.last_score || 0), 100);
+        day.best_score = Math.max(Number(day.best_score || 0), 100);
+        day.completed_tasks.quest = day.completed_tasks.quest || { completed_at: today, source: "TEST_ONLY_CHAT_UNLOCK", score: 100 };
+        day.task_scores.quest = Math.max(Number(day.task_scores.quest || 0), 100);
+      } else if (n === target) {
+        day.status = "unlocked";
+        day.scheduled_date = today;
+        delete day.completed_at;
+      } else day.status = "locked";
+    });
+    saveLocal(schedule);
+    publishLocalDailyPlan(schedule);
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: { schedule, source: "TEST_ONLY_CHAT_UNLOCK", dayNumber: target } }));
+    return schedule;
+  }
+
+  async function clearTestUnlock() {
+    let schedule = loadLocal() || await initScheduleIfNeeded();
+    if (!schedule) return null;
+    if (schedule._meta) { delete schedule._meta.test_unlock_day; delete schedule._meta.test_unlock_local_only; delete schedule._meta.test_unlock_at; }
+    applyQuestEvidenceGate(schedule);
+    saveLocal(schedule);
+    publishLocalDailyPlan(schedule);
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: { schedule, source: "TEST_ONLY_RESET" } }));
+    return schedule;
+  }
+
   window.PandaHanSchedule = {
     initScheduleIfNeeded,
     submitDayResult,
@@ -703,6 +766,8 @@
     computeMonthlyReview,
     syncScheduleFromServer,
     reconcileQuestEvidence: reconcileQuestEvidenceV20,
+    testUnlockToDay,
+    clearTestUnlock,
     getSchedule: loadLocal,
     getScheduleAsync: () => readServerSchedule(getUid()).then((server) => server || loadLocal()),
     todayVietnam: core.todayVietnam,
