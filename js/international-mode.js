@@ -82,13 +82,14 @@ const reps=[
 ];
 function hasVi(s){return VI.test(s)||WORDS.test(s.normalize?.("NFD").replace(/[\u0300-\u036f]/g,"")||s)}
 function convert(raw){const s=String(raw||"");const map=window.PandaHanEnglishMap||{};if(map[s])return map[s];if(exact[s])return exact[s];let out=s;reps.forEach(([a,b])=>out=out.replace(a,b));return out}
-function text(n){if(!n||n.nodeType!==3)return;const raw=n.nodeValue||"",s=raw.trim();if(s==="English learning guidance"){n.nodeValue="";return;}if(!s||!hasVi(s))return;let out=convert(s);if(hasVi(out)){
-  // Safety rule: never delete lesson content. If a legacy phrase has no English mapping yet,
-  // keep the original text rather than rendering blank cards/steps.
-  out=out;
+function text(n){if(!n||n.nodeType!==3)return;const raw=n.nodeValue||"",s=raw.trim();if(s==="English learning guidance"){if(raw!=="")n.nodeValue="";return;}if(!s||!hasVi(s))return;let out=convert(s);if(hasVi(out)){
+  // Never delete lesson content. More importantly, do NOT write the same untranslated
+  // string back into the DOM, otherwise MutationObserver would retrigger forever.
+  return;
 }
-n.nodeValue=(raw.match(/^\s*/)?.[0]||"")+out+(raw.match(/\s*$/)?.[0]||"")}
-function attrs(el){["placeholder","title","aria-label"].forEach(a=>{const v=el.getAttribute?.(a);if(v&&hasVi(v)){let x=convert(v);el.setAttribute(a,hasVi(x)?"Learning content":x)}})}
+const next=(raw.match(/^\s*/)?.[0]||"")+out+(raw.match(/\s*$/)?.[0]||"");
+if(next!==raw)n.nodeValue=next}
+function attrs(el){["placeholder","title","aria-label"].forEach(a=>{const v=el.getAttribute?.(a);if(v&&hasVi(v)){let x=convert(v);if(hasVi(x))return;if(x!==v)el.setAttribute(a,x)}})}
 const observed=new WeakSet();
 function observe(scope){if(!scope||observed.has(scope))return;observed.add(scope);scan(scope);new MutationObserver(ms=>ms.forEach(m=>{if(m.type==="characterData")text(m.target);m.addedNodes.forEach(n=>n.nodeType===3?text(n):scan(n))})).observe(scope,{subtree:true,childList:true,characterData:true})}
 function scan(root){if(!root)return;if(root.nodeType===3){text(root);return}const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())text(n);root.querySelectorAll?.("*").forEach(el=>{attrs(el);if(el.shadowRoot)observe(el.shadowRoot)})}
