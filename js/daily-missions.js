@@ -651,12 +651,10 @@
     return /\b(tôi|bạn|mình|viết|đoạn|chủ đề|giúp|là gì|như thế nào|cuối tuần|gia đình|trường học|giải thích|dùng|ví dụ|lỗi|thường|cách|ngữ pháp|từ vựng)\b/.test(raw);
   }
   function coachResponseLanguage(text, preferred = "auto") {
-    if (["zh", "en", "vi"].includes(preferred)) return preferred;
+    if (preferred === "zh") return "zh";
     const raw = String(text || "");
-    if (coachUsesVietnamese(raw)) return "vi";
-    if (coachUsesEnglish(raw)) return "en";
     if (/[\u3400-\u9fff]/.test(raw)) return "zh";
-    return window.LANG_MODE === "en" ? "en" : "vi";
+    return "en";
   }
   function topicLengthProfile(level, selected = "adaptive") {
     const base = Number(level || 1);
@@ -920,7 +918,7 @@
     const paragraph = paragraphForLength(topic, length);
     return { id: topic.id, level: topic.level, length, zh: paragraph.zh, pinyin: paragraph.pinyin, vi: paragraph.vi, en: paragraph.en, topicVi: topic.topicVi, topicEn: topic.topicEn };
   }
-  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getRouteStatusText: (language) => routeStatusChatText(mission(), language || "vi"), detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
+  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getRouteStatusText: (language) => routeStatusChatText(mission(), language === "zh" ? "zh" : "en"), detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
   let coachPlanRefreshQueued = false;
   function refreshCoachPlanSoon() {
     if (coachPlanRefreshQueued) return;
