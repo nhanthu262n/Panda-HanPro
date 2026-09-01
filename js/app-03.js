@@ -922,8 +922,7 @@ function pvNextSession() {
   }
   const aiTutorState = { level: 0, length: "adaptive", language: "auto", selectedTopicId: "", selectedVocabChar: "", reviewFeedback: "", selectedInlineTerm: "", inlineFeedback: "", inlineOverrides: {}, busy: false };
   function tutorResponseLanguage(text) {
-    if (["vi", "en", "zh"].includes(aiTutorState.language)) return aiTutorState.language;
-    return window.PandaHanMission?.detectResponseLanguage?.(text, "auto") || window.LANG_MODE || "vi";
+    return /[\u3400-\u9fff]/.test(String(text || "")) ? "zh" : "en";
   }
   function tutorText(vi, en, zh) {
     const lang = tutorResponseLanguage("");
@@ -1418,7 +1417,7 @@ function pvNextSession() {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ message: String(text).slice(0, 2000), history: (activeChatUserId === "__pandahan_ai__" ? loadAiCoachConversation() : loadAiConversation()).slice(-12), learner: buildAiLearnerContext(), lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || window.LANG_MODE || "vi" }),
+        body: JSON.stringify({ message: String(text).slice(0, 2000), history: (activeChatUserId === "__pandahan_ai__" ? loadAiCoachConversation() : loadAiConversation()).slice(-12), learner: buildAiLearnerContext(), lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || "en" }),
         signal: controller.signal,
       });
       const payload = await response.json().catch(() => ({}));
@@ -1431,6 +1430,28 @@ function pvNextSession() {
     if (!area || !String(text || "").trim()) return;
     const clean = String(text).trim().slice(0, 2000);
     renderAiCoachMessage(clean, "user");
+
+    const dayMatch = clean.match(/^(?:\/?day\s*)?(\d{1,3})$/i);
+    if (dayMatch) {
+      const dayNumber = Number(dayMatch[1]);
+      if (dayNumber < 1 || dayNumber > 120) {
+        renderAiCoachMessage("TEST ONLY: enter a day number from 1 to 120.", "bot");
+        return;
+      }
+      try {
+        await window.PandaHanSchedule?.testUnlockToDay?.(dayNumber);
+        renderAiCoachMessage(`TEST ONLY: Day ${dayNumber} is now the active lesson on this browser. Previous days are treated as completed for QA; later days remain locked. This shortcut is local-only and is not written to RTDB.`, "bot");
+      } catch (error) {
+        renderAiCoachMessage(`TEST ONLY: I could not open Day ${dayNumber}. ${error?.message || error}`, "bot");
+      }
+      return;
+    }
+    if (/^(?:\/?reset\s*test|reset\s*day)$/i.test(clean)) {
+      await window.PandaHanSchedule?.clearTestUnlock?.();
+      renderAiCoachMessage("TEST ONLY reset: the learning path is back to real Quest-based progress.", "bot");
+      return;
+    }
+
     let reply = "";
     try {
       reply = await requestRealAiCoach(clean, window.PandaHanMission?.detectResponseLanguage?.(clean) || "auto");
