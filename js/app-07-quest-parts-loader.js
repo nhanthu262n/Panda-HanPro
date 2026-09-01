@@ -3,6 +3,11 @@
   "use strict";
 
   const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-result-bridge-v21-20260901";
+  const requestedQuestDay = (explicitDay) => {
+    const n = Number(explicitDay || localStorage.getItem("pandahan_test_active_day") || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
+    return Number.isInteger(n) && n >= 1 && n <= 120 ? n : null;
+  };
+  const questUrlForDay = (day) => { const n = requestedQuestDay(day); return n ? `${QUEST_APP}&day=${n}` : QUEST_APP; };
   let loadPromise = null;
   let objectUrl = null;
   let activeFrameWindow = null;
@@ -330,18 +335,23 @@
     input.addEventListener('input', () => { if (!input.value) { clearHighlight(); showError(''); } });
   }
 
-  async function loadQuestOffline() {
+  async function loadQuestOffline(dayNumber) {
     const target = frame();
     if (!target) throw new Error("Không tìm thấy iframe Quest.");
-    if (loadPromise) return loadPromise;
-    setStatus(questText("Đang mở Pinyin Tone Quest…", "Opening Pinyin Tone Quest…"));
+    const desiredDay = requestedQuestDay(dayNumber);
+    const desiredUrl = questUrlForDay(desiredDay);
+    const currentSrc = String(target.getAttribute("src") || "");
+    const currentDay = Number((currentSrc.match(/[?&]day=(\d+)/) || [])[1] || 0);
+    if (loadPromise && (!desiredDay || currentDay === desiredDay)) return loadPromise;
+    if (desiredDay && currentDay !== desiredDay) loadPromise = null;
+    setStatus(questText("Opening Pinyin Tone Quest…", "Opening Pinyin Tone Quest…"));
     loadPromise = new Promise((resolve, reject) => {
       target.onload = () => {
         activeFrameWindow = target.contentWindow;
         refreshQuestGate();
         target.style.opacity = "1";
         outerStatus(questText("Ôn tập 120 ngày đã sẵn sàng · kết quả và sổ ôn sẽ lưu theo tài khoản", "120-Day Review is ready · results and the mistake log will be saved for this account"));
-        resolve(QUEST_APP);
+        resolve(desiredUrl);
       };
       target.onerror = () => {
         loadPromise = null; target.style.opacity = "1";
@@ -349,12 +359,18 @@
         reject(new Error("Unable to load integrated Pinyin Tone Quest"));
       };
       target.loading = "eager";
-      target.src = QUEST_APP;
+      target.src = desiredUrl;
       target.style.opacity = "0.7";
     });
     return loadPromise;
   }
-  window.PandaHanQuestParts = { parts: [QUEST_APP], loadQuestOffline, refreshQuestGate, extractQuestContentOnlyHtml };
+  async function openQuestDay(dayNumber) {
+    const day = requestedQuestDay(dayNumber);
+    if (!day) return loadQuestOffline();
+    try { localStorage.setItem("pandahan_test_active_day", String(day)); } catch (_) {}
+    return loadQuestOffline(day);
+  }
+  window.PandaHanQuestParts = { parts: [QUEST_APP], loadQuestOffline, openQuestDay, refreshQuestGate, extractQuestContentOnlyHtml };
   window.addEventListener("message", handleQuestMessage);
   document.addEventListener("DOMContentLoaded", () => {
     const reviewButton = document.getElementById("questReviewErrorsBtn");
