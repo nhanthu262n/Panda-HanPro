@@ -198,7 +198,7 @@ function renderSessionList(container) {
   let html = `<div class="pv-container">
     <div class="pv-header">
       <div>
-        <div class="pv-title">🎵 ${pvT("Ngữ âm", "Phonetics")} — <span>${pvT("10 Buổi Học", "10 Learning Sessions")}</span></div>
+        <div class="pv-title">🎵 ${pvT("Phonetics", "Phonetics")} — <span>${pvT("10 Buổi Học", "10 Learning Sessions")}</span></div>
         <div class="pv-sub">Flashcard → ${pvT("Game", "Game")} → ${pvT("Bài tập", "Practice")} · ${pvT("Đạt ≥30% để qua buổi", "Reach ≥30% to pass the session")}</div>
       </div>
     </div>
@@ -1297,7 +1297,7 @@ function pvNextSession() {
         const score = item.scorePercent == null ? (window.LANG_MODE === "en" ? "score pending" : "chưa có điểm tổng") : `${item.scorePercent}%${item.threshold != null ? ` / ${item.threshold}%` : ""}`;
         const outcome = item.passed === true ? (window.LANG_MODE === "en" ? "passed" : "đạt") : item.action === "incomplete_day_requirements" ? (window.LANG_MODE === "en" ? "requirements incomplete" : "chưa đủ nhiệm vụ") : item.passed === false ? (window.LANG_MODE === "en" ? "review required" : "cần ôn lại") : (window.LANG_MODE === "en" ? "recorded" : "đã ghi nhận");
         const missing = item.missingTaskIds.length ? ` · ${window.LANG_MODE === "en" ? "still needed" : "còn thiếu"}: ${item.missingTaskIds.map(aiCoachTaskLabel).join(", ")}` : "";
-        const source = item.rawSource === "ai-coach-tone-quest" ? "AI Coach Tone Challenge" : item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "phonetics-pronunciation" || item.source === "phonetics-listening" || item.source === "phonetics" ? "Ngữ âm" : item.source === "practice" ? "Từ vựng/Practice" : item.source === "task" ? "Verified task" : "AI Coach";
+        const source = item.rawSource === "ai-coach-tone-quest" ? "AI Coach Tone Challenge" : item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "phonetics-pronunciation" || item.source === "phonetics-listening" || item.source === "phonetics" ? "Phonetics" : item.source === "practice" ? "Từ vựng/Practice" : item.source === "task" ? "Verified task" : "AI Coach";
         const metrics = [item.attempts != null ? `${item.attempts} lần` : "", item.correct != null && item.total != null ? `${item.correct}/${item.total} đúng` : "", item.durationSeconds != null ? `${Math.round(item.durationSeconds)}s` : ""].filter(Boolean).join(" · ");
         const sessionLabel = item.isRepeat ? (window.LANG_MODE === "en" ? `Session ${item.sequenceIndex} — continue Day ${item.dayNumber}` : `Buổi ${item.sequenceIndex} — tiếp tục Ngày ${item.dayNumber}`) : (window.LANG_MODE === "en" ? `Day ${item.dayNumber}` : `Ngày ${item.dayNumber}`);
         const carried = item.carriedCompletedTasks.length ? ` · ${window.LANG_MODE === "en" ? "carried" : "đã giữ"}: ${item.carriedCompletedTasks.map(aiCoachTaskLabel).join(", ")}` : "";
@@ -1440,7 +1440,11 @@ function pvNextSession() {
       }
       try {
         await window.PandaHanSchedule?.testUnlockToDay?.(dayNumber);
-        renderAiCoachMessage(`TEST ONLY: Day ${dayNumber} is now the active lesson on this browser. Previous days are treated as completed for QA; later days remain locked. This shortcut is local-only and is not written to RTDB.`, "bot");
+        // Reload the Excel master curriculum and rebuild the entire AI Coach plan for the selected day.
+        // This prevents stale Day-N content from remaining after a QA jump.
+        await window.PandaHanMission?.load?.();
+        if (activeChatUserId === "__pandahan_ai__") openAiCoachChat();
+        renderAiCoachMessage(`TEST ONLY: Day ${dayNumber} is now the active lesson. The AI Coach plan has been rebuilt from the Excel master curriculum for Day ${dayNumber}; earlier lesson content is no longer reused. Previous days are treated as completed for QA, later days remain locked, and this shortcut stays local to this browser.`, "bot");
       } catch (error) {
         renderAiCoachMessage(`TEST ONLY: I could not open Day ${dayNumber}. ${error?.message || error}`, "bot");
       }
@@ -1459,7 +1463,7 @@ function pvNextSession() {
       console.info("AI backend unavailable; using deterministic learning fallback:", error.message || error);
       reply = window.PandaHanMission?.replyTo ? window.PandaHanMission.replyTo(clean) : ((window.LANG_MODE === "en") ? "Today's learning plan is still loading. Please try again shortly." : "Kế hoạch hôm nay đang được tải. Hãy thử lại sau một chút.");
     }
-    renderAiCoachMessage(reply || ((window.PandaHanMission?.detectResponseLanguage?.(clean) || window.LANG_MODE) === "en" ? "I could not create a reply yet. Please try again." : "Mình chưa tạo được phản hồi. Bạn thử gửi lại câu hỏi nhé."), "bot");
+    renderAiCoachMessage(reply || ((window.PandaHanMission?.detectResponseLanguage?.(clean) || window.LANG_MODE) === "en" ? "I could not create a reply yet. Please try again." : "I could not create a reply yet. Please try again."), "bot");
   }
 
   window.addEventListener("pandahan-language-changed", () => {
