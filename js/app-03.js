@@ -1825,17 +1825,17 @@ function pvNextSession() {
     overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;";
     overlay.innerHTML = `
       <div style="background:#fff;color:#2d2a3a;border-radius:16px;padding:20px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <h3 style="font-size:16px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 Gửi thông báo cho tất cả học viên</h3>
-        <p style="font-size:11.5px;color:#6b6478;margin-bottom:12px;">Tin nhắn sẽ tự động xuất hiện trong khung chat riêng giữa bạn và từng học viên.</p>
-        <textarea id="broadcastText" rows="4" placeholder="Nhập nội dung thông báo..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
+        <h3 style="font-size:16px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 Broadcast to all students</h3>
+        <p style="font-size:11.5px;color:#6b6478;margin-bottom:12px;">The message will appear automatically in each student's private conversation with you.</p>
+        <textarea id="broadcastText" rows="4" placeholder="Type the announcement..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <input type="file" id="broadcastFileInput" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" />
-          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 Đính kèm file</button>
+          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 Attach file</button>
           <span id="broadcastFileName" style="font-size:11px;color:#6b6478;"></span>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:12.5px;">Hủy</button>
-          <button type="button" id="broadcastSendBtn" class="btn btn-pink" style="padding:8px 16px;font-size:12.5px;">Gửi cho tất cả</button>
+          <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:12.5px;">Cancel</button>
+          <button type="button" id="broadcastSendBtn" class="btn btn-pink" style="padding:8px 16px;font-size:12.5px;">Send to all</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -1846,7 +1846,7 @@ function pvNextSession() {
     fileInput.onchange = () => {
       const f = fileInput.files && fileInput.files[0];
       if (f && f.size > CHAT_FILE_MAX_MB * 1024 * 1024) {
-        alert(`File quá lớn (tối đa ${CHAT_FILE_MAX_MB}MB).`);
+        alert(`File is too large (maximum ${CHAT_FILE_MAX_MB}MB).`);
         fileInput.value = "";
         return;
       }
@@ -1860,10 +1860,10 @@ function pvNextSession() {
 
     document.getElementById("broadcastSendBtn").onclick = async () => {
       const text = document.getElementById("broadcastText").value.trim();
-      if (!text && !broadcastFile) { alert("Vui lòng nhập nội dung hoặc đính kèm file."); return; }
+      if (!text && !broadcastFile) { alert("Enter a message or attach a file."); return; }
       const sendBtn = document.getElementById("broadcastSendBtn");
       sendBtn.disabled = true;
-      sendBtn.textContent = "Đang gửi...";
+      sendBtn.textContent = "Sending...";
       try {
         let fileMeta = null;
         if (broadcastFile) fileMeta = await uploadChatFile(broadcastFile, "chat_files/broadcast");
@@ -1871,9 +1871,9 @@ function pvNextSession() {
         close();
       } catch (e) {
         console.error("Broadcast send error:", e);
-        alert("Không thể gửi thông báo: " + e.message);
+        alert("Unable to send broadcast: " + e.message);
         sendBtn.disabled = false;
-        sendBtn.textContent = "Gửi cho tất cả";
+        sendBtn.textContent = "Send to all";
       }
     };
   }
