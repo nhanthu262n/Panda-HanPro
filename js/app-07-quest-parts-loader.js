@@ -296,7 +296,7 @@
     const runtime = Array.from(parsed.body.querySelectorAll(":scope > script:not(#game-data)"));
     if (!main || !gameData || !runtime.length) throw new Error("Quest source thiếu main, game-data hoặc runtime.");
     const output = document.implementation.createHTMLDocument("Pinyin Tone Quest");
-    output.head.innerHTML = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pinyin Tone Quest</title>${CONTENT_ONLY_STYLE}${Array.from(parsed.head.querySelectorAll("style")).map((style) => style.outerHTML).join("")}`;
+    output.head.innerHTML = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>PanTutor - HSK 1-2-3</title>${CONTENT_ONLY_STYLE}${Array.from(parsed.head.querySelectorAll("style")).map((style) => style.outerHTML).join("")}`;
     const app = output.createElement("div");
     app.className = "oh-app ph-content-only";
     app.appendChild(main.cloneNode(true));
