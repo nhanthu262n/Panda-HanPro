@@ -308,7 +308,7 @@ body{padding-left:216px;}
 .mascot-confetti{position:absolute;top:-6px;font-size:12px;animation:confettiFall 1.1s ease-in forwards;}
 @keyframes confettiFall{0%{opacity:1;transform:translateY(0) rotate(0deg);}100%{opacity:0;transform:translateY(46px) rotate(220deg);}}
 
-/* ═══ Reference design animations (PandaHán Pro visual redesign) ═══ */
+/* ═══ Reference design animations (PanTutor visual redesign) ═══ */
 @keyframes blob-a{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(50px,-40px) scale(1.1);}66%{transform:translate(-30px,25px) scale(0.94);}}
 @keyframes blob-b{0%,100%{transform:translate(0,0) scale(1);}40%{transform:translate(-60px,35px) scale(1.06);}80%{transform:translate(40px,-50px) scale(0.96);}}
 @keyframes blob-c{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(45px,55px) scale(1.12);}}
