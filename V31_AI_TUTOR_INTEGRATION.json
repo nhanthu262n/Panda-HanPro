@@ -1,0 +1,13 @@
+{
+  "version": "v31",
+  "base": "v30 Phonetics Source English / No Runtime Translate",
+  "ai_tutor_source": "PandaHan_AI_Tutor_HSK1-6_FULL_REVIEW_UPDATED.zip",
+  "integrated_runtime_files": [
+    "js/app-03.js",
+    "js/ai-tutor-grammar-pack.js",
+    "js/ai-tutor-chatbox-exam-data.js",
+    "assets/ai-tutor-chatbox-hsk30-bank.json",
+    "functions/index.js"
+  ],
+  "preserved": "All other v30 files, phonetics English source data, Day Jump/Quest assets and existing application content."
+}
