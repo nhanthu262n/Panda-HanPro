@@ -109,7 +109,7 @@ async function publishPostMidnightMissedNotice(uid, today, extensionResult) {
   const batch = firestore.batch();
   batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: textVi, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
   batch.set(chatRef.collection("messages").doc(messageId), {
-    senderId: "system", senderName: "PandaHán Pro", text: textVi, text_vi: textVi, text_en: textEn,
+    senderId: "system", senderName: "PanTutor", text: textVi, text_vi: textVi, text_en: textEn,
     isBroadcast: true, reminderDate: today, sourceDayNumber: sourceDay, newSequenceIndex: newSequence, carriedTaskIds: carried, missingTaskIds: missing,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   }, { merge: true });
@@ -166,7 +166,7 @@ async function publishTeacherPlan(uid, today, schedule) {
   const messageRef = chatRef.collection("messages").doc(messageId);
   const batch = firestore.batch();
   batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
-  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, text_vi: text, text_en: textEn, isBroadcast: true, planDate: today, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PanTutor", text, text_vi: text, text_en: textEn, isBroadcast: true, planDate: today, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
   await batch.commit();
   return { sent: true, teacherUid, chatId, messageId };
 }
@@ -211,7 +211,7 @@ async function publishIncompleteReminder(uid, today, schedule) {
   const messageRef = chatRef.collection("messages").doc(messageId);
   const batch = firestore.batch();
   batch.set(chatRef, { participants: [uid, teacherUid], updatedAt: Date.now(), lastMessage: text, lastMessageEn: textEn, lastSenderId: "system" }, { merge: true });
-  batch.set(messageRef, { senderId: "system", senderName: "PandaHán Pro", text, text_vi: text, text_en: textEn, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  batch.set(messageRef, { senderId: "system", senderName: "PanTutor", text, text_vi: text, text_en: textEn, isBroadcast: true, reminderDate: today, sequenceIndex: sequence, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
   await batch.commit();
   return { notified: true, teacherMessage: true, teacherUid, chatId, messageId };
 }
