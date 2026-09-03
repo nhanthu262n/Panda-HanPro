@@ -1,4 +1,4 @@
-/* PandaHán Pro — Complete HSK 1–6 user-source library for AI Tutor only.
+/* PanTutor — Complete HSK 1–6 user-source library for AI Tutor only.
  * Source: HSK1_6_COMPLETE_WITH_PINYIN_MEANING.md.docx. This library is isolated from dictionary, schedule, Quest and default SRS.
  */
 (function () {
