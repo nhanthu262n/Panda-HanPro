@@ -920,13 +920,16 @@ function pvNextSession() {
     }));
     area.appendChild(section);
   }
-  const aiTutorState = { level: 0, length: "adaptive", language: "auto", selectedTopicId: "", selectedVocabChar: "", reviewFeedback: "", selectedInlineTerm: "", inlineFeedback: "", inlineOverrides: {}, busy: false };
+  const aiTutorState = { level: 0, set: 1, length: "adaptive", language: "auto", selectedTopicId: "", selectedVocabChar: "", reviewFeedback: "", selectedInlineTerm: "", inlineFeedback: "", inlineOverrides: {}, busy: false };
   function tutorResponseLanguage(text) {
+    const selected = String(aiTutorState.language || "auto");
+    if (selected === "bilingual") return "bilingual";
+    if (selected === "zh" || selected === "en" || selected === "vi") return selected;
     return /[\u3400-\u9fff]/.test(String(text || "")) ? "zh" : "en";
   }
   function tutorText(vi, en, zh) {
     const lang = tutorResponseLanguage("");
-    return lang === "zh" ? zh : lang === "en" ? en : vi;
+    return lang === "zh" ? zh : lang === "bilingual" ? `${zh}\n\n${en}` : lang === "en" ? en : vi;
   }
   function tutorHighlightScope(role, text, stableId = "") {
     const seed = `${stableId}|${role}|${String(text || "").slice(0, 3000)}`;
@@ -978,9 +981,9 @@ function pvNextSession() {
     const history = loadAiConversation();
     if (!history.length) {
       tutorBubble(area, tutorText(
-        "Chọn một chủ đề HSK hoặc nhập yêu cầu bằng 中文, Tiếng Việt hay English. AI Tutor sẽ điều chỉnh đoạn mẫu theo cấp độ và độ dài bạn chọn.",
+        "Chọn một chủ đề HSK hoặc nhập yêu cầu bằng 中文, English hay English. AI Tutor sẽ điều chỉnh đoạn mẫu theo cấp độ và độ dài bạn chọn.",
         "Choose an HSK topic or type a request in 中文, Vietnamese, or English. AI Tutor will adapt the model text to your level and selected length.",
-        "请选择 HSK 主题，或用中文、Tiếng Việt、English 输入要求。AI Tutor 会按你的等级和篇幅生成练习。"
+        "请选择 HSK 主题，或用中文、English、English 输入要求。AI Tutor 会按你的等级和篇幅生成练习。"
       ), "bot");
       return;
     }
@@ -1149,6 +1152,102 @@ function pvNextSession() {
     container.querySelector("#aiTutorSrsCheck")?.addEventListener("click", check);
     container.querySelector("#aiTutorSrsAnswer")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); check(); } });
   }
+  function isChatboxExamRequest(text) {
+    return /(?:soạn|tạo|lập|sửa|chỉnh|giải|chấm|đáp án|ma trận|rubric|bộ đề|đề thi|exam|solve|review|generate)/i.test(String(text || ""));
+  }
+  function localChatboxExamReply(context, language) {
+    const exam = context?.exam;
+    const request = context?.request || {};
+    if (!exam) return '题库暂时无法加载 / The exam bank could not be loaded. Please try again.';
+    const intro = '📚 ' + (exam.title || '') + ' · ' + (exam.topic || '') + '\n' + (exam.source_note || '') + '\nBlueprint / 题型结构: ' + JSON.stringify(exam.blueprint || {}) + '\n';
+    if (context.mode === 'create') {
+      const questions = (exam.items || []).map((item,index) => {
+        const passage = item.passage ? '\n   Passage / 阅读材料: ' + item.passage : '';
+        const options = Array.isArray(item.options) && item.options.length ? '\n   ' + item.options.map((o,j) => String.fromCharCode(65+j)+'. '+o).join(' | ') : '';
+        return (index+1)+'. '+(item.prompt || '')+passage+options;
+      }).join('\n');
+      return intro + '\nEXAM DRAFT / 试题草稿 — answer key hidden / 隐藏答案:\n' + questions + '\n\nType “Solve '+exam.level+' set '+(request.set || 1)+'” to view the answer key and detailed solutions. / 输入该命令查看答案和详细解析。';
+    }
+    if (context.mode === 'solve') {
+      const solutions=(exam.items||[]).map((item,index)=>{
+        const answer=item.answer==null?'Open response / 开放题':(item.answer_letter ? item.answer_letter+'. '+item.answer : item.answer);
+        const rubric=item.rubric ? '\n   Rubric / 评分标准: '+Object.entries(item.rubric).map(([k,v])=>k+' '+v+'%').join(' · ') : '';
+        const analysis=item.options?.length ? '\n   Option analysis / 选项分析: '+item.options.map((o,k)=>{const correct=String(o).trim()===String(item.answer).trim();return String.fromCharCode(65+k)+'. '+(correct?'Correct / 正确 — this option matches the answer key and the context. / 该选项符合答案关键和语境。':'Incorrect / 错误 — this option conflicts with the meaning, grammar or evidence. / 该选项与题意、语法或文本证据不符。');}).join(' | ') : '';
+        return (index+1)+'. Answer / 答案: '+answer+'\n   Chinese explanation / 中文解析: '+(item.explanation_zh||'结合语境、词汇和语法判断。')+'\n   English explanation: '+(item.explanation_en||'Use context, vocabulary and grammar to justify the answer.')+'\n   Chinese steps / 中文步骤: '+(item.solution_steps_zh||[]).join(' → ')+'\n   English steps: '+(item.solution_steps_en||[]).join(' → ')+analysis+rubric;
+      }).join('\n');
+      return intro+'\nDETAILED SOLUTIONS / 详细解析:\n'+solutions+'\n\nBILINGUAL RUBRIC / 中英双语评分标准:\n• Task completion / 完成任务\n• Organization / 结构与衔接\n• Grammar / 语法\n• Vocabulary / 词汇\n• Naturalness & style / 自然度与文体';
+    }
+    if (context.mode === 'review') return intro+'\nEXAM REVIEW SHEET / 试题审校:\n1. Verify one defensible answer / 确认唯一合理答案。\n2. Verify level and skill target / 确认级别和技能目标。\n3. Check Hanzi, pinyin, context and distractors / 检查汉字、拼音、语境和干扰项。\n4. Check rubric and weighting / 检查评分标准和权重。\n5. Teacher approval before release / 教师审核后发布。';
+    return 'Try: Create HSK1 set 1, Solve HSK3 set 1, or Revise HSK6 set 1. / 例如：生成 HSK1 第1套、解答 HSK3 第1套或审校 HSK6 第1套。';
+  }
+  const chatboxExamState = { activeExam: null };
+  function normalizeExamAnswer(value) { return String(value || '').trim().toLowerCase().replace(/[。！？!?，,；;\s]+/g, ''); }
+  function examAnswerMatches(value, item) {
+    const raw = String(value || '').trim();
+    const normalized = normalizeExamAnswer(raw);
+    const expected = normalizeExamAnswer(item?.answer);
+    if (normalized === expected) return true;
+    const letter = raw.replace(/[.)、:：]/g, '').trim().toUpperCase();
+    if (/^[A-Z]$/.test(letter) && Array.isArray(item?.options)) {
+      const idx = letter.charCodeAt(0) - 65;
+      return idx >= 0 && idx < item.options.length && normalizeExamAnswer(item.options[idx]) === expected;
+    }
+    return Array.isArray(item?.options) && item.options.some((option) => normalizeExamAnswer(option) === normalized && normalizeExamAnswer(option) === expected);
+  }
+  function renderChatboxExamForm(area, exam) {
+    area?.querySelector('[data-chatbox-exam-form]')?.remove();
+    if (!area || !exam) return;
+    const displayExam = { ...exam, items: (exam.items || []).map((item) => { const copy = { ...item }; if (Array.isArray(item.options) && item.options.length && item.type !== 'sentence_order' && item.type !== 'error_correction') { const shuffled = [...item.options]; let seed = String(item.id || '').split('').reduce((a,c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7); for (let i = shuffled.length - 1; i > 0; i--) { seed = (seed * 1664525 + 1013904223) >>> 0; const j = seed % (i + 1); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } copy.options = shuffled; } return copy; }) };
+    exam = displayExam;
+    chatboxExamState.activeExam = exam;
+    const form = document.createElement('section');
+    form.setAttribute('data-chatbox-exam-form', 'true');
+    form.style.cssText = 'margin:8px 0;padding:12px;border:2px solid #f0a6c8;border-radius:14px;background:#fff7fb;line-height:1.55;';
+    const rows = (exam.items || []).map((item, index) => {
+      const options = Array.isArray(item.options) ? `<div style="font-size:12px;color:#5b4964;margin:4px 0;">${item.options.map((o,j)=>`${String.fromCharCode(65+j)}. ${escapeHtml(o)}`).join(' · ')}</div>` : '';
+      const inputType = item.section === 'writing' ? 'textarea' : 'input';
+      return `<div style="padding:8px 0;border-top:1px solid #f4c6dc;"><b>${index+1}. ${escapeHtml(item.prompt || '')}</b>${item.passage ? `<div style="margin:4px 0;color:#334155;">${escapeHtml(item.passage)}</div>` : ''}${options}<${inputType} data-chatbox-answer="${index}" placeholder="${item.section === 'writing' ? 'Write your answer / 请作答…' : 'Your answer / 请输入答案…'}" style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #e8b5ce;border-radius:8px;font-family:inherit;${inputType === 'textarea' ? 'min-height:64px;' : ''}"></${inputType}><div data-live-grade="${index}" style="min-height:14px;margin-top:3px;font-size:11px;"></div>${item.section === 'writing' ? `<small style="color:#8b5cf6;">中文写作 / Chinese writing · English rubric feedback after submission</small>` : ''}</div>`;
+    }).join('');
+    form.innerHTML = `<strong>✍️ 直接答题 / Take the exam here</strong><div style="font-size:11px;color:#64748b;margin:3px 0 8px;">请输入每题答案后提交。写作按中英双语评分标准批改 / Enter each answer and submit. Writing is graded with the Chinese–English rubric.</div>${rows}<button type="button" data-chatbox-submit style="margin-top:10px;border:0;border-radius:9px;padding:9px 13px;background:#db2777;color:#fff;font-weight:800;cursor:pointer;">提交 / Submit</button><div data-chatbox-grade style="margin-top:8px;"></div>`;
+    area.appendChild(form);
+    const gradeOne = (index) => { const item = displayExam.items?.[index]; const input = form.querySelector(`[data-chatbox-answer="${index}"]`); const out = form.querySelector(`[data-live-grade="${index}"]`); if (!item || !input || !out) return; const value = String(input.value || '').trim(); if (!value) { out.textContent = ''; return; } if (item.section === 'writing') { const n = value.length; const hasHanzi = /[\u3400-\u9fff]/.test(value); const task = Math.min(100, n >= 12 ? 90 : n >= 6 ? 75 : 55); const organization = /[，。！？,.!?]/.test(value) ? 88 : 70; const grammar = hasHanzi ? 82 : 50; const vocabulary = hasHanzi ? 84 : 48; const naturalness = n >= 8 ? 78 : 58; const writingScore = Math.round(task*.25 + organization*.2 + grammar*.25 + vocabulary*.15 + naturalness*.15); out.innerHTML = `<span style="color:#7c3aed;font-weight:700;">写作建议分 / Writing suggested score: ${writingScore}/100 · 任务 / Task ${task} · 结构 / Organization ${organization} · 语法 / Grammar ${grammar} · 词汇 / Vocabulary ${vocabulary} · 自然度 / Naturalness ${naturalness}. Submit for full feedback.</span>`; return; } const ok = examAnswerMatches(value, item); out.innerHTML = ok ? '<span style="color:#15803d;font-weight:700;">✓ 正确 / Correct — matches the answer and context.</span>' : `<span style="color:#b91c1c;font-weight:700;">✗ 错误 / Incorrect — expected ${escapeHtml(String(item.answer || ''))}. 中文：请检查目标词义、语法或语境。 English: check the target meaning, grammar or context.</span>`; };
+    form.querySelectorAll('[data-chatbox-answer]').forEach((input,index) => input.addEventListener('input', () => gradeOne(index)));
+    form.querySelector('[data-chatbox-submit]').addEventListener('click', () => {
+      const results = (displayExam.items || []).map((item,index) => ({ item, value: form.querySelector(`[data-chatbox-answer="${index}"]`)?.value || '' }));
+      const objective = results.filter(x => x.item.section !== 'writing');
+      const correct = objective.filter(x => examAnswerMatches(x.value, x.item)).length;
+      const objectivePercent = objective.length ? Math.round(correct / objective.length * 100) : 0;
+      const writingTotal = results.filter(x => x.item.section === 'writing').length;
+      const writing = results.filter(x => x.item.section === 'writing' && x.value.trim());
+      const writingPercent = writingTotal ? Math.round(writing.length / writingTotal * 100) : 0;
+      const total100 = Math.round(objectivePercent * 0.8 + writingPercent * 0.2);
+      const grade = form.querySelector('[data-chatbox-grade]');
+      grade.innerHTML = `<b>总分 / Total score: ${total100}/100</b><br><span>客观题 / Objective: ${correct}/${objective.length} = ${objectivePercent}% · 写作完成度 / Writing completion: ${writing.length}/${writingTotal} = ${writingPercent}%</span><br><span>写作 rubric / Writing rubric: Task completion / 完成任务 · Organization / 结构与衔接 · Grammar / 语法 · Vocabulary / 词汇 · Naturalness & style / 自然度与文体. AI score is a teaching suggestion; teacher confirms the final score.</span>`;
+      writing.forEach(x => { const node = document.createElement('div'); node.style.cssText='margin-top:7px;padding:7px;border-top:1px dashed #e5b5cc;font-size:11px;'; node.innerHTML = `<b>${x.item.id}</b> · 中文解析 / Chinese feedback: 检查任务完成、结构、语法、词汇和表达自然度。 English feedback: check task completion, organization, grammar, vocabulary and naturalness. <br><em>Suggested correction / 建议修改: review the answer against the prompt and target structures.</em>`; grade.appendChild(node); });
+      grade.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+  }
+  function isWritingCorrectionRequest(text) {
+    const s = String(text || '');
+    return /(sửa câu|sửa bài|chấm bài viết|bài viết|correct my|grade my|check my sentence|check my writing|writing feedback|fix this sentence|改句子|作文评分|修改句子)/i.test(s) && !/(soạn|tạo|create|generate|solve|giải đề|sửa đề|revise exam|bộ đề|set\s*\d|HSK\s*[1-6])/i.test(s);
+  }
+  function localWritingFeedback(text) {
+    const raw = String(text || '').replace(/^(.*?)(?:sentence|writing|câu|bài viết|句子|作文)\s*[:：-]?\s*/i, '').replace(/^['"“”]+|['"“”]+$/g, '').trim() || String(text || '').trim();
+    const issues = [];
+    if (!/[\u3400-\u9fff]/.test(raw)) issues.push({ zh:'未检测到完整的中文句子；请提供汉字原句。', en:'A complete Chinese sentence was not detected; please provide the original Hanzi sentence.' });
+    if (/是\s*[\u3400-\u9fff]{1,8}/.test(raw) && !/(学生|老师|医生|朋友|人|书|问题)/.test(raw)) issues.push({ zh:'“是”后面似乎直接接了形容词；描述状态通常用“很/太/非常 + 形容词”。', en:'是 appears to be placed directly before an adjective; for a state, use 很/太/非常 + adjective.' });
+    if (/虽然/.test(raw) && !/但是|可是|不过/.test(raw)) issues.push({ zh:'“虽然”后面建议补充“但是/可是/不过”来表达转折。', en:'After 虽然, add 但是/可是/不过 to make the contrast explicit.' });
+    if (/因为/.test(raw) && !/所以/.test(raw)) issues.push({ zh:'如果使用完整因果结构，可在结果分句加入“所以”。', en:'If you use the full cause–result pattern, add 所以 in the result clause.' });
+    if (/把/.test(raw) && !/(了|在|到|给|完|好|走|开|上|下|成|见)/.test(raw)) issues.push({ zh:'“把”字句通常需要明确动作结果、方向、位置或完成状态。', en:'A 把 sentence normally needs a clear result, direction, location or completion marker.' });
+    const grammar = Math.max(45, 100 - issues.length * 12);
+    const task = raw.length >= 6 ? 90 : 65;
+    const organization = /，|。|！|？/.test(raw) ? 88 : 72;
+    const vocabulary = /[\u3400-\u9fff]/.test(raw) ? 86 : 55;
+    const naturalness = issues.length ? 68 : 90;
+    const overall = Math.round(task*.25 + organization*.2 + grammar*.25 + vocabulary*.15 + naturalness*.15);
+    const fixed = issues.length ? `${raw}（请根据上面的语法说明修改） / Please revise the sentence using the feedback above.` : `${raw} / The sentence is acceptable; consider adding context for a more natural expression.`;
+    return `📝 AI Grammar 双语批改 / Bilingual writing correction\n\n原句 / Original: ${raw}\n\n评分 / Scores (0–100):\n• Task completion / 完成任务: ${task}\n• Organization / 结构与衔接: ${organization}\n• Grammar / 语法: ${grammar}\n• Vocabulary / 词汇: ${vocabulary}\n• Naturalness & style / 自然度与文体: ${naturalness}\n• Overall suggested score / 建议总分: ${overall}\n\n问题与原因 / Issues and reasons:\n${issues.length ? issues.map((x,i)=>`${i+1}. 中文：${x.zh}\\n   English: ${x.en}`).join('\\n') : '未发现明显结构错误。中文表达基本自然。 / No major structural error was detected; the Chinese expression is generally natural.'}\n\n修改建议 / Suggested revision:\n${fixed}\n\n下一步 / Next practice:\n请再写一句使用目标结构的句子，AI Tutor 会继续按同一 rubric 逐项批改。 / Write one more sentence using the target structure; AI Tutor will grade it with the same rubric.\n\n说明 / Note: AI score is a teaching suggestion; a teacher should confirm the final score. / AI评分是教学建议，最终分数由教师确认。`;
+  }
   async function sendAiTutorMessage(text, topic = null) {
     const clean = String(text || "").trim().slice(0, 2000);
     const area = document.getElementById("aiTutorMessages");
@@ -1161,35 +1260,48 @@ function pvNextSession() {
     saveAiConversation(history);
     let reply = "";
     let usedOffline = false;
+    let examContext = null;
     setTutorComposerBusy(true);
     tutorProcessingStatus(area, "processing", tutorText("AI Tutor đang suy nghĩ…", "AI Tutor is thinking…", "AI Tutor 正在思考…"));
     try {
-      reply = await requestRealAiCoach(clean, language);
+      if (isWritingCorrectionRequest(clean)) {
+        reply = localWritingFeedback(clean);
+      } else {
+        examContext = isChatboxExamRequest(clean) && window.PandaHanChatboxExamData?.contextFor
+          ? await window.PandaHanChatboxExamData.contextFor(clean)
+          : null;
+        if (examContext?.exam) {
+          reply = localChatboxExamReply(examContext, language);
+        } else {
+          reply = await requestRealAiCoach(clean, language);
+        }
+      }
     } catch (error) {
       usedOffline = true;
       tutorProcessingStatus(area, "offline", tutorText("Cloud AI chưa khả dụng — đang dùng thư viện Offline…", "Cloud AI is unavailable — using the Offline library…", "Cloud AI 暂不可用 — 正在使用离线题库…"));
       const fallbackText = topic
         ? (language === "zh" ? `HSK ${topic.level} 主题：${topic.topicEn}` : language === "en" ? `HSK ${topic.level} topic: ${topic.topicEn}` : `Chủ đề HSK ${topic.level}: ${topic.topicVi}`)
         : clean;
-      reply = window.PandaHanMission?.replyTo?.(fallbackText, { language, length: aiTutorState.length, context: "ai-tutor", selectedStandardTopic: Boolean(topic) }) || tutorText("AI Tutor đang tải. Hãy thử lại sau.", "AI Tutor is loading. Please try again.", "AI Tutor 正在加载，请稍后再试。");
+      reply = localTutorNaturalReply(clean) || window.PandaHanMission?.replyTo?.(fallbackText, { language, length: aiTutorState.length, context: "ai-tutor", selectedStandardTopic: Boolean(topic) }) || tutorText("AI Tutor đang tải. Hãy thử lại sau.", "AI Tutor is loading. Please try again.", "AI Tutor 正在加载，请稍后再试。");
     }
     tutorClearProcessing(area);
     const botCreatedAt = Date.now();
     tutorBubble(area, reply, "bot", botCreatedAt);
+    if (examContext?.exam && examContext.mode === "create") renderChatboxExamForm(area, examContext.answerKey || examContext.exam);
     const next = loadAiConversation();
     next.push({ role: "bot", text: String(reply).slice(0, 3000), createdAt: botCreatedAt });
     saveAiConversation(next);
     setTutorComposerBusy(false);
     tutorProcessingStatus(area, usedOffline ? "offline" : "complete", usedOffline
-      ? tutorText("Đã trả lời bằng thư viện Offline. Hội thoại mở cần Cloud Function được deploy.", "Answered with the Offline library. Open conversation needs the Cloud Function deployment.", "已使用离线题库回答。开放式对话需要部署 Cloud Function。")
+      ? tutorText("Đã trả lời bằng kho đề tích hợp. Hội thoại mở cần Cloud Function được triển khai.", "Answered from the integrated exam bank. Open conversation needs the Cloud Function deployment.", "已使用内置题库回答。开放式对话需要部署 Cloud Function。")
       : tutorText("Phản hồi AI đã sẵn sàng.", "AI response is ready.", "AI 回复已生成。"));
   }
   function renderAiTutorWorkspace() {
     const mount = document.getElementById("aiChatMount");
     if (!mount) return;
     const language = tutorResponseLanguage("");
-    const copy = (vi, en, zh) => language === "zh" ? zh : language === "en" ? en : vi;
-    mount.innerHTML = `<section data-ai-tutor-workspace="true" style="display:grid;grid-template-columns:minmax(230px,0.8fr) minmax(0,1.45fr);gap:14px;align-items:start;"><aside style="padding:13px;border:1px solid #f2bfd8;border-radius:16px;background:linear-gradient(135deg,#fff7fb,#fff);"><div style="font-size:11px;font-weight:900;letter-spacing:.08em;color:#a21c5a;text-transform:uppercase;">${copy("AI TUTOR STUDIO", "AI TUTOR STUDIO", "AI TUTOR 工作室")}</div><h3 style="margin:4px 0 5px;color:#3a2432;font-size:18px;">${copy("Luyện theo chủ đề", "Practise by topic", "按主题练习")}</h3><p style="margin:0;color:#645565;font-size:12px;line-height:1.5;">${copy("Chọn HSK, độ dài và ngôn ngữ trả lời. Bạn vẫn có thể gõ bất kỳ yêu cầu học nào.", "Choose HSK, length and reply language. You can still type any learning request.", "选择 HSK、篇幅和回复语言；你也可以输入任何学习要求。")}</p><label style="display:block;margin-top:12px;font-size:11px;font-weight:800;color:#75214c;">${copy("Cấp độ", "Level", "等级")}</label><select id="aiTutorLevel" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="0">${copy("Tất cả HSK 1–6", "All HSK 1–6", "全部 HSK 1–6")}</option>${[1,2,3,4,5,6].map((n) => `<option value="${n}" ${Number(aiTutorState.level)===n?"selected":""}>HSK ${n}</option>`).join("")}</select><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Độ dài đoạn", "Text length", "篇幅")}</label><select id="aiTutorLength" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="adaptive" ${aiTutorState.length==="adaptive"?"selected":""}>${copy("Theo cấp độ", "By level", "按等级")}</option><option value="short" ${aiTutorState.length==="short"?"selected":""}>${copy("Ngắn", "Short", "短篇")}</option><option value="medium" ${aiTutorState.length==="medium"?"selected":""}>${copy("Vừa", "Medium", "中篇")}</option><option value="long" ${aiTutorState.length==="long"?"selected":""}>${copy("Dài", "Long", "长篇")}</option></select><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Ngôn ngữ phản hồi", "Reply language", "回复语言")}</label><select id="aiTutorLanguage" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="auto" ${aiTutorState.language==="auto"?"selected":""}>${copy("Tự nhận diện", "Auto-detect", "自动识别")}</option><option value="zh" ${aiTutorState.language==="zh"?"selected":""}>中文</option><option value="vi" ${aiTutorState.language==="vi"?"selected":""}>Tiếng Việt</option><option value="en" ${aiTutorState.language==="en"?"selected":""}>English</option></select><div style="margin-top:12px;padding:9px;border-radius:10px;background:#fff0f6;color:#5d3347;font-size:11px;line-height:1.5;">${copy("Offline: thư viện chủ đề có sẵn. Cloud AI: hội thoại mở sau khi Function được deploy.", "Offline: curated topic library. Cloud AI: open conversation after the Function is deployed.", "离线：使用主题库。Cloud AI：部署 Function 后可进行开放对话。")}</div></aside><main style="min-width:0;"><div data-ai-tutor-topic-grid style="padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff9fc;"><b style="color:#75214c;">${copy("Chọn chủ đề", "Choose a topic", "选择主题")}</b><div style="font-size:11.5px;color:#5b4964;margin-top:3px;">${copy("Mỗi chủ đề có đoạn tiếng Trung, pinyin, nghĩa, từ mục tiêu, ngữ pháp và hội thoại.", "Every topic includes Chinese text, pinyin, meaning, target vocabulary, grammar and dialogue.", "每个主题含中文短文、拼音、释义、重点词汇、语法和对话。")}</div>${tutorTopicGroups()}</div><div id="aiTutorMessages" style="margin-top:12px;min-height:260px;max-height:420px;overflow:auto;padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:7px;"></div><div style="display:flex;gap:8px;margin-top:10px;"><input id="aiTutorInput" type="text" placeholder="${escapeHtml(copy("Nhập bằng 中文, Tiếng Việt hoặc English...", "Type in 中文, Vietnamese, or English...", "可用中文、Tiếng Việt 或 English 输入…"))}" style="flex:1;min-width:0;padding:10px 12px;border:1px solid #efb6ce;border-radius:10px;color:#211d22;background:#fff;font-family:inherit;"><button id="aiTutorSend" type="button" style="border:0;border-radius:10px;padding:10px 14px;background:#e5488d;color:#fff;font-weight:900;cursor:pointer;">${copy("Gửi", "Send", "发送")}</button></div></main></section>`;
+    const copy = (vi, en, zh) => language === "zh" ? zh : language === "bilingual" ? `${zh} / ${en}` : language === "en" ? en : vi;
+    mount.innerHTML = `<section data-ai-tutor-workspace="true" style="display:grid;grid-template-columns:minmax(230px,0.8fr) minmax(0,1.45fr);gap:14px;align-items:start;"><aside style="padding:13px;border:1px solid #f2bfd8;border-radius:16px;background:linear-gradient(135deg,#fff7fb,#fff);"><div style="font-size:11px;font-weight:900;letter-spacing:.08em;color:#a21c5a;text-transform:uppercase;">${copy("AI TUTOR STUDIO", "AI TUTOR STUDIO", "AI TUTOR 工作室")}</div><h3 style="margin:4px 0 5px;color:#3a2432;font-size:18px;">${copy("Luyện theo chủ đề", "Practise by topic", "按主题练习")}</h3><p style="margin:0;color:#645565;font-size:12px;line-height:1.5;">${copy("Chọn HSK, độ dài và ngôn ngữ trả lời. Bạn vẫn có thể gõ bất kỳ yêu cầu học nào.", "Choose HSK, length and reply language. You can still type any learning request.", "选择 HSK、篇幅和回复语言；你也可以输入任何学习要求。")}</p><label style="display:block;margin-top:12px;font-size:11px;font-weight:800;color:#75214c;">${copy("Cấp độ", "Level", "等级")}</label><select id="aiTutorLevel" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="0">${copy("Tất cả HSK 1–6", "All HSK 1–6", "全部 HSK 1–6")}</option>${[1,2,3,4,5,6].map((n) => `<option value="${n}" ${Number(aiTutorState.level)===n?"selected":""}>HSK ${n}</option>`).join("")}</select><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Số bộ đề", "Set number", "套题编号")}</label><input id="aiTutorSet" aria-label="Set number / 套题编号" type="number" min="1" max="100" value="${Math.max(1, Math.min(100, Number(aiTutorState.set || 1)))}" style="width:100%;box-sizing:border-box;margin-top:5px;padding:11px 12px;border:2px solid #db2777;border-radius:10px;background:#fff7fb;color:#831843;font-size:17px;font-weight:900;box-shadow:0 0 0 3px rgba(219,39,119,.12);"><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Độ dài đoạn", "Text length", "篇幅")}</label><select id="aiTutorLength" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="adaptive" ${aiTutorState.length==="adaptive"?"selected":""}>${copy("Theo cấp độ", "By level", "按等级")}</option><option value="short" ${aiTutorState.length==="short"?"selected":""}>${copy("Ngắn", "Short", "短篇")}</option><option value="medium" ${aiTutorState.length==="medium"?"selected":""}>${copy("Vừa", "Medium", "中篇")}</option><option value="long" ${aiTutorState.length==="long"?"selected":""}>${copy("Dài", "Long", "长篇")}</option></select><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Ngôn ngữ phản hồi", "Reply language", "回复语言")}</label><select id="aiTutorLanguage" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="auto" ${aiTutorState.language==="auto"?"selected":""}>${copy("Tự nhận diện", "Auto-detect", "自动识别")}</option><option value="zh" ${aiTutorState.language==="zh"?"selected":""}>中文</option><option value="en" ${aiTutorState.language==="en"?"selected":""}>English</option><option value="bilingual" ${aiTutorState.language==="bilingual"?"selected":""}>中文 + English</option></select><div style="margin-top:12px;padding:9px;border-radius:10px;background:#fff0f6;color:#5d3347;font-size:11px;line-height:1.5;">${copy("Kho đề AI Tutor đã sẵn sàng: 420 bộ HSK1–HSK6, mỗi bộ 36 câu; HSK1–3 có 40 bộ/cấp, HSK4–6 có 100 bộ/cấp. Bạn có thể tạo, giải, sửa và chấm đề ngay. HSK 3–6 dùng đọc hiểu theo ngữ cảnh, suy luận, grammar trong câu hoàn chỉnh, sắp xếp câu và đặt câu theo từ gợi ý; Cloud AI dùng cho hội thoại mở.", "AI Tutor exam bank ready: 420 HSK1–HSK6 sets, 36 items each; 40 sets for each of HSK1–3 and 100 sets for each of HSK4–6. Create, solve, revise and grade exams now. HSK 3–6 uses context-based reading, inference, grammar-in-context, non-trivial sentence ordering, and guided sentence production; Cloud AI is for open conversation.", "AI Tutor 题库已就绪：HSK1–HSK6 共 420 套，每套 36 题；HSK1–HSK3 各 40 套，HSK4–HSK6 各 100 套。现在即可生成、解答、修改和评分；开放对话使用 Cloud AI。")}</div></aside><main style="min-width:0;"><div data-ai-tutor-topic-grid style="padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff9fc;"><b style="color:#75214c;">${copy("Chọn chủ đề", "Choose a topic", "选择主题")}</b><div style="font-size:11.5px;color:#5b4964;margin-top:3px;">${copy("Mỗi chủ đề có đoạn tiếng Trung, pinyin, nghĩa, từ mục tiêu, ngữ pháp và hội thoại.", "Every topic includes Chinese text, pinyin, meaning, target vocabulary, grammar and dialogue.", "每个主题含中文短文、拼音、释义、重点词汇、语法和对话。")}</div>${tutorTopicGroups()}</div><div id="aiTutorMessages" style="margin-top:12px;min-height:260px;max-height:420px;overflow:auto;padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:7px;"></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;"><b style="font-size:11px;color:#75214c;">${copy("Chọn nhanh HSK", "Quick HSK", "快速选择 HSK")}</b>${[1,2,3,4,5,6].map((n) => `<button type="button" data-ai-tutor-level="${n}" style="border:1px solid #efb6ce;background:#fff0f6;color:#75214c;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer;">HSK ${n}</button>`).join("")}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button type="button" data-ai-tutor-action="create">${copy("Soạn đề", "Create exam", "生成试题")}</button><button type="button" data-ai-tutor-action="solve">${copy("Giải đề", "Solve exam", "解答试题")}</button><button type="button" data-ai-tutor-action="review">${copy("Sửa đề", "Revise exam", "修改试题")}</button><span style="font-size:11px;color:#6b5564;padding:6px 2px;">${copy("Chọn HSK ở hàng trên rồi chọn thao tác.", "Choose HSK above, then choose an action.", "先选择 HSK，再选择操作。")}</span></div><div style="display:flex;gap:8px;margin-top:10px;"><input id="aiTutorInput" type="text" placeholder="${escapeHtml(copy("Nhập bằng 中文, English hoặc English...", "Type in 中文, Vietnamese, or English...", "可用中文、English 或 English 输入…"))}" style="flex:1;min-width:0;padding:10px 12px;border:1px solid #efb6ce;border-radius:10px;color:#211d22;background:#fff;font-family:inherit;"><button id="aiTutorSend" type="button" style="border:0;border-radius:10px;padding:10px 14px;background:#e5488d;color:#fff;font-weight:900;cursor:pointer;">${copy("Gửi", "Send", "发送")}</button></div></main></section>`;
     const readingMount = document.createElement("div");
     readingMount.id = "aiTutorReadingMount";
     mount.querySelector("#aiTutorMessages")?.before(readingMount);
@@ -1213,6 +1325,9 @@ function pvNextSession() {
       const prompt = tutorResponseLanguage("") === "zh" ? `请给我 HSK ${topic.level} 主题：${topic.topicEn}` : tutorResponseLanguage("") === "en" ? `HSK ${topic.level} topic: ${topic.topicEn}` : `Chủ đề HSK ${topic.level}: ${topic.topicVi}`;
       sendAiTutorMessage(prompt, topic);
     }));
+    mount.querySelectorAll("[data-ai-tutor-level]").forEach((button) => button.addEventListener("click", () => { aiTutorState.level = Number(button.dataset.aiTutorLevel); const select = mount.querySelector("#aiTutorLevel"); if (select) select.value = String(aiTutorState.level); }));
+    mount.querySelector("#aiTutorSet")?.addEventListener("change", (event) => { aiTutorState.set = Math.max(1, Math.min(100, Number(event.target.value) || 1)); });
+    mount.querySelectorAll("[data-ai-tutor-action]").forEach((button) => button.addEventListener("click", () => { const level = Number(mount.querySelector("#aiTutorLevel")?.value || aiTutorState.level || 1) || 1; const set = Math.max(1, Math.min(100, Number(mount.querySelector("#aiTutorSet")?.value || aiTutorState.set || 1))); aiTutorState.set = set; const mode = button.dataset.aiTutorAction; const verb = mode === "create" ? "soạn đề" : mode === "solve" ? "giải đề" : "sửa đề"; sendAiTutorMessage(`${verb} HSK${level} bộ ${set}`); }));
     const input = mount.querySelector("#aiTutorInput");
     const send = () => { const value = String(input.value || "").trim(); if (!value) return; input.value = ""; sendAiTutorMessage(value); };
     mount.querySelector("#aiTutorSend").addEventListener("click", send);
@@ -1379,6 +1494,14 @@ function pvNextSession() {
     if (host) window.PandaHanMission?.renderCoach?.(host);
   });
 
+  function localTutorNaturalReply(text) {
+    const s = String(text || '').trim();
+    const lower = s.toLowerCase();
+    if (/soạn|tạo|create|generate|make/.test(lower) && !/hsk\s*[1-6]/i.test(s)) return 'Mình có thể soạn đề HSK1–HSK6 ngay trong chatbox. Bạn hãy ghi cấp độ, số bộ, số câu và ngôn ngữ.\n\nI can create an HSK1–HSK6 exam directly in this chatbox. Please specify the level, number of sets, number of questions, and language.\n\n我可以直接在聊天框中生成 HSK1–HSK6 试题，请说明级别、套数、题量和语言。';
+    if (/rubric|chấm|grade|writing|viết|作文/.test(lower)) return 'Chấm bài viết / Writing assessment / 写作评分:\n1. Task completion / 完成任务\n2. Organization and cohesion / 结构与衔接\n3. Grammar / 语法\n4. Vocabulary / 词汇\n5. Naturalness and style / 表达自然度与文体\n\nHãy dán đề và bài làm; AI Tutor sẽ trả về điểm đề xuất, lỗi gốc, bản sửa, lý do sửa và bài tập tiếp theo. Paste the prompt and response for criterion-by-criterion feedback on a 0–5 scale, with a converted total score, observable errors, corrections, and a follow-up task.';
+    if (/giải thích|explain|grammar|ngữ pháp|语法|difference|khác nhau/.test(lower)) return 'Bạn có thể hỏi tự nhiên về từ vựng, ngữ pháp, pinyin, đọc hiểu hoặc viết. Ví dụ: “Giải thích 把 và 被 bằng 中文 + English”, “Sửa câu này theo rubric”, hoặc “Tạo 10 câu HSK3–HSK6 về mua sắm”.\n\nYou can ask naturally about vocabulary, grammar, pinyin, reading and writing; I will answer with Chinese–English explanations.\n\n你可以直接询问词汇、语法、拼音、阅读和写作。';
+    return 'AI Tutor đã nhận câu hỏi. Hãy yêu cầu tự nhiên về tạo/giải/sửa/chấm đề HSK1–HSK6, giải thích ngữ pháp, sửa câu hoặc chấm bài viết theo rubric Trung–Anh.\n\nAI Tutor received your message. Ask naturally for an HSK1–HSK6 exam, context-based reading questions, sentence ordering, grammar help, revision, or bilingual writing feedback.\n\nAI Tutor 已收到你的问题，可以直接请求生成、解答、修改试题或进行中英双语写作评分。';
+  }
   function getAiChatEndpoint() {
     if (window.PANDAHAN_AI_ENDPOINT) return String(window.PANDAHAN_AI_ENDPOINT);
     try {
@@ -1414,10 +1537,13 @@ function pvNextSession() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 7000);
     try {
+      const chatboxContext = window.PandaHanChatboxExamData?.contextFor
+        ? await window.PandaHanChatboxExamData.contextFor(text)
+        : null;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ message: String(text).slice(0, 2000), history: (activeChatUserId === "__pandahan_ai__" ? loadAiCoachConversation() : loadAiConversation()).slice(-12), learner: buildAiLearnerContext(), lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || "en" }),
+        body: JSON.stringify({ message: String(text).slice(0, 2000), history: (activeChatUserId === "__pandahan_ai__" ? loadAiCoachConversation() : loadAiConversation()).slice(-12), learner: buildAiLearnerContext(), chatboxContext, lang: window.PandaHanMission?.detectResponseLanguage?.(text, preferredLanguage) || "en" }),
         signal: controller.signal,
       });
       const payload = await response.json().catch(() => ({}));
