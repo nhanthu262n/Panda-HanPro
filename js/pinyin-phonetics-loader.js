@@ -36,20 +36,20 @@
   }
 
   function showError(error) {
-    console.error('PandaHán Pinyin loader error:', error);
+    console.error('PanTutor Phonetics loader error:', error);
     const root = getRoot();
     if (!root) return;
     const isFetchError = error instanceof TypeError || /fetch|cors|network/i.test(String(error?.message || error));
     const detail = isFetchError
-      ? (window.LANG_MODE === "en" ? 'AI Tutor needs a backend that permits CORS from GitHub Pages. Retry after the backend is configured.' : 'AI Teacher cần backend cho phép CORS từ GitHub Pages. Vui lòng thử lại sau khi backend được cấu hình.')
-      : (window.LANG_MODE === "en" ? 'Check your network, then press Ctrl + F5 to retry.' : 'Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.');
+      ? (window.LANG_MODE === "en" ? 'AI Tutor needs a backend that permits CORS from GitHub Pages. Retry after the backend is configured.' : 'AI Tutor requires a backend that permits CORS from GitHub Pages. Please retry after the backend has been configured.')
+      : (window.LANG_MODE === "en" ? 'Check your network, then press Ctrl + F5 to retry.' : 'Check your network connection, then press Ctrl + F5 to retry.');
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
       <strong>${window.LANG_MODE === "en" ? "Unable to load the Phonetics module." : "Unable to load the Phonetics module."}</strong><br>${detail}
     </div>`;
   }
 
-  // Chỉ ẩn dòng dịch nghĩa trong các nút đáp án của Trắc nghiệm.
-  // Không quét text node toàn bộ shadow root: flashcard Học phải giữ nghĩa tiếng Việt.
+  // Hide the gloss line inside quiz answer buttons.
+  // Do not rewrite the entire shadow root; Phonetics now ships with direct English source content.
   function hideQuizAnswerMeanings() {
     const host = getRoot();
     const shadow = host && host.shadowRoot;
@@ -63,7 +63,7 @@
       const hasPinyin = texts.some((text) => /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(text));
       if (!hasHan || !hasPinyin) return;
 
-      // In đáp án quiz, Hán tự và Pinyin ở trên; dòng nghĩa là phần tử cuối.
+      // In đáp án quiz, Hán tự và Pinyin ở trên; dòng nghĩa to be phần tử cuối.
       const meaning = children[children.length - 1];
       if (meaning && !/[一-鿿]/.test(meaning.textContent || '')) {
         meaning.style.display = 'none';
@@ -96,9 +96,7 @@
     const intro = [...shadow.querySelectorAll('p')].find((el) => el.dataset.pandahanPinyinViHtml || (el.textContent || '').includes('In zhi/chi/shi/ri'));
     if (!intro) return;
     if (!intro.dataset.pandahanPinyinViHtml) intro.dataset.pandahanPinyinViHtml = intro.innerHTML;
-    intro.innerHTML = window.LANG_MODE === 'en'
-      ? 'For <b>zhi/chi/shi/ri</b>, the letter <b>i</b> is a special apical-vowel sound, close to Vietnamese “ư” but not the same sound and not a long “i”. In <b>zi/ci/si</b>, the letter <b>i</b> is a front apical vowel; do not curl the tongue into “ư”.'
-      : intro.dataset.pandahanPinyinViHtml;
+    intro.innerHTML = 'For <b>zhi/chi/shi/ri</b>, <b>i</b> represents a posterior apical vowel, not the high front vowel /i/. In <b>zi/ci/si</b>, <b>i</b> represents an anterior apical vowel. Keep the retroflex and non-retroflex tongue configurations distinct.';
   }
 
   function installPinyinLayoutFix() {
@@ -142,7 +140,7 @@
     }
 
     const buttons = [...shadow.querySelectorAll('button')];
-    const next = buttons.find((button) => (button.textContent || '').includes('Thẻ tiếp theo'));
+    const next = buttons.find((button) => (button.textContent || '').includes('Next card'));
     const previous = buttons.find((button) => (button.textContent || '').includes('Previous card'));
     const nav = next && previous && next.parentElement === previous.parentElement ? next.parentElement : null;
     if (nav) nav.classList.add('pinyin-sticky-nav');
@@ -153,7 +151,7 @@
     if(!host||!host.shadowRoot||host.__pinyinUiObserver)return;
     const shadow=host.shadowRoot;
     let timer=0;
-    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();applyPinyinLanguageContent();window.translateKnownLegacyUi?.(host);},120)};
+    const refresh=()=>{if(timer)return;timer=window.setTimeout(()=>{timer=0;hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();applyPinyinLanguageContent();},120)};
     hideQuizAnswerMeanings();hideOverviewHistory();installPinyinLayoutFix();
     host.__pinyinUiObserver=new MutationObserver(refresh);
     host.__pinyinUiObserver.observe(shadow,{childList:true,subtree:true});
@@ -174,7 +172,7 @@
         PARTS.map((part) => fetch(new URL(part, baseUrl), { cache: 'force-cache' }))
       );
       for (const response of responses) {
-        if (!response.ok) throw new Error(`Không tải được ${response.url} (${response.status})`);
+        if (!response.ok) throw new Error(`Unable to load ${response.url} (${response.status})`);
       }
 
       let done = 0;
@@ -184,20 +182,20 @@
         return text;
       }));
 
-      // Nhường một nhịp cho trình duyệt trước khi nối/eval bundle lớn để tránh khựng giao diện.
+      // Yield briefly before assembling/evaluating the large bundle to keep the UI responsive.
       await new Promise((resolve) => {
         const resume = () => resolve();
         if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(resume, { timeout: 120 });
         else window.setTimeout(resume, 0);
       });
-      // Nối đúng thứ tự part-01 → part-05; namespace lịch sử ghi âm theo tài khoản.
-      // Bundle vẫn giữ nguyên UI/chấm điểm, chỉ thay khóa lưu để không trộn người học.
+      // Concatenate part-01 → part-05 in order; namespace recording history per learner.
+      // Preserve the module UI/scoring while isolating learner-specific recording history.
       const owner = (() => { try { return typeof window.storageNamespace === "function" ? String(window.storageNamespace() || "guest") : String(window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest"); } catch (_) { return "guest"; } })().replace(/[^a-zA-Z0-9_-]/g, "_");
       const recordingKey = `pinyin-recording-history_${owner}`;
       const namespacedBundle = texts.join("").replace(/pinyin-recording-history/g, recordingKey);
       (0, eval)(namespacedBundle);
       if (typeof window.__PANDAHAN_PHONETICS_MOUNT__ !== 'function') {
-        throw new Error('Bundle thiếu hàm mount Pinyin.');
+        throw new Error('The Phonetics bundle is missing its mount function.');
       }
 
       const mountRoot = getRoot();
@@ -206,7 +204,7 @@
       window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
       mounted = true;
 
-      setTimeout(() => { installPinyinObservers(); applyPinyinLanguageContent(); window.translateKnownLegacyUi?.(mountRoot); }, 0);
+      setTimeout(() => { installPinyinObservers(); applyPinyinLanguageContent();  }, 0);
     })().catch((error) => {
       loadingPromise = null;
       mounted = false;
@@ -218,6 +216,6 @@
   };
   window.addEventListener("pandahan-language-changed", () => {
     const root = getRoot();
-    if (root) { applyPinyinLanguageContent(); window.translateKnownLegacyUi?.(root); }
+    if (root) { applyPinyinLanguageContent();  }
   });
 })();
