@@ -1,4 +1,4 @@
-/* PandaHan Pro — Pure adaptive schedule state machine */
+/* PanTutor — Pure adaptive schedule state machine */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
