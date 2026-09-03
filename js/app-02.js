@@ -3373,7 +3373,7 @@ async function renderTeacherDashboard() {
   const list = document.getElementById("teacherStudentList");
   if (!list) return;
   
-  list.innerHTML = `<div style="text-align:center;padding:20px;">⌛ Đang tải danh sách người dùng...</div>`;
+  list.innerHTML = `<div style="text-align:center;padding:20px;">⌛ Loading users...</div>`;
   
   const isMaster = (USER_ROLE === "master_teacher") || MASTER_EMAILS.includes(CURRENT_USER.email);
   
@@ -3385,8 +3385,8 @@ async function renderTeacherDashboard() {
       
       // ─── HEADER: Phân cấp vai trò ───
       html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:14px 18px;margin-bottom:14px;color:#fff;">
-        <div style="font-weight:700;font-size:15px;">${isMaster ? '🏛️ Trung tâm quản lý' : '👨‍🏫 Bảng điều khiển Giáo viên'}</div>
-        <div style="font-size:12px;opacity:.9;margin-top:3px;">${isMaster ? 'Quản lý lớp học, giáo viên và dữ liệu học viên' : 'Xem tiến độ và quản lý học viên'}</div>
+        <div style="font-weight:700;font-size:15px;">${isMaster ? '🏛️ Administration Center' : '👨‍🏫 Teacher Dashboard'}</div>
+        <div style="font-size:12px;opacity:.9;margin-top:3px;">${isMaster ? 'Manage classes, teachers, and learner data' : 'View learner progress and manage students'}</div>
       </div>`;
       
       // ─── Đọc progress từ Firestore cho từng học sinh ───
@@ -3403,10 +3403,10 @@ async function renderTeacherDashboard() {
       
       // ─── HỌC SINH (Giáo viên và Master đều thấy) ───
       if (students.length > 0 || (isMaster && (teachers.length > 0 || masters.length > 0))) {
-        html += `<h3 style="font-size:15px;margin:14px 0 10px;color:var(--hsk2);">🎓 Học viên (${students.length})</h3>`;
+        html += `<h3 style="font-size:15px;margin:14px 0 10px;color:var(--hsk2);">🎓 Learners (${students.length})</h3>`;
         
         if (students.length === 0 && isMaster) {
-            html += `<p style="font-size:12.5px;color:#888;padding:8px;">Chưa có học viên nào.</p>`;
+            html += `<p style="font-size:12.5px;color:#888;padding:8px;">No learners found.</p>`;
         }
         
         html += students.map(u => {
@@ -3419,27 +3419,27 @@ async function renderTeacherDashboard() {
                 });
                 if (progressMap[u.uid].lastUpdated) {
                     const d = progressMap[u.uid].lastUpdated.toDate ? progressMap[u.uid].lastUpdated.toDate() : new Date(progressMap[u.uid].lastUpdated);
-                    lastSeenLabel = d.toLocaleDateString("vi-VN");
+                    lastSeenLabel = d.toLocaleDateString("en-GB");
                 }
             }
             
             // Nút đổi role: Master thấy tất cả, GV chỉ thấy đổi student↔teacher
             const changeRoleBtns = isMaster ? `
-              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ GV</button>
-              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','master_teacher')" style="font-size:11px;padding:5px 9px;background:#7c3aed;color:#fff;border:none;border-radius:8px;">↗ TC</button>
+              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ Teacher</button>
+              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','master_teacher')" style="font-size:11px;padding:5px 9px;background:#7c3aed;color:#fff;border:none;border-radius:8px;">↗ Master</button>
             ` : `
-              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ GV</button>
+              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ Teacher</button>
             `;
             
             return `<div style="background:#fafcfe;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #eef2f7;margin-bottom:8px;">
               <div>
-                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge role-student" style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:11px;">🎓 HS</span></div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge role-student" style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:11px;">🎓 Student</span></div>
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
                 <div style="font-size:11px;color:var(--pink);margin-top:3px;">📚 ${L(`${learnedCount} từ đã học${lastSeenLabel !== "–" ? " · Cập nhật: " + lastSeenLabel : ""}`, `${learnedCount} words studied${lastSeenLabel !== "–" ? " · Updated: " + lastSeenLabel : ""}`)}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 Chi tiết</button>
-                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Xóa</button>
+                <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 Details</button>
+                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
                 ${changeRoleBtns}
               </div>
             </div>`;
@@ -3448,17 +3448,17 @@ async function renderTeacherDashboard() {
       
       // ─── GIÁO VIÊN (Chỉ Master thấy) ───
       if (isMaster && teachers.length > 0) {
-          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:var(--hsk3);">👨‍🏫 Giáo viên (${teachers.length})</h3>`;
+          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:var(--hsk3);">👨‍🏫 Teachers (${teachers.length})</h3>`;
           html += teachers.map(u => {
             // Đếm số học sinh của giáo viên này (dựa vào shared data)
             return `<div style="background:#fffbeb;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #fde68a;margin-bottom:8px;">
               <div>
-                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;font-size:11px;">👨‍🏫 GV</span></div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;font-size:11px;">👨‍🏫 Teacher</span></div>
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','student')" style="font-size:11px;padding:5px 9px;background:#ef4444;color:#fff;border:none;border-radius:8px;">↘ HS</button>
-                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Xóa</button>
+                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','student')" style="font-size:11px;padding:5px 9px;background:#ef4444;color:#fff;border:none;border-radius:8px;">↘ Student</button>
+                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
               </div>
             </div>`;
           }).join("");
@@ -3466,16 +3466,16 @@ async function renderTeacherDashboard() {
       
       // ─── MASTER / TRUNG TÂM (Chỉ Master thấy) ───
       if (isMaster && masters.length > 0) {
-          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:#7c3aed;">🏛️ Trung tâm / Master (${masters.length})</h3>`;
+          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:#7c3aed;">🏛️ Center / Master (${masters.length})</h3>`;
           html += masters.map(u => {
             return `<div style="background:#f5f3ff;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #e0d4fc;margin-bottom:8px;">
               <div>
-                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:6px;font-size:11px;">🏛️ TC</span></div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:6px;font-size:11px;">🏛️ Master</span></div>
                 <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↘ GV</button>
-                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Xóa</button>
+                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↘ Teacher</button>
+                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
               </div>
             </div>`;
           }).join("");
@@ -3768,8 +3768,8 @@ function applyRoleUI() {
   const teacherTitle = document.querySelector("#teacherView h2");
   if (teacherTitle) {
     teacherTitle.textContent = USER_ROLE === "master_teacher" 
-      ? "🏛️ Trung tâm quản lý / Center Dashboard" 
-      : "👨‍🏫 Bảng điều khiển Giáo viên / Teacher Dashboard";
+      ? "🏛️ Administration Center / Center Dashboard" 
+      : "👨‍🏫 Teacher Dashboard / Teacher Dashboard";
   }
 }
 
