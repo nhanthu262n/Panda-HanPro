@@ -1,11 +1,15 @@
-const CACHE_NAME = "pandahan-runtime-chain-learning-v19-20260901";
+const CACHE_NAME = "pantutor-runtime-v38-english-20260903";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener("message", (event) => {
@@ -15,9 +19,7 @@ self.addEventListener("message", (event) => {
   const mistakeDue = Number(data.mistakeDue || 0);
   const isEnglish = data.lang === "en";
   const title = "PanTutor study reminder";
-  const body = isEnglish
-    ? `${due ? `${due} SRS word${due === 1 ? "" : "s"}` : ""}${due && mistakeDue ? " and " : ""}${mistakeDue ? `${mistakeDue} wrong item${mistakeDue === 1 ? "" : "s"} to redo` : ""} are ready.`
-    : `${due ? `Có ${due} từ SRS` : ""}${due && mistakeDue ? " và " : ""}${mistakeDue ? `${mistakeDue} lỗi cần làm lại` : ""}.`;
+  const body = `${due ? `${due} SRS word${due === 1 ? "" : "s"}` : ""}${due && mistakeDue ? " and " : ""}${mistakeDue ? `${mistakeDue} wrong item${mistakeDue === 1 ? "" : "s"} to redo` : ""} are ready.`;
   event.waitUntil(self.registration.showNotification(title, {
     body,
     tag: "pandahan-due-review",
