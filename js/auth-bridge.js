@@ -1,4 +1,4 @@
-/* PandaHan Pro — Auth/profile/notification bridge. */
+/* PanTutor — Auth/profile/notification bridge. */
 (function () {
   "use strict";
 
