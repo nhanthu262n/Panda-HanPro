@@ -1,4 +1,4 @@
-/* PandaHán Pro — curated HSK 4–6 Offline topic extension.
+/* PanTutor — curated HSK 4–6 Offline topic extension.
    Source-owned learning content: each topic is intentionally bounded by level
    and offers a complete practice package when the Cloud AI is unavailable. */
 (() => {
