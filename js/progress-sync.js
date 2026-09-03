@@ -118,7 +118,7 @@
     try { await hydrate(activeUid); } catch (error) { console.warn("Progress hydration kept local cache:", error?.message || error); }
   }
 
-  window.PandaHanProgressSync = { hydrate, flush, scheduleFlush, collect, restoreBucket };
+  window.PanTutorgressSync = { hydrate, flush, scheduleFlush, collect, restoreBucket };
   ["pandahan-learning-evaluation", "pandahan-quest-score-saved", "pandahan-phonetics-listening-quiz", "pandahan-mistakes-changed", "pandahan-srs-updated"].forEach((name) => {
     window.addEventListener(name, () => scheduleFlush(name));
   });
