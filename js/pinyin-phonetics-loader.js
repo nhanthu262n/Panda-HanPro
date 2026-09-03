@@ -26,12 +26,12 @@
     if (!root) return;
     const pct = Math.round((done / PARTS.length) * 100);
     root.innerHTML = `<div style="padding:28px;text-align:center;color:#9ca3af;font-weight:700">
-      <div style="font-size:18px;margin-bottom:8px">${window.LANG_MODE === "en" ? "Loading Pinyin Phonetics…" : "Đang tải Ngữ âm Pinyin…"}</div>
-      <div style="font-size:13px;margin-bottom:12px">${window.LANG_MODE === "en" ? "Audio and flashcard data load on first use." : "Lần đầu cần tải dữ liệu âm thanh và flashcard."}</div>
+      <div style="font-size:18px;margin-bottom:8px">${window.LANG_MODE === "en" ? "Loading Pinyin Phonetics…" : "Loading Pinyin Phonetics…"}</div>
+      <div style="font-size:13px;margin-bottom:12px">${window.LANG_MODE === "en" ? "Audio and flashcard data load on first use." : "Audio and flashcard assets are loaded on first use."}</div>
       <div style="height:8px;background:#fce7f3;border-radius:99px;overflow:hidden">
         <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ec4899,#a855f7);transition:width .25s"></div>
       </div>
-      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} ${window.LANG_MODE === "en" ? "parts loaded" : "phần đã tải"}</div>
+      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} ${window.LANG_MODE === "en" ? "parts loaded" : "parts loaded"}</div>
     </div>`;
   }
 
@@ -44,7 +44,7 @@
       ? (window.LANG_MODE === "en" ? 'AI Tutor needs a backend that permits CORS from GitHub Pages. Retry after the backend is configured.' : 'AI Teacher cần backend cho phép CORS từ GitHub Pages. Vui lòng thử lại sau khi backend được cấu hình.')
       : (window.LANG_MODE === "en" ? 'Check your network, then press Ctrl + F5 to retry.' : 'Hãy kiểm tra mạng rồi nhấn Ctrl + F5 để thử lại.');
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
-      <strong>${window.LANG_MODE === "en" ? "Unable to load the Phonetics module." : "Không tải được module Ngữ âm."}</strong><br>${detail}
+      <strong>${window.LANG_MODE === "en" ? "Unable to load the Phonetics module." : "Unable to load the Phonetics module."}</strong><br>${detail}
     </div>`;
   }
 
@@ -63,7 +63,7 @@
       const hasPinyin = texts.some((text) => /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/.test(text));
       if (!hasHan || !hasPinyin) return;
 
-      // Trong đáp án quiz, Hán tự và Pinyin ở trên; dòng nghĩa là phần tử cuối.
+      // In đáp án quiz, Hán tự và Pinyin ở trên; dòng nghĩa là phần tử cuối.
       const meaning = children[children.length - 1];
       if (meaning && !/[一-鿿]/.test(meaning.textContent || '')) {
         meaning.style.display = 'none';
@@ -78,7 +78,7 @@
     if (!shadow) return;
     const hasHistory = (el) => {
       const text = (el.textContent || '').trim();
-      return text.includes('Lịch sử phát âm') && text.includes('Xóa lịch sử');
+      return text.includes('Pronunciation history') && text.includes('Clear history');
     };
     const panel = [...shadow.querySelectorAll('section')].find(hasHistory)
       || [...shadow.querySelectorAll('div')].filter(hasHistory).sort((a, b) => (b.textContent || '').length - (a.textContent || '').length)[0];
@@ -93,7 +93,7 @@
     const host = getRoot();
     const shadow = host && host.shadowRoot;
     if (!shadow) return;
-    const intro = [...shadow.querySelectorAll('p')].find((el) => el.dataset.pandahanPinyinViHtml || (el.textContent || '').includes('Trong zhi/chi/shi/ri'));
+    const intro = [...shadow.querySelectorAll('p')].find((el) => el.dataset.pandahanPinyinViHtml || (el.textContent || '').includes('In zhi/chi/shi/ri'));
     if (!intro) return;
     if (!intro.dataset.pandahanPinyinViHtml) intro.dataset.pandahanPinyinViHtml = intro.innerHTML;
     intro.innerHTML = window.LANG_MODE === 'en'
@@ -143,7 +143,7 @@
 
     const buttons = [...shadow.querySelectorAll('button')];
     const next = buttons.find((button) => (button.textContent || '').includes('Thẻ tiếp theo'));
-    const previous = buttons.find((button) => (button.textContent || '').includes('Thẻ trước'));
+    const previous = buttons.find((button) => (button.textContent || '').includes('Previous card'));
     const nav = next && previous && next.parentElement === previous.parentElement ? next.parentElement : null;
     if (nav) nav.classList.add('pinyin-sticky-nav');
   }
@@ -201,7 +201,7 @@
       }
 
       const mountRoot = getRoot();
-      if (!mountRoot) throw new Error('Không tìm thấy vùng Ngữ âm.');
+      if (!mountRoot) throw new Error('Phonetics mount region not found.');
       window.__PANDAHAN_PHONETICS_ROOT__ = mountRoot;
       window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
       mounted = true;
