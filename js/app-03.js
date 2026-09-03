@@ -813,7 +813,7 @@ function pvNextSession() {
       // tin trực tiếp được với học viên khác.
       if (!isTeacherRole()) {
         contacts = contacts.filter(u => u.role === "teacher" || u.role === "master_teacher");
-        contacts.unshift({ uid: "__pandahan_ai__", name: "PandaHán AI Coach", isAi: true, role: "ai_coach" });
+        contacts.unshift({ uid: "__pandahan_ai__", name: "PanTutor AI Coach", isAi: true, role: "ai_coach" });
       }
     } catch (e) {
       console.error("initChatSystem error:", e);
@@ -893,8 +893,8 @@ function pvNextSession() {
     box.innerHTML = "";
     const history = loadAiConversation();
     if (!history.length) {
-      const welcomeVi = "Xin chào! Mình là PandaHán AI Coach. Hôm nay mình sẽ hướng dẫn bạn học đúng nội dung của ngày hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn lại các lỗi còn yếu. Sau mỗi hoạt động có điểm, mình sẽ nhận xét cụ thể bạn đang làm tốt phần nào, đang nhầm ở đâu và nên luyện thêm gì trước khi học tiếp. Pinyin Tone Quest trên 30% sẽ mở ngày kế tiếp.";
-      const welcomeEn = "Hi! I am PandaHan AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Each session follows one exact chain: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking recording → linked-vocabulary learn/speak → dedicated AI Coach Tone Challenge with that word set → writing/reading → redo every open error. Each Open step button goes to its matching screen. The Coach game is separate and never changes main Pinyin Tone Quest progress; main Quest has been restored from the complete source ZIP and retains its own Quest/schedule flow. The next curriculum day unlocks immediately when the current Pinyin Tone Quest score is strictly above 30%. Listening, speaking, vocabulary and error review remain learning evidence but never block the next day. Calendar gaps never create repeat curriculum sessions; wrong words/sentences still use a separate 1–3–5–7–14–30–60-day SRS queue.";
+      const welcomeVi = "Xin chào! Mình là PanTutor AI Coach. Hôm nay mình sẽ hướng dẫn bạn học đúng nội dung của ngày hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn lại các lỗi còn yếu. Sau mỗi hoạt động có điểm, mình sẽ nhận xét cụ thể bạn đang làm tốt phần nào, đang nhầm ở đâu và nên luyện thêm gì trước khi học tiếp. Pinyin Tone Quest trên 30% sẽ mở ngày kế tiếp.";
+      const welcomeEn = "Hi! I am PanTutor AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Each session follows one exact chain: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking recording → linked-vocabulary learn/speak → dedicated AI Coach Tone Challenge with that word set → writing/reading → redo every open error. Each Open step button goes to its matching screen. The Coach game is separate and never changes main Pinyin Tone Quest progress; main Quest has been restored from the complete source ZIP and retains its own Quest/schedule flow. The next curriculum day unlocks immediately when the current Pinyin Tone Quest score is strictly above 30%. Listening, speaking, vocabulary and error review remain learning evidence but never block the next day. Calendar gaps never create repeat curriculum sessions; wrong words/sentences still use a separate 1–3–5–7–14–30–60-day SRS queue.";
       renderAiCoachMessage(window.LANG_MODE === "en" ? welcomeEn : welcomeVi, "bot", true);
     } else {
       history.forEach((m) => renderAiCoachMessage(m.text, m.role, false));
@@ -1449,8 +1449,8 @@ function pvNextSession() {
     if (!history.length) {
       const routeStatus = window.PandaHanMission?.getRouteStatusText?.(window.LANG_MODE === "en" ? "en" : "vi") || "";
       renderAiCoachMessage((window.LANG_MODE === "en"
-        ? "Hello, I am PandaHán AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Today’s plan follows one exact order: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking → linked vocabulary learn/speak → dedicated AI Coach Tone Challenge → writing/reading → redo every open error. Every Open step button leads to its matching screen. The Coach game records its own schedule evidence but never changes main Pinyin Tone Quest progress; main Quest has been restored from the complete source ZIP and continues through its own Quest/schedule flow. The next curriculum day unlocks immediately when the current Pinyin Tone Quest score is strictly above 30%. Listening, speaking, vocabulary and error review remain learning evidence but never block the next day. Calendar gaps never create repeat curriculum sessions; SRS and wrong-item review remain separate."
-        : "Xin chào, mình là PandaHán AI Coach. Hôm nay mình sẽ hướng dẫn bạn theo đúng bài của ngày hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn các lỗi còn yếu. Mỗi khi hệ thống ghi nhận một kết quả, mình sẽ phân tích cụ thể điểm mạnh, lỗi đang lặp lại và phần cần luyện thêm như một giáo viên hướng dẫn. Pinyin Tone Quest trên 30% sẽ mở ngày kế tiếp.") + (routeStatus ? `\n\n${routeStatus}` : ""), "bot", false);
+        ? "Hello, I am PanTutor AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Today’s plan follows one exact order: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking → linked vocabulary learn/speak → dedicated AI Coach Tone Challenge → writing/reading → redo every open error. Every Open step button leads to its matching screen. The Coach game records its own schedule evidence but never changes main Pinyin Tone Quest progress; main Quest has been restored from the complete source ZIP and continues through its own Quest/schedule flow. The next curriculum day unlocks immediately when the current Pinyin Tone Quest score is strictly above 30%. Listening, speaking, vocabulary and error review remain learning evidence but never block the next day. Calendar gaps never create repeat curriculum sessions; SRS and wrong-item review remain separate."
+        : "Xin chào, mình là PanTutor AI Coach. Hôm nay mình sẽ hướng dẫn bạn theo đúng bài của ngày hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn các lỗi còn yếu. Mỗi khi hệ thống ghi nhận một kết quả, mình sẽ phân tích cụ thể điểm mạnh, lỗi đang lặp lại và phần cần luyện thêm như một giáo viên hướng dẫn. Pinyin Tone Quest trên 30% sẽ mở ngày kế tiếp.") + (routeStatus ? `\n\n${routeStatus}` : ""), "bot", false);
       return;
     }
     history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
@@ -1462,7 +1462,7 @@ function pvNextSession() {
     clearPendingChatFile();
     document.getElementById("chatWrap")?.classList.add("chat-open");
     const titleEl = document.getElementById("activeChatTitle");
-    if (titleEl) titleEl.textContent = window.LANG_MODE === "en" ? "PandaHán AI Coach · Learning Path" : "PandaHán AI Coach · Lộ trình học";
+    if (titleEl) titleEl.textContent = window.LANG_MODE === "en" ? "PanTutor AI Coach · Learning Path" : "PanTutor AI Coach · Lộ trình học";
     const area = document.getElementById("chatMessagesArea");
     if (!area) return;
     area.innerHTML = '<section data-ai-coach-message-intro="true" style="padding:10px 11px;border:1px solid #f2bfd8;border-radius:12px;background:#fff7fb;font-size:11.5px;line-height:1.5;color:#5b4964;"></section><div data-ai-coach-plan-host="true"></div>';
