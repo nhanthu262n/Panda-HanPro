@@ -1,5 +1,5 @@
 /*
- * PandaHan Pro — Adaptive Schedule Engine v2
+ * PanTutor — Adaptive Schedule Engine v2
  * RTDB là nguồn sự thật; localStorage chỉ là cache/fallback offline.
  */
 (() => {
