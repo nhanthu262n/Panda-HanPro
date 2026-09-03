@@ -776,6 +776,52 @@ function pvNextSession() {
     return String(CURRENT_USER?.uid || "");
   }
 
+  async function waitForAuthUid(timeoutMs = 6000) {
+    const immediate = currentAuthUid();
+    if (immediate) return immediate;
+    return await new Promise((resolve) => {
+      let done = false;
+      const finish = (uid) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        try { unsubscribe?.(); } catch (_) {}
+        resolve(String(uid || CURRENT_USER?.uid || ""));
+      };
+      let unsubscribe = null;
+      try {
+        const auth = window.firebase?.auth?.();
+        if (auth?.onAuthStateChanged) unsubscribe = auth.onAuthStateChanged((user) => finish(user?.uid || ""), () => finish(""));
+      } catch (_) {}
+      const timer = setTimeout(() => finish(currentAuthUid()), timeoutMs);
+    });
+  }
+
+  function activateChatComposer(focus = true) {
+    const bar = document.querySelector('.chat-input-bar');
+    const input = document.getElementById('chatMsgInput');
+    const send = document.getElementById('chatSendMsgBtn');
+    if (bar) { bar.style.pointerEvents = 'auto'; bar.style.position = 'relative'; bar.style.zIndex = '50'; }
+    if (input) {
+      input.disabled = false;
+      input.readOnly = false;
+      input.removeAttribute('disabled');
+      input.removeAttribute('readonly');
+      input.removeAttribute('aria-disabled');
+      input.style.pointerEvents = 'auto';
+      input.style.position = 'relative';
+      input.style.zIndex = '51';
+      if (focus) setTimeout(() => { try { input.focus({preventScroll:true}); } catch (_) { try { input.focus(); } catch (_) {} } }, 30);
+    }
+    if (send) {
+      send.disabled = false;
+      send.removeAttribute('disabled');
+      send.style.pointerEvents = 'auto';
+      send.style.position = 'relative';
+      send.style.zIndex = '52';
+    }
+  }
+
   async function ensureChatParent(chatRef, myUid, otherUid) {
     // Do NOT call chatRef.get() before creation: Firestore rules cannot read a
     // missing chat document because resource.data.participants does not exist.
@@ -823,9 +869,11 @@ function pvNextSession() {
     const backBtn = document.getElementById("chatBackBtn");
     if (backBtn) backBtn.onclick = () => document.getElementById("chatWrap").classList.remove("chat-open");
 
+    bindChatComposer();
+    activateChatComposer(false);
     let contacts = [];
     try {
-      const myUid = currentAuthUid();
+      const myUid = await waitForAuthUid();
       const all = await fetchAllUsers();
       contacts = all.filter(u => (u.uid || u.username) !== myUid);
 
@@ -867,6 +915,7 @@ function pvNextSession() {
         document.querySelectorAll(".chat-contact").forEach(el => el.classList.remove("active"));
         div.classList.add("active");
         document.getElementById("chatWrap").classList.add("chat-open"); // mobile: slide to chat view
+        activateChatComposer(true);
         if (isAi) openAiCoachChat();
         else openChatWith(uid, u.name || u.username);
       };
@@ -1621,7 +1670,7 @@ function pvNextSession() {
   });
 
   function getChatId(uid1, uid2) {
-    return [uid1, uid2].sort().join("_");
+    return "chatv40_" + [String(uid1 || ""), String(uid2 || "")].sort().join("_");
   }
 
   // ── File attachments — uploaded via Google Drive using ONE Google account
@@ -1718,7 +1767,7 @@ function pvNextSession() {
 
   async function openChatWith(otherUid, otherName) {
     if (!CURRENT_USER) return;
-    const myUid = currentAuthUid();
+    const myUid = await waitForAuthUid();
     otherUid = String(otherUid || "");
     if (!myUid || !otherUid) {
       console.error("Chat cannot open: missing canonical Firebase UID", { myUid, otherUid });
@@ -1727,6 +1776,8 @@ function pvNextSession() {
     activeChatUserId = otherUid;
     setAiCoachComposer(false);
     activeChatId = getChatId(myUid, otherUid);
+    bindChatComposer();
+    activateChatComposer(true);
     
     const titleEl = document.getElementById("activeChatTitle");
     if (titleEl) titleEl.textContent = (window.LANG_MODE === "en" ? "Chatting with: " : "Đang chat với: ") + otherName;
@@ -1865,19 +1916,24 @@ function pvNextSession() {
     // nhắn mới sẽ tự cập nhật qua onSnapshot ở trên, không cần làm gì thêm.
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  let chatComposerBound = false;
+  function bindChatComposer() {
     const sendBtn = document.getElementById("chatSendMsgBtn");
     const msgInput = document.getElementById("chatMsgInput");
     const attachBtn = document.getElementById("chatAttachBtn");
     const fileInput = document.getElementById("chatFileInput");
+    if (!sendBtn || !msgInput) return;
 
-    if (attachBtn && fileInput) {
+    activateChatComposer(false);
+
+    if (attachBtn && fileInput && !attachBtn.dataset.chatBound) {
+      attachBtn.dataset.chatBound = "1";
       attachBtn.onclick = () => fileInput.click();
       fileInput.onchange = () => {
         const f = fileInput.files && fileInput.files[0];
         if (!f) return;
         if (f.size > CHAT_FILE_MAX_MB * 1024 * 1024) {
-          alert(`File quá lớn (tối đa ${CHAT_FILE_MAX_MB}MB).`);
+          alert(`File too large (maximum ${CHAT_FILE_MAX_MB} MB).`);
           fileInput.value = "";
           return;
         }
@@ -1886,61 +1942,69 @@ function pvNextSession() {
       };
     }
 
-    if (sendBtn && msgInput) {
-      const doSend = async () => {
-        const text = msgInput.value.trim();
-        if ((!text && !pendingChatFile)) return;
-        if (activeChatUserId === "__pandahan_ai__") {
-          if (!text || pendingChatFile) return;
-          msgInput.value = "";
-          sendBtn.disabled = true;
-          try { await sendAiCoachMessage(text); } finally { sendBtn.disabled = false; }
-          return;
-        }
-        if (!CURRENT_USER || !activeChatId) return;
-        const myUid = currentAuthUid();
-        if (!myUid || !activeChatUserId) return;
+    if (sendBtn.dataset.chatBound === "1") return;
+    sendBtn.dataset.chatBound = "1";
+    chatComposerBound = true;
 
-        sendBtn.disabled = true;
-        const fileToSend = pendingChatFile;
-        if (fileToSend) sendBtn.textContent = "⏳";
+    const doSend = async () => {
+      const text = msgInput.value.trim();
+      if ((!text && !pendingChatFile)) return;
+      if (activeChatUserId === "__pandahan_ai__") {
+        if (!text || pendingChatFile) return;
         msgInput.value = "";
-        clearPendingChatFile();
+        sendBtn.disabled = true;
+        try { await sendAiCoachMessage(text); } finally { sendBtn.disabled = false; activateChatComposer(false); }
+        return;
+      }
+      if (!CURRENT_USER || !activeChatUserId) {
+        alert("Select a teacher or student before sending a message.");
+        return;
+      }
+      const myUid = await waitForAuthUid();
+      if (!myUid) {
+        alert("Your Firebase sign-in session is not ready. Please sign in again.");
+        return;
+      }
+      if (!activeChatId) activeChatId = getChatId(myUid, activeChatUserId);
 
-        try {
-          let fileMeta = null;
-          if (fileToSend) fileMeta = await uploadChatFile(fileToSend, "chat_files/" + activeChatId);
+      sendBtn.disabled = true;
+      const fileToSend = pendingChatFile;
+      if (fileToSend) sendBtn.textContent = "⏳";
+      msgInput.value = "";
+      clearPendingChatFile();
 
-          const msg = {
-            senderId: myUid,
-            text: text,
-            createdAt: Date.now()
-          };
-          if (fileMeta) Object.assign(msg, fileMeta);
+      try {
+        let fileMeta = null;
+        if (fileToSend) fileMeta = await uploadChatFile(fileToSend, "chat_files/" + activeChatId);
+        const msg = { senderId: myUid, text, createdAt: Date.now() };
+        if (fileMeta) Object.assign(msg, fileMeta);
+        const activeChatRef = db.collection("chats").doc(activeChatId);
+        await ensureChatParent(activeChatRef, myUid, activeChatUserId);
+        await activeChatRef.collection("messages").add(msg);
+        await activeChatRef.set({
+          lastMessage: text || (fileMeta ? "📎 " + fileMeta.fileName : ""),
+          lastSenderId: myUid,
+          updatedAt: Date.now()
+        }, {merge: true});
+        const notifBody = text || (fileMeta ? (fileMeta.isImage ? "Sent an image." : "Sent an attachment.") : "");
+        triggerAutomaticEmailNotification(activeChatUserId, "New message from " + (CURRENT_USER.name || "PanTutor member"), notifBody);
+      } catch(e) {
+        console.error("Send message error:", e);
+        alert("Unable to send message: " + (e?.code || e?.message || e));
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "➤";
+        activateChatComposer(true);
+      }
+    };
+    sendBtn.onclick = doSend;
+    msgInput.onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); } };
+  }
 
-          const activeChatRef = db.collection("chats").doc(activeChatId);
-          await ensureChatParent(activeChatRef, myUid, activeChatUserId);
-          await activeChatRef.collection("messages").add(msg);
-          await activeChatRef.set({
-            lastMessage: text || (fileMeta ? "📎 " + fileMeta.fileName : ""),
-            lastSenderId: myUid,
-            updatedAt: Date.now()
-          }, {merge: true});
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindChatComposer, {once:true});
+  else bindChatComposer();
+  window.addEventListener("load", bindChatComposer, {once:true});
 
-          const notifBody = text || (fileMeta ? (fileMeta.isImage ? "Đã gửi một hình ảnh." : "Đã gửi một tệp đính kèm.") : "");
-          triggerAutomaticEmailNotification(activeChatUserId, "Bạn có tin nhắn mới từ " + (CURRENT_USER.name || "Thành viên"), notifBody);
-        } catch(e) {
-          console.error("Send message error:", e);
-          alert("Không thể gửi tin nhắn: " + e.message);
-        } finally {
-          sendBtn.disabled = false;
-          sendBtn.textContent = "➤";
-        }
-      };
-      sendBtn.onclick = doSend;
-      msgInput.onkeydown = (e) => { if (e.key === "Enter") doSend(); };
-    }
-  });
 
   function triggerAutomaticEmailNotification(targetUserId, subject, bodyText) {
     console.log("[Auto Email Notification Triggered]", {targetUserId, subject, bodyText});
@@ -1961,6 +2025,10 @@ function pvNextSession() {
   function escapeHtml(str) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
+
+  window.initChatSystem = initChatSystem;
+  window.openChatWith = openChatWith;
+  window.bindChatComposer = bindChatComposer;
 
   const originalRenderTeacherDashboard = window.renderTeacherDashboard || function(){};
   window.renderTeacherDashboard = function() {
