@@ -1,4 +1,4 @@
-/* PandaHán Pro — curated Offline HSK 1–3 topic library.
+/* PanTutor — curated Offline HSK 1–3 topic library.
    Each item is a selected, level-bounded practice theme; it is not a claim of
    free-form AI generation. The chat router can use this library without a network. */
 (() => {
