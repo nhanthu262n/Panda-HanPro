@@ -1,5 +1,5 @@
 /*
- * PandaHan Pro — Khối 1: Realtime Database curriculum + student schedule
+ * PanTutor — Khối 1: Realtime Database curriculum + student schedule
  *
  * Không sửa app-01/app-02/app-03. File này cần nạp sau Firebase SDK và sau
  * khi firebase.initializeApp(...) đã chạy. Khối 2 (review/cron) và Khối 3
