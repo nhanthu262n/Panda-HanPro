@@ -768,6 +768,26 @@ function pvNextSession() {
     return USER_ROLE === "teacher" || USER_ROLE === "master_teacher";
   }
 
+  function currentAuthUid() {
+    try {
+      const authUid = window.firebase?.auth?.()?.currentUser?.uid;
+      if (authUid) return String(authUid);
+    } catch (_) {}
+    return String(CURRENT_USER?.uid || "");
+  }
+
+  async function ensureChatParent(chatRef, myUid, otherUid) {
+    // Do NOT call chatRef.get() before creation: Firestore rules cannot read a
+    // missing chat document because resource.data.participants does not exist.
+    // set(..., {merge:true}) is create when absent and update when present.
+    const participants = [String(myUid), String(otherUid)].filter(Boolean);
+    if (participants.length !== 2) throw new Error("Missing authenticated chat participant UID.");
+    await chatRef.set({
+      participants,
+      updatedAt: Date.now()
+    }, { merge: true });
+  }
+
   function startGlobalChatListener(){return;}
 
   async function fetchAllUsers() {
@@ -777,8 +797,8 @@ function pvNextSession() {
       if (typeof db !== "undefined") {
         const snap = await db.collection("users").get();
         all = snap.docs.map(doc => {
-          const data = doc.data();
-          return { ...data, uid: data.uid || data.username || doc.id };
+          const data = doc.data() || {};
+          return { ...data, uid: doc.id, firestoreUid: doc.id, legacyUid: data.uid || data.username || "" };
         });
       }
     } catch (e) {
@@ -805,7 +825,7 @@ function pvNextSession() {
 
     let contacts = [];
     try {
-      const myUid = CURRENT_USER ? (CURRENT_USER.uid || CURRENT_USER.username) : "";
+      const myUid = currentAuthUid();
       const all = await fetchAllUsers();
       contacts = all.filter(u => (u.uid || u.username) !== myUid);
 
@@ -1698,9 +1718,14 @@ function pvNextSession() {
 
   async function openChatWith(otherUid, otherName) {
     if (!CURRENT_USER) return;
+    const myUid = currentAuthUid();
+    otherUid = String(otherUid || "");
+    if (!myUid || !otherUid) {
+      console.error("Chat cannot open: missing canonical Firebase UID", { myUid, otherUid });
+      return;
+    }
     activeChatUserId = otherUid;
     setAiCoachComposer(false);
-    const myUid = CURRENT_USER.uid || CURRENT_USER.username;
     activeChatId = getChatId(myUid, otherUid);
     
     const titleEl = document.getElementById("activeChatTitle");
@@ -1715,18 +1740,12 @@ function pvNextSession() {
 
     try {
       const chatRef = db.collection("chats").doc(activeChatId);
-      const chatDoc = await chatRef.get();
-      if (!chatDoc.exists) {
-        await chatRef.set({
-          participants: [myUid, otherUid],
-          updatedAt: Date.now()
-        });
-      }
+      await ensureChatParent(chatRef, myUid, otherUid);
 
       chatUnsubscribe = chatRef.collection("messages").orderBy("createdAt", "asc").onSnapshot(snapshot => {
         msgArea.innerHTML = "";
         if (snapshot.empty) {
-          msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">${window.LANG_MODE === "en" ? "No messages yet. Send a greeting!" : "Chưa có tin nhắn nào. Hãy gửi lời chào!"}</div>`;
+          msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">No messages yet. Send a greeting!</div>`;
           return;
         }
         snapshot.forEach(doc => {
@@ -1735,10 +1754,13 @@ function pvNextSession() {
           msgArea.appendChild(renderMessageBubble(m, isMe));
         });
         msgArea.scrollTop = msgArea.scrollHeight;
+      }, (error) => {
+        console.error("Chat messages listener error:", error);
+        if (msgArea) msgArea.innerHTML = `<div style="color:#b91c1c;font-size:12px;text-align:center;padding:12px;">Unable to load messages (${escapeHtml(error?.code || "Firestore error")}).</div>`;
       });
     } catch(e) {
       console.error("Chat error:", e);
-      if (msgArea) msgArea.innerHTML = `<div style="color:red;font-size:12px;text-align:center;">${window.LANG_MODE === "en" ? "Unable to load messages (check Firestore Rules)." : "Lỗi tải tin nhắn (Kiểm tra Firestore Rules)."}</div>`;
+      if (msgArea) msgArea.innerHTML = `<div style="color:#b91c1c;font-size:12px;text-align:center;padding:12px;">Unable to open chat (${escapeHtml(e?.code || e?.message || "Firestore error")}).</div>`;
     }
   }
 
@@ -1806,7 +1828,7 @@ function pvNextSession() {
   }
 
   async function sendBroadcastToAllStudents(text, fileMeta) {
-    const myUid = CURRENT_USER.uid || CURRENT_USER.username;
+    const myUid = currentAuthUid();
     const all = await fetchAllUsers();
     const students = all.filter(u => u.role === "student" && (u.uid || u.username) !== myUid);
     if (!students.length) { alert("Chưa có học viên nào để gửi thông báo."); return; }
@@ -1817,10 +1839,7 @@ function pvNextSession() {
       const chatId = getChatId(myUid, otherUid);
       try {
         const chatRef = db.collection("chats").doc(chatId);
-        const chatDoc = await chatRef.get();
-        if (!chatDoc.exists) {
-          await chatRef.set({ participants: [myUid, otherUid], updatedAt: Date.now() });
-        }
+        await ensureChatParent(chatRef, myUid, otherUid);
         const msg = {
           senderId: myUid,
           senderName: CURRENT_USER.name || CURRENT_USER.username || "Giáo viên",
@@ -1879,7 +1898,8 @@ function pvNextSession() {
           return;
         }
         if (!CURRENT_USER || !activeChatId) return;
-        const myUid = CURRENT_USER.uid || CURRENT_USER.username;
+        const myUid = currentAuthUid();
+        if (!myUid || !activeChatUserId) return;
 
         sendBtn.disabled = true;
         const fileToSend = pendingChatFile;
@@ -1898,8 +1918,10 @@ function pvNextSession() {
           };
           if (fileMeta) Object.assign(msg, fileMeta);
 
-          await db.collection("chats").doc(activeChatId).collection("messages").add(msg);
-          await db.collection("chats").doc(activeChatId).set({
+          const activeChatRef = db.collection("chats").doc(activeChatId);
+          await ensureChatParent(activeChatRef, myUid, activeChatUserId);
+          await activeChatRef.collection("messages").add(msg);
+          await activeChatRef.set({
             lastMessage: text || (fileMeta ? "📎 " + fileMeta.fileName : ""),
             lastSenderId: myUid,
             updatedAt: Date.now()
