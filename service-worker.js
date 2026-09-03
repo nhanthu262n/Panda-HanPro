@@ -1,4 +1,4 @@
-const CACHE_NAME = "pantutor-runtime-v38-english-20260903";
+const CACHE_NAME = "pantutor-v40-quest-options-chat-20260903";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
