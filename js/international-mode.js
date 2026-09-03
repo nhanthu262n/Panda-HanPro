@@ -42,15 +42,23 @@ const reps=[
 [/Phần\s*(\d+)/gi,"Section $1"],[/câu/gi,"items"],[/phút/gi,"min"],[/Tổng ôn/gi,"Comprehensive review"]
 ];
 function hasVi(s){return VI.test(s)||WORDS.test(s.normalize?.("NFD").replace(/[\u0300-\u036f]/g,"")||s)}
+function isPinyinNode(n){
+  const el=n?.parentElement;
+  if(!el)return false;
+  return !!el.closest?.(
+    '.pinyin,.d-pinyin,.fc-pinyin,.ai-tutor-reading-pinyin,.pv-flash-pinyin,'+
+    '[data-pinyin],[data-keep-pinyin="true"],#dPinyin,#fcPinyin'
+  );
+}
 function isAiTutorNode(n){return !!(n?.parentElement?.closest?.('[data-ai-tutor-workspace="true"],#aiTutorMessages,#aiTutorReadingMount,#aiTutorStudyMount'))}
 function convert(raw){const s=String(raw||"");const map=window.PandaHanEnglishMap||{};if(map[s])return map[s];if(exact[s])return exact[s];let out=s;reps.forEach(([a,b])=>out=out.replace(a,b));return out}
-function text(n){if(!n||n.nodeType!==3||isAiTutorNode(n))return;const raw=n.nodeValue||"",s=raw.trim();if(s==="English learning guidance"){n.nodeValue="";return;}if(!s||!hasVi(s))return;let out=convert(s);if(hasVi(out)){
+function text(n){if(!n||n.nodeType!==3||isAiTutorNode(n)||isPinyinNode(n))return;const raw=n.nodeValue||"",s=raw.trim();if(s==="English learning guidance"){n.nodeValue="";return;}if(!s||!hasVi(s))return;let out=convert(s);if(hasVi(out)){
   // Keep Chinese/Pinyin vocabulary content; replace only the Vietnamese explanatory fragment.
   if(/[一-鿿]/.test(out)){const parts=out.split(/([·|/]|\s+—\s+)/);const kept=parts.filter(p=>!hasVi(p));out=kept.join("").replace(/^[\s·|/—]+|[\s·|/—]+$/g,"").trim()||"Chinese learning item"}
   else out="";
 }
 n.nodeValue=(raw.match(/^\s*/)?.[0]||"")+out+(raw.match(/\s*$/)?.[0]||"")}
-function attrs(el){if(isAiTutorNode(el))return;["placeholder","title","aria-label"].forEach(a=>{const v=el.getAttribute?.(a);if(v&&hasVi(v)){let x=convert(v);el.setAttribute(a,hasVi(x)?"Learning content":x)}})}
+function attrs(el){if(isAiTutorNode(el)||isPinyinNode(el))return;["placeholder","title","aria-label"].forEach(a=>{const v=el.getAttribute?.(a);if(v&&hasVi(v)){let x=convert(v);el.setAttribute(a,hasVi(x)?"Learning content":x)}})}
 const observed=new WeakSet();
 function observe(scope){if(!scope||observed.has(scope))return;observed.add(scope);scan(scope);new MutationObserver(ms=>ms.forEach(m=>{if(m.type==="characterData")text(m.target);m.addedNodes.forEach(n=>n.nodeType===3?text(n):scan(n))})).observe(scope,{subtree:true,childList:true,characterData:true})}
 function scan(root){if(!root)return;if(root.nodeType===3){text(root);return}const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())text(n);root.querySelectorAll?.("*").forEach(el=>{attrs(el);})}
