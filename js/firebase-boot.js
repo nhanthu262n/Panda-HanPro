@@ -1,4 +1,4 @@
-/* PandaHan Pro — Firebase web bootstrap for RTDB/Auth/Firestore integrations. */
+/* PanTutor — Firebase web bootstrap for RTDB/Auth/Firestore integrations. */
 (function () {
   "use strict";
 
