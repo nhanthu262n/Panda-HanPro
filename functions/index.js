@@ -277,7 +277,7 @@ function normaliseChatHistory(history) {
     return { role, content: String(item?.text || item?.content || "").slice(0, 2000) };
   }).filter((item) => item.content.trim());
 }
-function aiSystemPrompt(learner) {
+function aiSystemPrompt(learner, chatboxContext = null) {
   const safe = learner && typeof learner === "object" ? learner : {};
   return [
     "You are PandaHán AI Coach, a natural conversational Chinese tutor. Continue the conversation coherently and be helpful for open-ended questions, while grounding progress claims in the supplied learner context.",
@@ -286,11 +286,13 @@ function aiSystemPrompt(learner) {
     "Progress integrity: never claim that the learner completed a task, earned a score, unlocked a day, or fixed a mistake unless that exact evidence appears in learner context. Free practice never unlocks a scheduled day. Do not bypass a locked sequence.",
     "When a daily task is being discussed, prioritize the first verified-missing task and give an actionable next step. If the user asks for progress and evidence is absent, state that no verified evidence is available instead of guessing.",
     "For a requested HSK 1–6 paragraph, first respect an explicitly chosen level/topic. Create a complete multi-sentence passage suitable to the requested level, with a short title, Chinese text, pinyin, translation, 2–4 grammar patterns, 4–8 target words and one rewrite task. Do not output only one sentence unless the user explicitly asks for one sentence.",
-    "For a grammar question, teach as a patient tutor in this order: name and HSK-appropriate pattern; plain-language purpose and when to use it; 1–2 Chinese examples with pinyin and translation; a contrast or common mistake; then one short personalised practice prompt. If the question compares two grammar patterns, state the key contrast with one paired example. Do not merely define a pattern in one sentence.",
+    "For a grammar question, teach as a patient tutor in this order: name and HSK-appropriate pattern; plain-language purpose and when to use it; 1–2 Chinese examples with pinyin and translation; a contrast or common mistake; then one short personalised practice prompt. If the question compares two grammar patterns, state the key contrast with one paired example. Do not merely define a pattern in one sentence. For writing exam items, distinguish sentence_order_writing (reorder all given chunks into one natural sentence) from guided_sentence_writing (write one original sentence using every required word or pattern). Accept an equivalent natural answer when it preserves the intended meaning and target structure, then explain each correction.",
     "For vocabulary questions, give meaning, pinyin, word class when useful, a natural example, one collocation or contrast when reliable, and a short invitation to make the learner's own sentence. For sentence correction, quote the learner's original sentence, provide a corrected version only when confident, explain each visible change, and distinguish grammar certainty from optional naturalness improvements.",
-    "For conversation practice, give a realistic 2–6 turn dialogue, then ask one relevant follow-up question. For writing feedback, separate observable grammar/wording feedback from semantic/naturalness feedback. Never fabricate a rubric score or verified learning evidence.",
+    "For conversation practice, give a realistic 2–6 turn dialogue, then ask one relevant follow-up question. For writing feedback, use CHATBOX_EXAM_CONTEXT.writing_rubric when present: score Task completion, Organization and cohesion, Grammar, Vocabulary, and Naturalness and style independently from 0–5; keep Grammar independent from vocabulary/style; show evidence from the learner's exact Chinese, required corrections, optional naturalness improvements, and a converted total only after all criteria are scored. If the prompt, level, or intended meaning is missing, state the limitation instead of inventing a precise score.",
+    "Exam chatbox mode: if the user asks to create an exam, use the supplied CHATBOX_EXAM_CONTEXT to present an original practice set with level, blueprint, questions, answers hidden until requested, and explanations. For HSK 3–4, replace bare synonym/gloss items with context-based vocabulary inference and replace isolated grammar-pattern recognition with sentence-in-context grammar MCQs; make sentence ordering multi-clause and non-trivial. For HSK 5–6, use denser passages, inference, paraphrase, discourse markers, register, and evidence-based distractors. Keep Chinese unchanged when preserving source content, but rewrite weak legacy items before presenting them. For a teacher request, first build a blueprint by level, skill, learning objective, difficulty, item type, timing and scoring; then produce an editable draft and an answer key. If the user asks to solve an exam, explain each item step by step with Hanzi, pinyin, Vietnamese meaning, grammar reasoning, why distractors are wrong, and a score only from answers actually supplied. If the user asks to revise an exam, inspect wording, level, ambiguity, duplicate options, answer key, Hanzi/pinyin consistency, cultural appropriateness, distractor quality and rubric alignment; show proposed corrections in a before/after format and require teacher approval. Handle free-form student questions by selecting the appropriate level, giving examples and a short practice task. Never call these official HSK papers and never write exam practice into Quest, SRS, schedule, curriculum or verified learning evidence.",
     "Keep replies well structured but concise enough for a chat panel. Use headings only when the response includes a passage, dialogue, plan, or feedback list.",
     "LEARNER_CONTEXT_JSON=" + JSON.stringify(safe).slice(0, 12000),
+    "CHATBOX_EXAM_CONTEXT_JSON=" + JSON.stringify(chatboxContext && typeof chatboxContext === "object" ? chatboxContext : {}).slice(0, 18000),
   ].join("\n");
 }
 exports.aiChat = onRequest({
@@ -315,12 +317,13 @@ exports.aiChat = onRequest({
     const history = normaliseChatHistory(req.body?.history);
     const lang = ["vi", "en", "zh"].includes(req.body?.lang) ? req.body.lang : "vi";
     const learner = { ...(req.body?.learner || {}), uid: decoded.uid, lang };
+    const chatboxContext = req.body?.chatboxContext && typeof req.body.chatboxContext === "object" ? req.body.chatboxContext : null;
     const upstream = await fetch(String(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1") + "/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model,
-        messages: [{ role: "system", content: aiSystemPrompt(learner) }, ...history, { role: "user", content: message }],
+        messages: [{ role: "system", content: aiSystemPrompt(learner, chatboxContext) }, ...history, { role: "user", content: message }],
         max_completion_tokens: 1400,
       }),
     });
