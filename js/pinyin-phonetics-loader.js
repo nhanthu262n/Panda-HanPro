@@ -6,12 +6,13 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
+  const PHONETICS_BUILD = "v38-en-source-20260903";
   const PARTS = [
-    'pinyin-phonetics.part-01.js?v=international-v24-20260901',
-    'pinyin-phonetics.part-02.js?v=audio-setting-20260819-v1',
-    'pinyin-phonetics.part-03.js',
-    'pinyin-phonetics.part-04.js',
-    'pinyin-phonetics.part-05.js?v=pass30-v18-20260901'
+    `pinyin-phonetics.part-01.js?v=${PHONETICS_BUILD}`,
+    `pinyin-phonetics.part-02.js?v=${PHONETICS_BUILD}`,
+    `pinyin-phonetics.part-03.js?v=${PHONETICS_BUILD}`,
+    `pinyin-phonetics.part-04.js?v=${PHONETICS_BUILD}`,
+    `pinyin-phonetics.part-05.js?v=${PHONETICS_BUILD}`
   ];
 
   let loadingPromise = null;
@@ -26,12 +27,12 @@
     if (!root) return;
     const pct = Math.round((done / PARTS.length) * 100);
     root.innerHTML = `<div style="padding:28px;text-align:center;color:#9ca3af;font-weight:700">
-      <div style="font-size:18px;margin-bottom:8px">${window.LANG_MODE === "en" ? "Loading Pinyin Phonetics…" : "Loading Pinyin Phonetics…"}</div>
-      <div style="font-size:13px;margin-bottom:12px">${window.LANG_MODE === "en" ? "Audio and flashcard data load on first use." : "Audio and flashcard assets are loaded on first use."}</div>
+      <div style="font-size:18px;margin-bottom:8px">Loading Pinyin Phonetics…</div>
+      <div style="font-size:13px;margin-bottom:12px">Audio and flashcard data load on first use.</div>
       <div style="height:8px;background:#fce7f3;border-radius:99px;overflow:hidden">
         <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ec4899,#a855f7);transition:width .25s"></div>
       </div>
-      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} ${window.LANG_MODE === "en" ? "parts loaded" : "parts loaded"}</div>
+      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} parts loaded</div>
     </div>`;
   }
 
@@ -41,10 +42,10 @@
     if (!root) return;
     const isFetchError = error instanceof TypeError || /fetch|cors|network/i.test(String(error?.message || error));
     const detail = isFetchError
-      ? (window.LANG_MODE === "en" ? 'AI Tutor needs a backend that permits CORS from GitHub Pages. Retry after the backend is configured.' : 'AI Tutor requires a backend that permits CORS from GitHub Pages. Please retry after the backend has been configured.')
-      : (window.LANG_MODE === "en" ? 'Check your network, then press Ctrl + F5 to retry.' : 'Check your network connection, then press Ctrl + F5 to retry.');
+      ? 'AI Tutor requires a backend that permits CORS from GitHub Pages. Retry after the backend is configured.'
+      : 'Check your network connection, then press Ctrl + F5 to retry.';
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
-      <strong>${window.LANG_MODE === "en" ? "Unable to load the Phonetics module." : "Unable to load the Phonetics module."}</strong><br>${detail}
+      <strong>Unable to load the Phonetics module.</strong><br>${detail}
     </div>`;
   }
 
@@ -169,7 +170,7 @@
 
     loadingPromise = (async function () {
       const responses = await Promise.all(
-        PARTS.map((part) => fetch(new URL(part, baseUrl), { cache: 'force-cache' }))
+        PARTS.map((part) => fetch(new URL(part, baseUrl), { cache: 'no-store' }))
       );
       for (const response of responses) {
         if (!response.ok) throw new Error(`Unable to load ${response.url} (${response.status})`);
