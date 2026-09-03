@@ -21,7 +21,24 @@
     { id: "yuqishuo-burushuo", hsk: 6, name: "与其说…不如说…", triggers: ["与其说", "不如说", "rather say", "thay vì nói"], form: "与其说 + A，不如说 + B", zh: "重新界定一个观点，说明 B 比 A 更准确。", vi: "Định nghĩa lại một nhận định: B chính xác hơn A.", en: "Reframe a statement by saying B is more accurate than A.", ex: "与其说他害怕说错，不如说他还没有足够练习。", py: "Yǔqí shuō tā hàipà shuō cuò, bùrú shuō tā hái méiyǒu zúgòu liànxí.", exVi: "Thay vì nói anh ấy sợ nói sai, đúng hơn là anh ấy chưa luyện đủ.", exEn: "Rather than saying he fears mistakes, it is more accurate to say he has not practised enough.", cautionZh: "它用于细致地修正观点，不只是普通的二选一建议。", cautionVi: "Mẫu này dùng để tinh chỉnh nhận định, không chỉ là lời khuyên chọn một trong hai.", cautionEn: "Use it to refine a claim, not simply to give an either/or recommendation.", taskZh: "用它重新说明一个学习困难。", taskVi: "Dùng mẫu này diễn đạt lại một khó khăn học tập.", taskEn: "Use it to reframe one learning difficulty." }
   ];
 
+  const writingRubric = {
+    scale: { min: 0, max: 5, total: 25, convertedTotal: 100 },
+    criteria: [
+      { id: "task_completion", vi: "Hoàn thành nhiệm vụ", en: "Task completion", zh: "完成任务", weight: 20, descriptors: { 5: "Đáp ứng đầy đủ yêu cầu, nội dung rõ và đủ ý.", 4: "Đáp ứng gần đầy đủ, thiếu một chi tiết nhỏ.", 3: "Đáp ứng một phần, còn thiếu hoặc lệch một yêu cầu.", 2: "Chỉ đáp ứng ít yêu cầu, nội dung rời rạc.", 1: "Có dấu hiệu trả lời nhưng hầu như không hoàn thành nhiệm vụ.", 0: "Không có câu trả lời liên quan." } },
+      { id: "organization_cohesion", vi: "Bố cục và liên kết", en: "Organization and cohesion", zh: "结构与衔接", weight: 20, descriptors: { 5: "Trình tự logic, liên kết tự nhiên.", 4: "Bố cục rõ, có một vài chỗ nối ý chưa mượt.", 3: "Có trình tự cơ bản nhưng chuyển ý còn đơn giản.", 2: "Ý rời rạc, quan hệ giữa các câu chưa rõ.", 1: "Rất khó theo dõi do thiếu tổ chức.", 0: "Không thể xác định cấu trúc." } },
+      { id: "grammar", vi: "Ngữ pháp", en: "Grammar", zh: "语法", weight: 30, descriptors: { 5: "Cấu trúc, trật tự từ, hư từ và thể đều chính xác; lỗi rất hiếm.", 4: "Có lỗi nhỏ nhưng không ảnh hưởng nghĩa và cấu trúc chính ổn định.", 3: "Có một số lỗi về trật tự từ, hư từ hoặc cấu trúc; nghĩa vẫn hiểu được.", 2: "Lỗi lặp lại và đôi lúc làm thay đổi hoặc che khuất nghĩa.", 1: "Lỗi nghiêm trọng ở cấu trúc cơ bản, chỉ hiểu được từng phần.", 0: "Không có ngôn ngữ đủ để đánh giá." } },
+      { id: "vocabulary", vi: "Từ vựng", en: "Vocabulary", zh: "词汇", weight: 15, descriptors: { 5: "Dùng từ chính xác, đủ rộng và phù hợp ngữ cảnh.", 4: "Nhìn chung chính xác, đôi chỗ dùng từ chưa tự nhiên.", 3: "Đủ dùng cho ý chính nhưng còn lặp hoặc nhầm từ.", 2: "Vốn từ hạn chế, nhiều lựa chọn từ chưa phù hợp.", 1: "Thiếu từ khiến phần lớn ý không rõ.", 0: "Không có từ/cụm từ có thể đánh giá." } },
+      { id: "naturalness_style", vi: "Tự nhiên và văn phong", en: "Naturalness and style", zh: "表达自然度与文体", weight: 15, descriptors: { 5: "Diễn đạt tự nhiên, đúng văn phong và phù hợp ngữ cảnh.", 4: "Khá tự nhiên, còn một vài cách nói mang tính dịch từng chữ.", 3: "Hiểu được nhưng chưa giống cách diễn đạt tự nhiên của người bản ngữ.", 2: "Nhiều cách nói gượng hoặc không phù hợp văn phong.", 1: "Diễn đạt rất khó hiểu và không phù hợp ngữ cảnh.", 0: "Không đủ dữ liệu để đánh giá." } }
+    ],
+    scoring: {
+      grammar_focus: "Grammar is scored independently at 0–5; do not change it because of vocabulary or style.",
+      conversion: "Convert the weighted 25-point result to 100 only after all five criteria are scored.",
+      evidence: "Quote the learner's exact Chinese, label each observable error, propose a correction only when confident, and separate required corrections from optional naturalness improvements.",
+      uncertainty: "If the prompt, learner level, or intended meaning is missing, state the limitation and do not invent a precise score."
+    }
+  };
   window.PandaHanGrammarPack = {
+    writingRubric,
     entries,
     find(text) {
       const value = String(text || "").toLowerCase();
