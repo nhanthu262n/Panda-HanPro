@@ -409,9 +409,9 @@ function createTeacherView() {
   container.id = "screen-teacher";
   container.style.display = "none";
   container.innerHTML = `
-    <h2>👨‍🏫 Quản lý Học viên</h2>
-    <p style="color:#888;margin-bottom:20px;">Danh sách học viên đã đăng ký và tiến độ của họ.</p>
-    <div id="studentList">Đang tải...</div>
+    <h2>👨‍🏫 Learner Management</h2>
+    <p style="color:#888;margin-bottom:20px;">Registered learners and their progress.</p>
+    <div id="studentList">Loading...</div>
   `;
   document.querySelector(".app").appendChild(container);
   loadStudentList();
@@ -434,17 +434,17 @@ async function loadStudentList() {
           <div style="font-size:12px;color:#888;">${u.email}</div>
         </div>
         <div style="text-align:right;">
-          <div style="color:var(--pink);font-weight:800;">${learned} từ đã học</div>
-          <button onclick="viewStudentDetail('${u.uid}')" style="font-size:11px;background:#eee;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">Xem chi tiết</button>
+          <div style="color:var(--pink);font-weight:800;">${learned} words studied</div>
+          <button onclick="viewStudentDetail('${u.uid}')" style="font-size:11px;background:#eee;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">View details</button>
         </div>
       </div>
     `;
   }
-  document.getElementById("studentList").innerHTML = html || "Chưa có học sinh nào.";
+  document.getElementById("studentList").innerHTML = html || "No learners found.";
 }
 
 // switchTab (Old version removed to avoid conflict)
 
 async function viewStudentDetail(uid) {
-  alert("Tính năng xem chi tiết bảng từ của từng học sinh đang được cập nhật...");
+  alert("Detailed learner vocabulary progress is being updated.");
 }
