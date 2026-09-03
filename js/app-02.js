@@ -1367,7 +1367,7 @@ function cardHtml(w) {
     ${tierDotHtml(w.char)}
     <div class="char-row"><span class="char">${esc(w.char)}</span>
       <button class="audio-mini" data-speak="${esc(w.char)}" title="🔊">🔊</button></div>
-    <div class="pinyin">${esc(w.pinyin)}</div>
+    <div class="pinyin" data-keep-pinyin="true">${esc(w.pinyin)}</div>
     <div class="pos-tag">${esc(localizedPos(w.pos))}</div>
     <div class="meaning">${esc(meaning)}</div>
     ${due}
