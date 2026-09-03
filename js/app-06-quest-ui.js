@@ -1,4 +1,4 @@
-/* PandaHan Pro — Quest UI bridge. Không sửa core app/login/audio. */
+/* PanTutor — Quest UI bridge. Không sửa core app/login/audio. */
 (() => {
   "use strict";
   function byId(id) { return document.getElementById(id); }
