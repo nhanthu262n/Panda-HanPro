@@ -1,5 +1,5 @@
 
-/* ===================== PandaHán Pro — Core App Logic ===================== */
+/* ===================== PanTutor — Core App Logic ===================== */
 "use strict";
 
 /* ---------- Language display mode: 'vi' (Trung-Việt) or 'en' (Trung-Anh) ---------- */
@@ -4059,7 +4059,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  if (typeof logActivity === "function") logActivity("🐼 Chào mừng đến với PandaHán Pro! / Welcome to PandaHán Pro!");
+  if (typeof logActivity === "function") logActivity("🐼 Chào mừng đến với PanTutor! / Welcome to PanTutor!");
 });
 
 /* ===================== ADVANCED PRACTICE SETS (HSK3+) ===================== */
@@ -4159,7 +4159,7 @@ function buildCertificateHtml(rec) {
   return `<div class="cert-wrap"><div class="cert-card">
     ${birdSvg}${birdSvg.replace('class="cert-deco tl"', 'class="cert-deco tr"')}
     <div class="cert-brand">熊猫语言</div>
-    <div class="cert-brand-sub">PandaHán Pro</div>
+    <div class="cert-brand-sub">PanTutor</div>
     <div class="cert-rule"></div>
     <div class="cert-mascot">${pandaSeal.replace('width="24" height="24"', 'width="42" height="42"')}</div>
     <div class="cert-ribbon">获奖证书</div>
@@ -4177,7 +4177,7 @@ function buildCertificateHtml(rec) {
     <div class="cert-feedback">📝 ${L(band.vi, band.en)}</div>
     <div class="cert-seal">
       <div class="cert-seal-icon">${pandaSeal}</div>
-      <div class="cert-seal-text">PandaHán Pro<br>HSK 1-2-3 Cultural Mnemonics</div>
+      <div class="cert-seal-text">PanTutor<br>HSK 1-2-3 Cultural Mnemonics</div>
     </div>
     <div class="cert-date">${new Date(rec.date).toLocaleDateString("vi-VN")}</div>
   </div></div>`;
