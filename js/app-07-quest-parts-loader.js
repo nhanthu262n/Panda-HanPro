@@ -1,4 +1,4 @@
-/* PandaHán Pro — Ôn tập 120 ngày: cổng >30%, audio offline và chrome Việt–English đồng bộ. */
+/* PanTutor — Ôn tập 120 ngày: cổng >30%, audio offline và chrome Việt–English đồng bộ. */
 (() => {
   "use strict";
 
