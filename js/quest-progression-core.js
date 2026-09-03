@@ -1,4 +1,4 @@
-/* PandaHán Pro — Quest main-path gate: a lesson unlocks only above 30%. */
+/* PanTutor — Quest main-path gate: a lesson unlocks only above 30%. */
 (() => {
   "use strict";
   const PASS_PERCENT = 30;
