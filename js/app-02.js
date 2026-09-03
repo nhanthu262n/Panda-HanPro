@@ -3331,7 +3331,7 @@ function showScreen(name) {
   else if (name === "reviewIntro") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); if (typeof startReviewSession === "function") startReviewSession({ practiceMode: window.PandaHanPracticeMode === "scheduled" ? "scheduled" : "free" }); }
   else if (name === "teacher") { if (el("teacherView")) { el("teacherView").classList.add("visible"); el("teacherView").style.display = "block"; if (typeof renderTeacherDashboard === "function") renderTeacherDashboard(); } }
   else if (name === "aiTeacher") { if (el("aiTeacherView")) { el("aiTeacherView").classList.add("visible"); el("aiTeacherView").style.display = "block"; if (typeof window.openAiTutorWorkspace === "function") window.openAiTutorWorkspace(); else openAiTeacherScreen(); } }
-  else if (name === "chat") { if (el("chatView")) { el("chatView").classList.add("visible"); el("chatView").style.display = "block"; if (typeof initChatSystem === "function") initChatSystem(); } }
+  else if (name === "chat") { if (el("chatView")) { el("chatView").classList.add("visible"); el("chatView").style.display = "block"; if (typeof window.initChatSystem === "function") window.initChatSystem(); } }
   else if (name === "teacherDetail") { if (el("teacherStudentDetail")) { el("teacherStudentDetail").classList.add("visible"); el("teacherStudentDetail").style.display = "block"; } }
   else if (name === "certificate") { if (el("certificateView")) { el("certificateView").classList.add("visible"); el("certificateView").style.display = "block"; } }
   else if (name === "addWord") { if (el("addWordView")) { el("addWordView").classList.add("visible"); el("addWordView").style.display = "block"; } }
