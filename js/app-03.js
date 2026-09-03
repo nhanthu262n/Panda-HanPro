@@ -123,18 +123,18 @@ const PV_SESSIONS = [
     {pinyin:'guo',tone:2,hanzi:'国',viet:'nước'},{pinyin:'hao',tone:3,hanzi:'好',viet:'tốt'},
   ]},
   {id:6,title:'Thanh mẫu j q x',sub:'Phụ âm đầu nhóm mặt lưỡi',emoji:'🗣️',color:'#ec4899',light:'#fdf2f8',cards:[
-    {pinyin:'ji',tone:1,hanzi:'鸡',viet:'gà'},{pinyin:'qi',tone:3,hanzi:'起',viet:'đứng dậy'},
+    {pinyin:'ji',tone:1,hanzi:'鸡',viet:'chicken'},{pinyin:'qi',tone:3,hanzi:'起',viet:'stand up'},
     {pinyin:'xi',tone:1,hanzi:'希',viet:'hy vọng'},{pinyin:'jia',tone:1,hanzi:'家',viet:'nhà'},
     {pinyin:'xia',tone:4,hanzi:'下',viet:'dưới'},{pinyin:'jin',tone:1,hanzi:'金',viet:'vàng'},
     {pinyin:'xin',tone:1,hanzi:'心',viet:'tim'},{pinyin:'qian',tone:2,hanzi:'钱',viet:'tiền'},
   ]},
   {id:7,title:'Thanh mẫu zh ch sh r',sub:'Phụ âm đầu cuộn lưỡi',emoji:'🌀',color:'#f97316',light:'#fff7ed',cards:[
-    {pinyin:'zhi',tone:1,hanzi:'知',viet:'biết'},{pinyin:'chi',tone:1,hanzi:'吃',viet:'ăn'},
+    {pinyin:'zhi',tone:1,hanzi:'知',viet:'know'},{pinyin:'chi',tone:1,hanzi:'吃',viet:'eat'},
     {pinyin:'shi',tone:4,hanzi:'是',viet:'là'},{pinyin:'ri',tone:4,hanzi:'日',viet:'mặt trời'},
     {pinyin:'zhu',tone:4,hanzi:'住',viet:'sống'},{pinyin:'chu',tone:1,hanzi:'出',viet:'ra'},
     {pinyin:'shu',tone:1,hanzi:'书',viet:'sách'},{pinyin:'ren',tone:2,hanzi:'人',viet:'người'},
   ]},
-  {id:8,title:'Thanh mẫu z c s',sub:'Phụ âm đầu đầu lưỡi - răng',emoji:'🦷',color:'#8b5cf6',light:'#f5f3ff',cards:[
+  {id:8,title:'Thanh mẫu z c s',sub:'Phụ âm đầu đầu lưỡi - reatg',emoji:'🦷',color:'#8b5cf6',light:'#f5f3ff',cards:[
     {pinyin:'zi',tone:4,hanzi:'字',viet:'chữ'},{pinyin:'ci',tone:2,hanzi:'词',viet:'từ'},
     {pinyin:'si',tone:4,hanzi:'四',viet:'bốn'},{pinyin:'zuo',tone:4,hanzi:'做',viet:'làm'},
     {pinyin:'cuo',tone:4,hanzi:'错',viet:'sai'},{pinyin:'suo',tone:3,hanzi:'锁',viet:'khóa'},
@@ -198,7 +198,7 @@ function renderSessionList(container) {
   let html = `<div class="pv-container">
     <div class="pv-header">
       <div>
-        <div class="pv-title">🎵 ${pvT("Phonetics", "Phonetics")} — <span>${pvT("10 Buổi Học", "10 Learning Sessions")}</span></div>
+        <div class="pv-title">🎵 ${pvT("Phonetics", "Phonetics")} — <span>${pvT("10 Session Học", "10 Learning Sessions")}</span></div>
         <div class="pv-sub">Flashcard → ${pvT("Game", "Game")} → ${pvT("Bài tập", "Practice")} · ${pvT("Đạt ≥30% để qua buổi", "Reach ≥30% to pass the session")}</div>
       </div>
     </div>
@@ -209,7 +209,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#f97316;background:#fff7ed;padding:2px 8px;border-radius:8px">30 max</span>
         </div>
         <div class="pv-stat-num">${totalStars}</div>
-        <div class="pv-stat-label">${pvT("Tổng sao", "Total stars")}</div>
+        <div class="pv-stat-label">${pvT("Total stars", "Total stars")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(totalStars/30)*100}%"></div></div>
       </div>
       <div class="pv-stat-card" style="border-color:#bbf7d0">
@@ -218,7 +218,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#22c55e;background:#f0fdf4;padding:2px 8px;border-radius:8px">10 max</span>
         </div>
         <div class="pv-stat-num" style="color:#22c55e">${doneCount}</div>
-        <div class="pv-stat-label">${pvT("Buổi hoàn thành", "Completed sessions")}</div>
+        <div class="pv-stat-label">${pvT("Completed sessions", "Completed sessions")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(doneCount/10)*100}%;background:#22c55e"></div></div>
       </div>
       <div class="pv-stat-card" style="border-color:#ddd6fe">
@@ -227,7 +227,7 @@ function renderSessionList(container) {
           <span style="font-size:.68rem;font-weight:800;color:#8b5cf6;background:#f5f3ff;padding:2px 8px;border-radius:8px">10 max</span>
         </div>
         <div class="pv-stat-num" style="color:#8b5cf6">${unlockedCount}</div>
-        <div class="pv-stat-label">${pvT("Buổi đã mở", "Unlocked sessions")}</div>
+        <div class="pv-stat-label">${pvT("Unlocked sessions", "Unlocked sessions")}</div>
         <div class="pv-stat-bar"><div class="pv-stat-fill" style="width:${(unlockedCount/10)*100}%;background:#8b5cf6"></div></div>
       </div>
     </div>
@@ -242,7 +242,7 @@ function renderSessionList(container) {
       <div class="pv-session-body">
         <div class="pv-session-emoji">${unlocked ? s.emoji : '🔒'}</div>
         <div class="pv-session-info">
-          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">${pvT("Buổi", "Session")} ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
+          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">${pvT("Session", "Session")} ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
           <div class="pv-session-title">${pvSessionTitle(s)}</div>
           <div class="pv-session-sub">${pvSessionSub(s)}</div>
           ${done ? `<div style="margin-top:6px;height:4px;background:#f3f4f6;border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;width:${(p.bestScore/10)*100}%;background:linear-gradient(to right,${s.color},#a855f7)"></div></div>` : ''}
@@ -319,7 +319,7 @@ function renderIntro(session) {
   html += `</div>
     <div style="color:#9ca3af;font-weight:600;font-size:.82rem;margin-bottom:18px">
       📌 ${pvT("3 giai đoạn", "3 stages")}: Flashcard → ${pvT("Game", "Game")} → ${pvT("Bài tập", "Practice")}<br/>
-      🎯 ${pvT("Cần ≥30% (3/10) để qua buổi", "Reach ≥30% (3/10) to pass the session")}
+      🎯 ${pvT("Pass requirement: ≥30% (3/10)", "Reach ≥30% (3/10) to pass the session")}
     </div>
     <button class="pv-start-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);box-shadow:0 6px 20px ${session.color}44" onclick="pvSetPhase('flash')">
       ${pvT("Bắt đầu học", "Start learning")} 🚀
@@ -580,7 +580,7 @@ function renderResult(session) {
   let html = `<div class="pv-result">
     <div style="font-size:3.5rem;margin-bottom:12px">${isPass ? '🎉' : '😊'}</div>
     <h2 style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.5rem;color:#1e1b4b;margin-bottom:4px">${isPass ? (window.LANG_MODE === 'en' ? 'Passed the learning session! 🏆' : 'Đã qua buổi học! 🏆') : (window.LANG_MODE === 'en' ? 'Keep practising and try again 💪' : 'Cố lên! Thử lại nhé 💪')}</h2>
-    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? (window.LANG_MODE === 'en' ? 'Reached 30% — the next session can now be evaluated for unlock.' : 'Đạt 30% — buổi tiếp theo được xét mở khóa.') : (window.LANG_MODE === 'en' ? 'You need at least 30% (3/10) to pass this session.' : 'Cần ≥30% (3/10) để qua buổi.')}</p>
+    <p style="color:#9ca3af;font-weight:600;margin-bottom:24px">${isPass ? (window.LANG_MODE === 'en' ? 'Reached 30% — the next session can now be evaluated for unlock.' : 'Đạt 30% — buổi tiếp theo được xét mở khóa.') : (window.LANG_MODE === 'en' ? 'You need at least 30% (3/10) to pass this session.' : 'Pass requirement: ≥30% (3/10).')}</p>
     <svg viewBox="0 0 100 100" style="width:120px;height:120px;transform:rotate(-90deg)">
       <circle cx="50" cy="50" r="42" fill="none" stroke="#fce7f3" stroke-width="10"/>
       <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" stroke-linecap="round"
@@ -596,7 +596,7 @@ function renderResult(session) {
     </div>
     <div class="pv-action-row">
       <button class="pv-action-btn" style="background:#fdf2f8;border-color:#fbcfe8;color:#ec4899" onclick="pvRetryQuiz()">🔄 Làm lại</button>
-      ${isPass ? `<button class="pv-action-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px ${session.color}44" onclick="pvNextSession()">Buổi tiếp →</button>` : ''}
+      ${isPass ? `<button class="pv-action-btn" style="background:linear-gradient(135deg,${session.color},#a855f7);color:#fff;border-color:transparent;box-shadow:0 4px 14px ${session.color}44" onclick="pvNextSession()">Session tiếp →</button>` : ''}
     </div>
   </div>`;
   return html;
@@ -835,7 +835,7 @@ function pvNextSession() {
       div.className = "chat-contact";
       div.dataset.uid = uid;
       const isAi = !!u.isAi;
-      const roleLabel = isAi ? (window.LANG_MODE === "en" ? "🤖 120-day Learning Path Assistant" : "🤖 Trợ lý lộ trình 120 ngày") : ((u.role === "teacher" || u.role === "master_teacher") ? (window.LANG_MODE === "en" ? "👩‍🏫 Teacher" : "👩‍🏫 Giáo viên") : (window.LANG_MODE === "en" ? "🎓 Student" : "🎓 Học viên"));
+      const roleLabel = isAi ? (window.LANG_MODE === "en" ? "🤖 120-day Learning Path Assistant" : "🤖 Trợ lý lộ trình 120 nchickeny") : ((u.role === "teacher" || u.role === "master_teacher") ? (window.LANG_MODE === "en" ? "👩‍🏫 Teacher" : "👩‍🏫 Giáo viên") : (window.LANG_MODE === "en" ? "🎓 Student" : "🎓 Học viên"));
       const roleColor = isAi ? "var(--pink)" : ((u.role === "teacher" || u.role === "master_teacher") ? "var(--hsk3)" : "var(--hsk2)");
 
       div.innerHTML = '<div class="cc-avatar">' + (isAi ? "🤖" : (u.name || "U").charAt(0).toUpperCase()) + '</div>' +
@@ -893,7 +893,7 @@ function pvNextSession() {
     box.innerHTML = "";
     const history = loadAiConversation();
     if (!history.length) {
-      const welcomeVi = "Xin chào! Mình là PanTutor AI Coach. Hôm nay mình sẽ hướng dẫn bạn học đúng nội dung của ngày hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn lại các lỗi còn yếu. Sau mỗi hoạt động có điểm, mình sẽ nhận xét cụ thể bạn đang làm tốt phần nào, đang nhầm ở đâu và nên luyện thêm gì trước khi học tiếp. Pinyin Tone Quest trên 30% sẽ mở ngày kế tiếp.";
+      const welcomeVi = "Xin chào! Mình là PanTutor AI Coach. Hôm nay mình sẽ hướng dẫn bạn học đúng nội dung của nchickeny hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn lại các lỗi còn yếu. Sau mỗi hoạt động có điểm, mình sẽ nhận xét cụ thể bạn đang làm tốt phần nào, đang nhầm ở đâu và nên luyện thêm gì trước khi học tiếp. Pinyin Tone Quest trên 30% sẽ mở nchickeny kế tiếp.";
       const welcomeEn = "Hi! I am PanTutor AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Each session follows one exact chain: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking recording → linked-vocabulary learn/speak → dedicated AI Coach Tone Challenge with that word set → writing/reading → redo every open error. Each Open step button goes to its matching screen. The Coach game is separate and never changes main Pinyin Tone Quest progress; main Quest has been restored from the complete source ZIP and retains its own Quest/schedule flow. The next curriculum day unlocks immediately when the current Pinyin Tone Quest score is strictly above 30%. Listening, speaking, vocabulary and error review remain learning evidence but never block the next day. Calendar gaps never create repeat curriculum sessions; wrong words/sentences still use a separate 1–3–5–7–14–30–60-day SRS queue.";
       renderAiCoachMessage(window.LANG_MODE === "en" ? welcomeEn : welcomeVi, "bot", true);
     } else {
@@ -1079,7 +1079,7 @@ function pvNextSession() {
     const readingScope = `ai_tutor_reading_${topic.id}_${aiTutorState.length || "adaptive"}`;
     const responseLanguage = tutorResponseLanguage("");
     const readingMeaning = responseLanguage === "en" ? formatted.en : formatted.vi;
-    const meaningLabel = responseLanguage === "en" ? "Meaning in English" : responseLanguage === "zh" ? "释义（越南语）" : "Nghĩa tiếng Việt";
+    const meaningLabel = responseLanguage === "en" ? "Meaning in English" : responseLanguage === "zh" ? "释义（越南语）" : "English meaning";
     const meaningHelp = responseLanguage === "en" ? "The meaning follows the selected reply language." : responseLanguage === "zh" ? "释义会随所选回复语言显示。" : "Nghĩa thay đổi theo ngôn ngữ phản hồi đã chọn.";
     const meaningHtml = readingMeaning ? `<section class="ai-tutor-reading-meaning" lang="${responseLanguage === "en" ? "en" : "vi"}"><b>${escapeHtml(meaningLabel)}</b><p>${escapeHtml(readingMeaning)}</p><small>${escapeHtml(meaningHelp)}</small></section>` : "";
     container.innerHTML = `<section class="ai-tutor-inline-reading"><div class="ai-tutor-inline-head"><div><b>${escapeHtml(tutorText("Đoạn đọc tương tác", "Interactive reading", "互动阅读"))}</b><span>${escapeHtml(`HSK ${formatted.level} · ${topic.topicEn}`)}</span></div><small>${escapeHtml(tutorText("Bôi đen từ/cụm từ để tra nghĩa hoặc chọn màu từ thanh highlight giống Từ điển.", "Select a word/phrase to look it up, or use the Dictionary-style highlight palette.", "选中词语可查义，或使用与词典相同的高亮色板。"))}</small></div><p id="aiTutorReadingText" class="ai-tutor-reading-text lookup-text ai-tutor-highlightable" data-highlight-scope="${escapeHtml(readingScope)}" lang="zh" title="${escapeHtml(tutorText("Bôi đen nội dung để highlight giống Từ điển", "Select text to highlight it like Dictionary text", "选中文本即可像词典一样高亮"))}">${escapeHtml(formatted.zh)}</p><p class="ai-tutor-reading-pinyin">${escapeHtml(formatted.pinyin)}</p>${meaningHtml}<div class="ai-tutor-reading-actions"><button type="button" id="aiTutorLookupSelection">${escapeHtml(tutorText("Tra nghĩa & lưu phần đã chọn", "Look up & save selection", "查义并保存所选内容"))}</button><span>${escapeHtml(tutorText("Có thể lưu cả từ đơn lẫn cụm từ; thao tác này không mở khóa schedule.", "You can save single words or phrases; this never unlocks the schedule.", "可保存单词或短语；此操作不会解锁日程。"))}</span></div><div data-ai-tutor-inline-detail></div></section>`;
@@ -1118,7 +1118,7 @@ function pvNextSession() {
     const feedback = aiTutorState.reviewFeedback ? `<div class="ai-tutor-srs-feedback">${escapeHtml(aiTutorState.reviewFeedback)}</div>` : "";
     const reviewHtml = review
       ? `<section class="ai-tutor-srs-review"><b>${escapeHtml(tutorText("Ôn SRS đến hạn", "Due SRS review", "到期 SRS 复习"))}</b><p>${escapeHtml(tutorText("Nhập chữ Hán tương ứng với pinyin và nghĩa sau. Đây là câu trả lời thực tế; kết quả mới cập nhật lịch ôn.", "Type the Hanzi matching the pinyin and meaning below. This is an actual response; only its result updates the review schedule.", "请根据下面的拼音和释义输入对应汉字。只有这次实际作答的结果才会更新复习计划。"))}</p><div class="ai-tutor-review-prompt"><b>${escapeHtml(review.pinyin || "—")}</b><span>${escapeHtml(review.meaning || "—")}</span></div><div class="ai-tutor-review-form"><input id="aiTutorSrsAnswer" autocomplete="off" placeholder="${escapeHtml(tutorText("Nhập chữ Hán", "Type Hanzi", "输入汉字"))}"><button type="button" id="aiTutorSrsCheck">${escapeHtml(tutorText("Kiểm tra", "Check", "检查"))}</button></div>${feedback}</section>`
-      : `<section class="ai-tutor-srs-summary"><b>${escapeHtml(tutorText("SRS của AI Tutor", "AI Tutor SRS", "AI Tutor SRS"))}</b><span>${escapeHtml(tutorSrsLabel(saved.length, due.length))}</span><small>${escapeHtml(tutorText("Lịch ôn: 1 · 3 · 5 · 7 · 14 · 30 · 60 ngày. Bài ôn này là học tự do, không ghi evidence mở khóa ngày.", "Review schedule: 1 · 3 · 5 · 7 · 14 · 30 · 60 days. This is free study and does not create schedule-unlock evidence.", "复习间隔：1 · 3 · 5 · 7 · 14 · 30 · 60 天。此练习属于自由学习，不产生解锁日程的 evidence。"))}</small>${feedback}</section>`;
+      : `<section class="ai-tutor-srs-summary"><b>${escapeHtml(tutorText("SRS của AI Tutor", "AI Tutor SRS", "AI Tutor SRS"))}</b><span>${escapeHtml(tutorSrsLabel(saved.length, due.length))}</span><small>${escapeHtml(tutorText("Lịch ôn: 1 · 3 · 5 · 7 · 14 · 30 · 60 nchickeny. Bài ôn này là học tự do, không ghi evidence mở khóa nchickeny.", "Review schedule: 1 · 3 · 5 · 7 · 14 · 30 · 60 days. This is free study and does not create schedule-unlock evidence.", "复习间隔：1 · 3 · 5 · 7 · 14 · 30 · 60 天。此练习属于自由学习，不产生解锁日程的 evidence。"))}</small>${feedback}</section>`;
     const cards = entries.map((entry) => {
       const active = selected?.char === entry.char;
       const already = saved.some((item) => item.char === entry.char);
@@ -1136,7 +1136,7 @@ function pvNextSession() {
     container.querySelector("#aiTutorSaveVocab")?.addEventListener("click", () => {
       if (!selected) return;
       window.PandaHanTutorSrs?.add?.(selected.char, { pinyin: selected.pinyin, meaning: selected.meaning, topicId: topic.id });
-      aiTutorState.reviewFeedback = tutorText("Đã lưu từ. Bạn sẽ thấy bài ôn theo lịch 1–3–5–7–14–30–60 ngày; thao tác này không thay đổi schedule.", "Word saved. Its reviews follow 1–3–5–7–14–30–60 days; this action does not change the schedule.", "词汇已保存。它将按 1–3–5–7–14–30–60 天复习；此操作不会改变学习日程。");
+      aiTutorState.reviewFeedback = tutorText("Đã lưu từ. Bạn sẽ thấy bài ôn theo lịch 1–3–5–7–14–30–60 nchickeny; thao tác này không thay đổi schedule.", "Word saved. Its reviews follow 1–3–5–7–14–30–60 days; this action does not change the schedule.", "词汇已保存。它将按 1–3–5–7–14–30–60 天复习；此操作不会改变学习日程。");
       renderTutorStudyTools(container);
     });
     const check = () => {
@@ -1145,8 +1145,8 @@ function pvNextSession() {
       const correct = answer === review.char;
       const result = window.PandaHanTutorSrs?.grade?.(review.char, correct);
       aiTutorState.reviewFeedback = correct
-        ? tutorText(`Đúng. Lần ôn tiếp theo sau ${result?.retryDays || 1} ngày.`, `Correct. Your next review is in ${result?.retryDays || 1} day(s).`, `正确。下次复习在 ${result?.retryDays || 1} 天后。`)
-        : tutorText("Chưa đúng. Từ được xếp lại sau 1 ngày để bạn ôn tiếp.", "Not correct. The word is scheduled again in 1 day.", "不正确。该词将在 1 天后再次安排复习。");
+        ? tutorText(`Đúng. Lần ôn tiếp theo sau ${result?.retryDays || 1} nchickeny.`, `Correct. Your next review is in ${result?.retryDays || 1} day(s).`, `正确。下次复习在 ${result?.retryDays || 1} 天后。`)
+        : tutorText("Chưa đúng. Từ được xếp lại sau 1 nchickeny để bạn ôn tiếp.", "Not correct. The word is scheduled again in 1 day.", "不正确。该词将在 1 天后再次安排复习。");
       renderTutorStudyTools(container);
     };
     container.querySelector("#aiTutorSrsCheck")?.addEventListener("click", check);
@@ -1414,7 +1414,7 @@ function pvNextSession() {
         const missing = item.missingTaskIds.length ? ` · ${window.LANG_MODE === "en" ? "still needed" : "còn thiếu"}: ${item.missingTaskIds.map(aiCoachTaskLabel).join(", ")}` : "";
         const source = item.rawSource === "ai-coach-tone-quest" ? "AI Coach Tone Challenge" : item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "phonetics-pronunciation" || item.source === "phonetics-listening" || item.source === "phonetics" ? "Phonetics" : item.source === "practice" ? "Từ vựng/Practice" : item.source === "task" ? "Verified task" : "AI Coach";
         const metrics = [item.attempts != null ? `${item.attempts} lần` : "", item.correct != null && item.total != null ? `${item.correct}/${item.total} đúng` : "", item.durationSeconds != null ? `${Math.round(item.durationSeconds)}s` : ""].filter(Boolean).join(" · ");
-        const sessionLabel = item.isRepeat ? (window.LANG_MODE === "en" ? `Session ${item.sequenceIndex} — continue Day ${item.dayNumber}` : `Buổi ${item.sequenceIndex} — tiếp tục Ngày ${item.dayNumber}`) : (window.LANG_MODE === "en" ? `Day ${item.dayNumber}` : `Ngày ${item.dayNumber}`);
+        const sessionLabel = item.isRepeat ? (window.LANG_MODE === "en" ? `Session ${item.sequenceIndex} — continue Day ${item.dayNumber}` : `Session ${item.sequenceIndex} — tiếp tục Nchickeny ${item.dayNumber}`) : (window.LANG_MODE === "en" ? `Day ${item.dayNumber}` : `Nchickeny ${item.dayNumber}`);
         const carried = item.carriedCompletedTasks.length ? ` · ${window.LANG_MODE === "en" ? "carried" : "đã giữ"}: ${item.carriedCompletedTasks.map(aiCoachTaskLabel).join(", ")}` : "";
         return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>${sessionLabel}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}${carried}${metrics ? ` · ${metrics}` : ""}</span></div>`;
       }).join("");
@@ -1450,7 +1450,7 @@ function pvNextSession() {
       const routeStatus = window.PandaHanMission?.getRouteStatusText?.(window.LANG_MODE === "en" ? "en" : "vi") || "";
       renderAiCoachMessage((window.LANG_MODE === "en"
         ? "Hello, I am PanTutor AI Coach. The 3.0 path has 120 HSK1–HSK2–HSK3 days. Today’s plan follows one exact order: 10-item Phonetics listening quiz at 30% or above → verified Phonetics speaking → linked vocabulary learn/speak → dedicated AI Coach Tone Challenge → writing/reading → redo every open error. Every Open step button leads to its matching screen. The Coach game records its own schedule evidence but never changes main Pinyin Tone Quest progress; main Quest has been restored from the complete source ZIP and continues through its own Quest/schedule flow. The next curriculum day unlocks immediately when the current Pinyin Tone Quest score is strictly above 30%. Listening, speaking, vocabulary and error review remain learning evidence but never block the next day. Calendar gaps never create repeat curriculum sessions; SRS and wrong-item review remain separate."
-        : "Xin chào, mình là PanTutor AI Coach. Hôm nay mình sẽ hướng dẫn bạn theo đúng bài của ngày hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn các lỗi còn yếu. Mỗi khi hệ thống ghi nhận một kết quả, mình sẽ phân tích cụ thể điểm mạnh, lỗi đang lặp lại và phần cần luyện thêm như một giáo viên hướng dẫn. Pinyin Tone Quest trên 30% sẽ mở ngày kế tiếp.") + (routeStatus ? `\n\n${routeStatus}` : ""), "bot", false);
+        : "Xin chào, mình là PanTutor AI Coach. Hôm nay mình sẽ hướng dẫn bạn theo đúng bài của nchickeny hiện tại: Ngữ âm/Nghe → Nói → Từ vựng liên kết → Pinyin Tone Quest → Đọc/Viết → ôn các lỗi còn yếu. Mỗi khi hệ thống ghi nhận một kết quả, mình sẽ phân tích cụ thể điểm mạnh, lỗi đang lặp lại và phần cần luyện thêm như một giáo viên hướng dẫn. Pinyin Tone Quest trên 30% sẽ mở nchickeny kế tiếp.") + (routeStatus ? `\n\n${routeStatus}` : ""), "bot", false);
       return;
     }
     history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
@@ -1469,7 +1469,7 @@ function pvNextSession() {
     const intro = area.querySelector("[data-ai-coach-message-intro]");
     if (intro) intro.textContent = window.LANG_MODE === "en"
       ? "AI Coach allocates today’s verified learning sequence. Free practice and chat do not unlock the next curriculum day."
-      : "AI Coach phân bổ chuỗi học hôm nay từ dữ liệu đã xác minh. Học tự do và chat không tự mở ngày giáo trình tiếp theo.";
+      : "AI Coach phân bổ chuỗi học hôm nay từ dữ liệu đã xác minh. Học tự do và chat không tự mở nchickeny giáo trình tiếp theo.";
     window.PandaHanMission?.renderCoach?.(area.querySelector("[data-ai-coach-plan-host]"));
     renderAiCoachHistory();
     renderAiCoachTimeline(area);
