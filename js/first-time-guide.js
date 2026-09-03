@@ -1,4 +1,4 @@
-/* PandaHán Pro — guided first-learner assistant (offline, no API key) */
+/* PanTutor — guided first-learner assistant (offline, no API key) */
 (() => {
   "use strict";
 
