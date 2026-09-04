@@ -2235,11 +2235,15 @@ window.addEventListener("pandahan-quest-score-saved", (event) => {
 let quizAttemptRows = [];
 function runQuiz() {
   quizIdx = 0; quizScore = 0; quizAttemptRows = [];
+  quizAnswerLocked = false;
+  if (quizTransitionTimer) { clearTimeout(quizTransitionTimer); quizTransitionTimer = null; }
   showScreen("quiz");
   document.getElementById("qTotal").textContent = quizQueue.length;
   showQuizQuestion();
 }
 let quizTimerInterval = null;
+let quizTransitionTimer = null;
+let quizAnswerLocked = false;
 const QUIZ_TIME_LIMIT = 15;
 function clearQuizTimer() {
   if (quizTimerInterval) { clearInterval(quizTimerInterval); quizTimerInterval = null; }
@@ -2269,6 +2273,8 @@ function startQuizTimer(q) {
   }, 1000);
 }
 function timeoutQuizQuestion(q) {
+  if (quizAnswerLocked) return;
+  quizAnswerLocked = true;
   playTing("wrong");
   document.querySelectorAll("#qContent .quiz-options button").forEach(b => {
     b.classList.add("disabled"); b.disabled = true;
@@ -2283,9 +2289,18 @@ function timeoutQuizQuestion(q) {
     ${explainAnswer(q)}
     <button class="btn btn-hsk2" style="margin-top:12px;width:100%;" id="qNextFromExplain">${L("Câu tiếp theo →", "Next question →")}</button>`;
   document.getElementById("qCard").appendChild(explainBox);
-  document.getElementById("qNextFromExplain").addEventListener("click", () => { quizIdx++; showQuizQuestion(); });
+  const next = () => {
+    if (quizTransitionTimer) { clearTimeout(quizTransitionTimer); quizTransitionTimer = null; }
+    quizIdx++; showQuizQuestion();
+  };
+  document.getElementById("qNextFromExplain").addEventListener("click", next, { once: true });
+  if (typeof vocabularyQuizCompletion === "function") {
+    quizTransitionTimer = setTimeout(next, 1400);
+  }
 }
 function showQuizQuestion() {
+  quizAnswerLocked = false;
+  if (quizTransitionTimer) { clearTimeout(quizTransitionTimer); quizTransitionTimer = null; }
   const oldExplain = document.querySelector("#qCard .quiz-explain");
   if (oldExplain) oldExplain.remove();
   if (quizIdx >= quizQueue.length) { clearQuizTimer(); showQuizResult(); return; }
@@ -2316,6 +2331,8 @@ function showQuizQuestion() {
   }
 }
 function answerQuiz(btn, q) {
+  if (quizAnswerLocked) return;
+  quizAnswerLocked = true;
   clearQuizTimer();
   const correct = btn.dataset.letter === q.answer;
   playTing(correct ? "correct" : "wrong");
@@ -2337,10 +2354,23 @@ function answerQuiz(btn, q) {
     <div class="quiz-explain-body">${explainAnswer(q)}</div>
     <button class="btn btn-hsk2" id="qNextBtn" style="margin-top:10px;">${L("Câu tiếp theo →", "Next question →")}</button>`;
   document.getElementById("qCard").appendChild(explainBox);
-  document.getElementById("qNextBtn").addEventListener("click", () => { quizIdx++; showQuizQuestion(); });
-  explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const nextQuestion = () => {
+    if (quizTransitionTimer) { clearTimeout(quizTransitionTimer); quizTransitionTimer = null; }
+    quizIdx++;
+    showQuizQuestion();
+  };
+  document.getElementById("qNextBtn").addEventListener("click", nextQuestion, { once: true });
+  // In the Excel vocabulary "Quiz this word" flow, mobile browsers could leave
+  // the disabled options on screen while the Next button sat below the fold.
+  // Keep the manual button, but also advance automatically after short feedback.
+  if (typeof vocabularyQuizCompletion === "function") {
+    quizTransitionTimer = setTimeout(nextQuestion, 1400);
+  }
+  try { explainBox.scrollIntoView({ behavior: "auto", block: "nearest" }); } catch (_) {}
 }
 function showQuizResult() {
+  quizAnswerLocked = false;
+  if (quizTransitionTimer) { clearTimeout(quizTransitionTimer); quizTransitionTimer = null; }
   const wasMistakeReview = !!mistakeReviewActive;
   const pct = Math.round((quizScore / quizQueue.length) * 100);
   const missionDay = Number(window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
