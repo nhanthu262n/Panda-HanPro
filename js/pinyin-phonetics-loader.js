@@ -6,13 +6,32 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
-  const PHONETICS_BUILD = "v44-stable-loader-20260904";
+  const PHONETICS_BUILD = "v45-resilient-chunks-20260904";
   const PARTS = [
-    `pinyin-phonetics.part-01.js?v=${PHONETICS_BUILD}`,
-    `pinyin-phonetics.part-02.js?v=${PHONETICS_BUILD}`,
-    `pinyin-phonetics.part-03.js?v=${PHONETICS_BUILD}`,
-    `pinyin-phonetics.part-04.js?v=${PHONETICS_BUILD}`,
-    `pinyin-phonetics.part-05.js?v=${PHONETICS_BUILD}`
+    { file: "phonetics-chunks-v45/phonetics-01.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-02.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-03.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-04.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-05.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-06.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-07.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-08.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-09.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-10.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-11.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-12.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-13.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-14.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-15.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-16.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-17.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-18.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-19.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-20.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-21.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-22.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-23.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-24.js", chars: 3864786 }
   ];
 
   let loadingPromise = null;
@@ -40,13 +59,18 @@
     console.error('PanTutor Phonetics loader error:', error);
     const root = getRoot();
     if (!root) return;
-    const isFetchError = error instanceof TypeError || /fetch|cors|network/i.test(String(error?.message || error));
-    const detail = isFetchError
-      ? 'AI Tutor requires a backend that permits CORS from GitHub Pages. Retry after the backend is configured.'
-      : 'Check your network connection, then press Ctrl + F5 to retry.';
+    const message = String(error?.message || error || 'Unknown loading error');
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
-      <strong>Unable to load the Phonetics module.</strong><br>${detail}
+      <strong>Unable to load the Phonetics module.</strong><br>
+      <span style="font-size:13px">A Phonetics data chunk could not be loaded completely. This can happen on a slow or interrupted connection.</span>
+      <details style="margin-top:8px;font-size:11px;color:#7f1d1d"><summary>Technical detail</summary><code>${message.replace(/</g,'&lt;')}</code></details>
+      <button type="button" id="pinyinRetryLoadBtn" style="margin-top:12px;border:0;border-radius:10px;padding:9px 15px;background:#db2777;color:#fff;font-weight:800;cursor:pointer">Retry Phonetics</button>
     </div>`;
+    root.querySelector('#pinyinRetryLoadBtn')?.addEventListener('click', () => {
+      loadingPromise = null;
+      mounted = false;
+      window.loadPinyinPhonetics?.().catch(() => {});
+    });
   }
 
   // Hide the gloss line inside quiz answer buttons.
@@ -170,20 +194,25 @@
 
     loadingPromise = (async function () {
       const CACHE_NAME = `pantutor-phonetics-${PHONETICS_BUILD}`;
-      const timeoutMs = 45000;
-      const maxAttempts = 3;
+      const timeoutMs = 120000;
+      const maxAttempts = 4;
+
+      async function openChunkCache() {
+        try { return window.caches ? await caches.open(CACHE_NAME) : null; } catch (_) { return null; }
+      }
 
       async function fetchPart(part, index) {
-        const url = new URL(part, baseUrl).href;
-        let cache = null;
-        try { if (window.caches) cache = await caches.open(CACHE_NAME); } catch (_) {}
+        const url = new URL(part.file + `?v=${PHONETICS_BUILD}`, baseUrl).href;
+        const cache = await openChunkCache();
 
-        // A versioned cache is safe: PHONETICS_BUILD changes whenever source changes.
-        // Prefer it to avoid downloading ~93 MB again on every Phonics visit.
         if (cache) {
           try {
             const cached = await cache.match(url);
-            if (cached) return await cached.text();
+            if (cached) {
+              const text = await cached.text();
+              if (text.length === part.chars) return text;
+              try { await cache.delete(url); } catch (_) {}
+            }
           } catch (_) {}
         }
 
@@ -193,35 +222,39 @@
           const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
           try {
             const response = await fetch(url, {
+              // URL is versioned, so normal browser caching cannot serve an old build.
               cache: attempt === 1 ? 'default' : 'reload',
               signal: controller ? controller.signal : undefined
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const clone = response.clone();
             const text = await response.text();
-            if (!text || text.length < 1000) throw new Error('Incomplete Phonetics part');
-            if (cache) { try { await cache.put(url, clone); } catch (_) {} }
+            if (text.length !== part.chars) {
+              throw new Error(`Incomplete chunk ${index + 1}: expected ${part.chars} chars, received ${text.length}`);
+            }
+            if (cache) {
+              try {
+                await cache.put(url, new Response(text, {headers:{'Content-Type':'application/javascript; charset=utf-8'}}));
+              } catch (_) { /* Cache quota is optional; HTTP cache still works. */ }
+            }
             return text;
           } catch (error) {
             lastError = error;
-            // If the network failed but an older response for this exact version appeared
-            // in cache meanwhile, use it instead of failing the whole module.
-            if (cache) {
-              try {
-                const fallback = await cache.match(url);
-                if (fallback) return await fallback.text();
-              } catch (_) {}
+            if (attempt < maxAttempts) {
+              const wait = 900 * attempt + Math.floor(Math.random() * 350);
+              await new Promise(r => setTimeout(r, wait));
             }
-            if (attempt < maxAttempts) await new Promise(r => setTimeout(r, 700 * attempt));
           } finally {
             if (timer) clearTimeout(timer);
           }
         }
-        throw new Error(`Unable to load Phonetics part ${index + 1}/${PARTS.length}: ${lastError?.message || lastError || 'network error'}`);
+        throw new Error(`Chunk ${index + 1}/${PARTS.length} failed after ${maxAttempts} attempts: ${lastError?.message || lastError || 'network error'}`);
       }
 
-      // Limit concurrency to 2 large files at a time. Five simultaneous 12–21 MB
-      // downloads were causing intermittent failures on mobile/GitHub Pages.
+      // Adaptive concurrency: slow/mobile connections download one 4 MB chunk at a time;
+      // faster connections use two. This avoids the former 20-40 MB simultaneous transfers.
+      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const slow = !!(conn && (conn.saveData || /(^|-)2g|3g/i.test(String(conn.effectiveType || ''))));
+      const workerCount = slow ? 1 : 2;
       const texts = new Array(PARTS.length);
       let cursor = 0;
       let done = 0;
@@ -233,31 +266,29 @@
           showLoading(++done);
         }
       }
-      await Promise.all([worker(), worker()]);
+      await Promise.all(Array.from({length:workerCount}, () => worker()));
 
-      // Yield briefly before assembling/evaluating the large bundle to keep the UI responsive.
       await new Promise((resolve) => {
         const resume = () => resolve();
-        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(resume, { timeout: 120 });
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(resume, { timeout: 250 });
         else window.setTimeout(resume, 0);
       });
-      // Concatenate part-01 → part-05 in order; namespace recording history per learner.
-      // Preserve the module UI/scoring while isolating learner-specific recording history.
+
       const owner = (() => { try { return typeof window.storageNamespace === "function" ? String(window.storageNamespace() || "guest") : String(window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest"); } catch (_) { return "guest"; } })().replace(/[^a-zA-Z0-9_-]/g, "_");
       const recordingKey = `pinyin-recording-history_${owner}`;
       const namespacedBundle = texts.join("").replace(/pinyin-recording-history/g, recordingKey);
       (0, eval)(namespacedBundle);
       if (typeof window.__PANDAHAN_PHONETICS_MOUNT__ !== 'function') {
-        throw new Error('The Phonetics bundle is missing its mount function.');
+        throw new Error('The Phonetics bundle loaded but its mount function is missing.');
       }
 
       const mountRoot = getRoot();
       if (!mountRoot) throw new Error('Phonetics mount region not found.');
       window.__PANDAHAN_PHONETICS_ROOT__ = mountRoot;
-      window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);window.dispatchEvent(new Event("pinyin-mounted"));
+      window.__PANDAHAN_PHONETICS_MOUNT__(mountRoot);
+      window.dispatchEvent(new Event("pinyin-mounted"));
       mounted = true;
-
-      setTimeout(() => { installPinyinObservers(); applyPinyinLanguageContent();  }, 0);
+      setTimeout(() => { installPinyinObservers(); applyPinyinLanguageContent(); }, 0);
     })().catch((error) => {
       loadingPromise = null;
       mounted = false;
