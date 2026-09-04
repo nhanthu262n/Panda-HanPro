@@ -1,0 +1,101 @@
+{
+  "build": "v45-resilient-chunks-20260904",
+  "chunks": [
+    {
+      "file": "phonetics-chunks-v45/phonetics-01.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-02.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-03.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-04.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-05.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-06.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-07.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-08.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-09.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-10.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-11.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-12.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-13.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-14.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-15.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-16.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-17.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-18.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-19.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-20.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-21.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-22.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-23.js",
+      "chars": 4000000
+    },
+    {
+      "file": "phonetics-chunks-v45/phonetics-24.js",
+      "chars": 3864786
+    }
+  ]
+}
