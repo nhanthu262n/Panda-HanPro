@@ -1258,3 +1258,10 @@ button, input, select, textarea { max-width: 100%; }
   .ai-tutor-reading-actions button { width: 100%; }
   .ai-tutor-inline-manual { grid-template-columns: 1fr; }
 }
+
+/* v43: vocabulary quiz mobile transition safety */
+@media(max-width:767px){
+  #qCard.quiz-card{overflow:visible!important;}
+  #qCard .quiz-explain{position:relative;z-index:3;}
+  #qCard .quiz-explain .btn{min-height:44px;}
+}
