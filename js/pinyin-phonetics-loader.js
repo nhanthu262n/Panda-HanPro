@@ -6,7 +6,7 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
-  const PHONETICS_BUILD = "v45-resilient-chunks-20260904";
+  const PHONETICS_BUILD = "v46-http-cache-no-cache-storage-20260904";
   const PARTS = [
     { file: "phonetics-chunks-v45/phonetics-01.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-02.js", chars: 4000000 },
@@ -197,50 +197,34 @@
       const timeoutMs = 120000;
       const maxAttempts = 4;
 
-      async function openChunkCache() {
-        try { return window.caches ? await caches.open(CACHE_NAME) : null; } catch (_) { return null; }
-      }
-
       async function fetchPart(part, index) {
         const url = new URL(part.file + `?v=${PHONETICS_BUILD}`, baseUrl).href;
-        const cache = await openChunkCache();
-
-        if (cache) {
-          try {
-            const cached = await cache.match(url);
-            if (cached) {
-              const text = await cached.text();
-              if (text.length === part.chars) return text;
-              try { await cache.delete(url); } catch (_) {}
-            }
-          } catch (_) {}
-        }
-
         let lastError = null;
+        const maxAttempts = 5;
+        const timeoutMs = 180000;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
           const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
           try {
             const response = await fetch(url, {
-              // URL is versioned, so normal browser caching cannot serve an old build.
-              cache: attempt === 1 ? 'default' : 'reload',
+              // Rely only on the browser HTTP cache. Manual Cache Storage caused
+              // quota/eviction stalls around 80-90 MB on some browsers.
+              cache: attempt === 1 ? 'force-cache' : 'reload',
               signal: controller ? controller.signal : undefined
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const text = await response.text();
-            if (text.length !== part.chars) {
-              throw new Error(`Incomplete chunk ${index + 1}: expected ${part.chars} chars, received ${text.length}`);
-            }
-            if (cache) {
-              try {
-                await cache.put(url, new Response(text, {headers:{'Content-Type':'application/javascript; charset=utf-8'}}));
-              } catch (_) { /* Cache quota is optional; HTTP cache still works. */ }
+            // Do not require byte-for-byte/character-count equality here. Some hosts/proxies
+            // can normalize text while still delivering valid JavaScript. Reject only clearly
+            // truncated chunks.
+            if (!text || text.length < Math.max(1024, Math.floor(part.chars * 0.97))) {
+              throw new Error(`Truncated chunk ${index + 1}: expected about ${part.chars} chars, received ${text.length}`);
             }
             return text;
           } catch (error) {
             lastError = error;
             if (attempt < maxAttempts) {
-              const wait = 900 * attempt + Math.floor(Math.random() * 350);
+              const wait = Math.min(6000, 800 * attempt + Math.floor(Math.random() * 500));
               await new Promise(r => setTimeout(r, wait));
             }
           } finally {
@@ -254,7 +238,7 @@
       // faster connections use two. This avoids the former 20-40 MB simultaneous transfers.
       const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
       const slow = !!(conn && (conn.saveData || /(^|-)2g|3g/i.test(String(conn.effectiveType || ''))));
-      const workerCount = slow ? 1 : 2;
+      const workerCount = 1;
       const texts = new Array(PARTS.length);
       let cursor = 0;
       let done = 0;
