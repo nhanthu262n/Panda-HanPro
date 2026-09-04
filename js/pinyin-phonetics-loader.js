@@ -6,7 +6,7 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
-  const PHONETICS_BUILD = "v38-en-source-20260903";
+  const PHONETICS_BUILD = "v44-stable-loader-20260904";
   const PARTS = [
     `pinyin-phonetics.part-01.js?v=${PHONETICS_BUILD}`,
     `pinyin-phonetics.part-02.js?v=${PHONETICS_BUILD}`,
@@ -169,19 +169,71 @@
     showLoading(0);
 
     loadingPromise = (async function () {
-      const responses = await Promise.all(
-        PARTS.map((part) => fetch(new URL(part, baseUrl), { cache: 'no-store' }))
-      );
-      for (const response of responses) {
-        if (!response.ok) throw new Error(`Unable to load ${response.url} (${response.status})`);
+      const CACHE_NAME = `pantutor-phonetics-${PHONETICS_BUILD}`;
+      const timeoutMs = 45000;
+      const maxAttempts = 3;
+
+      async function fetchPart(part, index) {
+        const url = new URL(part, baseUrl).href;
+        let cache = null;
+        try { if (window.caches) cache = await caches.open(CACHE_NAME); } catch (_) {}
+
+        // A versioned cache is safe: PHONETICS_BUILD changes whenever source changes.
+        // Prefer it to avoid downloading ~93 MB again on every Phonics visit.
+        if (cache) {
+          try {
+            const cached = await cache.match(url);
+            if (cached) return await cached.text();
+          } catch (_) {}
+        }
+
+        let lastError = null;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
+          try {
+            const response = await fetch(url, {
+              cache: attempt === 1 ? 'default' : 'reload',
+              signal: controller ? controller.signal : undefined
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const clone = response.clone();
+            const text = await response.text();
+            if (!text || text.length < 1000) throw new Error('Incomplete Phonetics part');
+            if (cache) { try { await cache.put(url, clone); } catch (_) {} }
+            return text;
+          } catch (error) {
+            lastError = error;
+            // If the network failed but an older response for this exact version appeared
+            // in cache meanwhile, use it instead of failing the whole module.
+            if (cache) {
+              try {
+                const fallback = await cache.match(url);
+                if (fallback) return await fallback.text();
+              } catch (_) {}
+            }
+            if (attempt < maxAttempts) await new Promise(r => setTimeout(r, 700 * attempt));
+          } finally {
+            if (timer) clearTimeout(timer);
+          }
+        }
+        throw new Error(`Unable to load Phonetics part ${index + 1}/${PARTS.length}: ${lastError?.message || lastError || 'network error'}`);
       }
 
+      // Limit concurrency to 2 large files at a time. Five simultaneous 12–21 MB
+      // downloads were causing intermittent failures on mobile/GitHub Pages.
+      const texts = new Array(PARTS.length);
+      let cursor = 0;
       let done = 0;
-      const texts = await Promise.all(responses.map(async (response) => {
-        const text = await response.text();
-        showLoading(++done);
-        return text;
-      }));
+      async function worker() {
+        while (true) {
+          const index = cursor++;
+          if (index >= PARTS.length) return;
+          texts[index] = await fetchPart(PARTS[index], index);
+          showLoading(++done);
+        }
+      }
+      await Promise.all([worker(), worker()]);
 
       // Yield briefly before assembling/evaluating the large bundle to keep the UI responsive.
       await new Promise((resolve) => {
