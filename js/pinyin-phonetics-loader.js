@@ -6,9 +6,9 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
-  const PHONETICS_BUILD = "v46-http-cache-no-cache-storage-20260904";
+  const PHONETICS_BUILD = "v50-pronunciation-rubric-20260905";
   const PARTS = [
-    { file: "phonetics-chunks-v45/phonetics-01.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-01.js", chars: 4002732 },
     { file: "phonetics-chunks-v45/phonetics-02.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-03.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-04.js", chars: 4000000 },
