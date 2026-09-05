@@ -1249,50 +1249,169 @@ function pvNextSession() {
     if (context.mode === 'review') return intro+'\nEXAM REVIEW SHEET / 试题审校:\n1. Verify one defensible answer / 确认唯一合理答案。\n2. Verify level and skill target / 确认级别和技能目标。\n3. Check Hanzi, pinyin, context and distractors / 检查汉字、拼音、语境和干扰项。\n4. Check rubric and weighting / 检查评分标准和权重。\n5. Teacher approval before release / 教师审核后发布。';
     return 'Try: Create HSK1 set 1, Solve HSK3 set 1, or Revise HSK6 set 1. / 例如：生成 HSK1 第1套、解答 HSK3 第1套或审校 HSK6 第1套。';
   }
-  const chatboxExamState = { activeExam: null };
-  function normalizeExamAnswer(value) { return String(value || '').trim().toLowerCase().replace(/[。！？!?，,；;\s]+/g, ''); }
-  function examAnswerMatches(value, item) {
-    const raw = String(value || '').trim();
-    const normalized = normalizeExamAnswer(raw);
-    const expected = normalizeExamAnswer(item?.answer);
-    if (normalized === expected) return true;
-    const letter = raw.replace(/[.)、:：]/g, '').trim().toUpperCase();
-    if (/^[A-Z]$/.test(letter) && Array.isArray(item?.options)) {
+  const chatboxExamState = { activeExam: null, draftAnswers: {} };
+  function normalizeExamAnswer(value) {
+    return String(value ?? '').trim().toLowerCase()
+      .replace(/[Ａ-Ｚａ-ｚ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+      .replace(/[。！？!?，,；;\s]+/g, '');
+  }
+  function normalizeExamLetter(value) {
+    const raw = String(value ?? '').trim()
+      .replace(/[Ａ-Ｚａ-ｚ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+      .replace(/[.)、:：\s]/g, '')
+      .toUpperCase();
+    return /^[A-Z]$/.test(raw) ? raw : '';
+  }
+  function examCorrectAnswer(item) {
+    if (!item) return '';
+    const direct = item.__gradingAnswer ?? item.correct_answer ?? item.correctAnswer ?? item.answer;
+    if (direct != null && String(direct).trim() !== '') return String(direct).trim();
+    const letter = normalizeExamLetter(item.__gradingLetter || item.answer_letter || item.answerLetter);
+    if (letter && Array.isArray(item.options)) {
       const idx = letter.charCodeAt(0) - 65;
+      if (idx >= 0 && idx < item.options.length) return String(item.options[idx] ?? '').trim();
+    }
+    return '';
+  }
+  function examCorrectLetter(item) {
+    if (!item || !Array.isArray(item.options)) return '';
+    const answer = normalizeExamAnswer(examCorrectAnswer(item));
+    if (answer) {
+      const idx = item.options.findIndex((option) => normalizeExamAnswer(option) === answer);
+      if (idx >= 0) return String.fromCharCode(65 + idx);
+    }
+    return normalizeExamLetter(item.__gradingLetter || item.answer_letter || item.answerLetter);
+  }
+  function examAnswerMatches(value, item) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return false;
+    const expected = normalizeExamAnswer(examCorrectAnswer(item));
+    const normalized = normalizeExamAnswer(raw);
+    if (expected && normalized === expected) return true;
+
+    const typedLetter = normalizeExamLetter(raw);
+    if (typedLetter && Array.isArray(item?.options)) {
+      const currentCorrectLetter = examCorrectLetter(item);
+      if (currentCorrectLetter) return typedLetter === currentCorrectLetter;
+      const idx = typedLetter.charCodeAt(0) - 65;
       return idx >= 0 && idx < item.options.length && normalizeExamAnswer(item.options[idx]) === expected;
     }
-    return Array.isArray(item?.options) && item.options.some((option) => normalizeExamAnswer(option) === normalized && normalizeExamAnswer(option) === expected);
+
+    return Array.isArray(item?.options)
+      && item.options.some((option) => normalizeExamAnswer(option) === normalized && normalizeExamAnswer(option) === expected);
+  }
+  function examDraftStorageKey(exam) {
+    return `pantutor_ai_exam_draft_v50_${String(exam?.id || 'exam').replace(/[^a-z0-9_-]/gi, '_')}`;
+  }
+  function loadExamDraft(exam) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(examDraftStorageKey(exam)) || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) { return {}; }
+  }
+  function saveExamDraft(exam, draft) {
+    try { localStorage.setItem(examDraftStorageKey(exam), JSON.stringify(draft || {})); } catch (_) {}
   }
   function renderChatboxExamForm(area, exam) {
     area?.querySelector('[data-chatbox-exam-form]')?.remove();
     if (!area || !exam) return;
-    const displayExam = { ...exam, items: (exam.items || []).map((item) => { const copy = { ...item }; if (Array.isArray(item.options) && item.options.length && item.type !== 'sentence_order' && item.type !== 'error_correction') { const shuffled = [...item.options]; let seed = String(item.id || '').split('').reduce((a,c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7); for (let i = shuffled.length - 1; i > 0; i--) { seed = (seed * 1664525 + 1013904223) >>> 0; const j = seed % (i + 1); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; } copy.options = shuffled; } return copy; }) };
+
+    const displayExam = { ...exam, items: (exam.items || []).map((item) => {
+      const sourceCorrectAnswer = examCorrectAnswer(item);
+      const copy = { ...item, __gradingAnswer: sourceCorrectAnswer };
+      if (Array.isArray(item.options) && item.options.length && item.type !== 'sentence_order' && item.type !== 'error_correction') {
+        const shuffled = [...item.options];
+        let seed = String(item.id || '').split('').reduce((a,c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          seed = (seed * 1664525 + 1013904223) >>> 0;
+          const j = seed % (i + 1);
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        copy.options = shuffled;
+      }
+      copy.__gradingLetter = examCorrectLetter(copy);
+      return copy;
+    }) };
+
     exam = displayExam;
     chatboxExamState.activeExam = exam;
+    chatboxExamState.draftAnswers = loadExamDraft(exam);
+
     const form = document.createElement('section');
     form.setAttribute('data-chatbox-exam-form', 'true');
     form.style.cssText = 'margin:8px 0;padding:12px;border:2px solid #f0a6c8;border-radius:14px;background:#fff7fb;line-height:1.55;';
     const rows = (exam.items || []).map((item, index) => {
       const options = Array.isArray(item.options) ? `<div style="font-size:12px;color:#5b4964;margin:4px 0;">${item.options.map((o,j)=>`${String.fromCharCode(65+j)}. ${escapeHtml(o)}`).join(' · ')}</div>` : '';
       const inputType = item.section === 'writing' ? 'textarea' : 'input';
-      return `<div style="padding:8px 0;border-top:1px solid #f4c6dc;"><b>${index+1}. ${escapeHtml(item.prompt || '')}</b>${item.passage ? `<div style="margin:4px 0;color:#334155;">${escapeHtml(item.passage)}</div>` : ''}${options}<${inputType} data-chatbox-answer="${index}" placeholder="${item.section === 'writing' ? 'Write your answer / 请作答…' : 'Your answer / 请输入答案…'}" style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #e8b5ce;border-radius:8px;font-family:inherit;${inputType === 'textarea' ? 'min-height:64px;' : ''}"></${inputType}><div data-live-grade="${index}" style="min-height:14px;margin-top:3px;font-size:11px;"></div>${item.section === 'writing' ? `<small style="color:#8b5cf6;">中文写作 / Chinese writing · English rubric feedback after submission</small>` : ''}</div>`;
+      const saved = chatboxExamState.draftAnswers[String(index)] || '';
+      const helper = item.section === 'writing'
+        ? 'Write your answer / 请作答…'
+        : (Array.isArray(item.options) && item.options.length ? 'Enter A, B, C, D or the answer text / 输入 A、B、C、D 或答案文字…' : 'Your answer / 请输入答案…');
+      return `<div style="padding:8px 0;border-top:1px solid #f4c6dc;"><b>${index+1}. ${escapeHtml(item.prompt || '')}</b>${item.passage ? `<div style="margin:4px 0;color:#334155;">${escapeHtml(item.passage)}</div>` : ''}${options}<${inputType} data-chatbox-answer="${index}" placeholder="${helper}" style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #e8b5ce;border-radius:8px;font-family:inherit;${inputType === 'textarea' ? 'min-height:64px;' : ''}">${inputType === 'textarea' ? escapeHtml(saved) : ''}</${inputType}><div data-live-grade="${index}" style="min-height:14px;margin-top:3px;font-size:11px;"></div>${item.section === 'writing' ? `<small style="color:#8b5cf6;">中文写作 / Chinese writing · English rubric feedback after submission</small>` : ''}</div>`;
     }).join('');
-    form.innerHTML = `<strong>✍️ 直接答题 / Take the exam here</strong><div style="font-size:11px;color:#64748b;margin:3px 0 8px;">请输入每题答案后提交。写作按中英双语评分标准批改 / Enter each answer and submit. Writing is graded with the Chinese–English rubric.</div>${rows}<button type="button" data-chatbox-submit style="margin-top:10px;border:0;border-radius:9px;padding:9px 13px;background:#db2777;color:#fff;font-weight:800;cursor:pointer;">提交 / Submit</button><div data-chatbox-grade style="margin-top:8px;"></div>`;
+    form.innerHTML = `<strong>✍️ 直接答题 / Take the exam here</strong><div style="font-size:11px;color:#64748b;margin:3px 0 8px;">Enter A/a, B/b, C/c, D/d or the option text. Answers are saved locally while you work and graded only after Submit. / 可输入选项字母或答案文字；作答会暂存，提交后统一评分。</div>${rows}<button type="button" data-chatbox-submit style="margin-top:10px;border:0;border-radius:9px;padding:9px 13px;background:#db2777;color:#fff;font-weight:800;cursor:pointer;">提交 / Submit</button><div data-chatbox-grade style="margin-top:8px;"></div>`;
     area.appendChild(form);
-    const gradeOne = (index) => { const item = displayExam.items?.[index]; const input = form.querySelector(`[data-chatbox-answer="${index}"]`); const out = form.querySelector(`[data-live-grade="${index}"]`); if (!item || !input || !out) return; const value = String(input.value || '').trim(); if (!value) { out.textContent = ''; return; } if (item.section === 'writing') { const n = value.length; const hasHanzi = /[\u3400-\u9fff]/.test(value); const task = Math.min(100, n >= 12 ? 90 : n >= 6 ? 75 : 55); const organization = /[，。！？,.!?]/.test(value) ? 88 : 70; const grammar = hasHanzi ? 82 : 50; const vocabulary = hasHanzi ? 84 : 48; const naturalness = n >= 8 ? 78 : 58; const writingScore = Math.round(task*.25 + organization*.2 + grammar*.25 + vocabulary*.15 + naturalness*.15); out.innerHTML = `<span style="color:#7c3aed;font-weight:700;">写作建议分 / Writing suggested score: ${writingScore}/100 · 任务 / Task ${task} · 结构 / Organization ${organization} · 语法 / Grammar ${grammar} · 词汇 / Vocabulary ${vocabulary} · 自然度 / Naturalness ${naturalness}. Submit for full feedback.</span>`; return; } const ok = examAnswerMatches(value, item); out.innerHTML = ok ? '<span style="color:#15803d;font-weight:700;">✓ 正确 / Correct — matches the answer and context.</span>' : `<span style="color:#b91c1c;font-weight:700;">✗ 错误 / Incorrect — expected ${escapeHtml(String(item.answer || ''))}. 中文：请检查目标词义、语法或语境。 English: check the target meaning, grammar or context.</span>`; };
-    form.querySelectorAll('[data-chatbox-answer]').forEach((input,index) => input.addEventListener('input', () => gradeOne(index)));
+
+    // Restore input values after innerHTML creation (input value attributes are intentionally avoided).
+    form.querySelectorAll('[data-chatbox-answer]').forEach((input,index) => {
+      const saved = String(chatboxExamState.draftAnswers[String(index)] || '');
+      if (input.tagName !== 'TEXTAREA') input.value = saved;
+      const out = form.querySelector(`[data-live-grade="${index}"]`);
+      if (saved && out) out.innerHTML = '<span style="color:#64748b;font-weight:700;">Answer saved — Submit to grade. / 已保存，提交后评分。</span>';
+    });
+
+    const gradeOne = (index, reveal = false) => {
+      const item = displayExam.items?.[index];
+      const input = form.querySelector(`[data-chatbox-answer="${index}"]`);
+      const out = form.querySelector(`[data-live-grade="${index}"]`);
+      if (!item || !input || !out) return;
+      const value = String(input.value || '').trim();
+      if (!value) { out.textContent = reveal ? 'No answer / 未作答' : ''; return; }
+      if (!reveal) {
+        out.innerHTML = '<span style="color:#64748b;font-weight:700;">Answer saved — Submit to grade. / 已保存，提交后评分。</span>';
+        return;
+      }
+      if (item.section === 'writing') {
+        const n = value.length;
+        const hasHanzi = /[\u3400-\u9fff]/.test(value);
+        const task = Math.min(100, n >= 12 ? 90 : n >= 6 ? 75 : 55);
+        const organization = /[，。！？,.!?]/.test(value) ? 88 : 70;
+        const grammar = hasHanzi ? 82 : 50;
+        const vocabulary = hasHanzi ? 84 : 48;
+        const naturalness = n >= 8 ? 78 : 58;
+        const writingScore = Math.round(task*.25 + organization*.2 + grammar*.25 + vocabulary*.15 + naturalness*.15);
+        out.innerHTML = `<span style="color:#7c3aed;font-weight:700;">写作建议分 / Writing suggested score: ${writingScore}/100 · 任务 / Task ${task} · 结构 / Organization ${organization} · 语法 / Grammar ${grammar} · 词汇 / Vocabulary ${vocabulary} · 自然度 / Naturalness ${naturalness}.</span>`;
+        return;
+      }
+      const ok = examAnswerMatches(value, item);
+      const correctLetter = examCorrectLetter(item);
+      const correctAnswer = examCorrectAnswer(item);
+      const expectedLabel = [correctLetter, correctAnswer].filter(Boolean).join('. ');
+      out.innerHTML = ok
+        ? '<span style="color:#15803d;font-weight:700;">✓ 正确 / Correct</span>'
+        : `<span style="color:#b91c1c;font-weight:700;">✗ 错误 / Incorrect — correct answer: ${escapeHtml(expectedLabel || '—')}. 中文：请检查目标词义、语法或语境。 English: check the target meaning, grammar or context.</span>`;
+    };
+
+    form.querySelectorAll('[data-chatbox-answer]').forEach((input,index) => input.addEventListener('input', () => {
+      chatboxExamState.draftAnswers[String(index)] = String(input.value || '');
+      saveExamDraft(displayExam, chatboxExamState.draftAnswers);
+      gradeOne(index, false);
+    }));
+
     form.querySelector('[data-chatbox-submit]').addEventListener('click', () => {
       const results = (displayExam.items || []).map((item,index) => ({ item, value: form.querySelector(`[data-chatbox-answer="${index}"]`)?.value || '' }));
+      results.forEach((_, index) => gradeOne(index, true));
       const objective = results.filter(x => x.item.section !== 'writing');
       const correct = objective.filter(x => examAnswerMatches(x.value, x.item)).length;
       const objectivePercent = objective.length ? Math.round(correct / objective.length * 100) : 0;
       const writingTotal = results.filter(x => x.item.section === 'writing').length;
       const writing = results.filter(x => x.item.section === 'writing' && x.value.trim());
       const writingPercent = writingTotal ? Math.round(writing.length / writingTotal * 100) : 0;
-      const total100 = Math.round(objectivePercent * 0.8 + writingPercent * 0.2);
+      const total100 = writingTotal ? Math.round(objectivePercent * 0.8 + writingPercent * 0.2) : objectivePercent;
       const grade = form.querySelector('[data-chatbox-grade]');
-      grade.innerHTML = `<b>总分 / Total score: ${total100}/100</b><br><span>客观题 / Objective: ${correct}/${objective.length} = ${objectivePercent}% · 写作完成度 / Writing completion: ${writing.length}/${writingTotal} = ${writingPercent}%</span><br><span>写作 rubric / Writing rubric: Task completion / 完成任务 · Organization / 结构与衔接 · Grammar / 语法 · Vocabulary / 词汇 · Naturalness & style / 自然度与文体. AI score is a teaching suggestion; teacher confirms the final score.</span>`;
+      grade.innerHTML = `<b>总分 / Total score: ${total100}/100</b><br><span>客观题 / Objective: ${correct}/${objective.length} = ${objectivePercent}%${writingTotal ? ` · 写作完成度 / Writing completion: ${writing.length}/${writingTotal} = ${writingPercent}%` : ''}</span><br><span>Accepted objective input: A/a, B/b, C/c, D/d or exact option text. / 客观题可输入大小写选项字母或答案文字。</span>${writingTotal ? '<br><span>写作 rubric / Writing rubric: Task completion / 完成任务 · Organization / 结构与衔接 · Grammar / 语法 · Vocabulary / 词汇 · Naturalness & style / 自然度与文体. AI score is a teaching suggestion; teacher confirms the final score.</span>' : ''}`;
       writing.forEach(x => { const node = document.createElement('div'); node.style.cssText='margin-top:7px;padding:7px;border-top:1px dashed #e5b5cc;font-size:11px;'; node.innerHTML = `<b>${x.item.id}</b> · 中文解析 / Chinese feedback: 检查任务完成、结构、语法、词汇和表达自然度。 English feedback: check task completion, organization, grammar, vocabulary and naturalness. <br><em>Suggested correction / 建议修改: review the answer against the prompt and target structures.</em>`; grade.appendChild(node); });
+      saveExamDraft(displayExam, chatboxExamState.draftAnswers);
       grade.scrollIntoView({ behavior:'smooth', block:'nearest' });
     });
   }
@@ -1356,7 +1475,7 @@ function pvNextSession() {
     tutorClearProcessing(area);
     const botCreatedAt = Date.now();
     tutorBubble(area, reply, "bot", botCreatedAt);
-    if (examContext?.exam && examContext.mode === "create") renderChatboxExamForm(area, examContext.answerKey || examContext.exam);
+    if (examContext?.exam && examContext.mode === "create") renderChatboxExamForm(area, examContext.gradingExam || examContext.answerKey || examContext.exam);
     const next = loadAiConversation();
     next.push({ role: "bot", text: String(reply).slice(0, 3000), createdAt: botCreatedAt });
     saveAiConversation(next);
