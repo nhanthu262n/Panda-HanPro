@@ -1,9 +1,9 @@
 {
-  "build": "v45-resilient-chunks-20260904",
+  "build": "v50-pronunciation-rubric-20260905",
   "chunks": [
     {
       "file": "phonetics-chunks-v45/phonetics-01.js",
-      "chars": 4000000
+      "chars": 4002732
     },
     {
       "file": "phonetics-chunks-v45/phonetics-02.js",
