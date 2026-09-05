@@ -78,7 +78,12 @@
         || (data.sets || []).find((x) => x.level === "HSK" + request.level) || null;
       if (!exam) return { mode: request.mode, request, available_sets: data.set_count || 380 };
       const wantsAnswers = request.mode === "solve" || request.mode === "review" || /đáp án|answer|giải thích|正确答案|正确/i.test(String(text));
-      return { mode: request.mode, request, quality_policy: AI_TUTOR_QUALITY_POLICY, writing_rubric: window.PandaHanGrammarPack?.writingRubric || null, catalog: { set_count: data.set_count, levels: data.levels }, exam: slimSet(exam, wantsAnswers), answerKey: wantsAnswers ? slimSet(exam, true) : null, answer_key_policy: "For HSK 3–6 practice items, return the exact correct answer (正确答案) and evidence-based explanation in solve/review mode; do not expose answers in create mode unless explicitly requested. Legacy answers are not authoritative after an item is rewritten." };
+      // Keep a private grading copy even in create mode. The learner-facing exam remains
+      // answer-hidden, but the interactive answer form now always has a stable answer key
+      // available after Submit. This prevents A/a/B/b answers from being graded against an
+      // undefined answer when the exam was created rather than solved.
+      const gradingExam = slimSet(exam, true);
+      return { mode: request.mode, request, quality_policy: AI_TUTOR_QUALITY_POLICY, writing_rubric: window.PandaHanGrammarPack?.writingRubric || null, catalog: { set_count: data.set_count, levels: data.levels }, exam: slimSet(exam, wantsAnswers), gradingExam, answerKey: wantsAnswers ? gradingExam : null, answer_key_policy: "The learner-facing create view hides answers, while a private grading key is retained locally for Submit scoring. For HSK 3–6 practice items, expose the exact correct answer (正确答案) and evidence-based explanation only in solve/review mode." };
     } catch (error) {
       return { mode: request.mode, request, error: "CHATBOX_BANK_UNAVAILABLE", available_sets: 380 };
     }
