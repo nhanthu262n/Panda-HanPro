@@ -31,6 +31,11 @@
       instructionVi: "Ôn lại các mục cần nhớ trước khi làm bài mới.",
       instructionEn: "Review due items before starting new work."
     },
+    phonetics_core: {
+      titleVi: "Pinyin Bootcamp · Phonetics Core", titleEn: "Pinyin Bootcamp · Phonetics Core", icon: "🎵", minutes: 10,
+      instructionVi: "Complete the scored standalone phonetics task for this exact Day. A score of 30% or higher saves a green check; it never replaces the Pinyin Tone Quest unlock gate.",
+      instructionEn: "Complete the scored standalone phonetics task for this exact Day. A score of 30% or higher saves a green check; it never replaces the Pinyin Tone Quest unlock gate."
+    },
     listening: {
       titleVi: "Listening Lab", titleEn: "Listening Lab", icon: "🎧", minutes: 8,
       instructionVi: "Open the standalone AI Coach Listening Lab for this exact Excel Day. Model audio auto-plays, the learner answers audio-first questions, and the real score is saved as Day evidence.",
@@ -170,8 +175,10 @@
     const has = (value) => value && value !== "-";
     const add = (type) => { if (!seen.has(type)) { seen.add(type); tasks.push(type); } };
 
-    // Excel is the master curriculum. Day 1-10 is Pinyin Bootcamp: vocabulary
-    // strings are examples for pronunciation only, never a general vocab lesson.
+    // Excel is the master curriculum. Day 1-10 is Pinyin Bootcamp: give the
+    // learner one independent, scored phonetics task inside AI Coach before the
+    // Excel listening/speaking work. It is evidence only, never an unlock gate.
+    if (dayNumber <= 10) add("phonetics_core");
     if (dayNumber >= 11 && has(day.srs_review_task)) add("srs");
     if (dayNumber >= 11 && adaptivePlan?.introWords?.length) add("vocab-intro");
     if (has(day.listening_task)) add("listening");
@@ -296,11 +303,18 @@
     setFilterForMission(m);
     const scheduledContext = { practiceMode: "scheduled", scheduleDayNumber: m.dayNumber, sequenceIndex: m.dayNumber };
     const level = document.getElementById("practiceHskFilter")?.value || "all";
-    if (type === "vocab-intro") {
-      window.switchTab?.("practice");
-      setTimeout(() => window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords?.length ? m.adaptivePlan.introWords : (m.chainVocabulary || []), m.dayNumber), 80);
+    if (type === "phonetics_core") {
+      if (window.PandaHanCoachSkills?.openPhoneticsCore) window.PandaHanCoachSkills.openPhoneticsCore(m);
+      else openExcelPhoneticsSession(m, "phonetics_core");
     }
-    else if (type === "wrong-review") window.startMistakeReview?.();
+    else if (type === "vocab-intro") {
+      if (window.PandaHanCoachSkills?.openVocabulary) window.PandaHanCoachSkills.openVocabulary(m);
+      else { window.switchTab?.("practice"); setTimeout(() => window.startAdaptiveVocabularyLesson?.(m.adaptivePlan?.introWords?.length ? m.adaptivePlan.introWords : (m.chainVocabulary || []), m.dayNumber), 80); }
+    }
+    else if (type === "wrong-review" || type === "mistake_review") {
+      if (window.PandaHanCoachSkills?.openMistakeReview) window.PandaHanCoachSkills.openMistakeReview(m);
+      else window.startMistakeReview?.();
+    }
     else if (type === "quiz") {
       if (typeof window.startQuizForWords === "function") window.startQuizForWords(m.chainVocabulary?.length ? m.chainVocabulary : (m.adaptivePlan?.practiceWords || []), scheduledContext);
       else window.startQuizLevel?.(level, scheduledContext);
@@ -333,12 +347,13 @@
       else { console.warn("Standalone Speaking Lab is not ready; using the legacy fallback."); if (Number(m.dayNumber) <= 10) openExcelPhoneticsSession(m, "speaking"); else { try { localStorage.setItem("pandahan_phonetics_focus", type); } catch (_) {} window.switchTab?.("pinyin"); } }
     }
     else if (type === "reading_writing") {
-      if (Number(m.dayNumber) <= 10) openExcelPhoneticsSession(m, "reading_writing");
+      if (window.PandaHanCoachSkills?.openReadingWriting) window.PandaHanCoachSkills.openReadingWriting(m);
+      else if (Number(m.dayNumber) <= 10) openExcelPhoneticsSession(m, "reading_writing");
       else { window.switchTab?.("practice"); setTimeout(() => window.startWriteGame?.(scheduledContext), 80); }
     }
     else if (type === "srs") {
-      window.setPracticeMode?.("scheduled");
-      window.switchTab?.("reviewIntro");
+      if (window.PandaHanCoachSkills?.openSrs) window.PandaHanCoachSkills.openSrs(m);
+      else { window.setPracticeMode?.("scheduled"); window.switchTab?.("reviewIntro"); }
     }
     else if (type === "advanced") {
       document.getElementById("advancedSetsView")?.style && (document.getElementById("advancedSetsView").style.display = "block");
@@ -415,7 +430,7 @@
   }
 
   function requiredTaskLabel(taskId, langEn) {
-    const labels = { mistake_review: langEn ? "Redo wrong items" : "Ôn lại câu sai", quest: "Pinyin Tone Quest", listening: langEn ? "Listening Lab" : "Listening Lab", speaking: langEn ? "Speaking / Read-aloud Lab" : "Speaking / Read-aloud Lab", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS", "vocab-intro": langEn ? "Linked vocabulary" : "Từ vựng liên kết — nghe" };
+    const labels = { phonetics_core: "Pinyin Bootcamp · Phonetics Core", mistake_review: langEn ? "Mistake review" : "Ôn lại câu sai", quest: "Pinyin Tone Quest", listening: "Listening Lab", speaking: "Speaking / Read-aloud Lab", reading_writing: langEn ? "Reading / Writing" : "Đọc / Viết", srs: "SRS due review", "vocab-intro": langEn ? "Excel vocabulary" : "Từ vựng Excel" };
     return labels[taskId] || taskId;
   }
   function workbookTaskDescription(taskId, curriculum, langEn) {
@@ -446,14 +461,15 @@
     const add = (type, title, description, done) => sequence.push({ type, title, description, done: !!done });
 
     if (day <= 10) {
+      add("phonetics_core", "Pinyin Bootcamp · Phonetics Core", langEn ? "Standalone scored phonetics task for this exact Day. Pass at 30% or higher to save a green check; this does not unlock the next Day." : "Bài Ngữ âm độc lập có chấm điểm cho đúng Day này. Đạt từ 30% sẽ lưu tích xanh; nhiệm vụ này không mở ngày kế tiếp.", completed.phonetics_core);
       if (c.listening_task && c.listening_task !== "-") add("listening", "Listening Lab", workbookTaskDescription("listening", c, langEn), completed.listening);
       if (c.speaking_task && c.speaking_task !== "-") add("speaking", "Speaking / Read-aloud Lab", workbookTaskDescription("speaking", c, langEn), completed.speaking);
-      if (words.length) add("vocab-intro", langEn ? `Linked vocabulary — listen · ${words.length} words` : `Từ vựng liên kết — nghe · ${words.length} từ`, langEn ? `Listen to Excel examples linked to today's phonetics focus. This does not start general vocabulary/SRS.` : `Nghe nhóm từ/ví dụ Excel liên kết với âm của ngày. Đây chưa phải học từ vựng đại trà/SRS.`, m.vocabPhase?.introCompleted);
+      if (words.length) add("vocab-intro", langEn ? `Linked vocabulary — listen · ${words.length} words` : `Từ vựng liên kết — nghe · ${words.length} từ`, langEn ? `Listen to Excel examples linked to today's phonetics focus. This does not start general vocabulary/SRS.` : `Nghe nhóm từ/ví dụ Excel liên kết với âm của ngày. Đây chưa phải học từ vựng đại trà/SRS.`, (completed["vocab-intro"] || m.vocabPhase?.introCompleted));
       if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", langEn ? "Pinyin Bootcamp · Reading/Writing" : "Pinyin Bootcamp · Đọc/Viết (điểm từ Trắc nghiệm Ngữ âm)", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
       if (c.srs_review_task && c.srs_review_task !== "-") add("srs", "SRS", workbookTaskDescription("srs", c, langEn), completed.srs);
     } else {
       if (c.srs_review_task && c.srs_review_task !== "-") add("srs", langEn ? "SRS due review" : "Ôn SRS đến hạn", workbookTaskDescription("srs", c, langEn), completed.srs);
-      if (words.length) add("vocab-intro", langEn ? `Excel vocabulary · ${words.length} words` : `Từ vựng theo Excel · ${words.length} từ`, langEn ? `Learn the complete word set assigned to Excel Day ${day}, then save learning results to SRS.` : `Học đủ toàn bộ ${words.length} từ mới của Day ${day} trong Excel, sau đó đưa kết quả vào SRS.`, m.vocabPhase?.introCompleted);
+      if (words.length) add("vocab-intro", langEn ? `Excel vocabulary · ${words.length} words` : `Từ vựng theo Excel · ${words.length} từ`, langEn ? `Learn the complete word set assigned to Excel Day ${day}, then save learning results to SRS.` : `Học đủ toàn bộ ${words.length} từ mới của Day ${day} trong Excel, sau đó đưa kết quả vào SRS.`, (completed["vocab-intro"] || m.vocabPhase?.introCompleted));
       if (c.listening_task && c.listening_task !== "-") add("listening", "Listening Lab", workbookTaskDescription("listening", c, langEn), completed.listening);
       if (c.speaking_task && c.speaking_task !== "-") add("speaking", "Speaking / Read-aloud Lab", workbookTaskDescription("speaking", c, langEn), completed.speaking);
       if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", langEn ? "Reading/Writing" : "Đọc/Viết", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
@@ -486,9 +502,10 @@
     const day = Number(m.dayNumber || 1);
     const entries = [];
     const add = (id, description, done) => entries.push({ id, description, done: !!done });
+    if (day <= 10) add("phonetics_core", langEn ? "Standalone scored phonetics task. Green check at 30% or higher; evidence only." : "Bài Ngữ âm độc lập có chấm điểm. Đạt từ 30% sẽ tích xanh; chỉ là evidence.", completed.phonetics_core);
     if (c.listening_task && c.listening_task !== "-") add("listening", workbookTaskDescription("listening", c, langEn), completed.listening);
     if (c.speaking_task && c.speaking_task !== "-") add("speaking", workbookTaskDescription("speaking", c, langEn), completed.speaking);
-    if (m.chainVocabulary?.length) add("vocab-intro", day <= 10 ? (langEn ? `Listen to ${m.chainVocabulary.length} phonetics-linked Excel examples.` : `Nghe ${m.chainVocabulary.length} từ/ví dụ liên kết với Ngữ âm của ngày.`) : (langEn ? `Complete all ${m.chainVocabulary.length} exact Excel words.` : `Học đủ ${m.chainVocabulary.length} từ đúng theo Excel của ngày.`), m.vocabPhase?.introCompleted);
+    if (m.chainVocabulary?.length) add("vocab-intro", day <= 10 ? (langEn ? `Listen to ${m.chainVocabulary.length} phonetics-linked Excel examples.` : `Nghe ${m.chainVocabulary.length} từ/ví dụ liên kết với Ngữ âm của ngày.`) : (langEn ? `Complete all ${m.chainVocabulary.length} exact Excel words.` : `Học đủ ${m.chainVocabulary.length} từ đúng theo Excel của ngày.`), (completed["vocab-intro"] || m.vocabPhase?.introCompleted));
     if (c.reading_writing_task && c.reading_writing_task !== "-") add("reading_writing", workbookTaskDescription("reading_writing", c, langEn), completed.reading_writing);
     if (c.srs_review_task && c.srs_review_task !== "-") add("srs", workbookTaskDescription("srs", c, langEn), completed.srs);
     add("quest", langEn ? "ONLY unlock gate: Pinyin Tone Quest >30%." : "CỔNG mở ngày DUY NHẤT: Pinyin Tone Quest >30%.", completed.quest);
@@ -499,7 +516,7 @@
       const action = entry.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : `<button type="button" data-mission-task="${entry.id}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
       return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span>${entry.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${esc(requiredTaskLabel(entry.id, langEn))}</b><br><small style="color:#64748b;">${esc(entry.description)}</small></span>${action}</div>`;
     }).join("");
-    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fff;"><b>${langEn ? "Learning evidence" : "Evidence học tập"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Listening, Speaking, Vocabulary, Reading/Writing and SRS are recorded normally but NEVER block the next day." : "Nghe, Nói, Từ vựng, Đọc/Viết và SRS vẫn lưu bình thường nhưng KHÔNG BAO GIỜ chặn ngày kế tiếp."}</div>${rows}</div>`;
+    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fff;"><b>${langEn ? "Learning evidence" : "Evidence học tập"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${langEn ? "Every non-Quest row opens a scored standalone AI Coach task. Passing saves a green check, but NEVER blocks or unlocks the next day." : "Mọi mục ngoài Quest đều mở task AI Coach độc lập có chấm điểm. Đạt sẽ tích xanh, nhưng KHÔNG BAO GIỜ chặn hoặc mở ngày kế tiếp."}</div>${rows}</div>`;
   }
   function coachAssessmentKey() {
     const owner = String(typeof window.storageNamespace === "function" ? window.storageNamespace() : (window.CURRENT_USER?.uid || "guest"));
