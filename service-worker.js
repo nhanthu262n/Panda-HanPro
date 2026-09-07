@@ -1,4 +1,4 @@
-const CACHE_NAME = "pantutor-runtime-v52-20260907";
+const CACHE_NAME = "pantutor-runtime-v53-20260907";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
