@@ -102,15 +102,36 @@
   }
 
   async function saveEvidence(taskId,score,evidence={}){
-    const m=S.mission||mission()||{};const day=Number(m.dayNumber||1);const threshold=Number(evidence.passThreshold??PASS[taskId]??60);const completeSet=evidence.completeSet!==false;const passed=completeSet&&Number(score)>=threshold;
-    const full={...evidence,taskId,dayNumber:day,scorePercent:Number(score),passThreshold:threshold,completeSet,passed,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:sourceText(taskId,m),evaluatedAt:Date.now(),date:new Date().toISOString(),rawSource:`ai-coach-task-suite-${taskId}`};
+    const m=S.mission||mission()||{};
+    const day=Number(m.dayNumber||1);
+    const threshold=Number(evidence.passThreshold??PASS[taskId]??60);
+    const completeSet=evidence.completeSet!==false;
+    const scorePassed=completeSet&&Number(score)>=threshold;
+    const full={...evidence,taskId,dayNumber:day,scorePercent:Number(score),passThreshold:threshold,completeSet,scorePassed,passed:false,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:sourceText(taskId,m),evaluatedAt:Date.now(),date:new Date().toISOString(),rawSource:`ai-coach-task-suite-${taskId}`};
+    let out=null,saveError=null;
+    try{
+      out=await window.PandaHanSchedule?.recordTaskScore?.(day,taskId,Number(score),`verified:ai-coach-task-suite-${taskId}`,{...full,passed:scorePassed});
+    }catch(e){
+      saveError=e;
+      console.warn("AI Coach task evidence sync:",taskId,e?.code||e?.message||e);
+    }
+    let persistedPassed=out?.result?.passed===true;
+    try{
+      const savedDay=window.PandaHanSchedule?.getSchedule?.()?.days?.find?.(d=>Number(d.day_number)===day);
+      if(scorePassed && savedDay?.completed_tasks?.[taskId]) persistedPassed=true;
+    }catch(_){}
+    full.passed=persistedPassed;full.persisted=!!out;full.localOnlyTestMode=out?.result?.localOnlyTestMode===true;
     try{localStorage.setItem(`pantutor_ai_coach_${taskId}_day_${day}`,JSON.stringify(full))}catch(_){}
-    try{await window.PandaHanSchedule?.recordTaskScore?.(day,taskId,Number(score),`verified:ai-coach-task-suite-${taskId}`,full)}catch(e){console.warn("AI Coach task evidence sync:",taskId,e?.code||e?.message||e)}
-    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation",{detail:{verified:true,action:passed?"standalone_task_passed":"standalone_task_needs_retry",...full}}));
-    return {passed,threshold,full};
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation",{detail:{verified:true,action:persistedPassed?"standalone_task_passed_and_saved":scorePassed?"standalone_task_passed_save_failed":"standalone_task_needs_retry",...full}}));
+    return {passed:persistedPassed,scorePassed,threshold,full,saveError:saveError?String(saveError.code||saveError.message||saveError):"",sync:out};
   }
   function summary(label,score,result,detail){
-    const host=document.getElementById("ptCoachSkillContent");if(!host)return;const passed=!!result?.passed;host.innerHTML=`<div class="ptcs-card ptcs-summary"><span class="ptcs-badge ${passed?"":"fail"}">${passed?"✓ Verified — green check saved":"Needs another attempt"}</span><h2>${esc(label)}</h2><div class="ptcs-score-big">${Math.round(score)}/100</div><p>${esc(detail||"")}</p><p>Pass mark: <b>${Number(result?.threshold||0)}%</b>. This task records learning evidence only; <b>Pinyin Tone Quest remains the only next-day unlock gate.</b></p><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsDone" type="button">Return to AI Coach</button><button class="ptcs-btn" id="ptcsRedo" type="button">Redo task</button></div></div>`;document.getElementById("ptcsDone").onclick=close;document.getElementById("ptcsRedo").onclick=()=>reopenCurrent();
+    const host=document.getElementById("ptCoachSkillContent");if(!host)return;
+    const passed=!!result?.passed,scorePassed=!!result?.scorePassed;
+    const badge=passed?"✓ Verified — green check saved":scorePassed?"Score passed, but evidence was not saved":"Needs another attempt";
+    const saveNote=(!passed&&scorePassed)?`<p style="color:#b91c1c"><b>Save error:</b> ${esc(result?.saveError||"schedule write was not confirmed")}. Return to AI Coach and retry this task; no false green check is shown.</p>`:"";
+    host.innerHTML=`<div class="ptcs-card ptcs-summary"><span class="ptcs-badge ${passed?"":"fail"}">${badge}</span><h2>${esc(label)}</h2><div class="ptcs-score-big">${Math.round(score)}/100</div><p>${esc(detail||"")}</p>${saveNote}<p>Pass mark: <b>${Number(result?.threshold||0)}%</b>. This task records learning evidence only; <b>Pinyin Tone Quest remains the only next-day unlock gate.</b></p><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsDone" type="button">Return to AI Coach</button><button class="ptcs-btn" id="ptcsRedo" type="button">Redo task</button></div></div>`;
+    document.getElementById("ptcsDone").onclick=close;document.getElementById("ptcsRedo").onclick=()=>reopenCurrent();
   }
   function reopenCurrent(){const m=S.mission,mode=S.mode;if(mode==="phonetics_core")openPhoneticsCore(m);else if(mode==="srs")openSrs(m);else if(mode==="vocab-intro")openVocabulary(m);else if(mode==="reading_writing")openReadingWriting(m);else if(mode==="mistake_review")openMistakeReview(m);else if(mode==="speaking")openSpeaking(m)}
 
