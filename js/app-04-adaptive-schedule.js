@@ -543,10 +543,17 @@
     const today = core.todayVietnam();
     const uid = getUid();
     const rtdb = getRtdb();
+    const localBeforeWrite = loadLocal();
+    let explicitTestDay = 0;
+    try { explicitTestDay = Number(localStorage.getItem("pandahan_test_active_day") || 0); } catch (_) {}
+    const testLocalOnly = !!localBeforeWrite?._meta?.test_unlock_local_only || (Number.isInteger(explicitTestDay) && explicitTestDay >= 1 && Number(dayNumber) === explicitTestDay);
     let output = null;
-    if (!uid || !rtdb) {
-      const local = loadLocal() || await initScheduleIfNeeded();
+    // TEST ONLY day-jump is intentionally local-only. Do not send its task evidence
+    // to the learner's real RTDB schedule, where that curriculum day can still be locked.
+    if (!uid || !rtdb || testLocalOnly) {
+      const local = localBeforeWrite || await initScheduleIfNeeded();
       output = core.recordTaskScore(local, dayNumber, taskId, score, today, source, evidence);
+      if (testLocalOnly) output.result.localOnlyTestMode = true;
       saveLocal(output.schedule);
     } else {
       const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
@@ -566,7 +573,7 @@
       await writeReviewLog(uid, "vocabulary-sm2", { dayNumber: Number(dayNumber), score: Number(score), taskId: String(taskId), source, evidence, date: today });
     }
     window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: output }));
-    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: "vocabulary-sm2", evidenceType: "daily_vocabulary_sm2_average", verified: true, dayNumber: Number(dayNumber), taskId: String(taskId), scorePercent: Number(score), threshold: 30, passed: Number(score) >= 30, ...evidence, missingTaskIds: output.result.missingTaskIds || [], requiredTaskIds: output.result.requiredTaskIds || [], evaluatedAt: Date.now() } }));
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation", { detail: { source: String(source || "verified-task-score").replace(/^verified:/, ""), evidenceType: evidence?.evidenceType || "verified_task_score", verified: true, dayNumber: Number(dayNumber), taskId: String(taskId), scorePercent: Number(score), threshold: Number(output?.result?.threshold ?? evidence?.passThreshold ?? 60), passed: output?.result?.passed === true, persisted: true, localOnlyTestMode: output?.result?.localOnlyTestMode === true, ...evidence, missingTaskIds: output.result.missingTaskIds || [], requiredTaskIds: output.result.requiredTaskIds || [], evaluatedAt: Date.now() } }));
     return output;
   }
 
@@ -579,10 +586,15 @@
     const today = core.todayVietnam();
     const uid = getUid();
     const rtdb = getRtdb();
+    const localBeforeWrite = loadLocal();
+    let explicitTestDay = 0;
+    try { explicitTestDay = Number(localStorage.getItem("pandahan_test_active_day") || 0); } catch (_) {}
+    const testLocalOnly = !!localBeforeWrite?._meta?.test_unlock_local_only || (Number.isInteger(explicitTestDay) && explicitTestDay >= 1 && Number(dayNumber) === explicitTestDay);
     let output = null;
-    if (!uid || !rtdb) {
-      const local = loadLocal() || await initScheduleIfNeeded();
+    if (!uid || !rtdb || testLocalOnly) {
+      const local = localBeforeWrite || await initScheduleIfNeeded();
       output = core.recordTaskCompletion(local, dayNumber, taskId, today, source);
+      if (testLocalOnly && output?.result) output.result.localOnlyTestMode = true;
       saveLocal(output.schedule);
     } else {
       const ref = rtdb.ref(`${SCHEDULE_PATH}/${uid}`);
