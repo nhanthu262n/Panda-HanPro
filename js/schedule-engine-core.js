@@ -24,7 +24,16 @@
   // Day-unlock policy: Pinyin Tone Quest is the ONLY mandatory gate.
   // Listening/Speaking/Vocabulary/Reading-Writing/SRS are still tracked as learning evidence,
   // but they must never block Day N -> Day N+1.
-  const TRACKABLE_TASK_IDS = new Set(["quest", "listening", "speaking", "vocab-intro", "reading_writing", "srs", "mistake_review"]);
+  const TRACKABLE_TASK_IDS = new Set(["quest", "phonetics_core", "listening", "speaking", "vocab-intro", "reading_writing", "srs", "mistake_review"]);
+  const TASK_PASS_THRESHOLDS = Object.freeze({
+    phonetics_core: 30,
+    listening: 60,
+    speaking: 60,
+    "vocab-intro": 70,
+    reading_writing: 60,
+    srs: 60,
+    mistake_review: 70,
+  });
   function hasLinkedVocabulary(item = {}) {
     return hasCurriculumTask(item.new_vocab_raw) || Number(item.new_vocab_count || 0) > 0;
   }
@@ -363,11 +372,20 @@
     if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 100) throw new Error("Điểm phải nằm trong khoảng 0–100.");
     day.task_scores[id] = numericScore;
     const completeSet = evidence?.completeSet === true;
-    const passed = id === "quest" ? numericScore > 30 : (numericScore >= 30 && completeSet);
-    day.task_events.push({ task_id: id, score: numericScore, completed: passed, completed_at: today, source, evidence });
-    if (passed) day.completed_tasks[id] = { completed_at: today, source, score: numericScore, evidence };
+    const requestedThreshold = Number(evidence?.passThreshold);
+    const threshold = id === "quest" ? 30 : (
+      Number.isFinite(requestedThreshold)
+        ? Math.max(0, Math.min(100, requestedThreshold))
+        : (TASK_PASS_THRESHOLDS[id] ?? 60)
+    );
+    // Quest is intentionally strict (>30). Standalone AI Coach labs use their
+    // own rubric threshold, but never participate in Day unlock.
+    const passed = id === "quest" ? numericScore > 30 : (numericScore >= threshold && completeSet);
+    day.task_events.push({ task_id: id, score: numericScore, threshold, completed: passed, completed_at: today, source, evidence });
+    if (passed) day.completed_tasks[id] = { completed_at: today, source, score: numericScore, threshold, evidence };
+    else if (day.completed_tasks[id]) delete day.completed_tasks[id];
     const evaluation = finishDayIfReady(schedule, day, today);
-    return { schedule, result: { dayNumber: Number(dayNumber), taskId: id, score: numericScore, threshold: 30, passed, action: evaluation.action, missingTaskIds: evaluation.missingTaskIds, requiredTaskIds: day.required_tasks.slice(), dayStatus: day.status } };
+    return { schedule, result: { dayNumber: Number(dayNumber), taskId: id, score: numericScore, threshold, passed, action: evaluation.action, missingTaskIds: evaluation.missingTaskIds, requiredTaskIds: day.required_tasks.slice(), dayStatus: day.status } };
   }
 
   function applyDailyExtension(scheduleInput, today = todayVietnam()) {
