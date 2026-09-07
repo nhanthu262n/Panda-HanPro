@@ -188,7 +188,7 @@
   }
   async function finishListening(){
     const total=state.answers.length||1, correct=state.answers.filter(x=>x.correct).length, score=Math.round(correct/total*100);
-    await saveEvidence("listening",score,{evidenceType:"ai_coach_standalone_listening_lab",correct,total,wrongItems:state.answers.filter(x=>!x.correct).map(x=>({target:x.target,chosen:x.chosen,answer:x.meaning})),completeSet:true});
+    await saveEvidence("listening",score,{evidenceType:"ai_coach_standalone_listening_lab",correct,total,wrongItems:state.answers.filter(x=>!x.correct).map(x=>({target:x.target,chosen:x.chosen,answer:x.meaning})),completeSet:true,passThreshold:60});
     renderSummary("Listening",score,`${correct} of ${total} audio questions correct.`);
   }
 
@@ -261,7 +261,7 @@
     const m=state.mission,day=Number(m?.dayNumber||1),full={...evidence,scorePercent:score,dayNumber:day,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:taskId==="listening"?m?.curriculum?.listening_task:m?.curriculum?.speaking_task,date:new Date().toISOString(),rawSource:`ai-coach-standalone-${taskId}`};
     try{localStorage.setItem(`pantutor_ai_coach_${taskId}_day_${day}`,JSON.stringify(full))}catch(_){}
     let out=null;try{out=await window.PandaHanSchedule?.recordTaskScore?.(day,taskId,score,`verified:ai-coach-standalone-${taskId}`,full)}catch(e){console.warn("Standalone AI Coach evidence sync:",taskId,e?.code||e?.message||e)}
-    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation",{detail:{verified:true,taskId,dayNumber:day,scorePercent:score,passed:score>=30,action:"standalone_task_completed",...full}}));
+    window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation",{detail:{verified:true,taskId,dayNumber:day,scorePercent:score,passed:score>=Number(full.passThreshold||30),action:"standalone_task_completed",...full}}));
     return out;
   }
   function renderSummary(label,score,detail){
