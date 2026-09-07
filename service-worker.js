@@ -1,4 +1,5 @@
-const CACHE_NAME = "pantutor-runtime-v53-20260907";
+// v54-green-check-persistence-20260907
+const CACHE_NAME = "pantutor-runtime-v54-20260907";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
