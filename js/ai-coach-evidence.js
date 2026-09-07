@@ -88,8 +88,9 @@
       date: String(record.createdAt || new Date().toISOString()),
       rawSource: "pinyin-recording-history"
     };
-    const result = await completeVerifiedTask(day, "speaking", "verified:phonetics-recording", evidence);
-    if (!result && taskIsDone(day, "speaking")) dispatchEvaluation({ source: "phonetics-pronunciation", taskId: "speaking", dayNumber: Number(day.day_number), ...evidence, action: "evidence_recorded" });
+    // v52: general Phonics recordings are useful pronunciation observations, but they no longer
+    // auto-complete the AI Coach Speaking task. Speaking has its own standalone Day lab.
+    dispatchObservation({ source: "phonetics-pronunciation", taskId: "speaking", dayNumber: Number(day.day_number), ...evidence, action: "general_phonics_observation_only" });
   }
 
   function readLatestPronunciation() {
@@ -137,10 +138,11 @@
       rawSource: "phonetics-listening-quiz"
     };
     if (wrongItems.length) await window.PandaHanSchedule?.requireMistakeReview?.(Number(day.day_number));
-    const output = passed ? await completeVerifiedTask(day, "listening", "verified:phonetics-listening-quiz", evidence) : null;
-    const action = passed ? "quiz_passed_pending_other_evidence" : "quiz_below_threshold";
-    dispatchEvaluation({ source: "phonetics-listening-quiz", taskId: "listening", dayNumber: Number(day.day_number), action, ...evidence });
-    return { completed: !!output, passed, action, result: output?.result || null, evidence };
+    // v52: the generic Phonics listening quiz is observation only. The Excel Day Listening Lab
+    // owns completion/scoring for the AI Coach listening task.
+    const action = passed ? "general_phonics_quiz_observation" : "general_phonics_quiz_below_threshold";
+    dispatchObservation({ source: "phonetics-listening-quiz", taskId: "listening", dayNumber: Number(day.day_number), action, ...evidence });
+    return { completed: false, passed, action, result: null, evidence };
   }
 
   async function processNativePhoneticsQuiz(result) {
@@ -159,9 +161,10 @@
       correct, total, attempts: 1, date: String(result.completedAt || new Date().toISOString()),
       rawSource: "pinyin-phonetics-native-quiz", completeSet: true
     };
-    // User requirement: ONE real score from Ngữ âm quiz supplies AI Coach Listening and Reading/Writing evidence.
+    // v52: Listening is now a standalone Excel-Day lab. Keep the native Day 1-10 Phonics quiz
+    // only as Reading/Writing evidence so old phonetics work cannot auto-complete Listening.
     const outputs = [];
-    for (const taskId of ["listening", "reading_writing"]) {
+    for (const taskId of ["reading_writing"]) {
       try {
         const out = await window.PandaHanSchedule?.recordTaskScore?.(excelDay, taskId, score, "verified:pinyin-phonetics-native-quiz", evidence);
         outputs.push(out || null);
