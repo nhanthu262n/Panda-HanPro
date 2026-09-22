@@ -8,7 +8,7 @@ localStorage.setItem("pandahan_lang", "en");
 window.LANG_MODE = LANG_MODE;
 const LEGACY_UI_EN = {
   "Hệ thống học tập thông minh & đồng bộ": "Smart, synced learning system", "Đăng nhập bằng Google": "Sign in with Google", "Đăng nhập ngay": "Sign in now", "Tiếp tục Offline": "Continue offline", "Mật khẩu": "Password", "hoặc": "or",
-  "Từ điển": "Dictionary", "Luyện tập": "Practice", "Tiến độ": "Progress", "Ngữ âm": "Phonetics", "Nhắn tin (Lộ trình)": "Messages (Learning Path)", "Giáo viên": "Teacher", "Ôn tập": "Review", "Cần ôn": "Due for review", "Chưa học": "Not studied", "Mới học": "New", "Đang ôn": "Reinforcing", "Đã nắm": "Familiar", "Thành thạo": "Mastered", "Không có dữ liệu": "No data", "Đóng": "Close", "Quay lại": "Back", "Nghe": "Listen", "Bắt đầu": "Start", "Hoàn thành": "Completed",
+  "Từ điển": "Dictionary", "Luyện tập": "Practice", "Tiến độ": "Progress", "Ngữ âm": "Phonetics", "Nhắn tin (Lộ trình)": "Messages (Learning Path)", "Giáo viên": "Teacher", "Ôn tập": "Review", "Cần ôn": "Due for review", "Chưa học": "Not studied", "Mới học": "New", "Đang ôn": "Reinforcing", "Ôn ổn định": "Review stable", "Giãn cách dài": "Long-interval review", "Không có dữ liệu": "No data", "Đóng": "Close", "Quay lại": "Back", "Nghe": "Listen", "Bắt đầu": "Start", "Hoàn thành": "Completed",
   "Làm lại": "Retry", "Thoát": "Exit", "Câu tiếp theo": "Next question", "Kiểm tra": "Check", "Đáp án": "Answer", "Đúng": "Correct", "Sai": "Incorrect", "Điểm": "Score", "Mục tiêu": "Target", "Thời lượng dự kiến": "Estimated time", "Bài luyện": "Practice activity", "Bài tập": "Exercise", "Câu hỏi": "Question", "Kết quả": "Result", "Hướng dẫn": "Guide", "Lưu": "Save", "Đã lưu": "Saved", "Mở bài": "Open task", "Ôn lại câu sai": "Redo wrong items", "Học liên tiếp": "Learning streak", "Tất cả cấp độ": "All levels", "Tất cả mức độ": "All levels", "Tất cả loại từ": "All parts of speech",
   "Động từ": "Verb", "Danh từ": "Noun", "Tính từ": "Adjective", "Trạng từ": "Adverb", "Phó từ": "Adverb", "Số từ": "Numeral", "Lượng từ": "Measure word", "Trợ từ": "Particle", "Trợ động từ": "Modal verb", "Giới từ": "Preposition", "Liên từ": "Conjunction", "Thán từ": "Interjection", "Cụm từ/thành ngữ": "Phrase / idiom", "Danh từ / Tính từ": "Noun / adjective", "Tính từ / Động từ": "Adjective / verb", "Đại từ chỉ định": "Demonstrative pronoun", "Đại từ nghi vấn": "Interrogative pronoun", "Đại từ nhân xưng": "Personal pronoun", "Động từ / Liên từ": "Verb / conjunction", "Hán Việt": "Sino-Vietnamese", "Cụm từ": "Phrases", "Câu ví dụ": "Example sentences", "Mức độ ghi nhớ": "Retention level",
   "Trắc nghiệm": "Multiple choice", "Multiple choice · nghĩa, pinyin, chữ Hán, ngữ cảnh": "Multiple choice · meaning, pinyin, Hanzi, context", "Sắp xếp câu": "Sentence unscramble", "Sentence unscramble · dựa trên câu ví dụ thật": "Sentence unscramble · based on real example sentences", "Ghép chữ · nghĩa": "Match Hanzi · meaning", "Viết nghĩa": "Type the meaning", "Đề HSK3 3.0": "HSK3 3.0 practice", "Đoạn văn điền từ · Đồng/trái nghĩa · Sắp xếp hội thoại": "Cloze paragraph · synonyms/antonyms · dialogue order", "Đua xe thanh điệu": "Tone race", "Chọn đúng thanh điệu để Panda về đích · Video-inspired tone race": "Choose the correct tone to guide Panda to the finish · Video-inspired tone race", "Ôn tập 120 ngày": "120-Day Review", "Luyện nghe, chọn thanh điệu và mở bài mới khi điểm trên 30%": "Listen, choose tones, and unlock the next lesson only above 30%", "Luyện nghe và chọn thanh điệu trong không gian Quest offline": "Listen and choose tones in the offline Quest space",
@@ -735,11 +735,44 @@ function recordQuizResult(char, correct, meta = {}) {
   const s = getStat(char);
   s.quizAttempts += 1;
   if (correct) s.quizCorrect += 1;
-  s.quizLog.push({ t: Date.now(), correct });
+  s.quizLog.push({ t: Date.now(), correct, skill: meta.skill || "vocabulary", subSkill: meta.subSkill || meta.dimension || "", taskType: meta.taskType || meta.source || "quiz" });
   if (s.quizLog.length > 30) s.quizLog = s.quizLog.slice(-30);
   if (correct) resolveVocabularyMistake(char);
   else recordVocabularyMistake(char, { ...meta, source: meta.source || "quiz" });
-  // Testing effect: quiz performance also feeds the SRS as a graded review
+
+  // v57: save interpretable evidence separately from the memory scheduler.
+  // A correct meaning MCQ is NOT automatically evidence of pronunciation, context or production.
+  try {
+    const evidenceText = `${meta.prompt || ""} ${meta.source || ""}`.toLowerCase();
+    let inferredSubSkill = meta.subSkill || meta.dimension || "";
+    if (!inferredSubSkill) {
+      if (meta.source === "unscramble") inferredSubSkill = "production";
+      else if (/tone|thanh điệu|pinyin|phiên âm/.test(evidenceText)) inferredSubSkill = "pronunciation";
+      else if (/cụm từ|collocation/.test(evidenceText)) inferredSubSkill = "collocation";
+      else if (/nghĩa|meaning|viết nghĩa|ghép chữ hán với nghĩa/.test(evidenceText)) inferredSubSkill = "meaning";
+      else if (/context|ngữ cảnh|tình huống/.test(evidenceText)) inferredSubSkill = "context_use";
+      else if (/write|viết câu|speak|nói/.test(evidenceText)) inferredSubSkill = "production";
+      else inferredSubSkill = "recognition";
+    }
+    window.PandaHanEvidence?.save?.({
+      conceptId: char,
+      module: meta.module || "vocabulary",
+      source: meta.source || "quiz",
+      skill: meta.skill || "vocabulary",
+      subSkill: inferredSubSkill,
+      taskType: meta.taskType || meta.source || "quiz",
+      correct: !!correct,
+      hintsUsed: Number(meta.hintsUsed || 0),
+      responseTime: Number(meta.responseTime || 0),
+      errorType: meta.errorType || "",
+      confusedWith: meta.confusedWith || "",
+      answer: meta.answer,
+      expected: meta.expected,
+      verified: true
+    });
+  } catch (_) {}
+
+  // SM-2 remains a review-timing heuristic only (WHEN to review), not a competence claim.
   gradeWord(char, correct ? 4 : 2);
 }
 
@@ -846,7 +879,7 @@ async function savePracticeCompletion(score, source = "practice", metadata = {})
   return practiceSaveInFlight;
 }
 
-/* ---------- Teacher-designed mastery rubric (5 tiers), based on SRS metrics ---------- */
+/* ---------- Review scheduling state (5 tiers), based on SRS metrics; NOT language competence ---------- */
 const RUBRIC = [
   { tier: 0, name: "Chưa học", en: "Not studied", color: "var(--t0)", light: "var(--t0-light)",
     desc: "Chưa từng ôn tập / ghi nhớ từ này.", descEn: "Never reviewed yet." },
@@ -854,9 +887,9 @@ const RUBRIC = [
     desc: "1-2 lần ôn đúng (SM-2), khoảng cách ôn còn ngắn (dưới 6 ngày).", descEn: "1-2 correct repetitions (SM-2), short review interval (<6 days)." },
   { tier: 2, name: "Đang ôn luyện", en: "Reinforcing", color: "var(--t2)", light: "var(--t2-light)",
     desc: "≥2 lần ôn đúng liên tiếp, độ dễ nhớ (EF) ≥ 1.8, khoảng cách 6-14 ngày.", descEn: "≥2 consecutive correct reps, ease factor ≥1.8, interval 6-14 days." },
-  { tier: 3, name: "Đã nắm vững", en: "Familiar", color: "var(--t3)", light: "var(--t3-light)",
+  { tier: 3, name: "Ôn ổn định", en: "Review stable", color: "var(--t3)", light: "var(--t3-light)",
     desc: "≥3 lần ôn đúng liên tiếp, EF ≥ 2.2, VÀ hiệu suất giãn cách (Cepeda) ≥ 35% so với ISI tối ưu.", descEn: "≥3 consecutive correct reps, EF ≥2.2, AND spacing efficiency (Cepeda) ≥35% of optimal ISI." },
-  { tier: 4, name: "Thành thạo", en: "Mastered", color: "var(--t4)", light: "var(--t4-light)",
+  { tier: 4, name: "Giãn cách dài", en: "Long-interval review", color: "var(--t4)", light: "var(--t4-light)",
     desc: "≥5 lần ôn đúng liên tiếp, EF ≥ 2.5, VÀ hiệu suất giãn cách (Cepeda) ≥ 50% — khoảng ôn tập gần với ISI tối ưu cho RI = 30 ngày.", descEn: "≥5 consecutive correct reps, EF ≥2.5, AND spacing efficiency (Cepeda) ≥50% — review interval close to optimal ISI for RI = 30 days." },
 ];
 
@@ -916,7 +949,7 @@ const WORD_LIST_CATS = {
   },
   remembered: {
     title: "✅ Đã nhớ", titleEn: "✅ Remembered",
-    sub: "Từ đã đạt mức \"Đã nắm vững\" hoặc \"Thành thạo\" theo SM-2.", subEn: "Words at \"Familiar\" or \"Mastered\" tier per SM-2.",
+    sub: "Từ có lịch ôn ở mức \"Ôn ổn định\" hoặc \"Giãn cách dài\" theo SM-2.", subEn: "Words in \"Review stable\" or \"Long-interval review\" state per SM-2.",
     filter: w => getTier(w.char) >= 3,
   },
   notRemembered: {
@@ -1679,7 +1712,7 @@ function openDetail(char) {
   renderChietu(chietuRaw, w.chietu_source);
   document.getElementById("dDefZh").textContent = w.def_zh;
   document.getElementById("dExLabel").textContent = LANG_MODE === "vi" ? "例句 · CÂU VÍ DỤ" : "例句 · EXAMPLE SENTENCES";
-  document.getElementById("dSrsLabel").textContent = LANG_MODE === "vi" ? "📈 MỨC ĐỘ GHI NHỚ (thuật toán SM-2)" : "📈 RETENTION LEVEL (SM-2 algorithm)";
+  document.getElementById("dSrsLabel").textContent = LANG_MODE === "vi" ? "📅 TRẠNG THÁI ÔN TẬP (SM-2)" : "📅 REVIEW SCHEDULE STATE (SM-2)";
 
   document.getElementById("dMeta").innerHTML =
     `<span class="tag tag-hsk${w.hsk}">HSK ${w.hsk}</span>` +
@@ -1718,9 +1751,17 @@ function renderChietu(raw, source) {
   const sub = document.getElementById("dChietuSub");
   const body = document.getElementById("dChietu");
   const srcEl = document.getElementById("dChietuSource");
-  srcEl.innerHTML = source === "verified"
-    ? `<span style="color:#1a7d4a;">✅ ${L("Nguồn: tài liệu nghiên cứu gốc (đã xác minh)", "Source: original research document (verified)")}</span>`
-    : `<span style="color:#a5824a;">🤖 ${L("Nguồn: hệ thống tự phân tích bộ thủ", "Source: auto radical analysis")}</span>`;
+  const sourceText = String(source || "").trim();
+  const sourceLower = sourceText.toLowerCase();
+  if (sourceLower === "verified" || sourceLower.includes("đã xác minh") || sourceLower.includes("verified")) {
+    srcEl.innerHTML = `<span style="color:#1a7d4a;">✅ ${L("Nội dung đã được đánh dấu xác minh trong cơ sở dữ liệu PanTutor", "Content is marked as verified in the PanTutor database")}</span>`;
+  } else if (sourceLower.includes("giáo viên") || sourceLower.includes("teacher") || sourceLower.includes("pantutor_hsk")) {
+    srcEl.innerHTML = `<span style="color:#1d4ed8;">👩‍🏫 ${L("Học liệu do giáo viên/nhóm nghiên cứu biên soạn — cần phân biệt dữ kiện ngôn ngữ với mẹo ghi nhớ", "Teacher/research-team curated content — linguistic facts must be kept separate from memory aids")}</span>`;
+  } else if (sourceLower.includes("ai") || sourceLower.includes("claude") || sourceLower.includes("gpt")) {
+    srcEl.innerHTML = `<span style="color:#b45309;">🤖 ${L("Bản thảo có AI hỗ trợ — cần rà soát trước khi xem là dữ kiện ngôn ngữ/lịch sử", "AI-assisted draft — review is required before treating it as a linguistic/historical fact")}</span>`;
+  } else {
+    srcEl.innerHTML = `<span style="color:#a16207;">⚠️ ${L("Nguồn chưa được chuẩn hóa: ", "Source not yet standardized: ")}${esc(sourceText || L("chưa ghi nguồn", "unspecified"))}</span>`;
+  }
 
   if (!raw) {
     box.className = "chietu-box type-radical";
@@ -1739,7 +1780,7 @@ function renderChietu(raw, source) {
   label.textContent = isCulture
     ? (LANG_MODE === "vi" ? "CÂU CHUYỆN VĂN HÓA" : "CULTURAL STORY")
     : (LANG_MODE === "vi" ? "CHIẾT TỰ · BỘ THỦ" : "CHARACTER BREAKDOWN");
-  sub.textContent = isCulture ? (LANG_MODE === "vi" ? "nguồn gốc & ý nghĩa" : "origin & meaning") : (LANG_MODE === "vi" ? "phân tích cấu tạo chữ" : "component analysis");
+  sub.textContent = isCulture ? (LANG_MODE === "vi" ? "ghi chú văn hóa / hỗ trợ ghi nhớ" : "cultural note / memory support") : (LANG_MODE === "vi" ? "phân tích cấu tạo / hỗ trợ ghi nhớ" : "structure analysis / memory support");
 
   const highlighted = esc(text).replace(/([\u4e00-\u9fff]+)/g, '<span class="chietu-char">$1</span>');
   body.innerHTML = highlighted;
@@ -2706,7 +2747,7 @@ function renderDashboard() {
   const mastered = VOCAB.filter(w => getTier(w.char) === 4).length;
   const due = VOCAB.filter(w => isDue(w.char)).length;
   const added = VOCAB.filter(w => STATS[w.char] && STATS[w.char].firstSeen > 0).length;
-  const remembered = VOCAB.filter(w => getTier(w.char) >= 3).length; // "đã nắm vững" + "thành thạo"
+  const remembered = VOCAB.filter(w => getTier(w.char) >= 3).length; // long-interval / stable review states; not competence claims
   const notRemembered = VOCAB.filter(w => { const t = getTier(w.char); return t === 1 || t === 2; }).length; // "mới học" + "đang ôn luyện"
   document.getElementById("statAdded").textContent = added;
   document.getElementById("statRemembered").textContent = remembered;
@@ -3564,7 +3605,7 @@ async function viewStudentProgress(uid, name) {
             <div style="margin-bottom:14px;font-size:11px;color:var(--text-light);">Cập nhật lần cuối: ${lastUpdatedStr}</div>
             <div class="time-grid" style="grid-template-columns:1fr 1fr;">
               <div class="time-box"><div class="num">${learned}</div><div class="lbl">${L("Từ đã học", "Words studied")}</div></div>
-              <div class="time-box"><div class="num">${mastered}</div><div class="lbl">Từ thành thạo</div></div>
+              <div class="time-box"><div class="num">${mastered}</div><div class="lbl">Ôn giãn cách dài</div></div>
               <div class="time-box"><div class="num">${quizAccuracy}%</div><div class="lbl">Tỉ lệ đúng quiz</div></div>
               <div class="time-box"><div class="num">${totalQuizAttempts}</div><div class="lbl">Tổng lượt quiz</div></div>
             </div>
@@ -3580,8 +3621,8 @@ async function viewStudentProgress(uid, name) {
                 <tr><td>⚪ Chưa học</td><td>${tierCounts[0]}</td></tr>
                 <tr><td>🔴 Mới học</td><td>${tierCounts[1]}</td></tr>
                 <tr><td>🟡 Đang ôn luyện</td><td>${tierCounts[2]}</td></tr>
-                <tr><td>🟢 Đã nắm vững</td><td>${tierCounts[3]}</td></tr>
-                <tr><td>🐼 Thành thạo</td><td>${tierCounts[4]}</td></tr>
+                <tr><td>🟢 Ôn ổn định</td><td>${tierCounts[3]}</td></tr>
+                <tr><td>🐼 Ôn giãn cách dài</td><td>${tierCounts[4]}</td></tr>
               </tbody>
             </table>
             <div style="margin-top:20px; font-size:13px; color:var(--text-light);">
@@ -3656,7 +3697,7 @@ function showTeacherStudentDetail(username) {
   document.getElementById("teacherDetailStats").innerHTML = `
     <div class="time-grid" style="grid-template-columns:1fr 1fr;">
       <div class="time-box"><div class="num">${sum.learned}</div><div class="lbl">${L('Từ đã học', 'Words studied')}</div></div>
-      <div class="time-box"><div class="num">${sum.mastered}</div><div class="lbl">${L('Từ thành thạo', 'Words mastered')}</div></div>
+      <div class="time-box"><div class="num">${sum.mastered}</div><div class="lbl">${L('Ôn giãn cách dài', 'Long-interval review')}</div></div>
       <div class="time-box"><div class="num">${quizPct === null ? '–' : quizPct + '%'}</div><div class="lbl">${L('Tỉ lệ đúng quiz', 'Quiz accuracy')}</div></div>
       <div class="time-box"><div class="num">${sum.quizAttempts}</div><div class="lbl">${L('Tổng lượt làm quiz', 'Total quiz attempts')}</div></div>
     </div>
@@ -3666,8 +3707,8 @@ function showTeacherStudentDetail(username) {
         <tr><td>⚪ ${L('Chưa học', 'Not studied')}</td><td>${tierCounts[0]}</td></tr>
         <tr><td>🔴 ${L('Mới học', 'New')}</td><td>${tierCounts[1]}</td></tr>
         <tr><td>🟡 ${L('Đang ôn luyện', 'Reinforcing')}</td><td>${tierCounts[2]}</td></tr>
-        <tr><td>🟢 ${L('Đã nắm vững', 'Familiar')}</td><td>${tierCounts[3]}</td></tr>
-        <tr><td>🐼 ${L('Thành thạo', 'Mastered')}</td><td>${tierCounts[4]}</td></tr>
+        <tr><td>🟢 ${L('Ôn ổn định', 'Review stable')}</td><td>${tierCounts[3]}</td></tr>
+        <tr><td>🐼 ${L('Ôn giãn cách dài', 'Long-interval review')}</td><td>${tierCounts[4]}</td></tr>
       </tbody>
     </table>`;
   showScreen("teacherDetail");
