@@ -90,7 +90,25 @@
   }
   document.addEventListener("DOMContentLoaded", () => {
     removeDeprecatedCoachStep();
-    new MutationObserver(() => removeDeprecatedCoachStep()).observe(document.body, { childList: true, subtree: true });
+    let cleanupTimer = 0;
+    const pendingRoots = new Set();
+    const flushCleanup = () => {
+      cleanupTimer = 0;
+      const roots = Array.from(pendingRoots); pendingRoots.clear();
+      roots.forEach((root) => { if (root?.isConnected !== false && root?.querySelectorAll) removeDeprecatedCoachStep(root); });
+    };
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes || []) {
+          if (node?.nodeType !== 1) continue;
+          const relevant = node.matches?.('[data-mission-task="vocab-speaking"],[data-coach-step="4"],[data-ai-coach-section="4"]') ||
+            node.querySelector?.('[data-mission-task="vocab-speaking"],[data-coach-step="4"],[data-ai-coach-section="4"]');
+          if (relevant) pendingRoots.add(node.parentElement || node);
+        }
+      }
+      if (pendingRoots.size && !cleanupTimer) cleanupTimer = window.setTimeout(flushCleanup, 100);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   });
 
   /* 3) Objective phonetics evidence: keep detailed, user-generated results. */
