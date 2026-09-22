@@ -1,10 +1,10 @@
-/* PanTutor AI v57.1 — interpretable learning-strategy effectiveness model */
+/* PanTutor AI v57.2 — interpretable learning-strategy effectiveness model */
 (function(){
   'use strict';
   const KEY='pandahan_v57_strategy_model';
   const DEFAULTS=['semantic_component_reasoning','phonetic_family_reasoning','self_generated_reasoning','contrastive_context','retrieval_practice','scaffolded_production','tone_discrimination','transfer_reasoning'];
   const clamp=n=>Math.max(0,Math.min(1,Number(n)||0));
-  function empty(){const strategies={};DEFAULTS.forEach(k=>strategies[k]={alpha:1,beta:1,estimate:.5,confidence:0,n:0,lastUpdated:0});return{version:'57.1',strategies,updatedAt:0};}
+  function empty(){const strategies={};DEFAULTS.forEach(k=>strategies[k]={alpha:1,beta:1,estimate:.5,confidence:0,n:0,lastUpdated:0});return{version:'57.2',strategies,updatedAt:0};}
   function load(){try{const raw=JSON.parse(localStorage.getItem(KEY)||'{}');return{...empty(),...raw,strategies:{...empty().strategies,...(raw.strategies||{})}};}catch(_){return empty();}}
   function save(m){m.updatedAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify(m));}catch(_){}return m;}
   function infer(ev={}){
@@ -29,6 +29,6 @@
   }
   function ranked(minEvidence=2){return Object.entries(load().strategies||{}).map(([strategy,s])=>({strategy,...s})).filter(x=>x.n>=minEvidence).sort((a,b)=>(b.estimate*b.confidence)-(a.estimate*a.confidence));}
   function best(minEvidence=2){return ranked(minEvidence)[0]||null;}
-  window.PandaHanStrategyModel={load,save,update,ranked,best,infer,version:'57.1'};
+  window.PandaHanStrategyModel={load,save,update,ranked,best,infer,version:'57.2'};
   window.addEventListener('pandahan-v57-evidence',e=>update(e.detail||{}));
 })();
