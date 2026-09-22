@@ -20,33 +20,36 @@
       "core_meaning_vi": "thuận tiện; tiện",
       "core_meaning_en": "convenient; suitable",
       "collocations": [
-        "很方便",
         "交通方便",
-        "方便联系",
-        "不太方便"
+        "使用方便",
+        "很方便"
       ],
       "sentence_patterns": [
-        "对 + người + 来说很方便",
+        "对 + PERSON + 来说 + 很方便",
         "如果你方便，就……",
         "方便 + động từ"
       ],
       "confusable_words": [
         {
-          "word": "便利",
-          "distinction_vi": "便利 trang trọng hơn và thường mô tả điều kiện/dịch vụ; 方便 dùng rộng trong hội thoại.",
-          "distinction_en": "便利 is more formal and often describes facilities or conditions; 方便 is broader in conversation."
+          "word": "容易",
+          "distinction_vi": "容易 nói về mức độ dễ hay khó; 方便 nói về sự thuận tiện của điều kiện, địa điểm hoặc thời gian.",
+          "distinction_en": "容易 concerns ease or difficulty; 方便 concerns convenience of conditions, location, or timing."
         }
       ],
       "common_errors": [
-        "Không dùng 方便 như danh từ chỉ một vật cụ thể.",
+        {
+          "wrong": "这个问题很方便。",
+          "correct": "这个地方交通很方便。",
+          "explanation": "问题 thường đi với 容易/难; 方便 phù hợp với địa điểm, phương tiện hoặc thời gian."
+        },
         "Khi hỏi lịch sự nên nói 你方便吗？ hoặc 你什么时候方便？"
       ],
       "register": "neutral; frequent in spoken and written Chinese",
       "contexts": [
-        "scheduling",
-        "transport",
-        "communication",
-        "daily life"
+        "Travel",
+        "Hotel",
+        "Transportation",
+        "Daily life"
       ]
     },
     "pedagogy": {
