@@ -1,4 +1,4 @@
-/* PanTutor AI v57.2 — lean Vocabulary Intelligence.
+/* PanTutor AI v57.3 — lean Vocabulary Intelligence.
    Uses the existing 2,254-entry PanTutor VOCAB database as the single runtime source.
    Intelligence metadata is derived lazily so the browser does not parse/keep a second 5 MB copy. */
 (function(){
@@ -66,7 +66,7 @@
         legacyAnalysisSource:w.chietu_source||'unspecified',
         status,
         reviewRequired:status==='AI_DRAFT_REVIEW_REQUIRED'||status==='NEEDS_REVIEW',
-        migration:'PanTutor AI v57.2 lazy non-destructive runtime adapter'
+        migration:'PanTutor AI v57.3 lazy non-destructive runtime adapter'
       },
       sourceRefs:sourceRefsFor(term),
       verificationPlan:single?{
@@ -91,7 +91,7 @@
         if(!charIndex.has(ch))charIndex.set(ch,[]); charIndex.get(ch).push(term);
       }
     }
-    summary={version:'57.2-lean-runtime',generatedFrom:'PanTutor primary VOCAB database',entryCount:words.length,hskCounts,characterEntries:chars,wordOrPhraseEntries:Math.max(0,words.length-chars),provenanceCounts,sources:[
+    summary={version:'57.3-lean-runtime',generatedFrom:'PanTutor primary VOCAB database',entryCount:words.length,hskCounts,characterEntries:chars,wordOrPhraseEntries:Math.max(0,words.length-chars),provenanceCounts,sources:[
       {id:'pantutor_core',name:'PanTutor HSK 1-3 primary runtime database'},
       {id:'gf0025',name:'GF 0025-2021 alignment target'},
       {id:'cccedict',name:'CC-CEDICT lexical verification target'},
@@ -112,7 +112,7 @@
   function hash(s){let h=2166136261;for(const ch of String(s||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0;}
   function shuffleSeeded(arr,seed){const a=arr.slice();let x=hash(seed)||1;for(let i=a.length-1;i>0;i--){x=(Math.imul(x,1664525)+1013904223)>>>0;const j=x%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
   function distractors(e,field,count=3){init();const pool=(hskPools[e.hsk]||baseWords()).filter(w=>w.char!==e.term&&w[field]&&w[field]!==e.lexical?.[field]);const samePos=pool.filter(w=>w.pos&&w.pos===e.lexical.pos);return shuffleSeeded((samePos.length>=count?samePos:pool),`${e.term}:${field}`).slice(0,count).map(buildEntry);}
-  function taskFactory(term,preferredSkill=''){const e=get(term);if(!e)return null;const requested=(preferredSkill&&typeof preferredSkill==='object')?preferredSkill.preferredSkill:preferredSkill;const decision=window.PandaHanPedagogy?.planForConcept?.(term)||null;const skill=requested||decision?.selectedIntervention?.targetSkill||'recognition';const action=decision?.selectedIntervention?.action||'';const contrast=decision?.selectedIntervention?.contrastWith||'';const allExamples=e.wordLayer.examples||[];const patternTokens=String(e.term||'').split(/\.{3}|…+/).map(x=>x.trim()).filter(Boolean);const ex=allExamples.find(x=>String(x.hanzi||'').includes(e.term))||allExamples.find(x=>patternTokens.length&&patternTokens.every(t=>String(x.hanzi||'').includes(t)))||allExamples[0];
+  function taskFactory(term,preferredSkill=''){const e=get(term);if(!e)return null;const cfg=(preferredSkill&&typeof preferredSkill==='object')?preferredSkill:{};const requested=cfg.preferredSkill||((typeof preferredSkill==='string')?preferredSkill:'');const decision=cfg.decision||window.PandaHanPedagogy?.planForConcept?.(term,{audit:false})||null;const skill=requested||decision?.selectedIntervention?.targetSkill||'recognition';const action=decision?.selectedIntervention?.action||'';const contrast=decision?.selectedIntervention?.contrastWith||'';const allExamples=e.wordLayer.examples||[];const patternTokens=String(e.term||'').split(/\.{3}|…+/).map(x=>x.trim()).filter(Boolean);const ex=allExamples.find(x=>String(x.hanzi||'').includes(e.term))||allExamples.find(x=>patternTokens.length&&patternTokens.every(t=>String(x.hanzi||'').includes(t)))||allExamples[0];
     if((skill==='context_use'||skill==='production'||skill==='collocation'||action==='semantic_contrast'||action==='context_discrimination_then_production')&&ex){const ds=distractors(e,'meaning',6).map(x=>x.term);if(contrast&&get(contrast)&&!ds.includes(contrast))ds.unshift(contrast);const opts=shuffleSeeded([e.term,...ds.filter(x=>x!==e.term)].slice(0,4),`${e.term}:context`);let prompt=String(ex.hanzi||'');if(prompt.includes(e.term))prompt=prompt.split(e.term).join('______');else if(patternTokens.length){for(const t of patternTokens)prompt=prompt.replace(t,'______');}if(!prompt.includes('______'))prompt=`${prompt} · Which target expression best fits this context?`;return{id:`CTX-${e.term}`,conceptId:e.term,skill:'context_use',type:'context_cloze',prompt,helper:`${ex.pinyin||''} · ${ex.meaning_vi||ex.meaning_en||''}`,options:opts,answer:e.term,sourceExample:ex,decision};}
     if(skill==='pronunciation'){const ds=distractors(e,'pinyin',3);const opts=shuffleSeeded([e.lexical.pinyin,...ds.map(x=>x.lexical.pinyin)],`${e.term}:pinyin`);return{id:`PY-${e.term}`,conceptId:e.term,skill:'pronunciation',type:'pinyin_match',prompt:`Pinyin đúng của “${e.term}” là gì?`,options:opts,answer:e.lexical.pinyin,decision};}
     if(skill==='transfer'&&e.wordLayer.relatedBySharedCharacter?.length){const target=get(e.wordLayer.relatedBySharedCharacter[0]);if(target){const ds=distractors(target,'meaning',3);return{id:`TR-${e.term}`,conceptId:e.term,targetConcept:target.term,skill:'transfer',type:'lexical_transfer',prompt:`Dựa vào phần đã học, hãy suy luận nghĩa gần đúng của “${target.term} · ${target.lexical.pinyin}”.`,options:shuffleSeeded([meaningValue(target),...ds.map(meaningValue)],`${e.term}:transfer`),answer:meaningValue(target),decision};}}
@@ -120,5 +120,5 @@
   }
   function gradeTask(task,selected){if(!task)return null;const correct=String(selected)===String(task.answer);const ev=window.PandaHanEvidence?.save?.({conceptId:task.conceptId,module:'vocabulary_intelligence',skill:'vocabulary',subSkill:task.skill,taskType:task.type,correct,evidenceWeight:task.type==='lexical_transfer'?.9:(task.type==='context_cloze'?.72:.48),answer:selected,expected:task.answer,confusedWith:task.decision?.selectedIntervention?.contrastWith||'',errorType:(!correct&&task.decision?.selectedIntervention?.contrastWith)?'SEMANTIC_CONFUSION':'',meta:{taskId:task.id,targetConcept:task.targetConcept||''}});return{correct,evidence:ev,expected:task.answer};}
   function reviewQueue(statuses=['AI_DRAFT_REVIEW_REQUIRED','NEEDS_REVIEW']){init();return baseWords().filter(w=>statuses.includes(sourceStatus(w))).map(buildEntry);}
-  window.PandaHanVocabularyIntelligence={load,get,provenance,buildTeachingView,recordReasoning,recordTransfer,taskFactory,gradeTask,reviewQueue,get catalog(){return summary;},version:'57.2'};
+  window.PandaHanVocabularyIntelligence={load,get,provenance,buildTeachingView,recordReasoning,recordTransfer,taskFactory,gradeTask,reviewQueue,get catalog(){return summary;},version:'57.3'};
 })();
