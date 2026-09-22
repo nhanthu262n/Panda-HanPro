@@ -1,0 +1,29 @@
+PASS all 2254 legacy vocabulary records loaded
+PASS normalization preserves vocabulary count
+PASS every record has the four new safe objects
+PASS all new collection fields are arrays
+PASS nullable review date is safe
+PASS search index contains 方便
+PASS sample enrichment exists for 方便
+PASS 方便 has problem-solving seed
+PASS search index contains 情况
+PASS sample enrichment exists for 情况
+PASS 情况 has problem-solving seed
+PASS search index contains 安排
+PASS sample enrichment exists for 安排
+PASS 安排 has problem-solving seed
+PASS search index contains 联系
+PASS sample enrichment exists for 联系
+PASS 联系 has problem-solving seed
+PASS search index contains 需要
+PASS sample enrichment exists for 需要
+PASS 需要 has problem-solving seed
+PASS search index contains 其实
+PASS sample enrichment exists for 其实
+PASS 其实 has problem-solving seed
+PASS legacy mnemonic fallback uses chietu_vi
+PASS legacy collocation fallback uses cumtu
+PASS legacy card and quiz fields remain available
+PASS normalization does not mutate SM-2 data
+PASS schema version is 1.0.0
+ALL TESTS PASSED
