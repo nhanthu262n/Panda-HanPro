@@ -4095,7 +4095,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (CURRENT_USER && typeof renderGrids === "function") renderGrids();
 
   document.querySelectorAll(".nav-tabs button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
-  safeAdd("searchInput", "input", renderGrids);
+  let _v58SearchTimer = 0;
+  safeAdd("searchInput", "input", () => { clearTimeout(_v58SearchTimer); _v58SearchTimer = setTimeout(() => { _v58SearchTimer = 0; renderGrids(); }, 140); });
   safeAdd("posFilter", "change", renderGrids);
   safeAdd("tierFilter", "change", renderGrids);
 
