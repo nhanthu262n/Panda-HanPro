@@ -84,12 +84,8 @@
     const due = (() => { try { return typeof isDue === "function" && isDue(word.char); } catch (_) { return false; } })();
     const tier = (() => { try { return typeof getTier === "function" ? getTier(word.char) : 0; } catch (_) { return 0; } })();
     const age = Number(stat.nextReview || 0) ? Math.max(0, Date.now() - Number(stat.nextReview)) / DAY_MS : 0;
-    const diagnosis = (() => { try { return window.PandaHanDiagnostic?.diagnoseConcept?.(word.char) || null; } catch (_) { return null; } })();
-    const issue = diagnosis?.issues?.[0] || null;
-    const aiBoost = issue ? Math.round(Math.max(0, Math.min(1, Number(issue.severity) || 0)) * 260) : 0;
-    const weak = hasRecallEvidence(stat) && (tier <= 2 || accuracy(stat) < 0.7 || lastQuality(stat) < 3 || !!issue);
-    const decision = (() => { try { return issue ? window.PandaHanPedagogy?.planForConcept?.(word.char) || null : null; } catch (_) { return null; } })();
-    return { word, stat, due, tier, accuracy: accuracy(stat), weak, hasRecall: hasRecallEvidence(stat), diagnosis, decision, aiBoost, priority: (due ? 1000 : 0) + (weak ? 300 : 0) + aiBoost + Math.min(120, age * 5) + (5 - tier) * 10 };
+    const weak = hasRecallEvidence(stat) && (tier <= 2 || accuracy(stat) < 0.7 || lastQuality(stat) < 3);
+    return { word, stat, due, tier, accuracy: accuracy(stat), weak, hasRecall: hasRecallEvidence(stat), priority: (due ? 1000 : 0) + (weak ? 300 : 0) + Math.min(120, age * 5) + (5 - tier) * 10 };
   }
   function buildPlan(dayInput = null, scheduleInput = null) {
     const { schedule, day: activeDay } = scheduleDay();
@@ -128,9 +124,7 @@
       phoneticsReady, vocabIntroReady, introCompleted: !!introState.completed, introWords, newWords: exactNew,
       practiceWords: eligible, reviewWords: reviewPool, linkedNewWords: exactNew,
       counts: { new: exactNew.length, intro: introWords.length, review: reviewPool.length, practice: eligible.length },
-      schedule: scheduleItem, curriculum,
-      aiSupport: (() => { try { return window.PandaHanPedagogy?.nextGlobal?.() || null; } catch (_) { return null; } })(),
-      source: "real_vocab_stats_excel_day_and_v57_ai_evidence"
+      schedule: scheduleItem, curriculum, source: "real_vocab_stats_and_excel_day"
     };
   }
   // `canPracticeWord` is intentionally permissive for the public Dictionary/
