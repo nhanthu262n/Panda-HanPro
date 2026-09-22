@@ -1,0 +1,86 @@
+{
+  "version": "57.1",
+  "generated_at": "2026-09-22",
+  "sources": [
+    {
+      "id": "PANTUTOR_CORE",
+      "name": "PanTutor v56 HSK 1–3 curated database",
+      "type": "project_dataset",
+      "use": [
+        "base lexical entries",
+        "examples",
+        "teacher notes",
+        "existing exercises"
+      ],
+      "status": "embedded",
+      "url": null,
+      "license_note": "Project-owned/curated content; retain original provenance per entry."
+    },
+    {
+      "id": "UNICODE_UNIHAN",
+      "name": "Unicode Unihan Database (Unicode 18.0)",
+      "type": "official_character_database",
+      "use": [
+        "radical-stroke metadata",
+        "Mandarin readings",
+        "variants",
+        "character properties"
+      ],
+      "status": "external_verification_target",
+      "url": "https://www.unicode.org/charts/unihan.html",
+      "reference": "UAX #38 / Unicode 18.0",
+      "license_note": "Use under Unicode Terms of Use; store attribution/version."
+    },
+    {
+      "id": "MAKE_ME_A_HANZI",
+      "name": "Make Me a Hanzi",
+      "type": "open_character_structure_dataset",
+      "use": [
+        "IDS decomposition",
+        "radical field",
+        "formation/etymology metadata",
+        "stroke graphics when licensed"
+      ],
+      "status": "external_verification_target",
+      "url": "https://github.com/skishore/makemeahanzi",
+      "license_note": "dictionary.txt and graphics have source-specific licences; preserve attribution and source separation."
+    },
+    {
+      "id": "CC_CEDICT",
+      "name": "CC-CEDICT",
+      "type": "open_lexical_database",
+      "use": [
+        "Chinese-English meaning cross-check",
+        "pinyin cross-check",
+        "lexical sense review"
+      ],
+      "status": "external_verification_target",
+      "url": "https://cc-cedict.org/editor/editor.php?handler=Download",
+      "license": "CC BY-SA 4.0",
+      "license_note": "Attribution + ShareAlike required for incorporated/modified CC-CEDICT data."
+    },
+    {
+      "id": "GF0025_2021",
+      "name": "国际中文教育中文水平等级标准 GF 0025-2021",
+      "type": "official_proficiency_standard",
+      "use": [
+        "curriculum/proficiency framework alignment",
+        "research terminology"
+      ],
+      "status": "official_reference",
+      "url": "https://www.moe.gov.cn/jyb_xwfb/gzdt_gzdt/s5987/202103/t20210329_523304.html",
+      "license_note": "Reference standard; do not claim official certification by PanTutor."
+    },
+    {
+      "id": "HAN_DIAN_REFERENCE",
+      "name": "汉典 (Zdic) reference dictionary",
+      "type": "external_reference_dictionary",
+      "use": [
+        "targeted lexical/usage cross-checks during QA"
+      ],
+      "status": "external_reference_only",
+      "url": "https://zdic.net/",
+      "license_note": "Used as a reference for targeted review; do not bulk-copy dictionary content into PanTutor without permission/licence review."
+    }
+  ]
+}
