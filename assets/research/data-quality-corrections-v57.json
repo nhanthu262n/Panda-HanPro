@@ -1,0 +1,231 @@
+{
+  "version": "57.1",
+  "generated_at": "2026-09-22",
+  "correctionCount": 13,
+  "corrections": [
+    {
+      "term": "补衣",
+      "field": "term",
+      "before": "补衣",
+      "after": "衬衣",
+      "reason": "Pinyin chènyī, meaning “shirt”, curriculum entry, and example all indicate 衬衣; 补衣 is inconsistent.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "贏",
+      "field": "term",
+      "before": "贏",
+      "after": "赢",
+      "reason": "PanTutor targets simplified Chinese/HSK; normalized traditional 贏 to simplified 赢 while preserving the correction log.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "办",
+      "field": "wordLayer.examples[0]",
+      "before": [],
+      "after": [
+        {
+          "hanzi": "我来办这件事。",
+          "pinyin": "Wǒ lái bàn zhè jiàn shì.",
+          "meaning_vi": "Tôi sẽ xử lý việc này.",
+          "meaning_en": "I will handle this matter."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "搬家",
+      "field": "wordLayer.examples[0]",
+      "before": [],
+      "after": [
+        {
+          "hanzi": "我们下个月搬家。",
+          "pinyin": "Wǒmen xià ge yuè bānjiā.",
+          "meaning_vi": "Tháng sau chúng tôi chuyển nhà.",
+          "meaning_en": "We are moving house next month."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "保安",
+      "field": "wordLayer.examples[0]",
+      "before": [],
+      "after": [
+        {
+          "hanzi": "保安在门口工作。",
+          "pinyin": "Bǎo’ān zài ménkǒu gōngzuò.",
+          "meaning_vi": "Nhân viên bảo vệ làm việc ở cửa ra vào.",
+          "meaning_en": "The security guard works at the entrance."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "衬衣",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "妈妈去超市给我买了很多衬衣。",
+          "pinyin": "Māma qù chāoshì gěi wǒ mǎile hěnduō chènyī",
+          "meaning_vi": "Mẹ tôi đi siêu thị đã mua cho tôi rất nhiều áo sơ mi.",
+          "meaning_en": "He's wearing a shirt."
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "妈妈给我买了一件衬衣。",
+          "pinyin": "Māma gěi wǒ mǎile yí jiàn chènyī.",
+          "meaning_vi": "Mẹ đã mua cho tôi một chiếc áo sơ mi.",
+          "meaning_en": "Mom bought me a shirt."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "工夫",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "以为做好这件事，他花了很多功夫。",
+          "pinyin": "Yǐwéi zuò hǎo zhè jiàn shì, tā huā le hěnduō gōngfū",
+          "meaning_vi": "Học tốt tiếng Trung cần thời gian và công sức.",
+          "meaning_en": "This took a lot of time and effort."
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "做好这件事要花很多工夫。",
+          "pinyin": "Zuò hǎo zhè jiàn shì yào huā hěn duō gōngfu.",
+          "meaning_vi": "Làm tốt việc này cần tốn nhiều thời gian và công sức.",
+          "meaning_en": "Doing this well takes a lot of time and effort."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "空儿",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "今天我没空，改天出去玩儿吧。",
+          "pinyin": "Jīntiān wǒ méi kōng, gǎitiān chūqù wán er ba",
+          "meaning_vi": "",
+          "meaning_en": "Do you have some free time?"
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "你今天有空儿吗？",
+          "pinyin": "Nǐ jīntiān yǒu kòngr ma?",
+          "meaning_vi": "Hôm nay bạn có rảnh không?",
+          "meaning_en": "Do you have some free time today?"
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "牌子",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "我喜欢这个品牌的衣服。",
+          "pinyin": "Wǒ xǐhuān zhège páizi de yīfu",
+          "meaning_vi": "Tôi thích quần áo của nhãn hiệu này.",
+          "meaning_en": "This is a famous brand."
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "这个牌子的衣服很受欢迎。",
+          "pinyin": "Zhège páizi de yīfu hěn shòu huānyíng.",
+          "meaning_vi": "Quần áo của nhãn hiệu này rất được ưa chuộng.",
+          "meaning_en": "Clothes from this brand are very popular."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "事实上",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "这份工作听起来很简单，实际上很难。",
+          "pinyin": "Zhè fèn gōngzuò tīng qǐlái hěn jiǎndān, shíjì shang hěn nán",
+          "meaning_vi": "Công việc này nghe có vẻ đơn giản, nhưng trên thực tế lại rất khó.",
+          "meaning_en": "In fact, he already knew."
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "事实上，他已经知道了。",
+          "pinyin": "Shìshí shang, tā yǐjīng zhīdào le.",
+          "meaning_vi": "Thực ra, anh ấy đã biết rồi.",
+          "meaning_en": "In fact, he already knew."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "杂志",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "航空运输的速度最快。",
+          "pinyin": "Wǒ xǐhuān yuèdú shíshàng zázhì",
+          "meaning_vi": "Tôi thích đọc tạp chí thời trang.",
+          "meaning_en": "She reads a fashion magazine."
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "我喜欢读时尚杂志。",
+          "pinyin": "Wǒ xǐhuān dú shíshàng zázhì.",
+          "meaning_vi": "Tôi thích đọc tạp chí thời trang.",
+          "meaning_en": "I like reading fashion magazines."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "责任",
+      "field": "wordLayer.examples[0]",
+      "before": [
+        {
+          "hanzi": "他负责这次活动。",
+          "pinyin": "Tā fùzé zhè cì huódòng",
+          "meaning_vi": "Anh ấy phụ trách hoạt động lần này.",
+          "meaning_en": "This is my responsibility."
+        }
+      ],
+      "after": [
+        {
+          "hanzi": "这是我的责任。",
+          "pinyin": "Zhè shì wǒ de zérèn.",
+          "meaning_vi": "Đây là trách nhiệm của tôi.",
+          "meaning_en": "This is my responsibility."
+        }
+      ],
+      "reason": "Example repaired so the target term, pinyin and meanings are internally consistent for adaptive context tasks.",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    },
+    {
+      "term": "正",
+      "field": "lexical.meaning_vi",
+      "before": "",
+      "after": "đang; vừa đúng, chính xác",
+      "reason": "Legacy Vietnamese meaning was blank. The entry is the zhèng adverb used for an action in progress / exactly; filled from the existing English/example context and cross-checked against 汉典 usage.",
+      "external_reference": "https://zdic.net/hans/%E6%AD%A3",
+      "status": "RESEARCH_TEAM_CORRECTION_REVIEWABLE"
+    }
+  ]
+}
