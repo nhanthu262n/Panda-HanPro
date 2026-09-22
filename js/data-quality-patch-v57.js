@@ -1,11 +1,10 @@
-/* PanTutor AI v57.1 — transparent runtime data-quality correction overlay.
-   The original v56 source is preserved. Corrections are documented in
-   assets/research/data-quality-corrections-v57.json. */
+/* PanTutor AI v57.2 — transparent runtime data-quality correction overlay.
+   The original v56 source is preserved. Runtime corrections are kept transparently in this code overlay. */
 (function(){
   'use strict';
   const applied=[];
   function getWord(term){try{return (typeof VOCAB_BY_CHAR!=='undefined'&&VOCAB_BY_CHAR[term])||null}catch(_){return null}}
-  function mark(w,note){if(!w)return;w.data_quality_v57={status:'RESEARCH_TEAM_CORRECTION_REVIEWABLE',note,version:'57.1'};}
+  function mark(w,note){if(!w)return;w.data_quality_v57={status:'RESEARCH_TEAM_CORRECTION_REVIEWABLE',note,version:'57.2'};}
   function rename(oldTerm,newTerm,note){
     try{
       if(typeof VOCAB_BY_CHAR==='undefined'||typeof VOCAB==='undefined')return;
@@ -31,5 +30,5 @@
   example('杂志','我喜欢读时尚杂志。','Wǒ xǐhuān dú shíshàng zázhì.','Tôi thích đọc tạp chí thời trang.','I like reading fashion magazines.','Repaired unrelated Chinese example / pinyin mismatch.');
   lexical('正','meaning','đang; vừa đúng, chính xác','Filled missing Vietnamese meaning for zhèng adverb; cross-checked against existing example/English meaning and 汉典 usage.');
   example('责任','这是我的责任。','Zhè shì wǒ de zérèn.','Đây là trách nhiệm của tôi.','This is my responsibility.','Repaired 负责/责任 mismatch.');
-  window.PandaHanDataQualityPatch={version:'57.1',applied,correctionFile:'assets/research/data-quality-corrections-v57.json'};
+  window.PandaHanDataQualityPatch={version:'57.2',applied,correctionFile:null};
 })();
