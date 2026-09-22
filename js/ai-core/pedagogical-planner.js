@@ -1,4 +1,4 @@
-/* PanTutor AI v57.1 — explainable pedagogical planner + research decision audit */
+/* PanTutor AI v57.2 — explainable pedagogical planner + research decision audit */
 (function(){
  'use strict';
  const AUDIT_KEY='pandahan_v57_ai_decisions';
@@ -39,13 +39,13 @@
    const d=window.PandaHanDiagnostic?.diagnoseConcept?.(concept)||{issues:[]}; const issue=(d.issues||[]).find(x=>x.type==='SEMANTIC_CONTEXT_CONFUSION') || d.issues?.[0] || null; const it=intervention(issue,concept); const strategy=strategyFor(it);
    const reason=[]; if(issue){reason.push(`${issue.type}${issue.skill?` · ${issue.skill}`:''}`);if(issue.confusedWith)reason.push(`recent confusion with ${issue.confusedWith}`);reason.push(`${issue.evidenceCount||d.evidenceCount} supporting evidence item(s)`);} else reason.push('no persistent weakness detected; continue curriculum');
    if(strategy)reason.push(`learner outcome history also supports ${strategy.strategy}`);
-   const row={decisionId:`DEC-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,targetConcept:String(concept||''),diagnosis:issue,selectedIntervention:it,strategySuggestion:strategy?{strategy:strategy.strategy,utility:strategy.estimate,confidence:strategy.confidence,evidenceCount:strategy.n}:null,whyConcept:issue?'Recent evidence indicates this concept needs targeted support.':'This concept follows the current learning/review path.',whyActivity:issue?`The selected activity targets ${it.targetSkill||'the observed weakness'} instead of repeating unrelated practice.`:'No targeted intervention is needed.',whyNow:d.evidenceCount?`Decision is based on ${d.evidenceCount} recent evidence item(s).`:'Not enough evidence for a stronger adaptation.',confidence:d.confidence||0,reason,generatedAt:Date.now(),modelVersion:'PanTutor-PED-57.1'};
+   const row={decisionId:`DEC-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,targetConcept:String(concept||''),diagnosis:issue,selectedIntervention:it,strategySuggestion:strategy?{strategy:strategy.strategy,utility:strategy.estimate,confidence:strategy.confidence,evidenceCount:strategy.n}:null,whyConcept:issue?'Recent evidence indicates this concept needs targeted support.':'This concept follows the current learning/review path.',whyActivity:issue?`The selected activity targets ${it.targetSkill||'the observed weakness'} instead of repeating unrelated practice.`:'No targeted intervention is needed.',whyNow:d.evidenceCount?`Decision is based on ${d.evidenceCount} recent evidence item(s).`:'Not enough evidence for a stronger adaptation.',confidence:d.confidence||0,reason,generatedAt:Date.now(),modelVersion:'PanTutor-PED-57.2'};
    audit(row);return row;
  }
  function nextGlobal(){
    const g=window.PandaHanDiagnostic?.diagnoseGlobal?.()||{issues:[]};const issue=g.issues?.[0];const it=issue?intervention(issue,''):{action:'normal_curriculum',targetSkill:'general'};const strategy=strategyFor(it);
-   const row=issue?{decisionId:`GLOBAL-${Date.now()}`,focus:issue.skill,intervention:it,strategySuggestion:strategy?{strategy:strategy.strategy,utility:strategy.estimate,confidence:strategy.confidence,evidenceCount:strategy.n}:null,why:`${issue.skill} is currently the weakest repeatedly observed skill.`,issue,generatedAt:Date.now(),modelVersion:'PanTutor-PED-57.1'}:{decisionId:`GLOBAL-${Date.now()}`,focus:'core_curriculum',intervention:{action:'normal_curriculum'},why:'No repeated weakness has enough evidence yet.',generatedAt:Date.now(),modelVersion:'PanTutor-PED-57.1'};
+   const row=issue?{decisionId:`GLOBAL-${Date.now()}`,focus:issue.skill,intervention:it,strategySuggestion:strategy?{strategy:strategy.strategy,utility:strategy.estimate,confidence:strategy.confidence,evidenceCount:strategy.n}:null,why:`${issue.skill} is currently the weakest repeatedly observed skill.`,issue,generatedAt:Date.now(),modelVersion:'PanTutor-PED-57.2'}:{decisionId:`GLOBAL-${Date.now()}`,focus:'core_curriculum',intervention:{action:'normal_curriculum'},why:'No repeated weakness has enough evidence yet.',generatedAt:Date.now(),modelVersion:'PanTutor-PED-57.2'};
    audit({targetConcept:'',selectedIntervention:row.intervention,diagnosis:row.issue||null,...row});return row;
  }
- window.PandaHanPedagogy={planForConcept,nextGlobal,intervention,allAudits,version:'57.1'};
+ window.PandaHanPedagogy={planForConcept,nextGlobal,intervention,allAudits,version:'57.2'};
 })();
