@@ -476,6 +476,21 @@ function loadStats() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
 }
 function saveStats() { localStorage.setItem(STORE_KEY, JSON.stringify(STATS)); }
+let _statsSaveTimer = 0;
+function saveStatsDeferred(delay = 250) {
+  clearTimeout(_statsSaveTimer);
+  _statsSaveTimer = setTimeout(() => {
+    _statsSaveTimer = 0;
+    try { saveStats(); } catch (_) {}
+  }, Math.max(0, delay));
+}
+window.addEventListener("pagehide", () => {
+  if (_statsSaveTimer) {
+    clearTimeout(_statsSaveTimer);
+    _statsSaveTimer = 0;
+    try { saveStats(); } catch (_) {}
+  }
+});
 function loadLog() {
   try { return JSON.parse(localStorage.getItem(LOG_KEY)) || []; } catch (e) { return []; }
 }
@@ -506,7 +521,9 @@ function recordView(char) {
   s.lastSeen = now;
   s.viewLog.push(now);
   if (s.viewLog.length > 50) s.viewLog = s.viewLog.slice(-50);
-  saveStats();
+  // A view is not a graded learning event. Persist it outside the critical
+  // detail-render path so opening a word never blocks on JSON.stringify(STATS).
+  saveStatsDeferred(450);
 }
 
 /* ---------- SM-2 spaced repetition update ---------- */
@@ -1732,11 +1749,13 @@ function openDetail(char) {
   const w = VOCAB_BY_CHAR[char];
   if (!w) return;
   currentDetailChar = char;
-  recordView(char);
-  updateFlagBtn("dFlagBtn", char);
+  const detailToken = `${char}:${Date.now()}`;
+  window.__PANTUTOR_DETAIL_TOKEN__ = detailToken;
 
   showScreen("detail");
 
+  // Render the essential lexical content first. Avoid expensive storage/model
+  // work until the browser has painted the detail screen.
   document.getElementById("dChar").textContent = w.char;
   document.getElementById("dAudioBtn").dataset.speak = w.char;
   document.getElementById("dPinyin").textContent = w.pinyin;
@@ -1753,28 +1772,47 @@ function openDetail(char) {
     (w.hanviet ? `<span class="tag tag-hanviet">${esc(sinoVietnameseLabel())}: ${esc(w.hanviet)}</span>` : "");
 
   const cumtuBox = document.getElementById("dCumtuBox");
-  if (w.cumtu.length) {
+  const collocations = Array.isArray(w.cumtu) ? w.cumtu : [];
+  if (collocations.length) {
     cumtuBox.style.display = "block";
-    document.getElementById("dCumtuList").innerHTML = w.cumtu.map(c =>
+    document.getElementById("dCumtuList").innerHTML = collocations.map(c =>
       `<div class="cumtu-item lookup-text"><button class="audio-mini" data-speak="${esc(c[0])}">🔊</button><b>${esc(c[0])}</b> <span style="color:var(--pink);">(${esc(c[1])})</span> — ${esc(L(c[2], c[3]))}</div>`
     ).join("");
   } else { cumtuBox.style.display = "none"; }
 
-  document.getElementById("dExamplesList").innerHTML = w.examples.map(ex =>
+  const examples = Array.isArray(w.examples) ? w.examples : [];
+  document.getElementById("dExamplesList").innerHTML = examples.map(ex =>
     `<div class="example-item">
       <div class="ex-zh lookup-text"><button class="audio-mini" data-speak="${esc(ex[0])}">🔊</button>${esc(ex[0])}</div>
       <div class="ex-py">${esc(ex[1])}</div>
       <div class="ex-vi lookup-text">${LANG_MODE === "vi" ? "🇻🇳" : "🇬🇧"} ${esc(L(ex[2], ex[3]))}</div>
     </div>`).join("");
 
-  renderSrsPanel(char);
-  applyPersistedHighlights(char);
+  // Wire audio once by event delegation rather than adding listeners every time
+  // a word is opened.
+  const detailView = document.getElementById("detailView");
+  if (detailView && !detailView.dataset.audioDelegated) {
+    detailView.dataset.audioDelegated = "1";
+    detailView.addEventListener("click", (event) => {
+      const btn = event.target?.closest?.("[data-speak]");
+      if (btn && detailView.contains(btn) && btn.dataset.speak) speak(btn.dataset.speak);
+    });
+  }
 
-  document.querySelectorAll("#dAudioBtn,#dCumtuList .audio-mini,#dExamplesList .audio-mini").forEach(b => {
-    b.addEventListener("click", () => speak(b.dataset.speak));
+  // Paint now; secondary state/history work is deferred. This prevents the
+  // dictionary detail page from freezing on large local progress stores.
+  requestAnimationFrame(() => {
+    if (window.__PANTUTOR_DETAIL_TOKEN__ !== detailToken) return;
+    try { recordView(char); updateFlagBtn("dFlagBtn", char); } catch (_) {}
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 80));
+    idle(() => {
+      if (window.__PANTUTOR_DETAIL_TOKEN__ !== detailToken) return;
+      try { renderSrsPanel(char); } catch (err) { console.warn("Detail SRS render:", err); }
+      try { applyPersistedHighlights(char); } catch (_) {}
+    }, { timeout: 700 });
   });
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "auto" });
 }
 
 function renderChietu(raw, source) {
@@ -1935,15 +1973,19 @@ function renderSrsPanel(char) {
       byKey[k].t = log.t; // keep the latest timestamp of that day
     });
     let rows = "";
-    days.forEach((day, i) => {
-      const prev = i > 0 ? days[i - 1].t : s.firstSeen;
+    // Rendering an unbounded history can make the detail page sluggish for
+    // long-running learners. Keep the total counter, but show only recent days.
+    const visibleDays = days.slice(-40);
+    visibleDays.forEach((day, visibleIndex) => {
+      const originalIndex = days.indexOf(day);
+      const prev = originalIndex > 0 ? days[originalIndex - 1].t : s.firstSeen;
       const gap = Math.round((day.t - prev) / 86400000);
-      const isLast = i === days.length - 1;
+      const isLast = visibleIndex === visibleDays.length - 1;
       const avg = day.grades.reduce((a, b) => a + b, 0) / day.grades.length;
       const gradeLabel = day.grades.length > 1
         ? `${avg.toFixed(1)}/5 <span style="color:var(--text-light);font-size:11px;">(${day.grades.length} ${L("lần", "attempts")})</span>`
         : `${day.grades[0]}/5`;
-      rows += `<tr class="${isLast ? 'highlight' : ''}"><td>${i + 1}</td><td>${fmtDate(day.t)}</td><td>${i === 0 ? '—' : gap + ' ngày'}</td><td>${gradeLabel}</td></tr>`;
+      rows += `<tr class="${isLast ? 'highlight' : ''}"><td>${originalIndex + 1}</td><td>${fmtDate(day.t)}</td><td>${originalIndex === 0 ? '—' : gap + ' ngày'}</td><td>${gradeLabel}</td></tr>`;
     });
     tbody.innerHTML = rows;
   }
