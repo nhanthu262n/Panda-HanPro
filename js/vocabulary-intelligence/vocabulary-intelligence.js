@@ -1,4 +1,4 @@
-/* PanTutor AI v57.3 — lean Vocabulary Intelligence.
+/* PanTutor AI v58 — lean Vocabulary Intelligence + professor-agenda alignment.
    Uses the existing 2,254-entry PanTutor VOCAB database as the single runtime source.
    Intelligence metadata is derived lazily so the browser does not parse/keep a second 5 MB copy. */
 (function(){
@@ -63,10 +63,12 @@
       },
       provenance:{
         lexicalSource:'PanTutor HSK1-3 primary runtime database',
+        lexicalStatus:'PANTUTOR_CORE_CURATED',
         legacyAnalysisSource:w.chietu_source||'unspecified',
-        status,
+        legacyAnalysisStatus:status,
+        status, // compatibility alias: this status applies to the legacy structure/mnemonic note, not to every lexical field
         reviewRequired:status==='AI_DRAFT_REVIEW_REQUIRED'||status==='NEEDS_REVIEW',
-        migration:'PanTutor AI v57.3 lazy non-destructive runtime adapter'
+        migration:'PanTutor AI v58 lazy non-destructive runtime adapter'
       },
       sourceRefs:sourceRefsFor(term),
       verificationPlan:single?{
@@ -91,7 +93,7 @@
         if(!charIndex.has(ch))charIndex.set(ch,[]); charIndex.get(ch).push(term);
       }
     }
-    summary={version:'57.3-lean-runtime',generatedFrom:'PanTutor primary VOCAB database',entryCount:words.length,hskCounts,characterEntries:chars,wordOrPhraseEntries:Math.max(0,words.length-chars),provenanceCounts,sources:[
+    summary={version:'58.0-lean-runtime',generatedFrom:'PanTutor primary VOCAB database',entryCount:words.length,hskCounts,characterEntries:chars,wordOrPhraseEntries:Math.max(0,words.length-chars),provenanceCounts,sources:[
       {id:'pantutor_core',name:'PanTutor HSK 1-3 primary runtime database'},
       {id:'gf0025',name:'GF 0025-2021 alignment target'},
       {id:'cccedict',name:'CC-CEDICT lexical verification target'},
@@ -99,14 +101,14 @@
       {id:'makemeahanzi',name:'Make Me a Hanzi structural verification target'}
     ]};
     ready=true;
-    window.dispatchEvent(new CustomEvent('pandahan-v57-vocab-intelligence-ready',{detail:{count:summary.entryCount}}));
+    window.dispatchEvent(new CustomEvent('pandahan-v58-vocab-intelligence-ready',{detail:{count:summary.entryCount}}));
     return summary;
   }
   async function load(){ return init(); }
   function get(term){ init(); return buildEntry(byTerm(term)); }
   function provenance(term){ return get(term)?.provenance||null; }
   function meaningValue(e){return String(e?.lexical?.meaning_vi||e?.lexical?.meaning_en||e?.lexical?.definition_zh||e?.term||'').trim();}
-  function buildTeachingView(term){const e=get(term);if(!e)return null;const isChar=e.entryType==='character';return {term:e.term,mode:isChar?'CHARACTER_INTELLIGENCE':'WORD_INTELLIGENCE',thinkFirst:isChar,linguisticFacts:{type:e.entryType,characters:e.characterLayer.characters,pinyin:e.lexical.pinyin,meaning:meaningValue(e),pos:e.lexical.pos},memoryAid:{text:e.characterLayer.legacyAnalysis,label:'LEGACY MEMORY / STRUCTURE NOTE',mustNotBeTreatedAsEtymology:e.characterLayer.factMnemonicSeparationRequired},wordUse:e.wordLayer,provenance:e.provenance,sourceRefs:e.sourceRefs||[],verificationPlan:e.verificationPlan||{},skills:e.pedagogy.skills};}
+  function buildTeachingView(term){const e=get(term);if(!e)return null;const isChar=e.entryType==='character';const agenda=window.PanTutorAgendaAlignment?.alignEntry?.(e)||null;return {term:e.term,mode:isChar?'CHARACTER_INTELLIGENCE':'WORD_INTELLIGENCE',thinkFirst:isChar,linguisticFacts:{type:e.entryType,characters:e.characterLayer.characters,pinyin:e.lexical.pinyin,meaning:meaningValue(e),pos:e.lexical.pos},memoryAid:{text:e.characterLayer.legacyAnalysis,label:'LEGACY MEMORY / STRUCTURE NOTE',mustNotBeTreatedAsEtymology:e.characterLayer.factMnemonicSeparationRequired},wordUse:e.wordLayer,agendaAlignment:agenda,industryScenario:agenda?window.PanTutorAgendaAlignment?.scenarioFor?.(e,agenda.preferredTrack):null,provenance:e.provenance,sourceRefs:e.sourceRefs||[],verificationPlan:e.verificationPlan||{},skills:e.pedagogy.skills};}
   function recordReasoning(term,correct,meta={}){return window.PandaHanEvidence?.save?.({conceptId:term,module:'vocabulary_intelligence',skill:'vocabulary',subSkill:'component_reasoning',taskType:'character_reasoning',correct:!!correct,evidenceWeight:.72,...meta});}
   function recordTransfer(sourceTerm,targetTerm,correct,meta={}){return window.PandaHanEvidence?.save?.({conceptId:sourceTerm,module:'vocabulary_intelligence',skill:'vocabulary',subSkill:'transfer',taskType:'lexical_transfer',correct:!!correct,evidenceWeight:.9,meta:{targetTerm,...meta}});}
   function hash(s){let h=2166136261;for(const ch of String(s||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0;}
@@ -120,5 +122,5 @@
   }
   function gradeTask(task,selected){if(!task)return null;const correct=String(selected)===String(task.answer);const ev=window.PandaHanEvidence?.save?.({conceptId:task.conceptId,module:'vocabulary_intelligence',skill:'vocabulary',subSkill:task.skill,taskType:task.type,correct,evidenceWeight:task.type==='lexical_transfer'?.9:(task.type==='context_cloze'?.72:.48),answer:selected,expected:task.answer,confusedWith:task.decision?.selectedIntervention?.contrastWith||'',errorType:(!correct&&task.decision?.selectedIntervention?.contrastWith)?'SEMANTIC_CONFUSION':'',meta:{taskId:task.id,targetConcept:task.targetConcept||''}});return{correct,evidence:ev,expected:task.answer};}
   function reviewQueue(statuses=['AI_DRAFT_REVIEW_REQUIRED','NEEDS_REVIEW']){init();return baseWords().filter(w=>statuses.includes(sourceStatus(w))).map(buildEntry);}
-  window.PandaHanVocabularyIntelligence={load,get,provenance,buildTeachingView,recordReasoning,recordTransfer,taskFactory,gradeTask,reviewQueue,get catalog(){return summary;},version:'57.3'};
+  window.PandaHanVocabularyIntelligence={load,get,provenance,buildTeachingView,recordReasoning,recordTransfer,taskFactory,gradeTask,reviewQueue,agendaFor(term){const e=get(term);return e?window.PanTutorAgendaAlignment?.alignEntry?.(e)||null:null;},projectPrompt(term,track){const e=get(term);return e?window.PanTutorAgendaAlignment?.projectPrompt?.(e,track)||null:null;},get catalog(){return summary;},version:'58.0'};
 })();
