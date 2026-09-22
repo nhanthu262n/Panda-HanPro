@@ -1,5 +1,5 @@
-// v57.1-evidence-driven-ai-education-20260922
-const CACHE_NAME = "pantutor-runtime-v57-1-20260922";
+// v57.2-optimized-vocabulary-runtime-20260922
+const CACHE_NAME = "pantutor-runtime-v57-2-20260922";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
