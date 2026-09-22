@@ -1427,37 +1427,67 @@ function getFilteredVocab() {
   });
 }
 
+let vocabGridRenderVersion = 0;
+const vocabGridObservers = {};
 function renderGrids() {
   const filtered = getFilteredVocab();
-  
-  // Async rendering to prevent UI freeze
-  const renderLevel = (level) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const list = filtered.filter(w => w.hsk === level);
-        const grid = document.getElementById("hsk" + level + "Grid");
-        if (grid) {
-          grid.innerHTML = list.map(cardHtml).join("") || '<p style="color:var(--text-light);padding:10px;">Không tìm thấy / No results</p>';
-        }
-        const allLevel = VOCAB.filter(w => w.hsk === level);
-        const learnedLevel = allLevel.filter(w => getTier(w.char) > 0).length;
-        const countEl = document.getElementById("hsk" + level + "Count");
-        if (countEl) countEl.textContent = L(`${learnedLevel}/${allLevel.length} đã học`, `${learnedLevel}/${allLevel.length} studied`);
-        resolve();
-      }, 0);
-    });
-  };
+  const version = ++vocabGridRenderVersion;
+  const BATCH = 72;
 
-  // Run updates sequentially in small batches
-  (async () => {
-    await renderLevel(1);
-    await renderLevel(2);
-    await renderLevel(3);
-    updateHeaderStats();
-  })();
-  
-  // Only attach handlers once using delegation
+  [1, 2, 3].forEach(level => {
+    const list = filtered.filter(w => w.hsk === level);
+    const grid = document.getElementById("hsk" + level + "Grid");
+    if (!grid) return;
+    vocabGridObservers[level]?.disconnect?.();
+    grid.innerHTML = "";
+
+    if (!list.length) {
+      grid.innerHTML = '<p style="color:var(--text-light);padding:10px;">Không tìm thấy / No results</p>';
+    } else {
+      let cursor = 0;
+      const appendBatch = () => {
+        if (version !== vocabGridRenderVersion) return;
+        const end = Math.min(cursor + BATCH, list.length);
+        if (end <= cursor) return;
+        const tpl = document.createElement("template");
+        tpl.innerHTML = list.slice(cursor, end).map(cardHtml).join("");
+        const existingSentinel = grid.querySelector('.vocab-load-sentinel');
+        if (existingSentinel) grid.insertBefore(tpl.content, existingSentinel);
+        else grid.appendChild(tpl.content);
+        cursor = end;
+        if (cursor >= list.length) {
+          const old = grid.querySelector('.vocab-load-sentinel'); if (old) old.remove();
+          vocabGridObservers[level]?.disconnect?.();
+          return;
+        }
+        let sentinel = grid.querySelector('.vocab-load-sentinel');
+        if (!sentinel) {
+          sentinel = document.createElement('button');
+          sentinel.type = 'button';
+          sentinel.className = 'vocab-load-sentinel';
+          sentinel.style.cssText = 'grid-column:1/-1;border:1px dashed #cbd5e1;background:#f8fafc;color:#64748b;border-radius:12px;padding:10px;cursor:pointer;font-weight:700';
+          sentinel.addEventListener('click', appendBatch);
+          grid.appendChild(sentinel);
+        }
+        sentinel.textContent = L(`Hiển thị thêm (${cursor}/${list.length})`, `Load more (${cursor}/${list.length})`);
+      };
+      appendBatch(); // first paint stays small and fast
+      const sentinel = grid.querySelector('.vocab-load-sentinel');
+      if (sentinel && 'IntersectionObserver' in window) {
+        const obs = new IntersectionObserver(entries => {
+          if (entries.some(x => x.isIntersecting)) appendBatch();
+        }, { rootMargin: '500px 0px' });
+        obs.observe(sentinel); vocabGridObservers[level] = obs;
+      }
+    }
+
+    const allLevel = VOCAB.filter(w => w.hsk === level);
+    let learnedLevel = 0; for (const w of allLevel) if (getTier(w.char) > 0) learnedLevel++;
+    const countEl = document.getElementById("hsk" + level + "Count");
+    if (countEl) countEl.textContent = L(`${learnedLevel}/${allLevel.length} đã học`, `${learnedLevel}/${allLevel.length} studied`);
+  });
   grid_attachHandlers();
+  updateHeaderStats();
 }
 
 let isGridHandlerAttached = false;
@@ -1497,17 +1527,20 @@ function populatePosFilter() {
 }
 
 function updateHeaderStats() {
-  const el1 = document.getElementById("hdrHsk1");
-  const el2 = document.getElementById("hdrHsk2");
-  const el3 = document.getElementById("hdrHsk3");
-  const elL = document.getElementById("hdrLearned");
-  const elD = document.getElementById("hdrDue");
-  
-  if (el1) el1.textContent = VOCAB.filter(w => w.hsk === 1 && getTier(w.char) > 0).length + "/" + VOCAB.filter(w => w.hsk === 1).length;
-  if (el2) el2.textContent = VOCAB.filter(w => w.hsk === 2 && getTier(w.char) > 0).length + "/" + VOCAB.filter(w => w.hsk === 2).length;
-  if (el3) el3.textContent = VOCAB.filter(w => w.hsk === 3 && getTier(w.char) > 0).length + "/" + VOCAB.filter(w => w.hsk === 3).length;
-  if (elL) elL.textContent = VOCAB.filter(w => getTier(w.char) > 0).length;
-  if (elD) elD.textContent = VOCAB.filter(w => isDue(w.char)).length;
+  const totals = {1:0,2:0,3:0}, learned = {1:0,2:0,3:0};
+  let learnedAll = 0, dueAll = 0;
+  for (const w of VOCAB) {
+    const h = Number(w.hsk || 0); if (totals[h] != null) totals[h]++;
+    const tier = getTier(w.char); if (tier > 0) { learnedAll++; if (learned[h] != null) learned[h]++; }
+    if (isDue(w.char)) dueAll++;
+  }
+  const el1 = document.getElementById("hdrHsk1"), el2 = document.getElementById("hdrHsk2"), el3 = document.getElementById("hdrHsk3");
+  const elL = document.getElementById("hdrLearned"), elD = document.getElementById("hdrDue");
+  if (el1) el1.textContent = `${learned[1]}/${totals[1]}`;
+  if (el2) el2.textContent = `${learned[2]}/${totals[2]}`;
+  if (el3) el3.textContent = `${learned[3]}/${totals[3]}`;
+  if (elL) elL.textContent = learnedAll;
+  if (elD) elD.textContent = dueAll;
 }
 
 /* ---------- Study reminder (voice notification when vocab review is due) ---------- */
@@ -3408,6 +3441,7 @@ function showScreen(name) {
   else if (name === "addWord") { if (el("addWordView")) { el("addWordView").classList.add("visible"); el("addWordView").style.display = "block"; } }
   else if (name === "wordList") { if (el("wordListView")) { el("wordListView").classList.add("visible"); el("wordListView").style.display = "block"; } }
   else if (name === "pinyin") { if (el("pinyinView")) { el("pinyinView").classList.add("visible"); el("pinyinView").style.display = "block"; if (typeof renderPinyinView === "function") renderPinyinView(); } }
+  window.dispatchEvent(new CustomEvent("pandahan-screen-changed", { detail: { name } }));
 }
 
 /* ===================== TEACHER DASHBOARD (reads other users' namespaced data) ===================== */
