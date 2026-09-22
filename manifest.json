@@ -1,9 +1,0 @@
-{
-  "name": "PanTutor AI v58",
-  "short_name": "PanTutor",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#fffafc",
-  "theme_color": "#ec4899",
-  "description": "Human-centred, evidence-driven adaptive AI Chinese learning with bounded agentic orchestration, governance and industry application transfer."
-}
