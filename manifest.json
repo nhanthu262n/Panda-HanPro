@@ -1,0 +1,9 @@
+{
+  "name": "PanTutor AI v57.1",
+  "short_name": "PanTutor",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fffafc",
+  "theme_color": "#ec4899",
+  "description": "Evidence-driven, provenance-aware, human-centred adaptive AI learning system for Chinese language learning."
+}
