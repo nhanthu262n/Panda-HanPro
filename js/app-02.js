@@ -356,16 +356,94 @@ function loadCustomWords() {
 function saveCustomWords(list) { localStorage.setItem("pandahan_custom_words_v1", JSON.stringify(list)); }
 
 /* ---------- Normalize vocab data ---------- */
-const VOCAB = VOCAB_RAW.concat(loadCustomWords()).map((w, i) => ({
-  id: i,
-  char: w.char, pinyin: w.pinyin, hanviet: w.hanviet, pos: w.pos,
-  meaning: w.meaning, meaning_en: w.meaning_en, def_zh: w.def_zh, hsk: w.hsk,
-  cumtu: w.cumtu || [], examples: w.examples || [],
-  mc: w.mc || [], unscramble: w.unscramble || [], fill: w.fill || [],
-  chietu_vi: w.chietu_vi || "", chietu_en: w.chietu_en || "", chietu_source: w.chietu_source || "",
-  isCustom: !!w.isCustom,
-}));
+const VOCABULARY_INTELLIGENCE_SCHEMA_VERSION = "1.0.0";
+const VOCABULARY_INTELLIGENCE_SAMPLES = {
+  "方便": {
+    character_intelligence: { structure: "左右结构", components: ["方", "便"], semantic_component: "亻（người; trong 便）", phonetic_component: "更（gợi âm trong 便）", mnemonic_vi: "Mẹo nhớ học tập: có người (亻) tìm được phương cách (方) phù hợp thì công việc trở nên thuận tiện. Đây là liên tưởng ghi nhớ, không phải giải thích từ nguyên lịch sử.", mnemonic_en: "Learning mnemonic: when a person (亻) finds a suitable way (方), things become convenient. This is a memory aid, not a historical etymology claim.", historical_note: "Mục ghi chú lịch sử chưa được xác minh; không suy diễn từ mnemonic.", cultural_connection_vi: "方便 thường xuất hiện trong giao tiếp lịch sự khi hỏi người khác có tiện hay không.", cultural_connection_en: "方便 commonly appears in polite interaction when asking whether something is convenient.", source_type: "Teacher-reviewed", validation_status: "Teacher-reviewed" },
+    usage_intelligence: { core_meaning_vi: "thuận tiện; tiện", core_meaning_en: "convenient; suitable", collocations: ["很方便", "交通方便", "方便联系", "不太方便"], sentence_patterns: ["对 + người + 来说很方便", "如果你方便，就……", "方便 + động từ"], confusable_words: [{ word: "便利", distinction_vi: "便利 trang trọng hơn và thường mô tả điều kiện/dịch vụ; 方便 dùng rộng trong hội thoại.", distinction_en: "便利 is more formal and often describes facilities or conditions; 方便 is broader in conversation." }], common_errors: ["Không dùng 方便 như danh từ chỉ một vật cụ thể.", "Khi hỏi lịch sự nên nói 你方便吗？ hoặc 你什么时候方便？"], register: "neutral; frequent in spoken and written Chinese", contexts: ["scheduling", "transport", "communication", "daily life"] },
+    pedagogy: { recognition_tasks: ["Chọn ngữ cảnh mà 方便 mang nghĩa 'tiện'.", "Phân biệt 方便 và 便利 trong hai câu."], productive_tasks: ["Viết một câu hỏi lịch sự để hẹn thời gian với 方便."], problem_solving_seed: ["Bạn cần đổi lịch họp: dùng 方便 để đề xuất hai thời điểm và hỏi người nghe chọn."], reflection_seed: ["Bạn thường nhầm 方便 với từ nào? Dấu hiệu ngữ cảnh nào giúp bạn chọn đúng?"] },
+    provenance: { content_origin: "PanTutor editorial enrichment", reviewed_by_teacher: true, reference: "Existing PanTutor entry + teacher-reviewed usage notes", last_reviewed_at: "2026-09-22" }
+  },
+  "情况": {
+    character_intelligence: { structure: "左右结构 + 左右结构", components: ["忄", "青", "冫", "兄"], semantic_component: "忄 gợi liên hệ trạng thái/cảm nhận trong 情", phonetic_component: "青 gợi âm của 情; 兄 gợi âm của 况", mnemonic_vi: "Mẹo nhớ: quan sát trạng thái và hoàn cảnh để hiểu toàn bộ tình hình. Đây chỉ là liên tưởng học tập.", mnemonic_en: "Mnemonic: observe states and circumstances to understand the whole situation. This is a learning association only.", historical_note: "Các thành phần hình thanh cần được tra cứu nguồn từ nguyên chuyên môn nếu dùng trong nghiên cứu lịch sử chữ.", cultural_connection_vi: "情况 là từ trung tính, dùng nhiều trong báo cáo, công việc và giao tiếp hằng ngày.", cultural_connection_en: "情况 is neutral and common in reports, work, and everyday conversation.", source_type: "Verified reference", validation_status: "Verified reference" },
+    usage_intelligence: { core_meaning_vi: "tình hình; tình trạng; hoàn cảnh cụ thể", core_meaning_en: "situation; condition; circumstances", collocations: ["了解情况", "说明情况", "实际情况", "特殊情况"], sentence_patterns: ["根据……的情况", "把情况说清楚", "情况 + tính từ"], confusable_words: [{ word: "状态", distinction_vi: "状态 nhấn mạnh trạng thái tại một thời điểm; 情况 bao quát hoàn cảnh và diễn biến.", distinction_en: "状态 focuses on a state at a point in time; 情况 covers broader circumstances and developments." }], common_errors: ["Không dịch máy móc mọi trường hợp thành 'condition'.", "Nói tự nhiên: 说明情况 / 了解情况, không dùng sai trật tự từ."], register: "neutral", contexts: ["reporting", "workplace", "health", "emergencies"] },
+    pedagogy: { recognition_tasks: ["Chọn giữa 情况 và 状态 theo ngữ cảnh."], productive_tasks: ["Tóm tắt tình hình công việc trong hai câu."], problem_solving_seed: ["Có sự cố giao hàng: mô tả 情况, nguyên nhân và phương án xử lý."], reflection_seed: ["Bạn dựa vào từ khóa nào để phân biệt 情况 với 状态?"] },
+    provenance: { content_origin: "PanTutor curated reference enrichment", reviewed_by_teacher: true, reference: "Existing PanTutor entry; standard modern usage cross-check", last_reviewed_at: "2026-09-22" }
+  },
+  "安排": {
+    character_intelligence: { structure: "上下结构 + 左右结构", components: ["宀", "女", "扌", "非"], semantic_component: "扌 gợi hành động trong 排", phonetic_component: "非 gợi âm của 排", mnemonic_vi: "Mẹo nhớ: đặt công việc vào vị trí và thứ tự phù hợp để tạo thành một kế hoạch. Không xem đây là từ nguyên lịch sử.", mnemonic_en: "Mnemonic: place tasks in a suitable order to form a plan. This is not presented as historical etymology.", historical_note: "Chưa bổ sung chú giải lịch sử có nguồn kiểm chứng.", cultural_connection_vi: "安排 có thể là động từ 'sắp xếp' hoặc danh từ 'sự sắp xếp/kế hoạch'.", cultural_connection_en: "安排 can function as the verb 'arrange' or the noun 'arrangement/plan'.", source_type: "Teacher-reviewed", validation_status: "Teacher-reviewed" },
+    usage_intelligence: { core_meaning_vi: "sắp xếp; bố trí; kế hoạch đã sắp", core_meaning_en: "arrange; schedule; arrangement", collocations: ["安排时间", "安排工作", "工作安排", "合理安排"], sentence_patterns: ["安排 + người + động từ", "把 + sự việc + 安排好", "按照安排"], confusable_words: [{ word: "计划", distinction_vi: "计划 nhấn mạnh kế hoạch/dự định; 安排 nhấn mạnh việc bố trí người, thời gian hoặc công việc cụ thể.", distinction_en: "计划 emphasizes a plan or intention; 安排 emphasizes concrete allocation of people, time, or tasks." }], common_errors: ["Tránh ghép trật tự từ không tự nhiên như 我们情况说清楚只有才安排方便重新。", "Với 把: 把时间安排好。"], register: "neutral", contexts: ["work", "travel", "meetings", "study"] },
+    pedagogy: { recognition_tasks: ["Phân biệt 安排 và 计划 trong câu công việc."], productive_tasks: ["Sắp xếp lại câu dùng 把……安排好."], problem_solving_seed: ["Lịch họp bị trùng: đề xuất cách 安排 lại thời gian và nhân sự."], reflection_seed: ["Bạn đã dùng 安排 như động từ hay danh từ? Bằng chứng trong câu là gì?"] },
+    provenance: { content_origin: "PanTutor editorial enrichment", reviewed_by_teacher: true, reference: "Existing PanTutor entry + teacher-reviewed usage notes", last_reviewed_at: "2026-09-22" }
+  },
+  "联系": {
+    character_intelligence: { structure: "左右结构 + 上下结构", components: ["耳", "关", "丿", "幺", "小"], semantic_component: "糸/纟 liên quan đến nối kết trong 系", phonetic_component: "Không khẳng định khi chưa có nguồn xác minh", mnemonic_vi: "Mẹo nhớ: các đầu mối được nối lại với nhau tạo thành sự liên hệ. Đây là hình ảnh ghi nhớ hiện đại.", mnemonic_en: "Mnemonic: separate points are tied together to create contact. This is a modern learning image.", historical_note: "Không dùng hình ảnh 'sợi dây liên hệ' như một kết luận từ nguyên.", cultural_connection_vi: "联系 thường dùng trong công việc: 联系客户, 保持联系.", cultural_connection_en: "联系 is frequent in workplace communication: 联系客户, 保持联系.", source_type: "AI-assisted draft", validation_status: "AI-assisted draft" },
+    usage_intelligence: { core_meaning_vi: "liên hệ; liên lạc; mối liên hệ", core_meaning_en: "contact; connect; relation", collocations: ["联系客户", "保持联系", "取得联系", "直接联系"], sentence_patterns: ["跟/和 + người + 联系", "联系 + người", "……之间有联系"], confusable_words: [{ word: "关系", distinction_vi: "联系 nhấn mạnh hành động liên lạc hoặc sự kết nối; 关系 nhấn mạnh quan hệ giữa người/sự vật.", distinction_en: "联系 emphasizes contacting or a connection; 关系 emphasizes a relationship." }], common_errors: ["Không nói 联系给我; dùng 联系我 hoặc 给我打电话。"], register: "neutral", contexts: ["business", "personal communication", "cause-and-effect"] },
+    pedagogy: { recognition_tasks: ["Chọn 联系 hoặc 关系 theo ý nghĩa hành động/quan hệ."], productive_tasks: ["Viết tin nhắn yêu cầu khách hàng liên hệ lại."], problem_solving_seed: ["Không liên lạc được với đồng nghiệp: nêu ba cách 联系 và chọn cách phù hợp nhất."], reflection_seed: ["Bạn chọn 联系 hay 关系? Hãy giải thích dựa trên chức năng ngữ pháp."] },
+    provenance: { content_origin: "AI-assisted draft for teacher review", reviewed_by_teacher: false, reference: "Existing PanTutor entry; requires teacher validation", last_reviewed_at: null }
+  },
+  "需要": {
+    character_intelligence: { structure: "上下结构 + 上下结构", components: ["雨", "而", "覀", "女"], semantic_component: "Chưa xác định trong bản học liệu này", phonetic_component: "Chưa xác định trong bản học liệu này", mnemonic_vi: "Mẹo nhớ: khi hoàn cảnh đòi hỏi một điều gì, ta nói điều đó là cần thiết. Không dùng mẹo này để mô tả lịch sử cấu tạo chữ.", mnemonic_en: "Mnemonic: when circumstances call for something, it is needed. This does not describe the characters' historical formation.", historical_note: "Để trống kết luận từ nguyên cho đến khi có nguồn chuyên khảo.", cultural_connection_vi: "需要 vừa là động từ 'cần' vừa có thể là danh từ 'nhu cầu'.", cultural_connection_en: "需要 functions as both the verb 'need' and the noun 'need/requirement'.", source_type: "Verified reference", validation_status: "Verified reference" },
+    usage_intelligence: { core_meaning_vi: "cần; cần phải; nhu cầu", core_meaning_en: "need; require; necessity", collocations: ["需要帮助", "需要时间", "根据需要", "实际需要"], sentence_patterns: ["需要 + danh từ", "需要 + động từ", "不需要……"], confusable_words: [{ word: "必须", distinction_vi: "必须 biểu thị bắt buộc mạnh; 需要 biểu thị nhu cầu hoặc điều cần thiết.", distinction_en: "必须 expresses strong obligation; 需要 expresses a need or requirement." }], common_errors: ["Không thêm 要 sau 需要 trong cấu trúc đơn giản: 我需要休息, không phải 我需要要休息。"], register: "neutral", contexts: ["requests", "requirements", "health", "work"] },
+    pedagogy: { recognition_tasks: ["Phân biệt 需要 và 必须 theo mức độ bắt buộc."], productive_tasks: ["Viết ba điều bạn cần để hoàn thành một nhiệm vụ."], problem_solving_seed: ["Nguồn lực có hạn: xác định việc nào 需要 làm trước và giải thích lý do."], reflection_seed: ["Trong câu của bạn, 需要 là động từ hay danh từ?"] },
+    provenance: { content_origin: "PanTutor curated reference enrichment", reviewed_by_teacher: true, reference: "Existing PanTutor entry; standard modern usage cross-check", last_reviewed_at: "2026-09-22" }
+  },
+  "其实": {
+    character_intelligence: { structure: "上下结构 + 上下结构", components: ["八", "其余部分", "宀", "贯穿部件"], semantic_component: "宀 trong 实 gợi phạm vi bên trong/điều thực", phonetic_component: "Không khẳng định khi chưa có nguồn xác minh", mnemonic_vi: "Mẹo nhớ: bỏ lớp bề ngoài để nói điều thực tế bên trong — 'thật ra'. Đây là liên tưởng nghĩa, không phải từ nguyên.", mnemonic_en: "Mnemonic: look beneath the surface to state what is actually true—'in fact'. This is a meaning association, not etymology.", historical_note: "Không diễn giải cấu tạo lịch sử của 其/实 khi chưa có tài liệu tham chiếu.", cultural_connection_vi: "其实 thường dùng để điều chỉnh, làm mềm hoặc bổ sung điều người nói vừa nêu.", cultural_connection_en: "其实 often introduces a correction, clarification, or softer contrast.", source_type: "AI-assisted draft", validation_status: "AI-assisted draft" },
+    usage_intelligence: { core_meaning_vi: "thật ra; thực ra", core_meaning_en: "actually; in fact", collocations: ["其实不是", "其实很简单", "其实我觉得", "其实……但是……"], sentence_patterns: ["其实 + mệnh đề", "……，其实……", "其实……，只是……"], confusable_words: [{ word: "实际上", distinction_vi: "实际上 trang trọng và khách quan hơn; 其实 tự nhiên hơn trong hội thoại và thường sửa một ấn tượng trước đó.", distinction_en: "实际上 is more formal and objective; 其实 is more conversational and often corrects a prior impression." }], common_errors: ["Không dùng 其实 như tính từ đứng trực tiếp trước danh từ.", "Dùng dấu phẩy hợp lý khi 其实 mở đầu mệnh đề."], register: "neutral; especially common in speech", contexts: ["clarification", "contrast", "personal opinion", "correction"] },
+    pedagogy: { recognition_tasks: ["Chọn vị trí tự nhiên của 其实 trong câu."], productive_tasks: ["Viết một câu sửa lại hiểu lầm bằng 其实."], problem_solving_seed: ["Một người hiểu sai nguyên nhân: dùng 其实 để giải thích tình hình thật và đưa giải pháp."], reflection_seed: ["其实 đã thay đổi kỳ vọng của người nghe trong câu như thế nào?"] },
+    provenance: { content_origin: "AI-assisted draft for teacher review", reviewed_by_teacher: false, reference: "Existing PanTutor entry; requires teacher validation", last_reviewed_at: null }
+  }
+};
+
+function safeArray(value) { return Array.isArray(value) ? value : []; }
+function safeObject(value) { return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
+function normalizeVocabularyIntelligence(w) {
+  const sample = safeObject(VOCABULARY_INTELLIGENCE_SAMPLES[String(w?.char || "")]);
+  const ci = { ...safeObject(sample.character_intelligence), ...safeObject(w?.character_intelligence) };
+  const ui = { ...safeObject(sample.usage_intelligence), ...safeObject(w?.usage_intelligence) };
+  const pedagogy = { ...safeObject(sample.pedagogy), ...safeObject(w?.pedagogy) };
+  const provenance = { ...safeObject(sample.provenance), ...safeObject(w?.provenance) };
+  const fallbackCollocations = safeArray(w?.cumtu).map((item) => Array.isArray(item) ? String(item[0] || "") : String(item || "")).filter(Boolean);
+  const fallbackRecognition = safeArray(w?.mc).slice(0, 2);
+  const fallbackProductive = [...safeArray(w?.unscramble).slice(0, 1), ...safeArray(w?.fill).slice(0, 1)];
+  return {
+    character_intelligence: {
+      structure: String(ci.structure || ""), components: safeArray(ci.components), semantic_component: String(ci.semantic_component || ""), phonetic_component: String(ci.phonetic_component || ""),
+      mnemonic_vi: String(ci.mnemonic_vi || w?.chietu_vi || ""), mnemonic_en: String(ci.mnemonic_en || w?.chietu_en || ""), historical_note: String(ci.historical_note || ""),
+      cultural_connection_vi: String(ci.cultural_connection_vi || ""), cultural_connection_en: String(ci.cultural_connection_en || ""),
+      source_type: String(ci.source_type || (w?.chietu_source === "verified" ? "Verified reference" : "Legacy content")), validation_status: String(ci.validation_status || (w?.chietu_source === "verified" ? "Verified reference" : "Unreviewed legacy"))
+    },
+    usage_intelligence: {
+      core_meaning_vi: String(ui.core_meaning_vi || w?.meaning || ""), core_meaning_en: String(ui.core_meaning_en || w?.meaning_en || ""),
+      collocations: safeArray(ui.collocations).length ? safeArray(ui.collocations) : fallbackCollocations, sentence_patterns: safeArray(ui.sentence_patterns), confusable_words: safeArray(ui.confusable_words),
+      common_errors: safeArray(ui.common_errors), register: String(ui.register || ""), contexts: safeArray(ui.contexts)
+    },
+    pedagogy: {
+      recognition_tasks: safeArray(pedagogy.recognition_tasks).length ? safeArray(pedagogy.recognition_tasks) : fallbackRecognition,
+      productive_tasks: safeArray(pedagogy.productive_tasks).length ? safeArray(pedagogy.productive_tasks) : fallbackProductive,
+      problem_solving_seed: safeArray(pedagogy.problem_solving_seed), reflection_seed: safeArray(pedagogy.reflection_seed)
+    },
+    provenance: {
+      content_origin: String(provenance.content_origin || w?.chietu_source || "Legacy PanTutor vocabulary"), reviewed_by_teacher: provenance.reviewed_by_teacher === true,
+      reference: String(provenance.reference || w?.chietu_source || ""), last_reviewed_at: provenance.last_reviewed_at == null ? null : String(provenance.last_reviewed_at)
+    }
+  };
+}
+function normalizeVocabularyRecord(w, id, options = {}) {
+  const source = safeObject(w);
+  return {
+    ...source, id,
+    char: String(source.char || ""), pinyin: String(source.pinyin || ""), hanviet: String(source.hanviet || ""), pos: String(source.pos || ""),
+    meaning: String(source.meaning || ""), meaning_en: String(source.meaning_en || ""), def_zh: String(source.def_zh || source.meaning || ""), hsk: Number(source.hsk || 0),
+    cumtu: safeArray(source.cumtu), examples: safeArray(source.examples), mc: safeArray(source.mc), unscramble: safeArray(source.unscramble), fill: safeArray(source.fill),
+    chietu_vi: String(source.chietu_vi || ""), chietu_en: String(source.chietu_en || ""), chietu_source: String(source.chietu_source || ""),
+    ...normalizeVocabularyIntelligence(source), schema_version: VOCABULARY_INTELLIGENCE_SCHEMA_VERSION, isCustom: options.isCustom === true || !!source.isCustom
+  };
+}
+const VOCAB = VOCAB_RAW.concat(loadCustomWords()).map((w, i) => normalizeVocabularyRecord(w, i, { isCustom: !!w?.isCustom }));
 const VOCAB_BY_CHAR = {}; VOCAB.forEach(w => VOCAB_BY_CHAR[w.char] = w);
+window.PandaHanVocabularySchema = { version: VOCABULARY_INTELLIGENCE_SCHEMA_VERSION, normalize: normalizeVocabularyRecord, samples: VOCABULARY_INTELLIGENCE_SAMPLES };
 
 /* =====================================================================
    DEMO AUTH & ROLE-BASED ACCESS (client-side prototype only)
@@ -1675,8 +1753,11 @@ function openDetail(char) {
   document.getElementById("dAudioBtn").dataset.speak = w.char;
   document.getElementById("dPinyin").textContent = w.pinyin;
   document.getElementById("dMeaning").textContent = L(w.meaning, w.meaning_en);
-  const chietuRaw = L(w.chietu_vi, w.chietu_en) || w.chietu_vi || w.chietu_en || "";
-  renderChietu(chietuRaw, w.chietu_source);
+  const intelligence = safeObject(w.character_intelligence);
+  const provenance = safeObject(w.provenance);
+  const chietuRaw = L(intelligence.mnemonic_vi, intelligence.mnemonic_en) || L(w.chietu_vi, w.chietu_en) || w.chietu_vi || w.chietu_en || "";
+  const sourceLabel = String(intelligence.validation_status || intelligence.source_type || provenance.content_origin || w.chietu_source || "");
+  renderChietu(chietuRaw, sourceLabel);
   document.getElementById("dDefZh").textContent = w.def_zh;
   document.getElementById("dExLabel").textContent = LANG_MODE === "vi" ? "例句 · CÂU VÍ DỤ" : "例句 · EXAMPLE SENTENCES";
   document.getElementById("dSrsLabel").textContent = LANG_MODE === "vi" ? "📈 MỨC ĐỘ GHI NHỚ (thuật toán SM-2)" : "📈 RETENTION LEVEL (SM-2 algorithm)";
@@ -1684,7 +1765,8 @@ function openDetail(char) {
   document.getElementById("dMeta").innerHTML =
     `<span class="tag tag-hsk${w.hsk}">HSK ${w.hsk}</span>` +
     `<span class="tag tag-pos">${esc(localizedPos(w.pos))}</span>` +
-    (w.hanviet ? `<span class="tag tag-hanviet">${esc(sinoVietnameseLabel())}: ${esc(w.hanviet)}</span>` : "");
+    (w.hanviet ? `<span class="tag tag-hanviet">${esc(sinoVietnameseLabel())}: ${esc(w.hanviet)}</span>` : "") +
+    (sourceLabel ? `<span class="tag tag-hanviet" title="Vocabulary intelligence provenance">${esc(sourceLabel)}</span>` : "");
 
   const cumtuBox = document.getElementById("dCumtuBox");
   if (w.cumtu.length) {
@@ -3697,14 +3779,7 @@ function renderAddWordForm() {
   document.getElementById("nwSubmitBtn").addEventListener("click", submitNewWord);
 }
 function normalizeWordEntry(w, id) {
-  return {
-    id, char: w.char, pinyin: w.pinyin, hanviet: w.hanviet, pos: w.pos,
-    meaning: w.meaning, meaning_en: w.meaning_en, def_zh: w.def_zh || w.meaning, hsk: w.hsk,
-    cumtu: w.cumtu || [], examples: w.examples || [],
-    mc: w.mc || [], unscramble: w.unscramble || [], fill: w.fill || [],
-    chietu_vi: w.chietu_vi || "", chietu_en: w.chietu_en || "", chietu_source: w.chietu_source || "Giáo viên biên soạn",
-    isCustom: true,
-  };
+  return normalizeVocabularyRecord({ ...safeObject(w), chietu_source: w?.chietu_source || "Giáo viên biên soạn" }, id, { isCustom: true });
 }
 function submitNewWord() {
   const msg = document.getElementById("addWordMsg");
