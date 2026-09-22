@@ -1,5 +1,5 @@
-// v57.3-detail-fast-runtime-20260922
-const CACHE_NAME = "pantutor-runtime-v57-3-20260922";
+// v58-professor-agenda-runtime-20260922
+const CACHE_NAME = "pantutor-runtime-v58-professor-agenda-20260922";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
