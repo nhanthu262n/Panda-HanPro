@@ -1755,9 +1755,8 @@ function openDetail(char) {
   document.getElementById("dMeaning").textContent = L(w.meaning, w.meaning_en);
   const intelligence = safeObject(w.character_intelligence);
   const provenance = safeObject(w.provenance);
-  const chietuRaw = L(intelligence.mnemonic_vi, intelligence.mnemonic_en) || L(w.chietu_vi, w.chietu_en) || w.chietu_vi || w.chietu_en || "";
   const sourceLabel = String(intelligence.validation_status || intelligence.source_type || provenance.content_origin || w.chietu_source || "");
-  renderChietu(chietuRaw, sourceLabel);
+  renderChietu(w);
   document.getElementById("dDefZh").textContent = w.def_zh;
   document.getElementById("dExLabel").textContent = LANG_MODE === "vi" ? "例句 · CÂU VÍ DỤ" : "例句 · EXAMPLE SENTENCES";
   document.getElementById("dSrsLabel").textContent = LANG_MODE === "vi" ? "📈 MỨC ĐỘ GHI NHỚ (thuật toán SM-2)" : "📈 RETENTION LEVEL (SM-2 algorithm)";
@@ -1793,56 +1792,49 @@ function openDetail(char) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function renderChietu(raw, source) {
+function renderChietu(word) {
   const box = document.getElementById("dChietuBox");
   const icon = document.getElementById("dChietuIcon");
   const label = document.getElementById("dChietuLabel");
   const sub = document.getElementById("dChietuSub");
   const body = document.getElementById("dChietu");
   const srcEl = document.getElementById("dChietuSource");
-  srcEl.innerHTML = source === "verified"
-    ? `<span style="color:#1a7d4a;">✅ ${L("Nguồn: tài liệu nghiên cứu gốc (đã xác minh)", "Source: original research document (verified)")}</span>`
-    : `<span style="color:#a5824a;">🤖 ${L("Nguồn: hệ thống tự phân tích bộ thủ", "Source: auto radical analysis")}</span>`;
+  const w = safeObject(word);
+  const ci = safeObject(w.character_intelligence);
+  const provenance = safeObject(w.provenance);
+  const hasNativeIntelligence = !!(ci.structure || safeArray(ci.components).length || ci.semantic_component || ci.phonetic_component || ci.historical_note || ci.cultural_connection_vi || ci.cultural_connection_en || safeObject(VOCABULARY_INTELLIGENCE_SAMPLES[w.char]).character_intelligence);
+  const legacyText = L(w.chietu_vi, w.chietu_en) || w.chietu_vi || w.chietu_en || "";
+  const memoryText = hasNativeIntelligence ? (L(ci.mnemonic_vi, ci.mnemonic_en) || ci.mnemonic_vi || ci.mnemonic_en || "") : legacyText;
+  const statusRaw = String(ci.validation_status || ci.source_type || (w.chietu_source === "verified" ? "Verified reference" : "Legacy content"));
+  const statusKey = /verified reference|^verified$/i.test(statusRaw) ? "verified" : /teacher/i.test(statusRaw) ? "teacher" : /ai/i.test(statusRaw) ? "ai" : "legacy";
+  const statusLabel = statusKey === "verified" ? L("Đã xác minh", "Verified") : statusKey === "teacher" ? L("Giáo viên đã duyệt", "Teacher reviewed") : statusKey === "ai" ? L("Bản nháp AI hỗ trợ", "AI-assisted draft") : L("Ghi chú học tập cũ", "Legacy learning note");
+  const sourceText = String(provenance.reference || provenance.content_origin || w.chietu_source || "");
+  const section = (titleVi, titleEn, content, open = false) => content ? `<details class="ci-section"${open ? " open" : ""}><summary>${esc(L(titleVi, titleEn))}</summary><div class="ci-section-body">${content}</div></details>` : "";
+  const plain = (value) => esc(String(value || "")).replace(/([\u4e00-\u9fff]+)/g, '<span class="chietu-char">$1</span>');
+  const components = safeArray(ci.components).filter(Boolean);
+  const clueParts = [];
+  if (ci.semantic_component) clueParts.push(`<div class="ci-clue"><b>${esc(L("Gợi nghĩa", "Semantic clue"))}</b>${plain(ci.semantic_component)}</div>`);
+  if (ci.phonetic_component) clueParts.push(`<div class="ci-clue"><b>${esc(L("Gợi âm", "Phonetic clue"))}</b>${plain(ci.phonetic_component)}</div>`);
+  const canShowHistorical = !!ci.historical_note && statusKey === "verified";
+  const memoryCaption = hasNativeIntelligence && (statusKey === "ai" || statusKey === "teacher")
+    ? `<small class="ci-memory-note">${esc(L("Mẹo ghi nhớ – không phải từ nguyên lịch sử.", "Memory aid – not a historical etymology."))}</small>` : "";
 
-  if (!raw) {
-    box.className = "chietu-box type-radical";
-    icon.textContent = "🧩";
-    label.textContent = LANG_MODE === "vi" ? "Chiết tự / Văn hóa" : "Character breakdown / Culture";
-    sub.textContent = "";
-    body.innerHTML = `<span class="no-data">${L("Đang cập nhật nội dung cho từ này...", "Content coming soon for this word...")}</span>`;
-    return;
-  }
-
-  const isCulture = /^(Văn hóa|Cultural story)\s*:/i.test(raw.trim());
-  let text = raw.replace(/^(Văn hóa|Chiết tự \(bộ thủ\)|Chiết tự|Cultural story|Character breakdown)\s*:\s*/i, "");
-
-  box.className = "chietu-box " + (isCulture ? "type-culture" : "type-radical");
-  icon.textContent = isCulture ? "📜" : "🧩";
-  label.textContent = isCulture
-    ? (LANG_MODE === "vi" ? "CÂU CHUYỆN VĂN HÓA" : "CULTURAL STORY")
-    : (LANG_MODE === "vi" ? "CHIẾT TỰ · BỘ THỦ" : "CHARACTER BREAKDOWN");
-  sub.textContent = isCulture ? (LANG_MODE === "vi" ? "nguồn gốc & ý nghĩa" : "origin & meaning") : (LANG_MODE === "vi" ? "phân tích cấu tạo chữ" : "component analysis");
-
-  const highlighted = esc(text).replace(/([\u4e00-\u9fff]+)/g, '<span class="chietu-char">$1</span>');
-  body.innerHTML = highlighted;
-
+  box.className = "chietu-box type-intelligence";
+  icon.textContent = "🧩";
+  label.textContent = "CHARACTER INTELLIGENCE";
+  sub.textContent = hasNativeIntelligence ? L("học theo cấu trúc và ngữ cảnh", "structure, memory and context") : L("nội dung tương thích dữ liệu cũ", "legacy-compatible content");
+  srcEl.innerHTML = `<span class="ci-status-pill ${statusKey}">${statusKey === "verified" ? "✓" : statusKey === "teacher" ? "✓" : statusKey === "ai" ? "◇" : "•"} ${esc(statusLabel)}</span>${sourceText ? `<span class="ci-status-pill">${esc(L("Nguồn", "Source"))}: ${esc(sourceText)}</span>` : ""}`;
+  body.innerHTML = [
+    section("Cấu trúc chữ", "Character Structure", ci.structure ? plain(ci.structure) : "", true),
+    section("Thành phần", "Components", components.length ? `<div class="ci-component-list">${components.map((item) => `<span class="ci-component-chip">${plain(item)}</span>`).join("")}</div>` : ""),
+    section("Gợi nghĩa / Gợi âm", "Semantic / Phonetic Clue", clueParts.length ? `<div class="ci-clue-grid">${clueParts.join("")}</div>` : ""),
+    section(hasNativeIntelligence ? "Câu chuyện ghi nhớ" : "Ghi chú học tập cũ", hasNativeIntelligence ? "Memory Story" : "Legacy learning note", memoryText ? `${plain(memoryText)}${memoryCaption}` : "", !ci.structure),
+    section("Ghi chú lịch sử", "Historical Note", canShowHistorical ? plain(ci.historical_note) : ""),
+    section("Liên hệ văn hóa", "Cultural Connection", L(ci.cultural_connection_vi, ci.cultural_connection_en) ? plain(L(ci.cultural_connection_vi, ci.cultural_connection_en)) : ""),
+    section("Trạng thái / Nguồn", "Content Status / Source", `<b>${esc(statusLabel)}</b>${sourceText ? `<br>${esc(sourceText)}` : ""}`)
+  ].join("") || `<span class="no-data">${L("Đang cập nhật nội dung cho từ này...", "Content coming soon for this word...")}</span>`;
   const moreBtn = document.getElementById("dChietuMoreBtn");
-  const moreTxt = document.getElementById("dChietuMoreTxt");
-  const isLong = text.length > 220;
-  if (isLong) {
-    body.classList.add("clamped");
-    moreBtn.style.display = "inline-flex";
-    moreTxt.textContent = L("Xem thêm", "Read more");
-    moreBtn.onclick = () => {
-      const collapsed = body.classList.toggle("clamped");
-      moreTxt.textContent = collapsed ? L("Xem thêm", "Read more") : L("Thu gọn", "Show less");
-      moreBtn.querySelector ? null : null;
-      moreBtn.firstChild.textContent = collapsed ? "▾ " : "▴ ";
-    };
-  } else {
-    body.classList.remove("clamped");
-    moreBtn.style.display = "none";
-  }
+  if (moreBtn) moreBtn.style.display = "none";
 }
 
 /* ---------- Confetti burst for mascot level-ups ---------- */
@@ -3772,8 +3764,19 @@ function renderAddWordForm() {
     <label>${L("Câu ví dụ tiếng Trung (khuyến khích)","Example sentence in Chinese (recommended)")}<input id="nwExZh" type="text" placeholder="他是一个勇敢的人。" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
     <label>${L("Pinyin của câu ví dụ","Pinyin of the example sentence")}<input id="nwExPinyin" type="text" placeholder="Tā shì yí ge yǒnggǎn de rén." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
     <label>${L("Dịch nghĩa câu ví dụ (VI / EN, cách nhau bởi /)","Example translation (VI / EN, separated by /)")}<input id="nwExTr" type="text" placeholder="Anh ấy là người dũng cảm. / He is a brave person." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
-    <label>🎨 ${L("Chiết tự / Câu chuyện văn hóa (Tiếng Việt) *","Radical breakdown / Cultural story (Vietnamese) *")}<textarea id="nwChietuVi" rows="3" placeholder="勇 (dũng) + 敢 (dám) = dám xông lên, không sợ hãi..." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
-    <label>🎨 ${L("Chiết tự / Câu chuyện văn hóa (Tiếng Anh) *","Radical breakdown / Cultural story (English) *")}<textarea id="nwChietuEn" rows="3" placeholder="勇 (brave) + 敢 (dare) = daring to step forward without fear..." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
+    <fieldset style="border:1px solid #ddd6fe;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:9px;"><legend style="font-weight:850;color:#5b21b6;padding:0 6px;">🧩 Character Intelligence</legend>
+      <label>${L("Cấu trúc chữ","Character structure")}<input id="nwCiStructure" type="text" placeholder="左右结构 / left-right structure" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
+      <label>${L("Thành phần, cách nhau bằng dấu phẩy","Components, comma-separated")}<input id="nwCiComponents" type="text" placeholder="勇, 敢" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
+      <label>${L("Thành phần gợi nghĩa","Semantic clue")}<input id="nwCiSemantic" type="text" placeholder="Optional" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
+      <label>${L("Thành phần gợi âm","Phonetic clue")}<input id="nwCiPhonetic" type="text" placeholder="Optional" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
+      <label>${L("Mnemonic tiếng Việt","Vietnamese mnemonic")}<textarea id="nwCiMnemonicVi" rows="2" placeholder="Một liên tưởng ngắn để ghi nhớ; không trình bày như từ nguyên." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
+      <label>${L("Mnemonic tiếng Anh","English mnemonic")}<textarea id="nwCiMnemonicEn" rows="2" placeholder="A short memory aid; do not present it as etymology." style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
+      <label>${L("Ghi chú lịch sử (chỉ nhập khi có nguồn xác minh)","Historical note (only with a verified source)")}<textarea id="nwCiHistorical" rows="2" placeholder="Optional; requires a reliable reference" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
+      <label>${L("Liên hệ văn hóa tiếng Việt","Cultural connection in Vietnamese")}<textarea id="nwCiCultureVi" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
+      <label>${L("Liên hệ văn hóa tiếng Anh","Cultural connection in English")}<textarea id="nwCiCultureEn" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></textarea></label>
+      <label>${L("Nguồn / tài liệu tham chiếu","Source / reference")}<input id="nwCiSource" type="text" placeholder="Dictionary, textbook, corpus, DOI or URL" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"></label>
+      <label>${L("Trạng thái xác minh","Validation status")}<select id="nwCiValidation" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;margin-top:3px;"><option value="AI-assisted draft">AI-assisted draft</option><option value="Teacher-reviewed" selected>Teacher reviewed</option><option value="Verified reference">Verified</option></select></label>
+    </fieldset>
     <button id="nwSubmitBtn" class="btn btn-hsk3">💾 ${L("Lưu từ vựng", "Save word")}</button>
   `;
   document.getElementById("nwSubmitBtn").addEventListener("click", submitNewWord);
@@ -3786,8 +3789,11 @@ function submitNewWord() {
   const val = id => document.getElementById(id).value.trim();
   const char = val("nwChar"), pinyin = val("nwPinyin"), hanviet = val("nwHanviet"),
     pos = val("nwPos"), hsk = Number(val("nwHsk")), meaning = val("nwMeaningVi"), meaning_en = val("nwMeaningEn"),
-    exZh = val("nwExZh"), exPinyin = val("nwExPinyin"), exTr = val("nwExTr"), chietuVi = val("nwChietuVi"), chietuEn = val("nwChietuEn");
-  if (!char || !pinyin || !hanviet || !meaning || !meaning_en || !chietuVi || !chietuEn) {
+    exZh = val("nwExZh"), exPinyin = val("nwExPinyin"), exTr = val("nwExTr"),
+    ciStructure = val("nwCiStructure"), ciComponents = val("nwCiComponents"), ciSemantic = val("nwCiSemantic"), ciPhonetic = val("nwCiPhonetic"),
+    ciMnemonicVi = val("nwCiMnemonicVi"), ciMnemonicEn = val("nwCiMnemonicEn"), ciHistorical = val("nwCiHistorical"),
+    ciCultureVi = val("nwCiCultureVi"), ciCultureEn = val("nwCiCultureEn"), ciSource = val("nwCiSource"), ciValidation = val("nwCiValidation");
+  if (!char || !pinyin || !hanviet || !meaning || !meaning_en) {
     msg.style.color = "#dc2626";
     msg.textContent = L("⚠️ Vui lòng điền đủ các trường có dấu *.", "⚠️ Please fill in all fields marked *.");
     return;
@@ -3802,8 +3808,16 @@ function submitNewWord() {
     const parts = exTr.split("/").map(s => s.trim());
     examples = [[exZh, exPinyin || "", parts[0] || "", parts[1] || parts[0] || ""]];
   }
+  if (ciHistorical && (ciValidation !== "Verified reference" || !ciSource)) {
+    msg.style.color = "#dc2626";
+    msg.textContent = L("⚠️ Ghi chú lịch sử chỉ được lưu khi chọn Verified và có nguồn tham chiếu.", "⚠️ A historical note requires Verified status and a reference.");
+    return;
+  }
+  const reviewed = ciValidation === "Teacher-reviewed" || ciValidation === "Verified reference";
   const raw = { char, pinyin, hanviet, pos, meaning, meaning_en, hsk, examples,
-    chietu_vi: chietuVi, chietu_en: chietuEn, chietu_source: "Giáo viên biên soạn", isCustom: true };
+    chietu_vi: ciMnemonicVi, chietu_en: ciMnemonicEn, chietu_source: ciValidation, isCustom: true,
+    character_intelligence: { structure: ciStructure, components: ciComponents.split(/[,;，；]/).map(s => s.trim()).filter(Boolean), semantic_component: ciSemantic, phonetic_component: ciPhonetic, mnemonic_vi: ciMnemonicVi, mnemonic_en: ciMnemonicEn, historical_note: ciHistorical, cultural_connection_vi: ciCultureVi, cultural_connection_en: ciCultureEn, source_type: ciValidation, validation_status: ciValidation },
+    provenance: { content_origin: ciValidation === "AI-assisted draft" ? "AI-assisted teacher draft" : "Teacher-authored vocabulary", reviewed_by_teacher: reviewed, reference: ciSource, last_reviewed_at: reviewed ? new Date().toISOString().slice(0, 10) : null } };
   const custom = loadCustomWords();
   custom.push(raw);
   saveCustomWords(custom);
@@ -3812,7 +3826,8 @@ function submitNewWord() {
   VOCAB_BY_CHAR[char] = normalized;
   msg.style.color = "#16a34a";
   msg.textContent = L(`✅ Đã thêm "${char}" vào từ điển HSK${hsk}!`, `✅ "${char}" added to the HSK${hsk} dictionary!`);
-  ["nwChar","nwPinyin","nwHanviet","nwMeaningVi","nwMeaningEn","nwExZh","nwExPinyin","nwExTr","nwChietuVi","nwChietuEn"].forEach(id => document.getElementById(id).value = "");
+  ["nwChar","nwPinyin","nwHanviet","nwMeaningVi","nwMeaningEn","nwExZh","nwExPinyin","nwExTr","nwCiStructure","nwCiComponents","nwCiSemantic","nwCiPhonetic","nwCiMnemonicVi","nwCiMnemonicEn","nwCiHistorical","nwCiCultureVi","nwCiCultureEn","nwCiSource"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("nwCiValidation").value = "Teacher-reviewed";
   renderCustomWordsList();
   updateHeaderStats();
   renderGrids();
