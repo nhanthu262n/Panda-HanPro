@@ -1,5 +1,5 @@
-// v58-professor-agenda-runtime-20260922
-const CACHE_NAME = "pantutor-runtime-v58-professor-agenda-20260922";
+// v56-detailed-teacher-feedback-20260907
+const CACHE_NAME = "pantutor-runtime-v56-20260907";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
