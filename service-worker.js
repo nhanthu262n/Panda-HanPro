@@ -1,5 +1,5 @@
-// v56-detailed-teacher-feedback-20260907
-const CACHE_NAME = "pantutor-runtime-v56-20260907";
+// v57-vocabulary-intelligence-milestone1-20260922
+const CACHE_NAME = "pantutor-runtime-v57-vocabulary-intelligence-m1-20260922";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
