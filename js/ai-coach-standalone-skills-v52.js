@@ -263,8 +263,7 @@
 
   async function saveEvidence(taskId,score,evidence){
     const m=state.mission,day=Number(m?.dayNumber||1),threshold=Number(evidence?.passThreshold||60),completeSet=evidence?.completeSet!==false,scorePassed=completeSet&&Number(score)>=threshold;
-    const targetWords=[...new Set((state.items||[]).map(item=>String(item?.char||item?.word?.char||item?.target_word||"").trim()).filter(Boolean))];
-    const full={...evidence,targetWords,scorePercent:score,dayNumber:day,passThreshold:threshold,scorePassed,passed:false,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:taskId==="listening"?m?.curriculum?.listening_task:m?.curriculum?.speaking_task,date:new Date().toISOString(),rawSource:`ai-coach-standalone-${taskId}`};
+    const full={...evidence,scorePercent:score,dayNumber:day,passThreshold:threshold,scorePassed,passed:false,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:taskId==="listening"?m?.curriculum?.listening_task:m?.curriculum?.speaking_task,date:new Date().toISOString(),rawSource:`ai-coach-standalone-${taskId}`};
     let out=null,saveError=null;
     try{out=await window.PandaHanSchedule?.recordTaskScore?.(day,taskId,score,`verified:ai-coach-standalone-${taskId}`,{...full,passed:scorePassed})}catch(e){saveError=e;console.warn("Standalone AI Coach evidence sync:",taskId,e?.code||e?.message||e)}
     let persistedPassed=out?.result?.passed===true;
