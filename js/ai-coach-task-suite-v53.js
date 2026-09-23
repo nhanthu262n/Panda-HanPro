@@ -157,7 +157,8 @@
     const threshold=Number(evidence.passThreshold??PASS[taskId]??60);
     const completeSet=evidence.completeSet!==false;
     const scorePassed=completeSet&&Number(score)>=threshold;
-    const full={...evidence,taskId,dayNumber:day,scorePercent:Number(score),passThreshold:threshold,completeSet,scorePassed,passed:false,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:sourceText(taskId,m),evaluatedAt:Date.now(),date:new Date().toISOString(),rawSource:`ai-coach-task-suite-${taskId}`};
+    const targetWords=[...new Set((S.items||[]).map(item=>String(item?.char||item?.word?.char||item?.target_word||"").trim()).filter(Boolean))];
+    const full={...evidence,targetWords,taskId,dayNumber:day,scorePercent:Number(score),passThreshold:threshold,completeSet,scorePassed,passed:false,sourceWorkbook:"KeHoach_PandaHan_120Ngay_HSK3_v2_TichHop_PinyinToneQuest.xlsx",curriculumTask:sourceText(taskId,m),evaluatedAt:Date.now(),date:new Date().toISOString(),rawSource:`ai-coach-task-suite-${taskId}`};
     let out=null,saveError=null;
     try{
       out=await window.PandaHanSchedule?.recordTaskScore?.(day,taskId,Number(score),`verified:ai-coach-task-suite-${taskId}`,{...full,passed:scorePassed});
