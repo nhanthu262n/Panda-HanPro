@@ -1,5 +1,5 @@
-// v61-evidence-mapping-milestone5-20260923
-const CACHE_NAME = "pantutor-runtime-v61-evidence-mapping-m5-20260923";
+// v56-detailed-teacher-feedback-20260907
+const CACHE_NAME = "pantutor-runtime-v56-20260907";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
