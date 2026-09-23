@@ -819,6 +819,10 @@ function recordQuizResult(char, correct, meta = {}) {
   else recordVocabularyMistake(char, { ...meta, source: meta.source || "quiz" });
   // Testing effect: quiz performance also feeds the SRS as a graded review
   gradeWord(char, correct ? 4 : 2);
+  // Learner Model remains separate from SM-2: the same observed response is
+  // logged as verified evidence, but never reads/writes interval, EF or due date.
+  try { window.PandaHanVocabularyLearnerModel?.recordObjectiveQuizEvidence?.(char, !!correct, meta); }
+  catch (error) { console.warn("Vocabulary Learner Model kept the quiz out:", error?.message || error); }
 }
 
 /* ---------- Practice completion -> adaptive 120-day schedule ---------- */
