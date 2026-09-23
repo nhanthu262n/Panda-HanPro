@@ -43,42 +43,6 @@
       ...detail, verified: false, evaluatedAt: Number(detail.evaluatedAt || Date.now())
     }}));
   }
-  function learnerTaskType(detail = {}) {
-    const text = `${detail.taskId || ""} ${detail.evidenceType || ""} ${detail.source || ""}`.toLowerCase();
-    if (/tone.?quest/.test(text)) return "pinyin_tone_quest";
-    if (/pronunciation/.test(text)) return "pronunciation";
-    if (/listening|audio/.test(text)) return "listening_sound_recognition";
-    if (/unscramble|sentence.?order/.test(text)) return "sentence_unscramble";
-    if (/context|collocation|usage/.test(text)) return "ai_coach_usage";
-    if (/speaking/.test(text)) return "ai_coach_speaking";
-    if (/writing|reading_writing/.test(text)) return "ai_coach_writing";
-    if (/srs|review/.test(text)) return "srs_review";
-    if (/hanzi|character/.test(text)) return "hanzi_recognition";
-    if (/pinyin/.test(text)) return "pinyin_question";
-    return "ai_coach_meaning";
-  }
-  function vocabularyItems(detail = {}) {
-    const items = Array.isArray(detail.itemEvidence) ? detail.itemEvidence : [];
-    if (items.length) return items.map((item) => ({ word: String(item.target_word || item.char || item.target || "").trim(), score: item.score ?? (item.correct === true ? 1 : item.correct === false ? 0 : detail.scorePercent), response: item.response ?? item.selected ?? null })).filter((item) => item.word);
-    const words = [detail.target_word, detail.targetWord, detail.char, ...(Array.isArray(detail.targetWords) ? detail.targetWords : [])].map((word) => String(word || "").trim()).filter(Boolean);
-    return [...new Set(words)].map((word) => ({ word, score: detail.scorePercent ?? detail.score, response: detail.response ?? detail.selected ?? null }));
-  }
-  function routeVocabularyEvidence(event) {
-    const detail = event?.detail || {};
-    const model = window.PandaHanVocabularyLearnerModel;
-    if (!model?.recordEvidenceEvent) return;
-    const items = vocabularyItems(detail);
-    if (!items.length) return; // Per-vocabulary model: never guess a target word.
-    const taskType = learnerTaskType(detail);
-    items.forEach((item, index) => {
-      const raw = Number(item.score);
-      if (!Number.isFinite(raw)) return;
-      const baseId = String(detail.evidenceId || detail.quizId || detail.pronunciationId || `${detail.source || "evidence"}:${detail.evaluatedAt || detail.date || Date.now()}`);
-      try {
-        model.recordEvidenceEvent({ evidence_id: `${baseId}:${index}`, user: ns(), target_word: item.word, task_type: taskType, score: raw, timestamp: Number(detail.evaluatedAt || Date.parse(detail.date) || Date.now()), source: String(detail.rawSource || detail.source || "pan-tutor-evidence"), attempt: Number(detail.attempts || 1), response: item.response, verified: detail.verified === true });
-      } catch (error) { console.warn("Vocabulary evidence mapping skipped:", error.message || error); }
-    });
-  }
   async function completeVerifiedTask(day, taskId, source, evidence) {
     if (!day || taskIsDone(day, taskId) || completionInFlight[`${day.day_number}:${taskId}`]) return null;
     const api = window.PandaHanSchedule;
@@ -249,7 +213,6 @@
 
   function install() {
     installAudioInstrumentation();
-    window.addEventListener("pandahan-learning-evaluation", routeVocabularyEvidence);
     window.addEventListener("pinyin-history-updated", () => processPronunciationRecord(readLatestPronunciation()));
     window.addEventListener("pinyin-mounted", () => {
       installAudioInstrumentation();
@@ -269,7 +232,6 @@
     syncStoredNativeQuizForCurrentDay,
     processListening: (count) => reportListening(Number(count) || 0, null),
     getListeningCount: () => Number(localStorage.getItem(evidenceKey(`listening_${today()}`)) || 0)
-    ,routeVocabularyEvidence
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install); else install();
 })();
