@@ -211,25 +211,18 @@
 <div class="d-meaning" id="dMeaning"></div>
 <div class="d-meta" id="dMeta"></div>
 <div class="chietu-box" id="dChietuBox">
-<div class="chietu-head"><span class="ci-icon" id="dChietuIcon">🧩</span><span class="ci-title" id="dChietuLabel">CHARACTER INTELLIGENCE</span><span class="ci-sub" id="dChietuSub"></span></div>
-<div id="dChietuSource" class="ci-source-status"></div>
-<div id="dChietu" class="ci-sections lookup-text"></div>
+<div class="chietu-head"><span class="ci-icon" id="dChietuIcon">📖</span><span class="ci-title" id="dChietuLabel">CHARACTER BREAKDOWN / CULTURE</span><span class="ci-sub" id="dChietuSub"></span></div>
+<div id="dChietuSource" style="font-size:9.5px;margin-bottom:6px;font-weight:700;"></div>
+<p class="lookup-text" id="dChietu"></p>
 <button class="chietu-more-btn" id="dChietuMoreBtn" style="display:none;">▾ <span id="dChietuMoreTxt">Show more</span></button>
 </div>
 <div class="zh-def-box"><b>释义</b><p id="dDefZh"></p></div>
-<section class="usage-intelligence" id="dCumtuBox">
-<div class="usage-head"><span>🔗</span><div><h4 id="dUsageTitle">USAGE INTELLIGENCE</h4><small id="dUsageSub">Collocations · patterns · context</small></div></div>
-<div class="usage-tabs" id="dUsageTabs" role="tablist"></div>
-<div class="usage-panels" id="dUsagePanels">
-<div class="usage-panel" data-usage-panel="collocations"><div id="dCumtuList"></div></div>
-<div class="usage-panel" data-usage-panel="patterns"><div id="dSentencePatterns"></div></div>
-<div class="usage-panel" data-usage-panel="confusables"><div id="dConfusableWords"></div></div>
-<div class="usage-panel" data-usage-panel="errors"><div id="dCommonErrors"></div></div>
-<div class="usage-panel" data-usage-panel="context"><div id="dRegisterContext"></div></div>
-<div class="usage-panel" data-usage-panel="examples"><div id="dExamplesList"></div></div>
+<div class="cumtu-box" id="dCumtuBox"><h4 data-lang-en="词组 · PHRASES">词组 · PHRASES</h4><div id="dCumtuList"></div></div>
 </div>
-</section>
 </div>
+<div class="examples-box">
+<h4 data-lang-en="例句 · EXAMPLE SENTENCES" id="dExLabel">例句 · EXAMPLE SENTENCES</h4>
+<div id="dExamplesList"></div>
 </div>
 <div class="srs-panel">
 <h4 data-lang-en="📈 RETENTION LEVEL (SM-2 ALGORITHM)" id="dSrsLabel">📈 RETENTION LEVEL (SM-2 ALGORITHM)</h4>
@@ -445,9 +438,11 @@
 <button class="back-btn" data-lang-en="← Back" id="addWordBack">← Back</button>
 <h2 data-lang-en="➕ Add new vocabulary" style="font-size:18px;margin-top:8px;">➕ Add new vocabulary</h2>
 <div style="background:#fffbeb;border:2px solid var(--hsk3-light);border-radius:12px;padding:12px 14px;margin:10px 0 16px;font-size:12px;line-height:1.7;">
-<b>🧩 Character Intelligence authoring guidance:</b><br/>
-      Enter each type of information in its own field: <b>Character structure</b>, <b>Components</b>, <b>Mnemonic</b>, <b>Historical note</b>, <b>Cultural connection</b>, <b>Source</b>, and <b>Validation status</b>.<br/>
-<span style="color:var(--text-light);">A mnemonic is a memory aid, not historical etymology. Add a historical note only when a reliable reference is available, then select Verified.</span>
+<b>💡 Character breakdown / cultural mnemonic guidance:</b><br/>
+      1️⃣ <b>Break the Hanzi into familiar radicals/components</b> — example: 好 = 女 (woman) + 子 (child) → a memorable association for “good”.<br/>
+      2️⃣ <b>Use a memorable image or story that is easy for international learners to recall</b> — do not only translate the meaning; give one concrete association.<br/>
+      3️⃣ <b>Keep it concise: 1–2 sentences</b> — the goal is instant recall when seeing the character again, not a full linguistic analysis.<br/>
+<span style="color:var(--text-light);">Prioritize a strong cultural mnemonic; standard meaning and pinyin are already available in the dictionary.</span>
 </div>
 <div id="addWordForm" style="display:flex;flex-direction:column;gap:10px;max-width:480px;"></div>
 <div id="addWordMsg" style="margin-top:10px;font-size:13px;"></div>
@@ -589,7 +584,7 @@
 <!-- PHONETICS — 10-SESSION BOOTCAMP -->
 <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
 <script defer="" src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
-<script defer="" src="js/app-02.js?v=v60-evidence-learner-model-m4-20260922"></script>
+<script defer="" src="js/app-02.js?v=v43-excel-vocab-quiz-freeze-20260904"></script>
 <script defer="" src="js/adaptive-learning-engine.js?v=linked-vocab-v17-20260901"></script>
 <script defer="" src="js/app-03.js?v=v50-ai-exam-grading-20260905"></script>
 <script defer="" src="js/ai-tutor-chatbox-exam-data.js?v=v50-ai-exam-grading-20260905"></script>
@@ -612,7 +607,6 @@
 <script defer="" src="js/feature-updates.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
 <script defer="" src="js/pinyin-phonetics-loader.js?v=v51-canonical-wav-compatible100-rubric-20260905"></script>
 <script defer="" src="js/ai-coach-evidence.js?v=v52-standalone-listen-speak-20260907"></script>
-<script defer="" src="js/vocabulary-learner-model.js?v=v61-evidence-mapping-m5-20260923"></script>
 <script defer="" src="js/phonetics-curriculum-bridge.js?v=excel-phonetics-score-bridge-20260901-v16"></script>
 <script defer="" src="js/progress-sync.js?v=firebase-learning-progress-20260826-v2"></script>
 <script defer="" src="js/offline-enhancements.js?v=real-evidence-20260824-v2"></script>
