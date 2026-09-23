@@ -1,5 +1,5 @@
-// v59-usage-intelligence-milestone3-20260922
-const CACHE_NAME = "pantutor-runtime-v59-usage-intelligence-m3-20260922";
+// v60-vocabulary-learner-model-milestone4-20260922
+const CACHE_NAME = "pantutor-runtime-v60-vocabulary-learner-model-m4-20260922";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
