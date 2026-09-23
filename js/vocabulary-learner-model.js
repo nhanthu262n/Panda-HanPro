@@ -12,6 +12,19 @@
   const STORAGE_PREFIX = "pandahan_vocabulary_learner_model_v1_";
   const BLOCKED_GENERATORS = /(?:openai|llm|gpt|generative[_ -]?ai|claude|gemini)/i;
   const MAX_EVIDENCE_LOG = 50;
+  const MAX_EVENT_LOG = 200;
+  const EVIDENCE_DIMENSION_MAP = Object.freeze({
+    vocabulary_multiple_choice: { meaning: 1 },
+    hanzi_recognition: { form: 1 }, select_hanzi: { form: 1 }, match_character: { form: 1 },
+    pinyin_question: { sound: 1 }, tone_recognition: { sound: 1 }, listening_sound_recognition: { sound: 1 }, pinyin_tone_quest: { sound: 1 },
+    pronunciation: { sound: 0.8, production: 0.2 },
+    meaning_question: { meaning: 1 }, synonym_recognition: { meaning: 1 }, semantic_recognition: { meaning: 1 },
+    fill_in_context: { usage: 1 }, collocation: { usage: 1 },
+    sentence_unscramble: { usage: 0.8, form: 0.2 }, contextual_selection: { usage: 0.85, meaning: 0.15 }, grammar_usage: { usage: 1 },
+    writing_task: { production: 0.7, usage: 0.3 }, speaking_task: { production: 0.7, sound: 0.3 }, open_ended_vocabulary: { production: 0.7, usage: 0.3 },
+    ai_coach_meaning: { meaning: 1 }, ai_coach_usage: { usage: 1 }, ai_coach_writing: { production: 0.7, usage: 0.3 }, ai_coach_speaking: { production: 0.7, sound: 0.3 },
+    srs_review: { form: 0.5, meaning: 0.5 }
+  });
 
   function clamp01(value) { return Math.max(0, Math.min(1, Number(value) || 0)); }
   function safeObject(value) { return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
@@ -48,13 +61,14 @@
     return { score: clamp01(source.score), evidence_count: count, confidence: confidenceForCount(count), last_updated: source.last_updated == null ? null : Number(source.last_updated), evidence_log: Array.isArray(source.evidence_log) ? source.evidence_log.slice(-MAX_EVIDENCE_LOG) : [] };
   }
   function emptyProfile(char) {
-    const profile = { char: String(char || ""), model: "Evidence-based Vocabulary Learner Model", schema_version: VERSION };
+    const profile = { char: String(char || ""), model: "Evidence-based Vocabulary Learner Model", schema_version: VERSION, evidence_events: [] };
     DIMENSIONS.forEach((dimension) => { profile[dimension] = emptyDimension(); });
     return profile;
   }
   function normalizeProfile(char, value) {
     const source = safeObject(value), profile = emptyProfile(char);
     DIMENSIONS.forEach((dimension) => { profile[dimension] = normalizeDimension(source[dimension]); });
+    profile.evidence_events = Array.isArray(source.evidence_events) ? source.evidence_events.slice(-MAX_EVENT_LOG) : [];
     return profile;
   }
   function getVocabularyProfile(char) {
@@ -76,7 +90,7 @@
     if (!source) throw new Error("Evidence requires source.");
     if (value.verified !== true) throw new Error("Only verified learner evidence may update the model.");
     if (BLOCKED_GENERATORS.test(`${source} ${generator}`)) throw new Error("LLM-generated values cannot update learner scores directly.");
-    return { evidenceId, source, score: normalizeEvidenceScore(value), observedAt: Number(value.observed_at || value.timestamp || Date.now()), taskType: String(value.task_type || value.evidence_type || "objective_task"), result: value.result == null ? null : value.result };
+    return { evidenceId, source, score: normalizeEvidenceScore(value), observedAt: Number(value.observed_at || value.timestamp || Date.now()), taskType: String(value.task_type || value.evidence_type || "objective_task"), result: value.result == null ? null : value.result, user: String(value.user || safeNamespace()), attempt: Math.max(1, Number(value.attempt || value.attempts) || 1), response: value.response ?? value.result?.selected ?? null, weight: clamp01(value.weight == null ? 1 : value.weight) };
   }
   function updateVocabularyDimension(char, dimension, evidence) {
     const key = String(char || "").trim();
@@ -87,15 +101,45 @@
     const profile = normalizeProfile(key, readStoredProfile(key));
     const previous = normalizeDimension(profile[dim]);
     if (previous.evidence_log.some((item) => item.evidence_id === valid.evidenceId)) return { profile, dimension: dim, idempotent: true };
-    const nextScore = previous.evidence_count === 0 ? valid.score : clamp01(0.70 * previous.score + 0.30 * valid.score);
+    const weightedRecent = valid.weight >= 0.5 ? valid.score : clamp01(0.5 + valid.weight * (valid.score - 0.5));
+    const nextScore = previous.evidence_count === 0 ? weightedRecent : clamp01(0.70 * previous.score + 0.30 * weightedRecent);
     const nextCount = previous.evidence_count + 1;
     profile[dim] = {
       score: Number(nextScore.toFixed(6)), evidence_count: nextCount, confidence: confidenceForCount(nextCount), last_updated: valid.observedAt,
-      evidence_log: [...previous.evidence_log, { evidence_id: valid.evidenceId, source: valid.source, normalized_score: valid.score, observed_at: valid.observedAt, task_type: valid.taskType, result: valid.result }].slice(-MAX_EVIDENCE_LOG)
+      evidence_log: [...previous.evidence_log, { evidence_id: valid.evidenceId, user: valid.user, target_word: key, task_type: valid.taskType, dimension: dim, score: valid.score, normalized_score: valid.score, timestamp: valid.observedAt, observed_at: valid.observedAt, source: valid.source, attempt: valid.attempt, response: valid.response, verified: true, weight: valid.weight, result: valid.result }].slice(-MAX_EVIDENCE_LOG)
     };
     writeStoredProfile(key, profile);
     try { root.dispatchEvent?.(new CustomEvent("pandahan-vocabulary-model-updated", { detail: { char: key, dimension: dim, evidence_id: valid.evidenceId, score: profile[dim].score, source: valid.source } })); } catch (_) {}
     return { profile, dimension: dim, idempotent: false };
+  }
+  function normalizeTaskType(value) { return String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_"); }
+  function mapEvidenceToDimensions(event = {}) {
+    const taskType = normalizeTaskType(event.task_type || event.evidence_type);
+    const explicit = safeObject(event.dimension_weights);
+    const mapping = Object.keys(explicit).length ? explicit : EVIDENCE_DIMENSION_MAP[taskType] || {};
+    return Object.entries(mapping).filter(([dimension, weight]) => DIMENSIONS.includes(dimension) && Number(weight) > 0).map(([dimension, weight]) => ({ dimension, weight: clamp01(weight) }));
+  }
+  function recordEvidenceEvent(event = {}) {
+    const value = safeObject(event);
+    const char = String(value.target_word || value.char || "").trim();
+    const evidenceId = String(value.evidence_id || value.id || "").trim();
+    const source = String(value.source || "").trim();
+    if (!char || !evidenceId || !source) throw new Error("Evidence event requires target_word, evidence_id and source.");
+    const timestamp = Number(value.timestamp || value.observed_at || Date.now());
+    const taskType = normalizeTaskType(value.task_type || value.evidence_type || "objective_task");
+    const score = normalizeEvidenceScore(value);
+    const base = { evidence_id: evidenceId, user: String(value.user || safeNamespace()), target_word: char, task_type: taskType, dimension: null, score, timestamp, source, attempt: Math.max(1, Number(value.attempt || value.attempts) || 1), response: value.response ?? value.result?.selected ?? null, verified: value.verified === true };
+    let profile = getVocabularyProfile(char);
+    if (!profile.evidence_events.some((item) => item.evidence_id === evidenceId)) {
+      profile.evidence_events = [...profile.evidence_events, base].slice(-MAX_EVENT_LOG);
+      writeStoredProfile(char, profile);
+    }
+    const mappings = mapEvidenceToDimensions(value);
+    if (!base.verified) return { recorded: true, updated: [], reason: "unverified", profile: getVocabularyProfile(char) };
+    if (BLOCKED_GENERATORS.test(`${source} ${value.generated_by || value.generator || ""}`)) return { recorded: true, updated: [], reason: "generator_blocked", profile: getVocabularyProfile(char) };
+    if (!mappings.length) return { recorded: true, updated: [], reason: "unmapped_task", profile: getVocabularyProfile(char) };
+    const updated = mappings.map(({ dimension, weight }) => updateVocabularyDimension(char, dimension, { ...value, evidence_id: `${evidenceId}:${dimension}`, user: base.user, source, normalized_score: score, verified: true, timestamp, task_type: taskType, attempt: base.attempt, response: base.response, weight }));
+    return { recorded: true, updated, reason: null, profile: getVocabularyProfile(char) };
   }
   function getWeakestDimension(char) {
     const profile = getVocabularyProfile(char);
@@ -124,8 +168,10 @@
     const now = Date.now();
     const source = String(meta.source || "vocabulary-quiz");
     const evidenceId = String(meta.evidence_id || `${source}:${safeNamespace()}:${char}:${now}:${correct ? 1 : 0}`);
-    return updateVocabularyDimension(char, meta.dimension || inferQuizDimension(meta), { evidence_id: evidenceId, source, normalized_score: correct ? 1 : 0, verified: true, observed_at: now, task_type: meta.task_type || "objective_vocabulary_response", result: { correct: !!correct, prompt: String(meta.prompt || ""), expected: meta.expected ?? null, selected: meta.selected ?? null } });
+    const dimension = meta.dimension || inferQuizDimension(meta);
+    const taskType = meta.task_type || ({ form: "hanzi_recognition", sound: "pinyin_question", meaning: "meaning_question", usage: "fill_in_context", production: "open_ended_vocabulary" })[dimension];
+    return recordEvidenceEvent({ evidence_id: evidenceId, user: safeNamespace(), target_word: char, source, normalized_score: correct ? 1 : 0, verified: true, timestamp: now, task_type: taskType, response: meta.selected ?? null, result: { correct: !!correct, prompt: String(meta.prompt || ""), expected: meta.expected ?? null, selected: meta.selected ?? null }, dimension_weights: meta.dimension ? { [dimension]: 1 } : undefined });
   }
 
-  return { DIMENSIONS, getVocabularyProfile, updateVocabularyDimension, getWeakestDimension, getProfileConfidence, recordObjectiveQuizEvidence, inferQuizDimension, confidenceForCount, storageKey };
+  return { DIMENSIONS, EVIDENCE_DIMENSION_MAP, getVocabularyProfile, updateVocabularyDimension, getWeakestDimension, getProfileConfidence, recordObjectiveQuizEvidence, recordEvidenceEvent, mapEvidenceToDimensions, inferQuizDimension, confidenceForCount, storageKey };
 });
