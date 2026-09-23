@@ -26,7 +26,7 @@
     const suffix = String(uid || "").replace(/[^a-zA-Z0-9_-]/g, "_");
     const owned = !suffix || key.endsWith("_" + suffix);
     if (!owned) return false;
-    return /^(pandahan_pro_(stats|log)_v1_|pandahan_(mistake|srs|phonetics|quest|vocab|ai_coach)_|pandahan_vocabulary_learner_model_v1_|pinyin-tone-quest-offline-progress-v2_|pandahanToneRaceBest)/.test(key);
+    return /^(pandahan_pro_(stats|log)_v1_|pandahan_(mistake|srs|phonetics|quest|vocab|ai_coach)_|pinyin-tone-quest-offline-progress-v2_|pandahanToneRaceBest)/.test(key);
   }
   function isQuizKey(key) {
     return /(?:phonetics_listening_quiz|quest_results|tone|pinyin-tone-quest)/i.test(key);
@@ -119,7 +119,7 @@
   }
 
   window.PanTutorgressSync = { hydrate, flush, scheduleFlush, collect, restoreBucket };
-  ["pandahan-learning-evaluation", "pandahan-quest-score-saved", "pandahan-phonetics-listening-quiz", "pandahan-mistakes-changed", "pandahan-srs-updated", "pandahan-vocabulary-model-updated"].forEach((name) => {
+  ["pandahan-learning-evaluation", "pandahan-quest-score-saved", "pandahan-phonetics-listening-quiz", "pandahan-mistakes-changed", "pandahan-srs-updated"].forEach((name) => {
     window.addEventListener(name, () => scheduleFlush(name));
   });
   window.addEventListener("pagehide", () => { if (flushTimer) { clearTimeout(flushTimer); flushTimer = 0; } flush("pagehide"); });
