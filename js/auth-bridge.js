@@ -33,7 +33,8 @@
     const ref = db.collection("users").doc(user.uid);
     const snap = await ref.get();
     const existing = snap.exists ? snap.data() : {};
-    const role = existing.role || (MASTER_EMAILS.includes((user.email || "").toLowerCase()) ? "teacher" : "student");
+    // A browser sign-in cannot grant teacher privileges; existing assigned roles stay intact.
+    const role = existing.role || "student";
     const profile = {
       uid: user.uid,
       email: user.email || existing.email || "",
