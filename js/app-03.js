@@ -1749,26 +1749,28 @@ function pvNextSession() {
 
     const dayMatch = clean.match(/^(?:\/?day\s*)?(\d{1,3})$/i);
     if (dayMatch) {
+      if(!window.PanTutorLessonAccess?.isTeacher()){renderAiCoachMessage("Tài khoản học sinh cần hoàn thành bài ngày hiện tại để mở ngày tiếp theo.","bot");return;}
       const dayNumber = Number(dayMatch[1]);
       if (dayNumber < 1 || dayNumber > 120) {
-        renderAiCoachMessage("TEST ONLY: enter a day number from 1 to 120.", "bot");
+        renderAiCoachMessage("Nhập số ngày từ 1 đến 120.", "bot");
         return;
       }
       try {
         // Persist first: every module (Coach, Quest, Phonetics and mobile reload) reads
         // the same canonical QA day immediately instead of waiting for Firebase/schedule propagation.
-        try { localStorage.setItem("pandahan_test_active_day", String(dayNumber)); } catch (_) {}
+        window.PanTutorLessonAccess.selectDay(dayNumber);
         await window.PandaHanSchedule?.testUnlockToDay?.(dayNumber);
         await window.PandaHanMission?.load?.();
         window.dispatchEvent(new CustomEvent("pandahan-test-day-changed", { detail: { dayNumber, source: "AI_COACH_QA_JUMP" } }));
         if (activeChatUserId === "__pandahan_ai__") openAiCoachChat();
-        renderAiCoachMessage(`TEST ONLY: Day ${dayNumber} is now active. All lesson modules now use Day ${dayNumber} immediately; no refresh is required.`, "bot");
+        renderAiCoachMessage(`Đã mở bài ngày ${dayNumber} cho giáo viên. Bạn có thể chọn đủ 120 ngày trong phần Ôn tập.`, "bot");
       } catch (error) {
-        renderAiCoachMessage(`TEST ONLY: I could not open Day ${dayNumber}. ${error?.message || error}`, "bot");
+        renderAiCoachMessage(`Chưa mở được ngày ${dayNumber}: ${error?.message || error}`, "bot");
       }
       return;
     }
     if (/^(?:\/?reset\s*test|reset\s*day)$/i.test(clean)) {
+      if(!window.PanTutorLessonAccess?.isTeacher())return;
       await window.PandaHanSchedule?.clearTestUnlock?.();
       renderAiCoachMessage("TEST ONLY reset: the learning path is back to real Quest-based progress.", "bot");
       return;
