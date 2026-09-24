@@ -1,5 +1,5 @@
 // v57.2-phonetics-sync-deep-feedback-20260924
-const CACHE_NAME = "pantutor-runtime-v60-3-teacher-monitor";
+const CACHE_NAME = "pantutor-runtime-v60-4-original-fonts";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
