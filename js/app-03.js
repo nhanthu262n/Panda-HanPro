@@ -939,8 +939,14 @@ function pvNextSession() {
     try { ns = typeof window.storageNamespace === "function" ? String(window.storageNamespace() || "guest") : String(window.CURRENT_USER?.uid || window.CURRENT_USER?.username || "guest"); } catch (_) {}
     return "pandahan_ai_coach_messages_v1_" + ns.replace(/[^a-zA-Z0-9_-]/g, "_");
   }
+  function isCoachDayNavigationMessage(m){
+    const text=String(m?.text||"").trim();
+    if(m?.role==="bot")return /^(?:TEST ONLY(?::| reset:)|Đã mở bài ngày \d+ cho giáo viên)/i.test(text);
+    const match=text.match(/^(?:\/?day\s*)?(\d{1,3})$/i);
+    return m?.role==="user"&&!!match&&Number(match[1])>=1&&Number(match[1])<=120;
+  }
   function loadAiCoachConversation() {
-    try { const value = JSON.parse(localStorage.getItem(aiCoachConversationKey()) || "[]"); return Array.isArray(value) ? value.filter((m) => m && (m.role === "user" || m.role === "bot") && String(m.text || "").trim()).slice(-30) : []; } catch (_) { return []; }
+    try { const value = JSON.parse(localStorage.getItem(aiCoachConversationKey()) || "[]"); return Array.isArray(value) ? value.filter((m) => m && (m.role === "user" || m.role === "bot") && String(m.text || "").trim() && !isCoachDayNavigationMessage(m)).slice(-30) : []; } catch (_) { return []; }
   }
   function saveAiCoachConversation(items) {
     try { localStorage.setItem(aiCoachConversationKey(), JSON.stringify(items.slice(-30))); } catch (_) {}
@@ -1745,8 +1751,6 @@ function pvNextSession() {
     const area = document.getElementById("chatMessagesArea");
     if (!area || !String(text || "").trim()) return;
     const clean = String(text).trim().slice(0, 2000);
-    renderAiCoachMessage(clean, "user");
-
     const dayMatch = clean.match(/^(?:\/?day\s*)?(\d{1,3})$/i);
     if (dayMatch) {
       if(!window.PanTutorLessonAccess?.isTeacher()){renderAiCoachMessage("Tài khoản học sinh cần hoàn thành bài ngày hiện tại để mở ngày tiếp theo.","bot");return;}
@@ -1763,7 +1767,7 @@ function pvNextSession() {
         await window.PandaHanMission?.load?.();
         window.dispatchEvent(new CustomEvent("pandahan-test-day-changed", { detail: { dayNumber, source: "AI_COACH_QA_JUMP" } }));
         if (activeChatUserId === "__pandahan_ai__") openAiCoachChat();
-        renderAiCoachMessage(`Đã mở bài ngày ${dayNumber} cho giáo viên. Bạn có thể chọn đủ 120 ngày trong phần Ôn tập.`, "bot");
+        // Navigation updates the lesson heading without adding chat messages.
       } catch (error) {
         renderAiCoachMessage(`Chưa mở được ngày ${dayNumber}: ${error?.message || error}`, "bot");
       }
@@ -1772,10 +1776,11 @@ function pvNextSession() {
     if (/^(?:\/?reset\s*test|reset\s*day)$/i.test(clean)) {
       if(!window.PanTutorLessonAccess?.isTeacher())return;
       await window.PandaHanSchedule?.clearTestUnlock?.();
-      renderAiCoachMessage("TEST ONLY reset: the learning path is back to real Quest-based progress.", "bot");
+      if (activeChatUserId === "__pandahan_ai__") openAiCoachChat();
       return;
     }
 
+    renderAiCoachMessage(clean, "user");
     let reply = "";
     try {
       reply = await requestRealAiCoach(clean, window.PandaHanMission?.detectResponseLanguage?.(clean) || "auto");
