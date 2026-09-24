@@ -2,9 +2,9 @@
 (() => {
   "use strict";
 
-  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=quest-result-bridge-v21-20260901";
+  const QUEST_APP = "pinyin-tone-quest-app/index.html?embedded=1&v=v59-1-teacher-access";
   const requestedQuestDay = (explicitDay) => {
-    const n = Number(explicitDay || localStorage.getItem("pandahan_test_active_day") || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
+    const n = Number(explicitDay || window.PanTutorLessonAccess?.selectedDay?.() || window.PandaHanMission?.getCurrent?.()?.dayNumber || 0);
     return Number.isInteger(n) && n >= 1 && n <= 120 ? n : null;
   };
   const questUrlForDay = (day, forceReload = false) => {
@@ -79,7 +79,7 @@
   function getQuestGate() {
     try {
       const api = window.PandaHanQuestProgression;
-      if (api?.gateFor) return api.gateFor(getQuestProgress());
+      if (api?.gateFor) {const gate=api.gateFor(getQuestProgress());return window.PanTutorLessonAccess?.isTeacher()?{...gate,unlocked:Array.from({length:120},(_,i)=>i+1)}:gate;}
     } catch (_) {}
     return { unlocked: [1], completed: [], progress: {} };
   }
@@ -372,11 +372,12 @@
   async function openQuestDay(dayNumber) {
     const day = requestedQuestDay(dayNumber);
     if (!day) return loadQuestOffline();
-    try { localStorage.setItem("pandahan_test_active_day", String(day)); } catch (_) {}
+    if(!window.PanTutorLessonAccess?.canOpen(day))throw new Error("Hãy hoàn thành ngày hiện tại trước khi mở bài này.");
+    if(window.PanTutorLessonAccess.isTeacher())window.PanTutorLessonAccess.selectDay(day);
     loadPromise = null;
     return loadQuestOffline(day, true);
   }
-  window.PandaHanQuestParts = { parts: [QUEST_APP], loadQuestOffline, openQuestDay, refreshQuestGate, extractQuestContentOnlyHtml };
+  window.PandaHanQuestParts = { resetAccess(){loadPromise=null;activeFrameWindow=null;searchFrameWindow=null;const target=frame();if(target){target.removeAttribute("srcdoc");target.src="about:blank";}}, parts: [QUEST_APP], loadQuestOffline, openQuestDay, refreshQuestGate, extractQuestContentOnlyHtml };
   window.addEventListener("message", handleQuestMessage);
   document.addEventListener("DOMContentLoaded", () => {
     const reviewButton = document.getElementById("questReviewErrorsBtn");
