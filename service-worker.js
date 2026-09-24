@@ -1,5 +1,5 @@
-// v56-detailed-teacher-feedback-20260907
-const CACHE_NAME = "pantutor-runtime-v56-20260907";
+// v57-language-mcq-quality-20260923
+const CACHE_NAME = "pantutor-runtime-v57-20260923";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -19,8 +19,10 @@ self.addEventListener("message", (event) => {
   const due = Number(data.due || 0);
   const mistakeDue = Number(data.mistakeDue || 0);
   const isEnglish = data.lang === "en";
-  const title = "PanTutor study reminder";
-  const body = `${due ? `${due} SRS word${due === 1 ? "" : "s"}` : ""}${due && mistakeDue ? " and " : ""}${mistakeDue ? `${mistakeDue} wrong item${mistakeDue === 1 ? "" : "s"} to redo` : ""} are ready.`;
+  const title = isEnglish ? "PanTutor study reminder" : "PanTutor — Nhắc ôn tập";
+  const body = isEnglish
+    ? `${due ? `${due} SRS word${due === 1 ? "" : "s"}` : ""}${due && mistakeDue ? " and " : ""}${mistakeDue ? `${mistakeDue} wrong item${mistakeDue === 1 ? "" : "s"} to redo` : ""} are ready.`
+    : `${due ? `${due} từ SRS` : ""}${due && mistakeDue ? " và " : ""}${mistakeDue ? `${mistakeDue} lỗi cần làm lại` : ""} đã sẵn sàng.`;
   event.waitUntil(self.registration.showNotification(title, {
     body,
     tag: "pandahan-due-review",
