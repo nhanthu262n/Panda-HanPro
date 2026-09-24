@@ -3,6 +3,7 @@
   "use strict";
   const DIMS=["FORM","SOUND","MEANING","USAGE","PRODUCTION"];
   const DIM_NAMES={FORM:"Nhận mặt chữ",SOUND:"Nghe và nhận diện âm",MEANING:"Hiểu nghĩa",USAGE:"Dùng từ trong câu",PRODUCTION:"Tự viết câu"};
+  const ACTIONS={1:"Giữ lịch ôn hiện tại",2:"Làm câu kiểm tra không gợi ý",3:"Phân biệt hai từ trong ngữ cảnh",4:"Nghe và phân biệt thanh điệu",5:"Nhìn cấu tạo rồi viết chữ Hán",6:"Học lại mẫu trước khi kiểm tra",7:"Nhờ giáo viên chọn cách luyện",8:"Luyện thanh điệu của đúng từ này",9:"Nghe từ và chọn chữ đúng",10:"Sửa câu và tập dùng từ trong ngữ cảnh"};
   const LABELS={1:"Đúng nhanh",2:"Đúng nhưng do dự",3:"Nhầm nghĩa gần",4:"Nhầm âm",5:"Nhầm chữ",6:"Chưa học vững",7:"Sai lặp lại",8:"Hiểu nghĩa, sai âm/thanh",9:"Đọc đúng, nghe sai",10:"Nhớ từ, dùng sai câu"};
   const ROUTES={1:"production",2:"confirm",3:"meaning_contrast",4:"sound_contrast",5:"hanzi_form",6:"learn",7:"teacher_review",8:"tone_practice",9:"listening",10:"usage_rewrite"};
   const ESC=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -80,22 +81,74 @@
     }return out;
   }
   function recommendations(day,rows){
-    const events=diagnose(rows).filter(e=>e.dayNumber===Number(day)&&e.diagnosisClass);
-    const recent=new Map();events.forEach(e=>recent.set(`${e.target}:${e.dimension}`,e));
-    return [...recent.values()].filter(e=>e.diagnosisClass!==1||e.kind==="meaning").sort((a,b)=>b.createdAt-a.createdAt).slice(0,8).map(e=>({...e,route:ROUTES[e.diagnosisClass],label:LABELS[e.diagnosisClass]}));
+    const all=diagnose(rows),events=all.filter(e=>e.dayNumber===Number(day));
+    const recent=new Map();events.filter(e=>e.kind!=="remediation").forEach(e=>recent.set(`${e.target}:${e.dimension}`,e));
+    const byWord=model(all);
+    return [...recent.values()].filter(e=>e.diagnosisClass&&e.diagnosisClass!==1).filter(e=>{
+      const after=events.filter(x=>x.target===e.target&&x.dimension===e.dimension&&x.kind==="remediation"&&x.createdAt>=e.createdAt);
+      return after.length<3||!after.slice(-3).every(x=>x.correct);
+    }).map(e=>{
+      const same=all.filter(x=>x.target===e.target&&x.dimension===e.dimension),source=same.slice(-8);
+      const related=all.filter(x=>x.target===e.target&&x.dimension==="MEANING");
+      const before=same.filter(x=>x.kind!=="remediation"),after=same.filter(x=>x.kind==="remediation");
+      const confidence=Math.min(.95,Math.round((e.confidence*.55+Math.min(1,source.length/5)*.45)*100)/100);
+      const weakness=1-(byWord[e.target]?.[e.dimension]?.value??.5),relevance=e.dayNumber===Number(day)?1:.6;
+      const reviewAt=Number(window.PandaHanAdaptiveLearning?.getStatFor?.(e.target)?.nextReview||0);
+      const due=reviewAt>0&&reviewAt<=Date.now();
+      const urgency=e.diagnosisClass===7?1.3:due?1.2:before.slice(-3).filter(x=>!x.correct).length>=2?1.15:1;
+      return {...e,id:recommendationId(e),route:ROUTES[e.diagnosisClass],label:LABELS[e.diagnosisClass],action:ACTIONS[e.diagnosisClass],confidence,due,priority:Math.round(weakness*confidence*relevance*urgency*1000)/1000,evidence:{correct:source.filter(x=>x.correct).length,total:source.length,attemptIds:[...new Set(source.map(x=>x.attemptId))],meaningCorrect:related.filter(x=>x.correct).length,meaningTotal:related.length,lastAt:e.createdAt},before:{correct:before.filter(x=>x.correct).length,total:before.length},after:{correct:after.filter(x=>x.correct).length,total:after.length},dimensions:byWord[e.target]||{}};
+    }).sort((a,b)=>b.priority-a.priority||b.createdAt-a.createdAt).slice(0,8);
   }
   function quality({correct,responseMs,priorExposure,confidence}){
     if(!priorExposure&&!correct)return null; // First teach, then start SM-2.
     return correct?(confidence==="unsure"||Number.isFinite(Number(responseMs))&&responseMs>=6000?4:5):2;
   }
+  const choiceFor=(rec,rows)=>rows.filter(r=>r.taskId==="recommendation_choice"&&r.items?.[0]?.recommendationId===rec.id).sort((a,b)=>b.createdAt-a.createdAt)[0]?.items?.[0]?.choice||"pending";
+  async function choose(rec,choice){
+    await window.PanTutorAttemptHistory?.save?.({dayNumber:rec.dayNumber,taskId:"recommendation_choice",scorePercent:0,passed:false,completeSet:false,total:0,correct:0,items:[{recommendationId:rec.id,target:rec.target,dimension:rec.dimension,sourceAttemptId:rec.attemptId,choice}],scheduleSaved:false});
+    if(choice==="practice")open(rec);
+    else if(choice==="explain")explain(rec);
+    else window.PandaHanMission?.renderCoach?.(document.querySelector("[data-ai-coach-plan]")?.parentElement);
+  }
   function render(day){
-    const rows=window.PanTutorAttemptHistory?.allRows?.()||[],rec=recommendations(day,rows),m=model(diagnose(rows));
+    const rows=window.PanTutorAttemptHistory?.allRows?.()||[],rec=recommendations(day,rows);
     if(!rec.length)return "";
-    return `<section style="margin-top:10px;padding:10px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff"><b>🧭 Bài luyện phù hợp với kết quả của bạn</b><p style="font-size:12px;margin:5px 0">Đề xuất dựa trên những câu bạn đã làm. Kỹ năng chưa được kiểm tra sẽ không bị tính là yếu.</p>${rec.map((r,i)=>{const d=m[r.target]?.[r.dimension];const observed=DIMS.filter(dim=>m[r.target]?.[dim]);return `<div style="background:#fff;border-radius:9px;padding:10px;margin-top:7px;font-size:13px"><b>${ESC(r.target)} · ${ESC(r.label)}</b><br><span>${ESC(DIM_NAMES[r.dimension]||r.dimension)}: ${d?`${d.evidenceCount} lần làm bài đã ghi nhận`:"Đang chờ kết quả bài làm"}</span><br><span>${ESC(r.reason||"Dựa trên câu trả lời gần nhất.")}</span><details style="margin-top:7px"><summary>Những kỹ năng đã có bài làm</summary>${observed.map(dim=>{const st=m[r.target][dim];return `<div>${ESC(DIM_NAMES[dim])}: ${st.evidenceCount} lần làm bài · kết quả tham khảo ${Math.round(st.value*100)}%</div>`}).join("")}<small>Điểm tham khảo chỉ dựa trên bài đã làm; các kỹ năng khác chưa được kiểm tra.</small></details><button type="button" data-ten-layer="${i}" style="margin-top:8px;padding:8px 12px;border:1px solid #93c5fd;border-radius:9px;background:#dbeafe;font-weight:700">${r.diagnosisClass===7?(decisions.get(recommendationId(r))?.status==="approved"?"Giáo viên đã duyệt · Mở bài luyện":decisions.get(recommendationId(r))?.status==="rejected"?"Giáo viên không đồng ý":decisions.get(recommendationId(r))?.status==="pending"?"Đang chờ giáo viên":"Gửi giáo viên xem xét"):"Luyện thêm phần này"}</button></div>`}).join("")}</section>`;
+    const cards=rec.map((r,i)=>{
+      const status=choiceFor(r,rows),review=decisions.get(r.id),observed=DIMS.filter(dim=>r.dimensions[dim]);
+      const evidence=`${r.evidence.correct}/${r.evidence.total} lần đúng ở phần ${DIM_NAMES[r.dimension].toLowerCase()}${r.evidence.meaningTotal?` · Hiểu nghĩa đúng ${r.evidence.meaningCorrect}/${r.evidence.meaningTotal}`:""}`;
+      const progress=r.after.total?`Sau khi luyện: ${r.after.correct}/${r.after.total} câu đúng`:"Chưa làm bài luyện bổ sung";
+      return `<article style="background:#fff;border-radius:12px;padding:12px;margin-top:9px;font-size:13px"><b>${ESC(r.target)} · ${ESC(r.label)}</b><p style="margin:6px 0">${ESC(r.reason||"Dựa trên câu trả lời gần nhất.")}</p><div>${ESC(evidence)} · ${ESC(progress)}</div><div style="margin:6px 0;color:#1d4ed8"><b>Đề xuất:</b> ${ESC(review?.teacherAction||r.action)}</div>${review?.teacherReason?`<p><b>Giáo viên:</b> ${ESC(review.teacherReason)} (${review.status==="approved"?"đã duyệt":"không đồng ý"})</p>`:""}<small>${status==="skip"?"Đã để sau · bạn có thể luyện lại bất cứ lúc nào":status==="practice"?"Bạn đã chọn luyện bài này":status==="explain"?"Bạn đã xem giải thích":status==="alternative"?"Bạn đã chọn bài khác":"Bạn quyết định bước tiếp theo"}</small><details style="margin:7px 0"><summary>Xem kết quả từng kỹ năng</summary>${observed.map(dim=>{const st=r.dimensions[dim];return `<div>${ESC(DIM_NAMES[dim])}: ${st.evidenceCount} bài · kết quả tham khảo ${Math.round(st.value*100)}%</div>`}).join("")}<small>Kỹ năng chưa có bài làm chưa được đánh giá.</small></details><div style="display:flex;gap:7px;flex-wrap:wrap"><button type="button" data-ten-choice="practice" data-ten-index="${i}" ${r.diagnosisClass===7&&["pending","rejected"].includes(review?.status)?"disabled":""}>${r.diagnosisClass===7?(review?.status==="approved"?"Luyện ngay":review?.status==="pending"?"Đang chờ giáo viên":review?.status==="rejected"?"Giáo viên không duyệt":"Gửi giáo viên xem xét"):"Luyện ngay"}</button><button type="button" data-ten-choice="explain" data-ten-index="${i}">Xem giải thích</button><button type="button" data-ten-choice="skip" data-ten-index="${i}">Để sau</button><button type="button" data-ten-choice="alternative" data-ten-index="${i}">Chọn bài khác</button>${r.confidence<=.55&&r.diagnosisClass!==7?`<button type="button" data-ten-choice="ask_teacher" data-ten-index="${i}">Nhờ giáo viên xem giúp</button>`:""}</div></article>`;
+    }).join("");
+    const latest=rec[0],reflection=rows.filter(r=>r.taskId==="learner_reflection"&&r.dayNumber===Number(day)).at(-1);
+    const meaning=latest.evidence.meaningTotal?`Hiểu nghĩa đúng ${latest.evidence.meaningCorrect}/${latest.evidence.meaningTotal}. `:"";
+    const mirror=`${meaning}${DIM_NAMES[latest.dimension]}: ${latest.evidence.correct}/${latest.evidence.total} câu đúng. ${latest.after.total?`Sau khi luyện thêm, bạn đúng ${latest.after.correct}/${latest.after.total} câu.`:"Bạn có thể thử bài bổ sung rồi xem kết quả thay đổi."}`;
+    return `<section style="margin-top:10px;padding:12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff"><b>🧭 Bài nên luyện tiếp</b><p style="font-size:12px;margin:5px 0">Gợi ý dựa trên bài làm đã lưu; bạn chọn cách học tiếp.</p>${cards}<div style="background:#fff;padding:12px;border-radius:12px;margin-top:9px;font-size:13px"><b>🪞 Nhìn lại buổi học</b><p><b>${ESC(latest.target)}:</b> ${ESC(mirror)} Đề xuất: ${ESC(latest.action.toLowerCase())}.</p><label for="ptTenReflection">Bạn nhầm vì nghĩa của từ, âm đọc, hay cách dùng trong câu?</label><textarea id="ptTenReflection" rows="2" style="box-sizing:border-box;width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px" placeholder="Viết điều bạn muốn luyện tiếp">${ESC(reflection?.items?.[0]?.input||"")}</textarea><button type="button" data-ten-reflection="${Number(day)}">Lưu suy nghĩ của tôi</button><small id="ptTenReflectionStatus" role="status"></small></div></section>`;
   }
   function bind(container,day){
     const rec=recommendations(day,window.PanTutorAttemptHistory?.allRows?.()||[]);
-    container.querySelectorAll("[data-ten-layer]").forEach(btn=>btn.addEventListener("click",()=>open(rec[Number(btn.dataset.tenLayer)])));
+    container.querySelectorAll("[data-ten-choice]").forEach(btn=>btn.addEventListener("click",()=>{
+      const r=rec[Number(btn.dataset.tenIndex)],action=btn.dataset.tenChoice;
+      if(action==="ask_teacher"){sendTeacher(r).then(()=>window.PandaHanMission?.renderCoach?.(container)).catch(e=>alert(e.message));return}
+      if(action==="alternative"){
+        const other=rec.find(x=>x.id!==r.id);
+        choose(r,action).then(()=>other?open(other):window.PandaHanMission?.startTask?.(r.dimension==="SOUND"?"listening":r.dimension==="FORM"?"vocab-intro":"reading_writing")).catch(e=>alert("Chưa lưu được lựa chọn: "+e.message));
+      }else choose(r,action).catch(e=>alert("Chưa lưu được lựa chọn: "+e.message));
+    }));
+    container.querySelector("[data-ten-reflection]")?.addEventListener("click",async()=>{
+      const input=container.querySelector("#ptTenReflection")?.value?.trim();if(!input)return;
+      try{await window.PanTutorAttemptHistory?.save?.({dayNumber:Number(day),taskId:"learner_reflection",scorePercent:0,passed:false,completeSet:false,total:0,items:[{input}],scheduleSaved:false});
+        const label=container.querySelector("#ptTenReflectionStatus");if(label)label.textContent=" Đã lưu vào lịch sử của bạn.";
+      }catch(e){alert("Chưa lưu được suy nghĩ của bạn: "+e.message)}
+    });
+  }
+  function explain(rec){
+    const w=word(rec.target),s=SCENARIOS[rec.target];ensurePracticeStyle();document.getElementById("ptTenLayerOverlay")?.remove();
+    const ov=document.createElement("div");ov.id="ptTenLayerOverlay";
+    const details=rec.dimension==="FORM"?String(w?.chietu_vi||"Nhìn từng phần của chữ và đối chiếu với chữ mẫu."):rec.dimension==="SOUND"?`Nghe ${rec.target} (${w?.pinyin||""}) nhiều lần. Chú ý thanh điệu rồi chọn âm nghe được.`:s?.correction||String(w?.examples?.[0]?.[0]||"Xem ví dụ của từ trước khi làm bài.");
+    ov.innerHTML=`<section class="ptt-panel" role="dialog" aria-modal="true"><header class="ptt-head"><b class="ptt-title">Giải thích · ${ESC(rec.target)}</b><button class="ptt-close" type="button">✕ Thoát</button></header><div class="ptt-body"><div class="ptt-card"><p>${ESC(rec.reason)}</p><p style="white-space:pre-line">${ESC(details)}</p><div class="ptt-actions"><button class="ptt-primary" type="button" data-next="practice">Luyện ngay</button><button class="ptt-secondary" type="button" data-next="later">Để sau</button></div></div></div></section>`;
+    document.body.appendChild(ov);ov.querySelector(".ptt-close").onclick=()=>ov.remove();ov.onclick=e=>{if(e.target===ov)ov.remove()};
+    ov.querySelector('[data-next="practice"]').onclick=()=>{ov.remove();choose(rec,"practice").catch(e=>alert(e.message))};
+    ov.querySelector('[data-next="later"]').onclick=()=>ov.remove();
   }
   function speak(text){if(!window.speechSynthesis)return false;const utter=new SpeechSynthesisUtterance(text);utter.lang="zh-CN";speechSynthesis.speak(utter);return true}
   function toneDistractor(pinyin){
@@ -106,17 +159,18 @@
   function toneChoices(pinyin,confused){
     const groups="āáǎàa ēéěèe īíǐìi ōóǒòo ūúǔùu ǖǘǚǜü".split(" ");
     const options=[pinyin];
+    if(confused&&/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ\s]+$/i.test(confused))options.push(confused);
     for(const group of groups){const index=[...group.slice(0,4)].findIndex(ch=>pinyin.includes(ch));if(index<0)continue;
       for(let offset=1;offset<4;offset++)options.push(pinyin.replace(group[index],group[(index+offset)%4]));break;
     }
-    if(confused&&/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ\s]+$/i.test(confused))options.push(confused);
     return [...new Set(options.map(x=>String(x||"").trim()).filter(Boolean))].slice(0,4);
   }
   function soundConfusable(target){
     const base=String(word(target)?.pinyin||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
     const list=vocab();
     return list.find(x=>x.char!==target&&x.char?.length===target.length&&String(x.pinyin||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")===base)?.char
-      ||list.find(x=>x.char!==target&&x.char?.length===target.length&&x.hsk===word(target)?.hsk)?.char||"";
+      ||list.find(x=>x.char!==target&&x.char?.length===target.length&&x.hsk===word(target)?.hsk)?.char
+      ||list.find(x=>x.char!==target&&x.char?.length===target.length)?.char||"";
   }
   async function submit(rec,answer,expected,correct,dimension,extra={}){
     const result=await window.PanTutorAttemptHistory?.save?.({dayNumber:rec.dayNumber,taskId:"remediation",scorePercent:correct?100:0,passed:!!correct,completeSet:true,correct:correct?1:0,total:1,items:[{target:rec.target,dimension,input:answer,expected,correct,diagnosisClass:rec.diagnosisClass,sourceAttemptId:rec.attemptId,...extra}],scheduleSaved:false});
@@ -146,11 +200,20 @@
       case 4:{const confused=String(rec.input||"").split("·").pop().trim();return {mode:"choice",audio:true,prompt:"Nghe từ rồi chọn đúng cách đọc.",options:toneChoices(py,confused),answer:py,dimension:"SOUND"}}
       case 5:return {mode:"typing",prompt:`Nhìn cách đọc (${py}) và nghĩa (${meaningText}), rồi gõ chữ Hán đúng.`,answer:rec.target,explain:`Đối chiếu từng chữ: ${[...rec.target].join(" · ")}.${w?.chietu_vi?` Ghi chú học liệu: ${w.chietu_vi}`:""}`,dimension:"FORM"};
       case 6:return {mode:"choice",learn:true,prompt:`Học mẫu: ${rec.target} · ${py} · ${meaningText}. ${s?.example||String(w?.examples?.[0]?.[0]||"")} Sau đó chọn nghĩa đúng.`,options:[meaningText,s?.wrong||"Không liên quan"].filter(Boolean),answer:meaningText,dimension:"MEANING"};
-      case 8:return {mode:"choice",audio:true,prompt:`Nghe “${rec.target}” và chọn thanh điệu đúng.`,options:toneChoices(py),answer:py,dimension:"SOUND"};
+      case 8:return {mode:"choice",audio:true,prompt:"Nghe mẫu và chọn thanh điệu đúng.",options:toneChoices(py),answer:py,dimension:"SOUND"};
       case 9:return {mode:"choice",audio:true,prompt:"Nghe từ rồi chọn Hán tự được phát âm.",options:[rec.target,soundConfusable(rec.target)].filter(Boolean),answer:rec.target,dimension:"SOUND"};
       case 10:return s?{mode:"choice",prompt:`Sửa câu “${String(rec.input||"这个问题很方便。")}”: chọn câu dùng từ phù hợp với ý “vấn đề này dễ”.`,options:["这个问题很容易。","这个问题很方便。"],answer:"这个问题很容易。",explain:s.correction,dimension:"USAGE"}: {mode:"production",prompt:`Viết lại một câu khác sử dụng “${rec.target}”. Câu mới sẽ chờ giáo viên/rubric xác minh.`,reference:"",dimension:"USAGE"};
       default:return null;
     }
+  }
+  function practiceQuestions(rec){
+    const first=question(rec),s=SCENARIOS[rec.target];if(!first)return [];
+    if(!s||![3,10].includes(rec.diagnosisClass))return [first];
+    const lead=rec.diagnosisClass===3?{mode:"choice",prompt:`Từ ${rec.target} phù hợp với câu nào?`,options:[s.example,rec.target==="方便"?"这个问题很方便。":"这个酒店离地铁站很近，交通很容易。"],answer:s.example,dimension:"MEANING",explain:s.correction}:first;
+    return [lead,
+      {mode:"choice",prompt:s.prompt,options:[s.answer,s.wrong],answer:s.answer,dimension:"USAGE",explain:s.correction},
+      {mode:"choice",prompt:"Chọn câu dùng từ phù hợp với ngữ cảnh.",options:[s.example,rec.target==="方便"?"这个问题很方便。":"这个酒店离地铁站很近，交通很容易。"],answer:s.example,dimension:"USAGE",explain:s.correction}
+    ];
   }
   function ensurePracticeStyle(){
     if(document.getElementById("ptTenPracticeStyle"))return;
@@ -164,27 +227,33 @@
 @media(max-width:680px){#ptTenLayerOverlay{padding:0;place-items:stretch}#ptTenLayerOverlay .ptt-panel{max-height:100vh;border-radius:0}#ptTenLayerOverlay .ptt-head,#ptTenLayerOverlay .ptt-body{padding:15px}#ptTenLayerOverlay .ptt-options{grid-template-columns:1fr}#ptTenLayerOverlay .ptt-title{font-size:19px}}`;
     document.head.appendChild(style);
   }
-  function open(rec){
+  function open(rec,step=0){
     if(!rec)return;
-    if(rec.diagnosisClass===7){const status=decisions.get(recommendationId(rec))?.status;if(status==="approved"){const cls=rec.dimension==="FORM"?5:rec.dimension==="SOUND"?8:rec.dimension==="USAGE"?10:SCENARIOS[rec.target]?3:6;open({...rec,diagnosisClass:cls});return}if(status==="pending"||status==="rejected")return;sendTeacher(rec);return}
-    const q=question(rec);if(!q||q.mode==="choice"&&new Set(q.options.map(norm)).size<2){alert("Chưa có cặp đáp án đã duyệt cho từ này. Hãy chọn bài học hiện có hoặc nhờ giáo viên bổ sung học liệu.");return}
+    const reviewed=decisions.get(recommendationId(rec));
+    if(rec.diagnosisClass!==7&&reviewed?.status==="approved"&&reviewed.teacherRoute&&!rec._teacherApplied){
+      const cls=({hanzi_form:5,tone_practice:8,listening:9,meaning_contrast:3,learn:6,usage_rewrite:10})[reviewed.teacherRoute];
+      if(cls&&cls!==rec.diagnosisClass){open({...rec,diagnosisClass:cls,_teacherApplied:true},step);return}
+    }
+    if(rec.diagnosisClass===7){const status=decisions.get(recommendationId(rec))?.status;if(status==="approved"){const route=decisions.get(recommendationId(rec))?.teacherRoute||rec.route;const cls=({hanzi_form:5,tone_practice:8,listening:9,meaning_contrast:3,learn:6,usage_rewrite:10})[route]||6;open({...rec,diagnosisClass:cls});return}if(status==="pending"||status==="rejected")return;sendTeacher(rec);return}
+    const questions=practiceQuestions(rec),q=questions[step];if(!q||q.mode==="choice"&&new Set(q.options.map(norm)).size<2){alert("Chưa có cặp đáp án đã duyệt cho từ này. Hãy chọn bài học hiện có hoặc nhờ giáo viên bổ sung học liệu.");return}
     if(q.audio&&!("speechSynthesis" in window)){alert("Thiết bị chưa phát được audio tiếng Trung; hãy dùng Listening Lab có audio trước khi làm bài chẩn đoán này.");return}
     ensurePracticeStyle();document.getElementById("ptTenLayerOverlay")?.remove();
     const ov=document.createElement("div");ov.id="ptTenLayerOverlay";
-    const existing=rec.diagnosisClass===8?{type:"quest",label:"Luyện thanh điệu trong bài hôm nay"}:rec.diagnosisClass===9||rec.diagnosisClass===4?{type:"listening",label:"Luyện nghe thêm"}:rec.diagnosisClass===10||rec.diagnosisClass===1?{type:"reading_writing",label:"Luyện viết câu"}:rec.diagnosisClass===6?{type:"vocab-intro",label:"Học lại từ này"}:null;
-    ov.innerHTML=`<section class="ptt-panel" role="dialog" aria-modal="true" aria-label="Bài luyện bổ sung"><header class="ptt-head"><div><div class="ptt-title">${q.audio?"🎧 AI Coach · Luyện nghe":"📝 AI Coach · Luyện thêm"}</div><div class="ptt-sub">Ngày ${Number(rec.dayNumber)} · ${ESC(rec.target)} · ${ESC(DIM_NAMES[q.dimension]||q.dimension)}</div></div><button id="ptTenClose" class="ptt-close" type="button">✕ Thoát</button></header><div class="ptt-body"><div class="ptt-banner"><b>Bài luyện phù hợp:</b> ${ESC(rec.label)}. Làm câu này để kiểm tra lại phần ${ESC((DIM_NAMES[q.dimension]||q.dimension).toLowerCase())}.</div><div class="ptt-progress"><div class="ptt-bar"><span></span></div><span>1 / 1</span></div><div class="ptt-card"><span class="ptt-kicker">${q.audio?"LUYỆN NGHE · NGHE TRƯỚC":"LUYỆN TẬP · LÀM LẠI"}</span><h2 class="ptt-question">${ESC(q.prompt)}</h2>${q.audio?'<p class="ptt-help">Nghe mẫu rồi chọn một đáp án. Bạn có thể nghe lại nhiều lần.</p><button id="ptTenOrb" class="ptt-orb" type="button" aria-label="Nghe mẫu">🔊</button><div class="ptt-actions"><button id="ptTenAudio" class="ptt-primary" type="button">▶ Nghe lại audio</button></div>':""}${q.mode==="choice"?`<div id="ptTenChoices" class="ptt-options">${q.options.map((o,i)=>`<button type="button" class="ptt-option" data-i="${i}">${ESC(o)}</button>`).join("")}</div>`:`<textarea id="ptTenInput" class="ptt-input" rows="3" placeholder="Nhập câu trả lời"></textarea><div class="ptt-actions"><button id="ptTenSubmit" class="ptt-primary" type="button">Nộp bài</button></div>`}<div id="ptTenResult" class="ptt-result" aria-live="polite"></div>${existing?`<div class="ptt-actions"><button id="ptTenExisting" class="ptt-secondary" type="button">${ESC(existing.label)}</button></div>`:""}</div></div></section>`;
+    const existing=rec.diagnosisClass===9||rec.diagnosisClass===4?{type:"listening",label:"Mở bài nghe đúng từ đang luyện"}:rec.diagnosisClass===10||rec.diagnosisClass===1?{type:"reading_writing",label:"Mở bài viết của ngày"}:rec.diagnosisClass===6?{type:"vocab-intro",label:"Mở bài học từ vựng"}:null;
+    ov.innerHTML=`<section class="ptt-panel" role="dialog" aria-modal="true" aria-label="Bài luyện bổ sung"><header class="ptt-head"><div><div class="ptt-title">${q.audio?"🎧 AI Coach · Luyện nghe":"📝 AI Coach · Luyện thêm"}</div><div class="ptt-sub">Ngày ${Number(rec.dayNumber)} · ${q.audio?"Nghe trước khi xem chữ":ESC(rec.target)} · ${ESC(DIM_NAMES[q.dimension]||q.dimension)}</div></div><button id="ptTenClose" class="ptt-close" type="button">✕ Thoát</button></header><div class="ptt-body"><div class="ptt-banner"><b>Bài luyện phù hợp:</b> ${ESC(rec.label)}. Làm câu này để kiểm tra lại phần ${ESC((DIM_NAMES[q.dimension]||q.dimension).toLowerCase())}.</div><div class="ptt-progress"><div class="ptt-bar"><span style="width:${Math.round((step+1)/questions.length*100)}%"></span></div><span>${step+1} / ${questions.length}</span></div><div class="ptt-card"><span class="ptt-kicker">${q.audio?"LUYỆN NGHE · NGHE TRƯỚC":"LUYỆN TẬP · LÀM LẠI"}</span><h2 class="ptt-question">${ESC(q.prompt)}</h2>${q.audio?'<p class="ptt-help">Nghe mẫu rồi chọn một đáp án. Bạn có thể nghe lại nhiều lần.</p><button id="ptTenOrb" class="ptt-orb" type="button" aria-label="Nghe mẫu">🔊</button><div class="ptt-actions"><button id="ptTenAudio" class="ptt-primary" type="button">▶ Nghe lại audio</button></div>':""}${q.mode==="choice"?`<div id="ptTenChoices" class="ptt-options">${q.options.map((o,i)=>`<button type="button" class="ptt-option" data-i="${i}">${ESC(o)}</button>`).join("")}</div>`:`<textarea id="ptTenInput" class="ptt-input" rows="3" placeholder="Nhập câu trả lời"></textarea><div class="ptt-actions"><button id="ptTenSubmit" class="ptt-primary" type="button">Nộp bài</button></div>`}<div id="ptTenResult" class="ptt-result" aria-live="polite"></div>${existing?`<div class="ptt-actions"><button id="ptTenExisting" class="ptt-secondary" type="button">${ESC(existing.label)}</button></div>`:""}</div></div></section>`;
     document.body.appendChild(ov);ov.querySelector("#ptTenClose").onclick=()=>ov.remove();ov.onclick=e=>{if(e.target===ov)ov.remove()};
     const audio=ov.querySelector("#ptTenAudio");if(audio)audio.onclick=()=>speak(rec.target);const orb=ov.querySelector("#ptTenOrb");if(orb)orb.onclick=()=>speak(rec.target);
-    const existingBtn=ov.querySelector("#ptTenExisting");if(existingBtn)existingBtn.onclick=()=>{ov.remove();window.PandaHanMission?.startTask?.(existing.type)};
+    const existingBtn=ov.querySelector("#ptTenExisting");if(existingBtn)existingBtn.onclick=()=>{ov.remove();if(existing.type==="listening"&&window.PandaHanCoachSkills?.openListening)window.PandaHanCoachSkills.openListening(window.PandaHanMission?.mission?.(),rec.target);else if(existing.type==="vocab-intro"&&window.PandaHanCoachSkills?.openVocabulary)window.PandaHanCoachSkills.openVocabulary(window.PandaHanMission?.mission?.(),rec.target);else window.PandaHanMission?.startTask?.(existing.type)};
     let done=false;
     async function grade(input){if(done)return;done=true;
       const verified=q.mode!=="production",correct=verified&&norm(input)===norm(q.answer);
       const message=verified?(correct?`Đúng. ${q.explain||"Bạn đã trả lời đúng phần "+(DIM_NAMES[q.dimension]||q.dimension)+"."}`:`Chưa đúng. Đáp án: ${q.answer}. ${q.explain||"Nghe/xem lại mẫu rồi làm lại."}`):"Đã nhận câu mới. Cần giáo viên kiểm tra nghĩa và ngữ pháp trước khi tính kết quả.";
-      if(verified)await submit(rec,input,q.answer,correct,q.dimension,{responseMs:Date.now()-started});
+      if(verified)await submit(rec,input,q.answer,correct,q.dimension,{responseMs:Date.now()-started,recommendationId:rec.id||recommendationId(rec),questionIndex:step,questionCount:questions.length});
       else await window.PanTutorAttemptHistory?.save?.({dayNumber:rec.dayNumber,taskId:"teacherDraft",scorePercent:0,passed:false,completeSet:false,total:1,items:[{target:rec.target,dimension:q.dimension,input,expected:q.reference,verified:false,status:"pending_review",sourceAttemptId:rec.attemptId}],scheduleSaved:false});
       ov.querySelector("#ptTenResult").innerHTML=`<p>${ESC(message)}</p><button id="ptTenAgain" class="ptt-secondary" type="button">Làm lại</button>`;
       ov.querySelectorAll("#ptTenChoices button").forEach(x=>{x.classList.add(norm(x.textContent)===norm(q.answer)?"correct":"wrong")});
       ov.querySelector("#ptTenAgain").onclick=()=>{ov.remove();open(rec)};
+      if(step+1<questions.length){const next=document.createElement("button");next.className="ptt-primary";next.type="button";next.textContent="Câu tiếp theo";next.onclick=()=>open(rec,step+1);ov.querySelector("#ptTenResult").appendChild(next)}
       ov.querySelectorAll("#ptTenChoices button,#ptTenSubmit").forEach(x=>x.disabled=true);
     }
     const started=Date.now();ov.querySelectorAll("#ptTenChoices button").forEach(btn=>btn.onclick=()=>grade(q.options[Number(btn.dataset.i)]));const submitBtn=ov.querySelector("#ptTenSubmit");if(submitBtn)submitBtn.onclick=()=>grade(ov.querySelector("#ptTenInput").value);
@@ -195,9 +264,10 @@
     const key=recommendationId(rec);
     const ref=db.collection("learningRecommendations").doc(uid).collection("items").doc(key);
     try{const snap=await ref.get();if(snap.exists){if(!quiet)alert("Đề xuất này đã được gửi. Giáo viên sẽ xem bằng chứng và quyết định.");return}
-      const evidence=diagnose(window.PanTutorAttemptHistory.allRows()).filter(x=>x.target===rec.target&&x.dimension===rec.dimension&&!x.correct).slice(-3);
-      if(new Set(evidence.map(x=>x.attemptId)).size<3){if(!quiet)alert("Cần đủ ba lần làm sai riêng biệt đã lưu trước khi gửi đề xuất.");return}
-      await ref.set({ownerId:uid,dayNumber:rec.dayNumber,target:rec.target,dimension:rec.dimension,diagnosisClass:7,sourceAttemptIds:evidence.map(x=>x.attemptId),route:rec.dimension==="FORM"?"hanzi_form":rec.dimension==="SOUND"?"tone_practice":rec.dimension==="USAGE"?"usage_rewrite":"meaning_contrast",reason:rec.reason,status:"pending",createdAt:Date.now()});decisions.set(key,{status:"pending"});if(!quiet)alert("Đã gửi đề xuất kèm ba lần làm sai cho giáo viên.");loadDecisions()
+      const evidence=diagnose(window.PanTutorAttemptHistory.allRows()).filter(x=>x.target===rec.target&&x.dimension===rec.dimension&&(rec.diagnosisClass!==7||!x.correct)).slice(-3);
+      const required=rec.diagnosisClass===7?3:1;
+      if(new Set(evidence.map(x=>x.attemptId)).size<required){if(!quiet)alert("Cần thêm bài làm được lưu trước khi gửi đề xuất.");return}
+      await ref.set({ownerId:uid,dayNumber:rec.dayNumber,target:rec.target,dimension:rec.dimension,diagnosisClass:rec.diagnosisClass,sourceAttemptIds:evidence.map(x=>x.attemptId),route:rec.dimension==="FORM"?"hanzi_form":rec.dimension==="SOUND"?"tone_practice":rec.dimension==="USAGE"?"usage_rewrite":"meaning_contrast",reason:rec.reason,status:"pending",action:rec.action||ACTIONS[7],dimensions:rec.dimensions||{},confidence:rec.confidence,createdAt:Date.now()});decisions.set(key,{status:"pending"});if(!quiet)alert("Đã gửi bài làm và đề xuất cho giáo viên.");loadDecisions()
     }catch(e){if(!quiet)alert("Chưa gửi được đề xuất: "+String(e?.message||e));else console.warn("Recommendation pending:",e?.code||e?.message||e)}
   }
   async function renderTeacher(host,students){
@@ -208,9 +278,13 @@
         for(const doc of snap.docs){const r=doc.data();const line=document.createElement("div");line.style="padding:8px;background:white;margin:7px 0;border-radius:8px";
           const ids=[...new Set(r.sourceAttemptIds||[])].slice(0,10);
           const sources=await Promise.all(ids.map(id=>db.collection("learningAttempts").doc(student.uid).collection("attempts").doc(id).get()));
-          const verified=sources.filter(x=>x.exists&&x.data()?.ownerId===student.uid&&(x.data()?.items||[]).some(item=>String(item.word||item.char||item.target||"").includes(r.target)&&(item.correct===false||Number.isFinite(Number(item.score))&&Number(item.score)<75||!!item.correction?.reason)));
-          line.innerHTML=`<b>${ESC(student.name)} · ${ESC(r.target)} · ${ESC(DIM_NAMES[r.dimension]||r.dimension)}</b><br>${ESC(r.reason)} · ${verified.length}/${ids.length} lần sai kiểm tra được${verified.length>=3?' <button data-decision="approved">Đồng ý</button> <button data-decision="rejected">Không đồng ý</button>':" · Chưa đủ bằng chứng để duyệt"}`;section.appendChild(line);
-          line.querySelectorAll("[data-decision]").forEach(btn=>btn.onclick=async()=>{try{await doc.ref.update({status:btn.dataset.decision,reviewedAt:Date.now(),reviewedBy:window.firebase.auth().currentUser.uid});line.remove()}catch(e){alert("Không lưu được quyết định: "+e.message)}})
+          const verified=sources.filter(x=>x.exists&&x.data()?.ownerId===student.uid&&(x.data()?.items||[]).some(item=>String(item.word||item.char||item.target||"").includes(r.target)&&(r.diagnosisClass!==7||item.correct===false||Number.isFinite(Number(item.score))&&Number(item.score)<75||!!item.correction?.reason)));
+          const skills=r.dimensions||{};
+          const scoreText=DIMS.filter(d=>skills[d]).map(d=>`${DIM_NAMES[d]}: ${skills[d].evidenceCount} bài, ${Math.round(skills[d].value*100)}%`).join(" · ");
+          const evidenceText=verified.map(x=>{const item=x.data().items.find(i=>String(i.word||i.char||i.target||"").includes(r.target));return `${new Date(x.data().createdAt).toLocaleString("vi-VN")}: ${item?.input||"(chưa trả lời)"} → ${item?.expected||""}`}).join(" | ");
+          line.innerHTML=`<b>${ESC(student.name)} · ${ESC(r.target)} · ${ESC(DIM_NAMES[r.dimension]||r.dimension)}</b><div>${ESC(r.reason)}</div><div>Đề xuất: ${ESC(r.action||ACTIONS[7])} · Kiểm tra được ${verified.length}/${ids.length} bài làm</div><small>${ESC(evidenceText)}</small><p>${ESC(scoreText||"Chưa có điểm kỹ năng đáng tin cậy")}</p>${verified.length>=(r.diagnosisClass===7?3:1)?`<label>Cách luyện giáo viên đề xuất<input data-teacher-action style="display:block;width:100%;box-sizing:border-box;margin:5px 0" value="${ESC(r.action||ACTIONS[7])}" maxlength="300"></label><label>Lý do quyết định<input data-teacher-reason style="display:block;width:100%;box-sizing:border-box;margin:5px 0" placeholder="Nêu lý do cho người học" maxlength="600"></label><label>Chọn dạng bài<select data-teacher-route><option value="hanzi_form" ${r.route==="hanzi_form"?"selected":""}>Nhận diện chữ Hán</option><option value="tone_practice" ${r.route==="tone_practice"?"selected":""}>Phân biệt thanh điệu</option><option value="listening" ${r.route==="listening"?"selected":""}>Nghe chọn từ</option><option value="meaning_contrast" ${r.route==="meaning_contrast"?"selected":""}>Phân biệt nghĩa</option><option value="learn" ${r.route==="learn"?"selected":""}>Học mẫu lại</option><option value="usage_rewrite" ${r.route==="usage_rewrite"?"selected":""}>Sửa cách dùng từ</option></select></label><button data-decision="approved">Đồng ý</button> <button data-decision="edit">Sửa đề xuất và duyệt</button> <button data-decision="rejected">Không đồng ý</button>`:"Chưa đủ bằng chứng để duyệt"}`;section.appendChild(line);
+          line.querySelectorAll("[data-decision]").forEach(btn=>btn.onclick=async()=>{const reason=line.querySelector("[data-teacher-reason]")?.value.trim(),action=line.querySelector("[data-teacher-action]")?.value.trim();if(!reason||reason.length<3){alert("Vui lòng nhập lý do ít nhất ba ký tự.");return}if(btn.dataset.decision==="edit"&&!action){alert("Vui lòng nhập bài luyện thay thế.");return}try{await doc.ref.update({status:btn.dataset.decision==="rejected"?"rejected":"approved",teacherAction:action||r.action||ACTIONS[7],teacherRoute:line.querySelector("[data-teacher-route]").value,teacherReason:reason,reviewedAt:Date.now(),reviewedBy:window.firebase.auth().currentUser.uid});line.remove()}catch(e){alert("Không lưu được quyết định: "+e.message)}})
+
         }
       }catch(e){console.warn("Teacher recommendations:",e?.code||e?.message||e)}
     }
@@ -218,6 +292,10 @@
   window.PanTutorTenLayer={diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions};
   window.firebase?.auth?.().onAuthStateChanged(user=>{if(user)loadDecisions()});
   window.addEventListener("pantutor-attempt-saved",event=>{
+    if(document.querySelector("[data-ai-coach-plan]")&&event.detail?.dayNumber){
+      const panel=document.querySelector("[data-ai-coach-plan]")?.parentElement;
+      if(panel)window.requestAnimationFrame?.(()=>window.PandaHanMission?.renderCoach?.(panel));
+    }
     if(event.detail?.restored||!event.detail?.attemptId)return;
     const rows=window.PanTutorAttemptHistory?.allRows?.()||[];
     const match=recommendations(event.detail.dayNumber,rows).find(r=>r.diagnosisClass===7&&r.attemptId===event.detail.attemptId);
