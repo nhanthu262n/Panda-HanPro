@@ -1,5 +1,5 @@
-// v57.1-tone-cards-vi-sync-20260924
-const CACHE_NAME = "pantutor-runtime-v57-1-20260924";
+// v57.2-phonetics-sync-deep-feedback-20260924
+const CACHE_NAME = "pantutor-runtime-v57-2-20260924";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
