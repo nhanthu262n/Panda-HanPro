@@ -2729,6 +2729,7 @@ const DASH_RING_CIRC = 2 * Math.PI * 52;
 let dashChartRange = 7;
 
 function renderDashboard() {
+  window.PanTutorMemory?.mountDashboard();
   const learned = VOCAB.filter(w => getTier(w.char) > 0).length;
   const mastered = VOCAB.filter(w => getTier(w.char) === 4).length;
   const due = VOCAB.filter(w => isDue(w.char)).length;
@@ -3368,7 +3369,7 @@ function renderMergedHistory() {
 function showScreen(name) {
   // Move the floating AI assistant away from the direct-message composer.
   document.body.classList.toggle("direct-chat-open", name === "chat");
-  ["browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "aiTeacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
+  ["memoryPracticeView", "browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "aiTeacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = "none"; el.classList.remove("visible"); }
   });
@@ -3544,6 +3545,7 @@ async function renderTeacherDashboard() {
       
       list.innerHTML = html;
       await window.PanTutorTenLayer?.renderTeacher?.(list,students);
+      await window.PanTutorMemory?.renderTeacherHistory?.(list,students);
   } catch(e) {
       list.innerHTML = `<div style="color:red;">Lỗi khi tải dữ liệu: ${e.message}</div>`;
       console.error("renderTeacherDashboard error:", e);
