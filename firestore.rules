@@ -39,6 +39,28 @@ service cloud.firestore {
       allow create, update: if isSelf(uid);
       allow delete: if isSelf(uid) || isMaster();
     }
+    // A learner may append graded attempts. Saved attempts cannot be edited or deleted.
+    match /learningAttempts/{uid}/attempts/{attemptId} {
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && request.resource.data.ownerId == uid
+        && request.resource.data.attemptId == attemptId
+        && request.resource.data.dayNumber is int
+        && request.resource.data.dayNumber >= 1
+        && request.resource.data.dayNumber <= 120
+        && request.resource.data.taskId is string
+        && request.resource.data.scorePercent is number
+        && request.resource.data.scorePercent >= 0
+        && request.resource.data.scorePercent <= 100
+        && request.resource.data.passed is bool
+        && request.resource.data.completeSet is bool
+        && request.resource.data.items is list
+        && request.resource.data.items.size() <= 120
+        && request.resource.data.createdAt is number
+        && request.resource.data.keys().hasOnly(['attemptId','ownerId','dayNumber','taskId','scorePercent','passed','completeSet','correct','total','items','teacherReports','scheduleSaved','createdAt']);
+      allow update, delete: if false;
+    }
+
     match /notifications/{notifId} {
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || isTeacherOrMaster());
       allow create: if isTeacherOrMaster() || isSelf(request.resource.data.userId);
