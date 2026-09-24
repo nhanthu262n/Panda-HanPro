@@ -15,7 +15,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn();
       allow create: if isSelf(uid)
-        && request.resource.data.role in ['student', 'teacher', 'master_teacher']
+        && request.resource.data.role == 'student'
         && request.resource.data.email is string
         && request.resource.data.name is string;
       allow update: if isMaster()
@@ -41,7 +41,7 @@ service cloud.firestore {
     }
     // A learner may append graded attempts. Saved attempts cannot be edited or deleted.
     match /learningAttempts/{uid}/attempts/{attemptId} {
-      allow read: if isSelf(uid);
+      allow read: if isSelf(uid) || isTeacherOrMaster();
       allow create: if isSelf(uid)
         && request.resource.data.ownerId == uid
         && request.resource.data.attemptId == attemptId
@@ -59,6 +59,29 @@ service cloud.firestore {
         && request.resource.data.createdAt is number
         && request.resource.data.keys().hasOnly(['attemptId','ownerId','dayNumber','taskId','scorePercent','passed','completeSet','correct','total','items','teacherReports','scheduleSaved','createdAt']);
       allow update, delete: if false;
+    }
+
+    // Learner submits repeated-error evidence; only a teacher may approve a route.
+    match /learningRecommendations/{uid}/items/{recommendationId} {
+      allow read: if isSelf(uid) || isTeacherOrMaster();
+      allow create: if isSelf(uid)
+        && request.resource.data.ownerId == uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.diagnosisClass == 7
+        && request.resource.data.sourceAttemptIds is list
+        && request.resource.data.sourceAttemptIds.size() >= 3
+        && request.resource.data.sourceAttemptIds.size() <= 10
+        && request.resource.data.dayNumber is int
+        && request.resource.data.dayNumber >= 1
+        && request.resource.data.dayNumber <= 120
+        && request.resource.data.keys().hasOnly(['ownerId','dayNumber','target','dimension','diagnosisClass','sourceAttemptIds','route','reason','status','createdAt']);
+      allow update: if isTeacherOrMaster()
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedAt','reviewedBy'])
+        && request.resource.data.status in ['approved','rejected']
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt is number;
+      allow delete: if false;
     }
 
     match /notifications/{notifId} {
