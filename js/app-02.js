@@ -3359,6 +3359,7 @@ function renderMergedHistory() {
 
 /* ===================== TAB / SCREEN NAVIGATION ===================== */
   function switchTab(tab) {
+  if (tab === "memoryPractice") { window.PanTutorMemory?.openPractice(); return; }
   document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   if (tab === "chat") {
     const dot = document.getElementById("chatNotifDot");
