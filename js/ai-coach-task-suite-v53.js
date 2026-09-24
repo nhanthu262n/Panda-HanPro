@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "v56-detailed-teacher-feedback-20260907";
+  const VERSION = "v57-mcq-quality-vi-mode-20260923";
   const base = window.PandaHanCoachSkills || {};
   const PASS = Object.freeze({
     phonetics_core: 30,
@@ -17,7 +17,7 @@
     mode:null, mission:null, items:[], index:0, answers:[], scores:[], phase:"",
     stream:null, recorder:null, chunks:[], recognition:null, recognitionCandidates:[],
     audioCtx:null, sourceNode:null, processor:null, silentGain:null, pcmChunks:[], pcmRate:0,
-    recordBlob:null, recordUrl:"", autoTimer:0, currentWord:null, recognitionError:"", recognitionEnded:false, reports:[]
+    recordBlob:null, recordUrl:"", autoTimer:0, currentWord:null, recognitionError:"", recognitionEnded:false, reports:[], variant:0
   };
 
   const toneMarks = {"ā":1,"á":2,"ǎ":3,"à":4,"ē":1,"é":2,"ě":3,"è":4,"ī":1,"í":2,"ǐ":3,"ì":4,"ō":1,"ó":2,"ǒ":3,"ò":4,"ū":1,"ú":2,"ǔ":3,"ù":4,"ǖ":1,"ǘ":2,"ǚ":3,"ǜ":4,"Ā":1,"Á":2,"Ǎ":3,"À":4,"Ē":1,"É":2,"Ě":3,"È":4,"Ī":1,"Í":2,"Ǐ":3,"Ì":4,"Ō":1,"Ó":2,"Ǒ":3,"Ò":4,"Ū":1,"Ú":2,"Ǔ":3,"Ù":4,"Ǖ":1,"Ǘ":2,"Ǚ":3,"Ǜ":4};
@@ -55,7 +55,59 @@
     return clamp(1-prev[b.length]/Math.max(a.length,b.length));
   }
   function shuffle(a,seed=Math.random){const x=[...a];for(let i=x.length-1;i>0;i--){const j=Math.floor(seed()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}
-  function seeded(day,salt){let x=((Number(day)||1)*2654435761+(salt||1)*1013904223)|0;return()=>{x=(x+0x6D2B79F5)|0;let t=Math.imul(x^(x>>>15),1|x);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+  function seeded(day,salt){let x=((Number(day)||1)*2654435761+((salt||1)+Number(S.variant||0)*7919)*1013904223)|0;return()=>{x=(x+0x6D2B79F5)|0;let t=Math.imul(x^(x>>>15),1|x);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+  
+function nextVariant(mode,day){
+    const key=`pantutor_v57_attempt_${String(mode||"task")}_${Number(day)||1}`;
+    const n=(Number(localStorage.getItem(key)||0)+1)%9973;
+    localStorage.setItem(key,String(n));
+    return n||1;
+  }
+  function cleanOption(v){
+    let s=String(v??"").normalize("NFKC").trim();
+    s=s.replace(/^\s*[\(\[\{【]?\s*[A-Da-d]\s*[\)\]\}】.:\-、]\s*/u,"");
+    s=s.replace(/^\s*[A-Da-d]\s*[.)：:\-、]\s*/u,"");
+    const pairs=[["(",")"],["[","]"],["{","}"],["【","】"],["“","”"],['"','"'],["'","'"]];
+    let again=true;
+    while(again&&s.length>1){again=false;for(const [a,b] of pairs){if(s.startsWith(a)&&s.endsWith(b)){s=s.slice(a.length,-b.length).trim();again=true}}}
+    if(s.length<=40)s=s.replace(/[\s。．.，,；;：:！？!?]+$/u,"").trim();
+    return s.replace(/\s+/g," ").trim();
+  }
+  function sameKind(a,b){
+    const k=x=>/[\u3400-\u9fff]/u.test(x)?"zh":/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]/iu.test(x)?"pinyin":"latin";
+    return k(String(a||""))===k(String(b||""));
+  }
+  function validateOptions(answer,candidates,rnd=Math.random){
+    const ans=cleanOption(answer),out=[ans];
+    const pool=uniq((candidates||[]).map(cleanOption)).filter(x=>x&&x!==ans);
+    pool.sort((a,b)=>(sameKind(ans,a)?0:1)-(sameKind(ans,b)?0:1)||Math.abs(a.length-ans.length)-Math.abs(b.length-ans.length));
+    for(const x of shuffle(pool,rnd)){if(!out.includes(x))out.push(x);if(out.length===4)break}
+    return out.length===4?shuffle(out,rnd):out;
+  }
+  function plausibleMeaningDistractors(w,answer,day,index){
+    const targetPos=String(w?.pos||""),targetHsk=Number(w?.hsk||1);
+    const near=vocab().filter(x=>x?.char!==w?.char)
+      .filter(x=>!targetPos||String(x?.pos||"")===targetPos)
+      .filter(x=>Math.abs(Number(x?.hsk||1)-targetHsk)<=1)
+      .map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+    const sameLevel=vocab().filter(x=>x?.char!==w?.char).filter(x=>Math.abs(Number(x?.hsk||1)-targetHsk)<=1).map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+    const fallback=vocab().filter(x=>x?.char!==w?.char).map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+    return validateOptions(answer,near.concat(sameLevel,fallback),seeded(day,7000+index+S.variant*31));
+  }
+  function plausiblePinyinDistractors(py,words,day,index){
+    const base=stripTone(py),pool=[];
+    (words||[]).forEach(w=>{const x=firstSyllable(w?.pinyin||"");if(x&&x!==py&&(stripTone(x)===base||x[0]===py[0]||Math.abs(x.length-py.length)<=1))pool.push(x)});
+    return validateOptions(py,pool.concat((words||[]).map(w=>firstSyllable(w?.pinyin||"")).filter(Boolean)),seeded(day,7100+index+S.variant*37));
+  }
+  function avoidImmediateRepeat(items,mode,day){
+    const arr=[...(items||[])];if(!arr.length)return arr;
+    const sig=x=>String(x?.id||x?.text||x?.char||x?.prompt||x?.word?.char||"").trim();
+    const key=`pantutor_v57_last_question_${String(mode)}_${Number(day)||1}`,prev=localStorage.getItem(key)||"";
+    if(arr.length>1&&sig(arr[0])&&sig(arr[0])===prev)arr.push(arr.shift());
+    localStorage.setItem(key,sig(arr[0]));
+    return arr;
+  }
+
   function taskTitle(mode){return ({phonetics_core:"🎼 AI Coach Phonetics Core Lab",srs:"🔁 AI Coach SRS Due Review","vocab-intro":"📚 AI Coach Excel Vocabulary Lab",reading_writing:"📖 AI Coach Reading / Writing Lab",mistake_review:"🔄 AI Coach Mistake Review",speaking:"🗣️ AI Coach Speaking · Read-aloud Lab"})[mode]||"AI Coach Task"}
   function sourceText(mode,m){
     const c=m?.curriculum||{};
@@ -87,7 +139,7 @@
     document.getElementById("ptCoachSkillOverlay")?.remove();S.mode=null;S.items=[];S.answers=[];S.scores=[];S.reports=[];S.index=0;
   }
   function createShell(mode,m){
-    try{base.close?.()}catch(_){};close();ensureStyle();S.mode=mode;S.mission=m||mission();S.items=[];S.index=0;S.answers=[];S.scores=[];S.reports=[];S.phase="";
+    try{base.close?.()}catch(_){};close();ensureStyle();S.mode=mode;S.mission=m||mission();S.variant=nextVariant(mode,S.mission?.dayNumber);S.items=[];S.index=0;S.answers=[];S.scores=[];S.reports=[];S.phase="";
     const mm=S.mission||{};const ov=document.createElement("div");ov.id="ptCoachSkillOverlay";const title=taskTitle(mode);
     ov.innerHTML=`<section id="ptCoachSkillPanel" role="dialog" aria-modal="true"><header class="ptcs-head"><div><div class="ptcs-title">${esc(title)}</div><div class="ptcs-sub">Day ${Number(mm.dayNumber||1)} · ${esc(mm.topic||mm.curriculum?.topic||"120-day curriculum")}</div></div><button class="ptcs-close" type="button">✕ Exit</button></header><div class="ptcs-body"><div class="ptcs-source"><b>Excel curriculum task:</b> ${esc(sourceText(mode,mm))}</div><div id="ptCoachSkillContent"><div class="ptcs-card" style="text-align:center">Preparing task…</div></div></div></section>`;
     document.body.appendChild(ov);ov.querySelector(".ptcs-close").onclick=close;ov.addEventListener("click",e=>{if(e.target===ov)close()});return ov;
@@ -189,18 +241,18 @@
     const pinyinPool=uniq(words.map(w=>firstSyllable(w.pinyin))).filter(Boolean);
     return chosen.map((w,i)=>{
       const py=firstSyllable(w.pinyin),tone=firstTone(py),kind=i%2?"pinyin":"tone";
-      if(kind==="tone")return {kind,word:w,text:w.char,pinyin:py,answer:tone===5?"Neutral tone":`Tone ${tone}`,options:shuffle(["Tone 1","Tone 2","Tone 3","Tone 4","Neutral tone"],seeded(m?.dayNumber,5400+i)).slice(0,4).concat([])};
-      const distract=shuffle(pinyinPool.filter(x=>stripTone(x)!==stripTone(py)||cleanPinyin(x)!==cleanPinyin(py)),seeded(m?.dayNumber,5500+i)).slice(0,3);return {kind,word:w,text:w.char,pinyin:py,answer:py,options:shuffle([py,...distract],seeded(m?.dayNumber,5600+i))};
+      if(kind==="tone"){const answer=tone===5?"Neutral tone":`Tone ${tone}`;return {kind,word:w,text:w.char,pinyin:py,answer,options:validateOptions(answer,["Tone 1","Tone 2","Tone 3","Tone 4","Neutral tone"],seeded(m?.dayNumber,5400+i))}}
+      return {kind,word:w,text:w.char,pinyin:py,answer:py,options:plausiblePinyinDistractors(py,words,m?.dayNumber,i)};
     }).map(x=>{if(x.kind==="tone"&&!x.options.includes(x.answer)){x.options[x.options.length-1]=x.answer;x.options=shuffle(x.options,seeded(m?.dayNumber,5700+x.text.charCodeAt(0)))}return x});
   }
-  async function openPhoneticsCore(m){createShell("phonetics_core",m);S.items=buildPhoneticsItems(S.mission);S.index=0;S.answers=[];if(!S.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No phonetics-linked items are available for this Day.</div>';return}renderPhoneticsCore()}
+  async function openPhoneticsCore(m){createShell("phonetics_core",m);S.items=avoidImmediateRepeat(buildPhoneticsItems(S.mission),"phonetics_core",S.mission?.dayNumber);S.index=0;S.answers=[];if(!S.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No phonetics-linked items are available for this Day.</div>';return}renderPhoneticsCore()}
   function renderPhoneticsCore(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">PINYIN BOOTCAMP · OBJECTIVE TASK</span><div class="ptcs-question">${it.kind==="tone"?"Listen and choose the tone of the first syllable.":"Listen and choose the matching Pinyin."}</div><div class="ptcs-help">This is a standalone AI Coach phonetics task. It uses the Day's linked pronunciation examples; it is not the main Pinyin Tone Quest.</div><button class="ptcs-audio-orb" id="ptcsPhOrb" type="button">🔊</button><div class="ptcs-options">${it.options.map(o=>`<button class="ptcs-option" type="button">${esc(o)}</button>`).join("")}</div><div id="ptcsReveal"></div></div>`;const orb=document.getElementById("ptcsPhOrb");orb.onclick=()=>speak(it.text,orb);host.querySelectorAll(".ptcs-option").forEach(b=>b.onclick=()=>answerPhonetics(b,it));S.autoTimer=setTimeout(()=>speak(it.text,orb),180)}
   function answerPhonetics(btn,it){
     const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")],chosen=btn.textContent.trim(),ok=chosen===it.answer;opts.forEach(b=>{b.disabled=true;if(b.textContent.trim()===it.answer)b.classList.add("correct")});if(!ok)btn.classList.add("wrong");S.answers.push({correct:ok,target:it.text,answer:it.answer,chosen});
     const tone=firstTone(it.pinyin),strength=ok?`You identified the ${it.kind==="tone"?"tone contour":"Pinyin form"} for “${it.text}”.`:`The sound-to-${it.kind==="tone"?"tone":"Pinyin"} mapping is not stable yet.`,focus=it.kind==="tone"?`Replay “${it.text}” and trace the pitch direction: ${toneLabel(tone)}.`:`Say “${it.pinyin}” slowly, separate its initial/final, then locate the tone mark.`;recordTeacherReport("Phonetics recognition",ok?100:0,strength,focus);
     const report=teacherReportHtml({status:ok?"CORRECT — EXPLAINED":"REVIEW SOUND",overview:strength,sections:[{title:"Sound evidence",lines:[`Hanzi: ${it.text}`,`Pinyin: ${it.pinyin}`,`Your answer: ${chosen}`,`Correct answer: ${it.answer}`,`Tone cue: ${toneLabel(tone)}`]},{title:"Why",lines:[it.kind==="tone"?`The tone mark in ${it.pinyin} corresponds to ${toneLabel(tone)}.`:`The correct learner transcription for this item is ${it.pinyin}; both syllable letters and the tone mark matter.`]}],model:`${it.text} · ${it.pinyin}`,next:focus});
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><div class="ptcs-hanzi">${esc(it.text)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.pinyin)}</div>${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsPhNext">${S.index+1>=S.items.length?"Finish Phonetics":"Next →"}</button></div>`;
-    document.getElementById("ptcsPhNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const score=Math.round(S.answers.filter(x=>x.correct).length/Math.max(1,S.answers.length)*100),r=await saveEvidence("phonetics_core",score,{completeSet:true,correct:S.answers.filter(x=>x.correct).length,total:S.answers.length,teacherReports:S.reports,evidenceType:"ai_coach_pinyin_bootcamp_core_teacher_feedback_v56",passThreshold:30});summary("Pinyin Bootcamp · Phonetics Core",score,r,`${S.answers.filter(x=>x.correct).length} of ${S.answers.length} objective items correct.`)}else renderPhoneticsCore()}
+    document.getElementById("ptcsPhNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const score=Math.round(S.answers.filter(x=>x.correct).length/Math.max(1,S.answers.length)*100),r=await saveEvidence("phonetics_core",score,{completeSet:true,correct:S.answers.filter(x=>x.correct).length,total:S.answers.length,teacherReports:S.reports,evidenceType:"ai_coach_pinyin_bootcamp_core_teacher_feedback_v57",passThreshold:30});summary("Pinyin Bootcamp · Phonetics Core",score,r,`${S.answers.filter(x=>x.correct).length} of ${S.answers.length} objective items correct.`)}else renderPhoneticsCore()}
   }
 
   /* ---------------- SRS Due Review inside AI Coach ---------------- */
@@ -214,30 +266,30 @@
     S.answers.push({correct:ok,char:it.char,typed});const strength=ok?`You retrieved “${it.char}” from Pinyin/meaning without seeing the Hanzi.`:`The retrieval cue was recognized, but the Hanzi form “${it.char}” was not recalled accurately.`;const focus=ok?"Repeat the word once aloud, then let the normal SRS interval handle the next review.":`Copy “${it.char}” once while saying ${py}; then close it and retrieve the Hanzi again.`;recordTeacherReport("SRS recall",ok?100:0,strength,focus);
     const report=teacherReportHtml({status:ok?"RECALL SUCCESS":"RELEARNING NEEDED",overview:strength,sections:[{title:"Recall evidence",lines:[`Your answer: ${typed||"(blank)"}`,`Correct Hanzi: ${it.char}`,`Pinyin: ${py}`,`Meaning: ${meaning}`]},{title:"SRS consequence",lines:[ok?"The existing SM-2 engine receives a successful recall grade, so the interval can expand.":"The existing SM-2 engine receives a relearning grade, so this word remains due sooner instead of being treated as mastered."]}],model:ex.zh?`${ex.zh} — ${ex.en}`:`${it.char} · ${py} · ${meaning}`,next:focus});
     document.getElementById("ptcsReveal2").innerHTML=`<div class="ptcs-reveal"><div class="ptcs-hanzi">${esc(it.char)}</div>${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsSrsNext">${S.index+1>=S.items.length?"Finish SRS":"Next word →"}</button></div>`;
-    document.getElementById("ptcsSrsNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),r=await saveEvidence("srs",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,evidenceType:"ai_coach_srs_due_review_teacher_feedback_v56",passThreshold:60});summary("SRS due review",score,r,`${correct} of ${S.answers.length} due words recalled correctly. SM-2 was updated from these actual answers.`)}else renderSrs()}
+    document.getElementById("ptcsSrsNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),r=await saveEvidence("srs",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,evidenceType:"ai_coach_srs_due_review_teacher_feedback_v57",passThreshold:60});summary("SRS due review",score,r,`${correct} of ${S.answers.length} due words recalled correctly. SM-2 was updated from these actual answers.`)}else renderSrs()}
   }
 
   /* ---------------- Full Excel Vocabulary Lab ---------------- */
   async function openVocabulary(m){createShell("vocab-intro",m);S.items=wordList(S.mission).slice(0,18).map(itemFromWord).filter(x=>x.char);S.index=0;S.answers=[];S.phase="learn";if(!S.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No Excel vocabulary is assigned to this Day.</div>';return}renderVocabLearn()}
-  function renderVocabLearn(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;const bootcamp=Number(S.mission?.dayNumber||1)<=10;if(!bootcamp){try{window.recordView?.(it.char)}catch(_){}};host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">LEARN ALL EXCEL WORDS · PHASE 1/2</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(it.char)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.word.pinyin||it.pinyin)}</div><div class="ptcs-meaning">${esc(it.word.meaning_en||it.word.meaning||it.meaning)}</div></div>${Array.isArray(it.word.examples)&&it.word.examples[0]?`<div class="ptcs-reveal"><b>Example</b><div style="margin-top:5px">${esc(it.word.examples[0][0])}</div><div class="ptcs-pinyin" data-keep-pinyin="true" style="font-size:13px">${esc(it.word.examples[0][1]||"")}</div><div class="ptcs-meaning">${esc(it.word.examples[0][3]||"")}</div></div>`:""}<div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsVocabAudio">▶ Listen</button><button class="ptcs-btn" id="ptcsVocabNext">${S.index+1>=S.items.length?"Start scored quiz →":"Next word →"}</button></div></div>`;document.getElementById("ptcsVocabAudio").onclick=()=>speak(it.char);document.getElementById("ptcsVocabNext").onclick=()=>{S.index++;if(S.index>=S.items.length){S.phase="quiz";S.index=0;S.items=shuffle(S.items,seeded(S.mission?.dayNumber,5800));renderVocabQuiz()}else renderVocabLearn()};S.autoTimer=setTimeout(()=>speak(it.char),150)}
-  function renderVocabQuiz(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;const answer=String(it.word.meaning_en||it.word.meaning||it.meaning),pool=uniq(vocab().filter(w=>Number(w.hsk||1)<=3).map(w=>w.meaning_en||w.meaning).filter(Boolean)),options=shuffle([answer,...shuffle(pool.filter(x=>x!==answer),seeded(S.mission?.dayNumber,5900+S.index)).slice(0,3)],seeded(S.mission?.dayNumber,6000+S.index));host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">EXCEL VOCABULARY · SCORED QUIZ</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(it.char)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.word.pinyin||it.pinyin)}</div></div><div class="ptcs-question">Choose the correct meaning.</div><div class="ptcs-options">${options.map(o=>`<button class="ptcs-option">${esc(o)}</button>`).join("")}</div><div id="ptcsReveal"></div></div>`;host.querySelectorAll(".ptcs-option").forEach(b=>b.onclick=()=>answerVocab(b,it,answer))}
+  function renderVocabLearn(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;const bootcamp=Number(S.mission?.dayNumber||1)<=10;if(!bootcamp){try{window.recordView?.(it.char)}catch(_){}};host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">LEARN ALL EXCEL WORDS · PHASE 1/2</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(it.char)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.word.pinyin||it.pinyin)}</div><div class="ptcs-meaning">${esc(it.word.meaning_en||it.word.meaning||it.meaning)}</div></div>${Array.isArray(it.word.examples)&&it.word.examples[0]?`<div class="ptcs-reveal"><b>Example</b><div style="margin-top:5px">${esc(it.word.examples[0][0])}</div><div class="ptcs-pinyin" data-keep-pinyin="true" style="font-size:13px">${esc(it.word.examples[0][1]||"")}</div><div class="ptcs-meaning">${esc(it.word.examples[0][3]||"")}</div></div>`:""}<div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsVocabAudio">▶ Listen</button><button class="ptcs-btn" id="ptcsVocabNext">${S.index+1>=S.items.length?"Start scored quiz →":"Next word →"}</button></div></div>`;document.getElementById("ptcsVocabAudio").onclick=()=>speak(it.char);document.getElementById("ptcsVocabNext").onclick=()=>{S.index++;if(S.index>=S.items.length){S.phase="quiz";S.index=0;S.items=avoidImmediateRepeat(shuffle(S.items,seeded(S.mission?.dayNumber,5800)),"vocab-intro",S.mission?.dayNumber);renderVocabQuiz()}else renderVocabLearn()};S.autoTimer=setTimeout(()=>speak(it.char),150)}
+  function renderVocabQuiz(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;const answer=cleanOption(String(it.word.meaning_en||it.word.meaning||it.meaning)),options=plausibleMeaningDistractors(it.word,answer,S.mission?.dayNumber,S.index);host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">EXCEL VOCABULARY · SCORED QUIZ</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(it.char)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.word.pinyin||it.pinyin)}</div></div><div class="ptcs-question">Choose the correct meaning.</div><div class="ptcs-options">${options.map(o=>`<button class="ptcs-option">${esc(o)}</button>`).join("")}</div><div id="ptcsReveal"></div></div>`;host.querySelectorAll(".ptcs-option").forEach(b=>b.onclick=()=>answerVocab(b,it,answer))}
   function answerVocab(btn,it,answer){
     const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")],chosen=btn.textContent.trim(),ok=chosen===answer,bootcamp=Number(S.mission?.dayNumber||1)<=10,py=it.word.pinyin||it.pinyin,ex=exampleOfWord(it.word),dw=distractorWordForMeaning(chosen);opts.forEach(b=>{b.disabled=true;if(b.textContent.trim()===answer)b.classList.add("correct")});if(!ok)btn.classList.add("wrong");if(!bootcamp){try{window.gradeWord?.(it.char,ok?5:1)}catch(_){}}
     S.answers.push({correct:ok,char:it.char,chosen,answer});const strength=ok?`You matched “${it.char}” (${py}) to its curriculum meaning.`:`The form “${it.char}” is not yet linked reliably to its meaning.`;const focus=ok?`Use “${it.char}” once in the model sentence, then retrieve the meaning without the options.`:`Say “${it.char} — ${py} — ${answer}” once, then use the example sentence before the next SRS interval.`;recordTeacherReport("Vocabulary meaning",ok?100:0,strength,focus);
     const report=teacherReportHtml({status:ok?"CORRECT — EXPLAINED":"INCORRECT — EXPLAINED",overview:strength,sections:[{title:"Word analysis",lines:[`Hanzi: ${it.char}`,`Pinyin: ${py}`,`Your choice: ${chosen}`,`Correct meaning: ${answer}`]},{title:"Why",lines:[ok?"The selected English meaning is the stored curriculum meaning for this word.":dw?`Your choice “${chosen}” is associated with another vocabulary item such as “${dw.char}” (${pinyinOfWord(dw)}), not “${it.char}”.`:"The selected option is a distractor from the vocabulary pool and does not match this word."]}],model:ex.zh?`${ex.zh} — ${ex.en}`:`${it.char} · ${py} · ${answer}`,next:focus});
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsVocabQuizNext">${S.index+1>=S.items.length?"Finish vocabulary":"Next →"}</button></div>`;
-    document.getElementById("ptcsVocabQuizNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),bootcamp=Number(S.mission?.dayNumber||1)<=10,r=await saveEvidence("vocab-intro",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,evidenceType:bootcamp?"ai_coach_phonetics_linked_vocabulary_teacher_feedback_v56":"ai_coach_excel_vocabulary_teacher_feedback_v56",passThreshold:70});summary(bootcamp?"Phonetics-linked vocabulary":"Excel vocabulary",score,r,bootcamp?`${correct} of ${S.answers.length} pronunciation-linked examples correct. Day 1–10 does not add these items to general SRS.`:`${correct} of ${S.answers.length} words correct. Actual answers were saved into the existing SM-2 SRS engine.`)}else renderVocabQuiz()}
+    document.getElementById("ptcsVocabQuizNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),bootcamp=Number(S.mission?.dayNumber||1)<=10,r=await saveEvidence("vocab-intro",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,evidenceType:bootcamp?"ai_coach_phonetics_linked_vocabulary_teacher_feedback_v57":"ai_coach_excel_vocabulary_teacher_feedback_v57",passThreshold:70});summary(bootcamp?"Phonetics-linked vocabulary":"Excel vocabulary",score,r,bootcamp?`${correct} of ${S.answers.length} pronunciation-linked examples correct. Day 1–10 does not add these items to general SRS.`:`${correct} of ${S.answers.length} words correct. Actual answers were saved into the existing SM-2 SRS engine.`)}else renderVocabQuiz()}
   }
 
   /* ---------------- Reading / Writing Lab ---------------- */
   function buildRWItems(m){
-    const words=wordList(m).slice(0,12),day=Number(m?.dayNumber||1),items=[];
+    const day=Number(m?.dayNumber||1),words=shuffle(wordList(m),seeded(day,6050)).slice(0,12),items=[];
     if(day<=10){words.slice(0,Math.min(8,words.length)).forEach(w=>items.push({kind:"pinyin",word:w,prompt:`Type the tone-marked Pinyin for ${w.char}.`,answer:String(w.pinyin||"")}));return items}
     const pool=uniq(words.map(w=>w.meaning_en||w.meaning).filter(Boolean));
-    words.slice(0,6).forEach((w,i)=>{const ex=Array.isArray(w.examples)&&w.examples[0]?w.examples[0]:null;if(i%3===0&&ex){const answer=String(ex[3]||w.meaning_en||w.meaning||"");items.push({kind:"reading",word:w,prompt:String(ex[0]),answer,options:shuffle([answer,...pool.filter(x=>x!==answer).slice(0,3)],seeded(day,6100+i))})}else if(i%3===1){items.push({kind:"pinyin",word:w,prompt:`Type the Pinyin for ${w.char}.`,answer:String(w.pinyin||"")})}else{items.push({kind:"writing",word:w,prompt:`Write one Chinese sentence using “${w.char}” (${w.meaning_en||w.meaning||"target word"}).`,reference:String(ex?.[0]||"")})}});
+    words.slice(0,6).forEach((w,i)=>{const ex=Array.isArray(w.examples)&&w.examples[0]?w.examples[0]:null;if(i%3===0&&ex){const answer=String(ex[3]||w.meaning_en||w.meaning||"");items.push({kind:"reading",word:w,prompt:String(ex[0]),answer:cleanOption(answer),options:plausibleMeaningDistractors(w,answer,day,100+i)})}else if(i%3===1){items.push({kind:"pinyin",word:w,prompt:`Type the Pinyin for ${w.char}.`,answer:String(w.pinyin||"")})}else{items.push({kind:"writing",word:w,prompt:`Write one Chinese sentence using “${w.char}” (${w.meaning_en||w.meaning||"target word"}).`,reference:String(ex?.[0]||"")})}});
     return items;
   }
-  async function openReadingWriting(m){createShell("reading_writing",m);S.items=buildRWItems(S.mission);S.index=0;S.scores=[];if(!S.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No curriculum-linked Reading / Writing items are available for this Day.</div>';return}renderRW()}
+  async function openReadingWriting(m){createShell("reading_writing",m);S.items=avoidImmediateRepeat(buildRWItems(S.mission),"reading_writing",S.mission?.dayNumber);S.index=0;S.scores=[];if(!S.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No curriculum-linked Reading / Writing items are available for this Day.</div>';return}renderRW()}
   function renderRW(){
     const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;let body="";
     if(it.kind==="reading")body=`<div class="ptcs-question">Read and choose the best meaning.</div><div class="ptcs-hanzi" style="font-size:25px">${esc(it.prompt)}</div><div class="ptcs-options">${it.options.map(o=>`<button class="ptcs-option">${esc(o)}</button>`).join("")}</div>`;
@@ -259,7 +311,7 @@
     }
     S.scores[S.index]=points;recordTeacherReport(it.kind==="writing"?"Writing":it.kind==="reading"?"Reading comprehension":"Pinyin writing",points,strength,focus);
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><b>${points}/100</b>${reportHtml}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsRWNext">${S.index+1>=S.items.length?"Finish Reading / Writing":"Next →"}</button></div>`;
-    document.getElementById("ptcsRWNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),r=await saveEvidence("reading_writing",score,{completeSet:vals.length===S.items.length,itemScores:vals,teacherReports:S.reports,evidenceType:"ai_coach_reading_writing_teacher_feedback_v56",passThreshold:60});summary("Reading / Writing",score,r,`${vals.length} curriculum-linked items completed with teacher-style feedback.`)}else renderRW()}
+    document.getElementById("ptcsRWNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),r=await saveEvidence("reading_writing",score,{completeSet:vals.length===S.items.length,itemScores:vals,teacherReports:S.reports,evidenceType:"ai_coach_reading_writing_teacher_feedback_v57",passThreshold:60});summary("Reading / Writing",score,r,`${vals.length} curriculum-linked items completed with teacher-style feedback.`)}else renderRW()}
   }
 
   /* ---------------- Mistake Review Lab ---------------- */
@@ -272,7 +324,7 @@
     const strength=ok?"You corrected the item on a fresh retrieval attempt, so the mistake can be resolved.":"The retry still does not match the expected answer closely enough, so the mistake stays in the review queue.",focus=ok?"Explain in your own words why the corrected answer works; this helps prevent the same error from returning.":`Compare “${typed||"(blank)"}” with “${it.expected}”. Identify whether the difference is meaning, word form, word order, or omitted information, then retry later.`;recordTeacherReport("Mistake correction",ok?100:0,strength,focus);
     const report=teacherReportHtml({status:ok?"RESOLVED":"STILL UNRESOLVED",overview:strength,sections:[{title:"Attempt history",lines:[`Original prompt: ${it.prompt||it.char||"Review item"}`,it.selected?`Previous answer: ${it.selected}`:"No previous answer text was stored.",`Current retry: ${typed||"(blank)"}`,`Expected answer: ${it.expected}`]},{title:"Why",lines:[ok?"The current retry matches the stored expected answer closely enough to resolve the mistake.":"The current retry is still outside the accepted match range, so marking it resolved would hide a real learning gap."]}],model:it.expected,next:focus});
     document.getElementById("ptcsReveal2").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsMistakeNext">${S.index+1>=S.items.length?"Finish review batch":"Next mistake →"}</button></div>`;
-    document.getElementById("ptcsMistakeNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),r=await saveEvidence("mistake_review",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,remaining:window.PandaHanMistakes?.getQueue?.().length||0,evidenceType:"ai_coach_mistake_review_teacher_feedback_v56",passThreshold:70});summary("Mistake review",score,r,`${correct} of ${S.answers.length} retry items corrected. Remaining queue: ${window.PandaHanMistakes?.getQueue?.().length||0}.`)}else renderMistake()}
+    document.getElementById("ptcsMistakeNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),r=await saveEvidence("mistake_review",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,remaining:window.PandaHanMistakes?.getQueue?.().length||0,evidenceType:"ai_coach_mistake_review_teacher_feedback_v57",passThreshold:70});summary("Mistake review",score,r,`${correct} of ${S.answers.length} retry items corrected. Remaining queue: ${window.PandaHanMistakes?.getQueue?.().length||0}.`)}else renderMistake()}
   }
 
   /* ---------------- Speaking / Read-aloud: canonical PCM WAV + better recognition ---------------- */
@@ -341,7 +393,7 @@
     return{valid:true,score,fullCompatible:false,audioOnly:true,similarity:null,recognized:"",tone,segmental,articulation,fluency,feedback:`Speech recognition did not return a reliable transcript (${S.recognitionError||"browser/connection unavailable"}). This card was still graded from the canonical WAV using tone contour, syllable timing, signal clarity and fluency. Audio-only grading is capped at 84/100 because target word identity cannot be fully verified.`,metrics};
   }
   async function finishSpeakingFromCurrent(){
-    const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),complete=vals.length===S.items.length,r=await saveEvidence("speaking",score,{completeSet:complete,cardScores:S.scores.map(v=>Number.isFinite(v)?v:null),teacherReports:S.reports,total:S.items.length,graded:vals.length,evidenceType:"ai_coach_speaking_canonical_wav_rubric_teacher_feedback_v56",passThreshold:60});summary("Speaking / Read-aloud",score,r,`${vals.length} of ${S.items.length} cards received rubric scores. Each graded card includes criterion-level teacher feedback.`)
+    const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),complete=vals.length===S.items.length,r=await saveEvidence("speaking",score,{completeSet:complete,cardScores:S.scores.map(v=>Number.isFinite(v)?v:null),teacherReports:S.reports,total:S.items.length,graded:vals.length,evidenceType:"ai_coach_speaking_canonical_wav_rubric_teacher_feedback_v57",passThreshold:60});summary("Speaking / Read-aloud",score,r,`${vals.length} of ${S.items.length} cards received rubric scores. Each graded card includes criterion-level teacher feedback.`)
   }
   function advanceSpeaking(){S.index++;if(S.index>=S.items.length)finishSpeakingFromCurrent();else renderSpeaking()}
   function renderInvalidSpeaking(g,it){const h=document.getElementById("ptcsSpeakScore");if(!h)return;h.innerHTML=`<div class="ptcs-score"><div class="ptcs-help"><b>No score saved for this card.</b> ${esc(g.feedback)}</div><div class="ptcs-transcript" style="margin-top:8px"><b>Recognized:</b> ${esc(g.recognized||"No reliable transcript")}<br><b>Target:</b> ${esc(it.text)}</div><div class="ptcs-next" style="gap:8px"><button class="ptcs-btn" id="ptcsSpeakRetry">Record again</button><button class="ptcs-btn primary" id="ptcsSpeakSkip">${S.index+1>=S.items.length?"Finish without this score":"Skip card →"}</button></div></div>`;document.getElementById("ptcsSpeakRetry").onclick=()=>{h.innerHTML="";document.getElementById("ptcsRecord").disabled=false;document.getElementById("ptcsRecStatus").textContent="Ready to record again."};document.getElementById("ptcsSpeakSkip").onclick=()=>advanceSpeaking()}
