@@ -80,8 +80,8 @@
       }
     }return out;
   }
-  function recommendations(day,rows){
-    const all=diagnose(rows),events=all.filter(e=>e.dayNumber===Number(day));
+  function recommendations(day,rows,allEvents){
+    const all=allEvents||diagnose(rows),events=all.filter(e=>e.dayNumber===Number(day));
     const recent=new Map();events.filter(e=>e.kind!=="remediation").forEach(e=>recent.set(`${e.target}:${e.dimension}`,e));
     const byWord=model(all);
     return [...recent.values()].filter(e=>e.diagnosisClass&&e.diagnosisClass!==1).filter(e=>{
@@ -195,11 +195,11 @@
       case 1:return {mode:"production",prompt:`Dùng “${rec.target}” viết một câu mới trong ngữ cảnh khác. Giáo viên sẽ kiểm tra câu của bạn.`,reference:s?.example||"",dimension:"PRODUCTION"};
       case 2:if(rec.dimension==="SOUND")return {mode:"choice",audio:true,prompt:"Nghe lại từ rồi chọn đúng cách đọc, không nhìn gợi ý.",options:toneChoices(py),answer:py,dimension:"SOUND"};
         if(rec.dimension==="FORM")return {mode:"typing",prompt:`Dựa vào Pinyin ${py} và nghĩa ${meaningText}, gõ lại Hán tự.`,answer:rec.target,dimension:"FORM"};
-        return {mode:"choice",prompt:`Chọn nghĩa của “${rec.target}” trong ngữ cảnh mới.`,options:[meaningText,meaning(word(s?.wrong))||meaning(vocab().find(x=>x.char!==rec.target&&x.hsk===w?.hsk))].filter(Boolean),answer:meaningText,dimension:"MEANING"};
+        return {mode:"choice",prompt:`Chọn nghĩa của “${rec.target}”.`,options:[meaningText,meaning(word(s?.wrong))||meaning(vocab().find(x=>x.char!==rec.target&&x.hsk===w?.hsk))].filter(Boolean),answer:meaningText,dimension:"MEANING"};
       case 3:return s?{mode:"choice",prompt:s.prompt,options:[s.answer,s.wrong],answer:s.answer,explain:`${s.answer} = ${s.meaning}; ${s.wrong} diễn tả ý khác trong câu này.`,dimension:"MEANING"}:null;
       case 4:{const confused=String(rec.input||"").split("·").pop().trim();return {mode:"choice",audio:true,prompt:"Nghe từ rồi chọn đúng cách đọc.",options:toneChoices(py,confused),answer:py,dimension:"SOUND"}}
       case 5:return {mode:"typing",prompt:`Nhìn cách đọc (${py}) và nghĩa (${meaningText}), rồi gõ chữ Hán đúng.`,answer:rec.target,explain:`Đối chiếu từng chữ: ${[...rec.target].join(" · ")}.${w?.chietu_vi?` Ghi chú học liệu: ${w.chietu_vi}`:""}`,dimension:"FORM"};
-      case 6:return {mode:"choice",learn:true,prompt:`Học mẫu: ${rec.target} · ${py} · ${meaningText}. ${s?.example||String(w?.examples?.[0]?.[0]||"")} Sau đó chọn nghĩa đúng.`,options:[meaningText,s?.wrong||"Không liên quan"].filter(Boolean),answer:meaningText,dimension:"MEANING"};
+      case 6:return {mode:"choice",learn:true,prompt:`Chọn nghĩa của “${rec.target}” mà không xem mẫu.`,options:[...new Set([meaningText,...vocab().filter(x=>x.char!==rec.target).map(meaning).filter(x=>x&&norm(x)!==norm(meaningText))])].slice(0,4),answer:meaningText,dimension:"MEANING"};
       case 8:return {mode:"choice",audio:true,prompt:"Nghe mẫu và chọn thanh điệu đúng.",options:toneChoices(py),answer:py,dimension:"SOUND"};
       case 9:return {mode:"choice",audio:true,prompt:"Nghe từ rồi chọn Hán tự được phát âm.",options:[rec.target,soundConfusable(rec.target)].filter(Boolean),answer:rec.target,dimension:"SOUND"};
       case 10:return s?{mode:"choice",prompt:`Sửa câu “${String(rec.input||"这个问题很方便。")}”: chọn câu dùng từ phù hợp với ý “vấn đề này dễ”.`,options:["这个问题很容易。","这个问题很方便。"],answer:"这个问题很容易。",explain:s.correction,dimension:"USAGE"}: {mode:"production",prompt:`Viết lại một câu khác sử dụng “${rec.target}”. Câu mới sẽ chờ giáo viên/rubric xác minh.`,reference:"",dimension:"USAGE"};
@@ -209,7 +209,7 @@
   function practiceQuestions(rec){
     const first=question(rec),s=SCENARIOS[rec.target];if(!first)return [];
     if(!s||![3,10].includes(rec.diagnosisClass))return [first];
-    const lead=rec.diagnosisClass===3?{mode:"choice",prompt:`Từ ${rec.target} phù hợp với câu nào?`,options:[s.example,rec.target==="方便"?"这个问题很方便。":"这个酒店离地铁站很近，交通很容易。"],answer:s.example,dimension:"MEANING",explain:s.correction}:first;
+    const lead=rec.diagnosisClass===3?{mode:"choice",prompt:`Chọn nghĩa của “${rec.target}”.`,options:[s.meaning,SCENARIOS[s.wrong]?.meaning||meaning(word(s.wrong))],answer:s.meaning,dimension:"MEANING",explain:`${rec.target}: ${s.meaning}. ${s.wrong}: ${SCENARIOS[s.wrong]?.meaning||meaning(word(s.wrong))}.`}:first;
     return [lead,
       {mode:"choice",prompt:s.prompt,options:[s.answer,s.wrong],answer:s.answer,dimension:"USAGE",explain:s.correction},
       {mode:"choice",prompt:"Chọn câu dùng từ phù hợp với ngữ cảnh.",options:[s.example,rec.target==="方便"?"这个问题很方便。":"这个酒店离地铁站很近，交通很容易。"],answer:s.example,dimension:"USAGE",explain:s.correction}
@@ -236,6 +236,17 @@
     }
     if(rec.diagnosisClass===7){const status=decisions.get(recommendationId(rec))?.status;if(status==="approved"){const route=decisions.get(recommendationId(rec))?.teacherRoute||rec.route;const cls=({hanzi_form:5,tone_practice:8,listening:9,meaning_contrast:3,learn:6,usage_rewrite:10})[route]||6;open({...rec,diagnosisClass:cls});return}if(status==="pending"||status==="rejected")return;sendTeacher(rec);return}
     const questions=practiceQuestions(rec),q=questions[step];if(!q||q.mode==="choice"&&new Set(q.options.map(norm)).size<2){alert("Chưa có cặp đáp án đã duyệt cho từ này. Hãy chọn bài học hiện có hoặc nhờ giáo viên bổ sung học liệu.");return}
+    const memoryReview=[2,3,4,5,6].includes(rec.diagnosisClass)&&["FORM","MEANING","SOUND"].includes(q.dimension)&&q.mode!=="production";
+    const state=window.PanTutorMemory?.getState(rec.target,q.dimension);
+    const priorLearned=state?.learned===true||(window.PanTutorAttemptHistory?.allRows?.()||[]).some(r=>r.taskId==="vocab-intro"&&(r.items||[]).some(i=>(i.char||i.target)===rec.target&&i.correct===true));
+    if(memoryReview&&!priorLearned){
+      ensurePracticeStyle();document.getElementById("ptTenLayerOverlay")?.remove();const learn=document.createElement("div");learn.id="ptTenLayerOverlay";const w=word(rec.target);
+      learn.innerHTML=`<section class="ptt-panel" role="dialog" aria-modal="true" aria-label="Học mẫu"><header class="ptt-head"><b class="ptt-title">Học mẫu trước khi kiểm tra</b><button class="ptt-close" type="button">✕ Thoát</button></header><div class="ptt-body"><div class="ptt-card"><h2>${ESC(rec.target)}</h2><p>${ESC(w?.pinyin||"")} · ${ESC(meaning(w))}</p><p>${ESC(w?.examples?.[0]?.[0]||"")}</p><p class="ptt-help">Xem mẫu chưa được tính là nhớ. Khi sẵn sàng, hãy làm câu kiểm tra không nhìn đáp án.</p><button class="ptt-secondary" data-sample type="button">Nghe mẫu</button><button class="ptt-primary" data-learned type="button">Đã học mẫu · Bắt đầu kiểm tra</button><div role="status"></div></div></div></section>`;
+      document.body.appendChild(learn);learn.querySelector('.ptt-close').onclick=()=>learn.remove();learn.querySelector('[data-sample]').onclick=()=>speak(rec.target);
+      learn.querySelector('[data-learned]').onclick=async()=>{const b=learn.querySelector('[data-learned]');b.disabled=true;try{await window.PanTutorAttemptHistory.save({dayNumber:rec.dayNumber,taskId:"memory_learning",scorePercent:0,passed:false,completeSet:false,total:0,items:[{target:rec.target,dimension:q.dimension,input:"Đã học mẫu",expected:"",prompt:"Xem từ, nghe mẫu và đọc ví dụ",verified:false}],scheduleSaved:false});learn.remove();open(rec,step)}catch(e){b.disabled=false;learn.querySelector('[role="status"]').textContent="Chưa lưu được: "+e.message}};
+      return;
+    }
+    if(q.mode==="choice")for(let i=q.options.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[q.options[i],q.options[j]]=[q.options[j],q.options[i]]}
     if(q.audio&&!("speechSynthesis" in window)){alert("Thiết bị chưa phát được audio tiếng Trung; hãy dùng Listening Lab có audio trước khi làm bài chẩn đoán này.");return}
     ensurePracticeStyle();document.getElementById("ptTenLayerOverlay")?.remove();
     const ov=document.createElement("div");ov.id="ptTenLayerOverlay";
@@ -244,17 +255,23 @@
     document.body.appendChild(ov);ov.querySelector("#ptTenClose").onclick=()=>ov.remove();ov.onclick=e=>{if(e.target===ov)ov.remove()};
     const audio=ov.querySelector("#ptTenAudio");if(audio)audio.onclick=()=>speak(rec.target);const orb=ov.querySelector("#ptTenOrb");if(orb)orb.onclick=()=>speak(rec.target);
     const existingBtn=ov.querySelector("#ptTenExisting");if(existingBtn)existingBtn.onclick=()=>{ov.remove();if(existing.type==="listening"&&window.PandaHanCoachSkills?.openListening)window.PandaHanCoachSkills.openListening(window.PandaHanMission?.mission?.(),rec.target);else if(existing.type==="vocab-intro"&&window.PandaHanCoachSkills?.openVocabulary)window.PandaHanCoachSkills.openVocabulary(window.PandaHanMission?.mission?.(),rec.target);else window.PandaHanMission?.startTask?.(existing.type)};
+    const confidence=document.createElement("label");confidence.className="ptt-help";confidence.innerHTML='<span>Mức chắc chắn của bạn: </span><select id="ptMemoryConfidence"><option value="unsure">Chưa chắc</option><option value="certain">Chắc chắn</option></select>';ov.querySelector('.ptt-card').appendChild(confidence);
     let done=false;
-    async function grade(input){if(done)return;done=true;
+    async function grade(input){if(done||!String(input||"").trim())return;done=true;
+      ov.querySelectorAll("#ptTenChoices button,#ptTenSubmit").forEach(x=>x.disabled=true);
+      try{
       const verified=q.mode!=="production",correct=verified&&norm(input)===norm(q.answer);
       const message=verified?(correct?`Đúng. ${q.explain||"Bạn đã trả lời đúng phần "+(DIM_NAMES[q.dimension]||q.dimension)+"."}`:`Chưa đúng. Đáp án: ${q.answer}. ${q.explain||"Nghe/xem lại mẫu rồi làm lại."}`):"Đã nhận câu mới. Cần giáo viên kiểm tra nghĩa và ngữ pháp trước khi tính kết quả.";
-      if(verified)await submit(rec,input,q.answer,correct,q.dimension,{responseMs:Date.now()-started,recommendationId:rec.id||recommendationId(rec),questionIndex:step,questionCount:questions.length});
+      let saved=null;
+      if(verified)saved=await submit(rec,input,q.answer,correct,q.dimension,{verified:true,prompt:q.prompt,memoryReview,learnCompleted:priorLearned,confidence:ov.querySelector("#ptMemoryConfidence")?.value||"unsure",responseMs:Date.now()-started,recommendationId:rec.id||recommendationId(rec),questionIndex:step,questionCount:questions.length});
       else await window.PanTutorAttemptHistory?.save?.({dayNumber:rec.dayNumber,taskId:"teacherDraft",scorePercent:0,passed:false,completeSet:false,total:1,items:[{target:rec.target,dimension:q.dimension,input,expected:q.reference,verified:false,status:"pending_review",sourceAttemptId:rec.attemptId}],scheduleSaved:false});
-      ov.querySelector("#ptTenResult").innerHTML=`<p>${ESC(message)}</p><button id="ptTenAgain" class="ptt-secondary" type="button">Làm lại</button>`;
+      ov.querySelector("#ptTenResult").innerHTML=`<p>${ESC(message)}</p>${saved?window.PanTutorMemory?.feedback(saved)||"":""}<button id="ptTenAgain" class="ptt-secondary" type="button">Làm lại</button>`;
       ov.querySelectorAll("#ptTenChoices button").forEach(x=>{x.classList.add(norm(x.textContent)===norm(q.answer)?"correct":"wrong")});
+      const resultsBtn=ov.querySelector("[data-memory-results]");if(resultsBtn)resultsBtn.onclick=()=>{ov.remove();window.switchTab?.("dashboard");document.getElementById("memoryResults")?.scrollIntoView({behavior:"smooth"})};
       ov.querySelector("#ptTenAgain").onclick=()=>{ov.remove();open(rec)};
       if(step+1<questions.length){const next=document.createElement("button");next.className="ptt-primary";next.type="button";next.textContent="Câu tiếp theo";next.onclick=()=>open(rec,step+1);ov.querySelector("#ptTenResult").appendChild(next)}
       ov.querySelectorAll("#ptTenChoices button,#ptTenSubmit").forEach(x=>x.disabled=true);
+      }catch(e){done=false;ov.querySelectorAll("#ptTenChoices button,#ptTenSubmit").forEach(x=>x.disabled=false);ov.querySelector("#ptTenResult").textContent="Chưa lưu được kết quả. Hãy thử nộp lại: "+e.message}
     }
     const started=Date.now();ov.querySelectorAll("#ptTenChoices button").forEach(btn=>btn.onclick=()=>grade(q.options[Number(btn.dataset.i)]));const submitBtn=ov.querySelector("#ptTenSubmit");if(submitBtn)submitBtn.onclick=()=>grade(ov.querySelector("#ptTenInput").value);
   }
@@ -289,7 +306,7 @@
       }catch(e){console.warn("Teacher recommendations:",e?.code||e?.message||e)}
     }
   }
-  window.PanTutorTenLayer={diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions};
+  window.PanTutorTenLayer={diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions,choose};
   window.firebase?.auth?.().onAuthStateChanged(user=>{if(user)loadDecisions()});
   window.addEventListener("pantutor-attempt-saved",event=>{
     if(document.querySelector("[data-ai-coach-plan]")&&event.detail?.dayNumber){
