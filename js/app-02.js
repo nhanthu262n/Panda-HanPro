@@ -3546,7 +3546,6 @@ async function renderTeacherDashboard() {
       
       list.innerHTML = html;
       await window.PanTutorTenLayer?.renderTeacher?.(list,students);
-      await window.PanTutorMemory?.renderTeacherHistory?.(list,students);
   } catch(e) {
       list.innerHTML = `<div style="color:red;">Lỗi khi tải dữ liệu: ${e.message}</div>`;
       console.error("renderTeacherDashboard error:", e);
