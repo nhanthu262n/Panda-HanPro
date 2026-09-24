@@ -3800,6 +3800,7 @@ function renderCustomWordsList() {
 
 /* ===================== AUTH: login / logout ===================== */
 function applyRoleUI() {
+  window.PanTutorLessonAccess?.refresh?.();
   if (!CURRENT_USER) return;
   const teacherTab = document.getElementById("teacherTabBtn");
   const sbName = document.getElementById("sidebarUserName");
@@ -3902,6 +3903,7 @@ async function doLogout() {
       } catch(e) { console.error("SignOut error:", e); }
   }
   CURRENT_USER = null;
+  window.PanTutorLessonAccess?.refresh?.();
   location.reload();
 }
 
