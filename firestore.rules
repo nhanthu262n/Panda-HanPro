@@ -67,18 +67,27 @@ service cloud.firestore {
       allow create: if isSelf(uid)
         && request.resource.data.ownerId == uid
         && request.resource.data.status == 'pending'
-        && request.resource.data.diagnosisClass == 7
+        && request.resource.data.diagnosisClass is int
+        && request.resource.data.diagnosisClass >= 2
+        && request.resource.data.diagnosisClass <= 10
+        && (request.resource.data.diagnosisClass == 7 || request.resource.data.confidence <= 0.55)
         && request.resource.data.sourceAttemptIds is list
-        && request.resource.data.sourceAttemptIds.size() >= 3
+        && request.resource.data.sourceAttemptIds.size() >= (request.resource.data.diagnosisClass == 7 ? 3 : 1)
         && request.resource.data.sourceAttemptIds.size() <= 10
         && request.resource.data.dayNumber is int
         && request.resource.data.dayNumber >= 1
         && request.resource.data.dayNumber <= 120
-        && request.resource.data.keys().hasOnly(['ownerId','dayNumber','target','dimension','diagnosisClass','sourceAttemptIds','route','reason','status','createdAt']);
+        && request.resource.data.keys().hasOnly(['ownerId','dayNumber','target','dimension','diagnosisClass','sourceAttemptIds','route','reason','status','action','dimensions','confidence','createdAt']);
       allow update: if isTeacherOrMaster()
         && resource.data.status == 'pending'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedAt','reviewedBy'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedAt','reviewedBy','teacherAction','teacherReason','teacherRoute'])
         && request.resource.data.status in ['approved','rejected']
+        && request.resource.data.teacherReason is string
+        && request.resource.data.teacherReason.size() >= 3
+        && request.resource.data.teacherReason.size() <= 600
+        && request.resource.data.teacherAction is string
+        && request.resource.data.teacherAction.size() <= 300
+        && request.resource.data.teacherRoute in ['hanzi_form','tone_practice','listening','meaning_contrast','learn','usage_rewrite']
         && request.resource.data.reviewedBy == request.auth.uid
         && request.resource.data.reviewedAt is number;
       allow delete: if false;
