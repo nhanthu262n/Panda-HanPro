@@ -3,7 +3,7 @@
 
   const VERSION = "v57.1-listening-speaking-vi-sync-20260924";
   const state = {
-    mode: null, mission: null, items: [], index: 0, answers: [], scores: [],
+    mode: null, mission: null, items: [], index: 0, answers: [], scores: [], speakingItems: [],
     recorder: null, stream: null, chunks: [], recognition: null, recognized: "", confidence: 0,
     recordStartedAt: 0, recordBlob: null, recordUrl: "", autoPlayTimer: 0, curriculumCache: null
   };
@@ -200,7 +200,7 @@
     cleanupRecording(); root()?.remove(); state.mode=null; state.items=[]; state.index=0;
   }
   function createShell(mode,m){
-    ensureStyle(); close(); state.mode=mode; state.mission=m; state.variant=nextVariant(mode,m?.dayNumber); state.answers=[];state.scores=[];state.reports=[];state.index=0;
+    ensureStyle(); close(); state.mode=mode; state.mission=m; state.variant=nextVariant(mode,m?.dayNumber); state.answers=[];state.scores=[];state.speakingItems=[];state.reports=[];state.index=0;
     const ov=document.createElement("div");ov.id="ptCoachSkillOverlay";
     const raw=mode==="listening"?m?.curriculum?.listening_task:m?.curriculum?.speaking_task;
     const title=mode==="listening"?T("🎧 AI Coach · Luyện nghe","🎧 AI Coach Listening Lab"):T("🗣️ AI Coach · Nói / Đọc thành tiếng","🗣️ AI Coach Speaking · Read-aloud Lab");
@@ -281,7 +281,7 @@
     const status=document.getElementById("ptcsRecStatus"),stopBtn=document.getElementById("ptcsStop");if(!state.recorder||state.recorder.state==="inactive")return;stopBtn.disabled=true;if(status)status.textContent=T("Đang phân tích phát âm…","Analyzing pronunciation…");
     const blob=await new Promise(resolve=>{const r=state.recorder;r.onstop=()=>resolve(new Blob(state.chunks,{type:r.mimeType||"audio/webm"}));try{r.stop()}catch(_){resolve(new Blob(state.chunks))}});
     try{state.recognition?.stop?.()}catch(_){};await new Promise(r=>setTimeout(r,650));state.recordBlob=blob;if(state.recordUrl)URL.revokeObjectURL(state.recordUrl);state.recordUrl=URL.createObjectURL(blob);document.getElementById("ptcsPlayback").disabled=false;
-    const metrics=await analyzeRecording(blob,item.pinyin);const grade=gradeSpeaking(item,state.recognized,state.confidence,metrics);state.scores[state.index]=grade.score;renderSpeakingScore(grade,item);if(status)status.textContent=T("Đã chấm bản ghi. Hãy nghe lại, so sánh với mẫu rồi tiếp tục.","Recording graded. Replay it, compare with the model, then continue.");cleanupStreamOnly();
+    const metrics=await analyzeRecording(blob,item.pinyin);const grade=gradeSpeaking(item,state.recognized,state.confidence,metrics);state.scores[state.index]=grade.score;state.speakingItems[state.index]={target:item.text,expected:item.text,input:grade.recognized||"",recognized:grade.recognized||"",pinyin:item.pinyin,score:grade.score,correct:grade.exact===true,tone:grade.tone,segmental:grade.segmental,articulation:grade.articulation,fluency:grade.fluency};renderSpeakingScore(grade,item);if(status)status.textContent=T("Đã chấm bản ghi. Hãy nghe lại, so sánh với mẫu rồi tiếp tục.","Recording graded. Replay it, compare with the model, then continue.");cleanupStreamOnly();
   }
   function playRecording(){if(!state.recordUrl)return;const a=new Audio(state.recordUrl);a.play().catch(()=>{});}
   function cleanText(v){return String(v||"").toLowerCase().normalize("NFKC").replace(/[\s\p{P}\p{S}]/gu,"");}
@@ -326,12 +326,13 @@
     let persistedPassed=out?.result?.passed===true;
     try{const savedDay=window.PandaHanSchedule?.getSchedule?.()?.days?.find?.(d=>Number(d.day_number)===day);if(scorePassed&&savedDay?.completed_tasks?.[taskId])persistedPassed=true}catch(_){}
     full.passed=persistedPassed;full.persisted=!!out;full.localOnlyTestMode=out?.result?.localOnlyTestMode===true;
+    try{full.attempt=await window.PanTutorAttemptHistory?.save?.({dayNumber:day,taskId,scorePercent:Number(score),passed:scorePassed,completeSet,correct:state.answers.filter(x=>x.correct).length,total:state.items.length,items:taskId==="speaking"?state.speakingItems:state.answers,teacherReports:state.reports,scheduleSaved:!!out})}catch(e){saveError=saveError||e;console.warn("Attempt history save:",e?.message||e)}
     try{localStorage.setItem(`pantutor_ai_coach_${taskId}_day_${day}`,JSON.stringify(full))}catch(_){}
     window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation",{detail:{verified:true,taskId,dayNumber:day,scorePercent:score,threshold,passed:persistedPassed,action:persistedPassed?"standalone_task_passed_and_saved":scorePassed?"standalone_task_passed_save_failed":"standalone_task_needs_retry",...full}}));
     return {passed:persistedPassed,scorePassed,threshold,saveError:saveError?String(saveError.code||saveError.message||saveError):"",sync:out};
   }
   function renderSummary(label,score,detail,result){
-    const host=document.getElementById("ptCoachSkillContent");if(!host)return;const passed=!!result?.passed,scorePassed=!!result?.scorePassed,badge=passed?`✓ Verified — green check saved to Day ${Number(state.mission?.dayNumber||1)}`:scorePassed?"Score passed, but evidence was not saved":"Needs another attempt",err=(!passed&&scorePassed)?`<p style="color:#b91c1c"><b>Save error:</b> ${esc(result?.saveError||"schedule write was not confirmed")}.</p>`:"";host.innerHTML=`<div class="ptcs-card ptcs-summary"><span class="ptcs-badge ${passed?"":"fail"}">${badge}</span><h2>${esc(label)} complete</h2><div class="ptcs-score-big">${score}/100</div><p>${esc(detail)}</p>${summaryTeacher(label,score)}${err}<p>Pass mark: <b>${Number(result?.threshold||60)}%</b>. This task records evidence only. <b>Pinyin Tone Quest remains the only next-day unlock gate.</b></p><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsDone" type="button">Return to AI Coach</button><button class="ptcs-btn" id="ptcsRedo" type="button">Redo task</button></div></div>`;localizeRoot(host);document.getElementById("ptcsDone").onclick=close;document.getElementById("ptcsRedo").onclick=()=>{const m=state.mission,mode=state.mode;mode==="listening"?openListening(m):openSpeaking(m)}
+    const host=document.getElementById("ptCoachSkillContent");if(!host)return;const passed=!!result?.passed,scorePassed=!!result?.scorePassed,badge=passed?`✓ Verified — green check saved to Day ${Number(state.mission?.dayNumber||1)}`:scorePassed?"Score passed, but evidence was not saved":"Needs another attempt",err=(!passed&&scorePassed)?`<p style="color:#b91c1c"><b>Save error:</b> ${esc(result?.saveError||"schedule write was not confirmed")}.</p>`:"";host.innerHTML=`<div class="ptcs-card ptcs-summary"><span class="ptcs-badge ${passed?"":"fail"}">${badge}</span><h2>${esc(label)} complete</h2><div class="ptcs-score-big">${score}/100</div><p>${esc(detail)}</p>${summaryTeacher(label,score)}${err}${window.PanTutorAttemptHistory?.html?.(state.mission?.dayNumber,state.mode)||""}<p>Pass mark: <b>${Number(result?.threshold||60)}%</b>. This task records evidence only. <b>Pinyin Tone Quest remains the only next-day unlock gate.</b></p><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsDone" type="button">Return to AI Coach</button><button class="ptcs-btn" id="ptcsRedo" type="button">Redo task</button></div></div>`;localizeRoot(host);document.getElementById("ptcsDone").onclick=close;document.getElementById("ptcsRedo").onclick=()=>{const m=state.mission,mode=state.mode;mode==="listening"?openListening(m):openSpeaking(m)}
   }
 
   window.PandaHanCoachSkills={openListening,openSpeaking,close,taskEnglish:taskText,taskText,version:VERSION};
