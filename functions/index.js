@@ -341,3 +341,5 @@ exports.aiChat = onRequest({
     return res.status(error?.code?.startsWith?.("auth/") ? 401 : 500).json({ error: "AI_CHAT_FAILED" });
   }
 });
+
+exports.teacherLearningMonitor = onRequest({region:'asia-southeast1',timeoutSeconds:60}, require('./teacher-monitor').createTeacherMonitor(admin));
