@@ -55,18 +55,18 @@
 <div class="pro-auth-card">
 <div style="font-size:3.5em; margin-bottom:10px;">🐼</div>
 <h2>PanTutor</h2>
-<p data-lang-en="Smart, synced learning system" style="color:#636e72; font-size:14px; margin-bottom:12px;">Smart, synced learning system</p>
-<div data-language-choice="" id="initialLanguageChoice" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 16px;padding:10px 12px;border:1px solid #fbcfe8;border-radius:12px;background:#fff7fb;;display:none!important;">
-<span data-lang-en="Choose language" style="width:100%;font-size:11px;color:#6b6478;font-weight:700;">Choose language</span>
-<button data-language-select="en" style="border:1px solid #c4b5fd;border-radius:999px;background:#fff;color:#6d28d9;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;" type="button">中文 - English</button>
+<p data-lang-en="Smart, synced learning system" data-lang-vi="Hệ thống học tập thông minh và đồng bộ" style="color:#636e72; font-size:14px; margin-bottom:12px;">Smart, synced learning system</p>
+<div data-language-choice="" id="initialLanguageChoice" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 16px;padding:10px 12px;border:1px solid #fbcfe8;border-radius:12px;background:#fff7fb;">
+<span data-lang-en="Choose language" data-lang-vi="Chọn ngôn ngữ" style="width:100%;font-size:11px;color:#6b6478;font-weight:700;">Choose language</span>
+<button data-language-select="en" style="border:1px solid #c4b5fd;border-radius:999px;background:#fff;color:#6d28d9;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;" type="button">中文 - English</button><button data-language-select="vi" style="border:1px solid #93c5fd;border-radius:999px;background:#fff;color:#1d4ed8;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;" type="button">中文 - Tiếng Việt</button>
 </div>
 <div id="fbGoogleBtnPro" style="display:flex; justify-content:center; margin-bottom:10px;"></div>
-<button aria-label="Sign in with Google" data-aria-label-en="Sign in with Google" id="proGoogleFallbackBtn" onclick="proGoogleLogin()" style="display:flex;width:100%;min-height:44px;border:1.5px solid #dadce0;border-radius:24px;background:#fff;color:#3c4043;font-weight:800;font-size:14px;cursor:pointer;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;" type="button">
-<span style="font-weight:900;color:#4285f4;font-size:18px;">G</span><span data-lang-en="Sign in with Google">Sign in with Google</span>
+<button aria-label="Sign in with Google" data-aria-label-en="Sign in with Google" data-aria-label-vi="Đăng nhập bằng Google" id="proGoogleFallbackBtn" onclick="proGoogleLogin()" style="display:flex;width:100%;min-height:44px;border:1.5px solid #dadce0;border-radius:24px;background:#fff;color:#3c4043;font-weight:800;font-size:14px;cursor:pointer;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;" type="button">
+<span style="font-weight:900;color:#4285f4;font-size:18px;">G</span><span data-lang-en="Sign in with Google" data-lang-vi="Đăng nhập bằng Google">Sign in with Google</span>
 </button>
 <div style="margin:20px 0; display:flex; align-items:center; gap:10px;">
 <div style="flex:1; height:1px; background:#eee;"></div>
-<span data-lang-en="or" style="font-size:12px; color:#b2bec3;">or</span>
+<span data-lang-en="or" data-lang-vi="hoặc" style="font-size:12px; color:#b2bec3;">or</span>
 <div style="flex:1; height:1px; background:#eee;"></div>
 </div>
 <input id="proEmail" placeholder="Email" type="text"/>
@@ -584,10 +584,10 @@
 <!-- PHONETICS — 10-SESSION BOOTCAMP -->
 <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
 <script defer="" src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
-<script defer="" src="js/app-02.js?v=v43-excel-vocab-quiz-freeze-20260904"></script>
+<script defer="" src="js/app-02.js?v=v57-language-reminder-20260923"></script>
 <script defer="" src="js/adaptive-learning-engine.js?v=linked-vocab-v17-20260901"></script>
 <script defer="" src="js/app-03.js?v=v50-ai-exam-grading-20260905"></script>
-<script defer="" src="js/ai-tutor-chatbox-exam-data.js?v=v50-ai-exam-grading-20260905"></script>
+<script defer="" src="js/ai-tutor-chatbox-exam-data.js?v=v57-mcq-audit-20260923"></script>
 <script defer="" src="js/firebase-boot.js"></script>
 <script defer="" src="js/auth-bridge.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
 <script defer="" src="js/schedule-engine-core.js?v=v53-task-thresholds-20260907"></script>
@@ -598,8 +598,8 @@
 <script defer="" src="js/ai-tutor-hsk-complete-library.js?v=user-hsk1-6-reading-meaning-20260827-v2"></script>
 <script defer="" src="js/ai-tutor-reading-extension-translations.js?v=ai-tutor-extension-meaning-20260827-v1"></script>
 <script defer="" src="js/daily-missions.js?v=v54-green-check-persistence-20260907"></script>
-<script defer src="js/ai-coach-standalone-skills-v52.js?v=v56-detailed-teacher-feedback-20260907"></script>
-<script defer src="js/ai-coach-task-suite-v53.js?v=v56-detailed-teacher-feedback-20260907"></script>
+<script defer src="js/ai-coach-standalone-skills-v52.js?v=v57-mcq-variant-20260923"></script>
+<script defer src="js/ai-coach-task-suite-v53.js?v=v57-mcq-variant-20260923"></script>
 <script defer="" src="js/app-05-rtdb-block1.js"></script>
 <script defer="" src="js/app-06-quest-ui.js"></script>
 <script defer="" src="js/quest-progression-core.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
@@ -611,5 +611,5 @@
 <script defer="" src="js/progress-sync.js?v=firebase-learning-progress-20260826-v2"></script>
 <script defer="" src="js/offline-enhancements.js?v=real-evidence-20260824-v2"></script>
 <script defer="" src="js/first-time-guide.js?v=english-onboarding-20260826-v3"></script>
-<script defer="" src="js/international-mode.js?v=v43-excel-vocab-quiz-freeze-20260904"></script></body>
+<script defer="" src="js/international-mode.js?v=v57-source-i18n-20260923"></script><script defer src="js/v57-language-quality.js?v=v57-20260923"></script></body>
 </html>
