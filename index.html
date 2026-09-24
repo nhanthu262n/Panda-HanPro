@@ -167,6 +167,7 @@
 <button data-lang-en="🎵 Phonics" data-tab="pinyin">🎵 Phonics</button>
 <button data-lang-en="💬 Messages (Learning Path)" data-tab="chat" style="position:relative;">💬 Messages (Learning Path)<span class="notif-dot" id="chatNotifDot"></span></button>
 <button data-lang-en="🤖 AI Tutor" data-tab="ai" id="aiTeacherTabBtn">🤖 AI Tutor</button>
+<button data-lang-en="🧠 Review &amp; memory" data-lang-vi="🧠 Ôn tập &amp; ghi nhớ" data-tab="memoryPractice" id="memoryPracticeTabBtn">🧠 Ôn tập &amp; ghi nhớ</button>
 <button data-lang-en="👩‍🏫 Teacher" data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Teacher</button>
 <div style="flex:1;"></div>
 <div style="display:flex;justify-content:center;padding-bottom:2px;opacity:0.1;font-size:60px;">🐼</div>
@@ -520,13 +521,17 @@
 </div>
 </div>
 </div>
-<details class="dash-details">
+<details class="dash-details" id="retentionRubric">
 <summary data-lang-en="🎓 Retention rubric (SM-2 detail)">🎓 Retention rubric (SM-2 detail)</summary>
 <div class="inner">
 <p style="font-size:11.5px;color:var(--text-light);margin-bottom:8px;">Evaluation is based on <b>actual review history</b> (consecutive correct reviews, memory ease, and review intervals) — not self-confirmation. / Based on <b>actual review history</b> (consecutive correct repetitions, ease factor, review interval) — not on students self-reporting "understood".</p>
 <div id="tierBreakdown"></div>
 <div id="rubricList" style="margin-top:10px;"></div>
 </div>
+</details>
+<details class="dash-details" id="memoryResultsPanel">
+<summary data-lang-en="🧠 Memory results" data-lang-vi="🧠 Kết quả ghi nhớ">🧠 Kết quả ghi nhớ</summary>
+<div class="inner" id="memoryResults"></div>
 </details>
 <details class="dash-details">
 <summary data-lang-en="📋 Activity history">📋 Activity history</summary>
@@ -584,10 +589,10 @@
 <!-- PHONETICS — 10-SESSION BOOTCAMP -->
 <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
 <script defer="" src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
-<script defer="" src="js/app-02.js?v=v60-memory-workspace"></script>
+<script defer="" src="js/app-02.js?v=v60-1-memory-layout"></script>
 <script defer="" src="js/adaptive-learning-engine.js?v=linked-vocab-v17-20260901"></script>
 <script defer src="js/lesson-access.js?v=v59-1-teacher-access"></script>
-<script defer="" src="js/app-03.js?v=v60-memory-workspace"></script>
+<script defer="" src="js/app-03.js?v=v60-1-memory-layout"></script>
 <script defer="" src="js/ai-tutor-chatbox-exam-data.js?v=v57-mcq-audit-20260923"></script>
 <script defer="" src="js/firebase-boot.js"></script>
 <script defer="" src="js/auth-bridge.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
@@ -598,10 +603,10 @@
 <script defer="" src="js/ai-tutor-grammar-pack.js?v=ai-tutor-grammar-pack-20260826-v1"></script>
 <script defer="" src="js/ai-tutor-hsk-complete-library.js?v=user-hsk1-6-reading-meaning-20260827-v2"></script>
 <script defer="" src="js/ai-tutor-reading-extension-translations.js?v=ai-tutor-extension-meaning-20260827-v1"></script>
-<script defer="" src="js/daily-missions.js?v=v60-memory-workspace"></script>
-<script defer src="js/learning-attempt-history.js?v=v60-memory-workspace"></script>
-<script defer src="js/memory-review.js?v=v60-memory-workspace"></script>
-<script defer src="js/ten-layer-orchestrator.js?v=v60-memory-workspace"></script>
+<script defer="" src="js/daily-missions.js?v=v60-1-memory-layout"></script>
+<script defer src="js/learning-attempt-history.js?v=v60-1-memory-layout"></script>
+<script defer src="js/memory-review.js?v=v60-1-memory-layout"></script>
+<script defer src="js/ten-layer-orchestrator.js?v=v60-1-memory-layout"></script>
 <script defer src="js/ai-coach-standalone-skills-v52.js?v=v59-target-listening"></script>
 <script defer src="js/ai-coach-task-suite-v53.js?v=v59-target-vocab"></script>
 <script defer="" src="js/app-05-rtdb-block1.js"></script>
