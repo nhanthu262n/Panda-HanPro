@@ -941,7 +941,7 @@ function pvNextSession() {
   }
   function isCoachDayNavigationMessage(m){
     const text=String(m?.text||"").trim();
-    if(m?.role==="bot")return /^(?:TEST ONLY(?::| reset:)|Đã mở bài ngày \d+ cho giáo viên)/i.test(text);
+    if(m?.role==="bot")return /^(?:TEST ONLY(?::| reset:)|Đã mở bài ngày \d+ cho giáo viên|Tài khoản học sinh cần hoàn thành bài ngày hiện tại để mở ngày tiếp theo\.)/i.test(text);
     const match=text.match(/^(?:\/?day\s*)?(\d{1,3})$/i);
     return m?.role==="user"&&!!match&&Number(match[1])>=1&&Number(match[1])<=120;
   }
@@ -1591,33 +1591,8 @@ function pvNextSession() {
     return ({ quest: "Thử thách thanh điệu AI Coach", vocabulary: "Từ vựng", sentence_unscramble: "Sắp xếp câu", tone_practice: "Luyện thanh điệu", advanced_reading: "Đọc nâng cao", practice: "Bài luyện", listening: "Nghe", speaking: "Nói / phát âm", reading_writing: "Đọc / Viết", srs: "SRS" })[taskId] || taskId || "nhiệm vụ";
   }
   function renderAiCoachTimeline(area) {
-    if (!area) return;
-    area.querySelector("[data-ai-coach-timeline]")?.remove();
-    const allTimelineItems = loadAiCoachTimeline();
-    const items = allTimelineItems.filter((item) => item.verified === true);
-    const latestPlan = allTimelineItems.find((item) => item.type === "daily_plan");
-    const section = document.createElement("section");
-    section.setAttribute("data-ai-coach-timeline", "true");
-    section.style.cssText = "margin-top:12px;padding:10px 11px;border:1px solid #e9d5ff;border-radius:12px;background:#faf5ff;";
-    const title = window.LANG_MODE === "en" ? "Review timeline from your real activity" : "Lịch sử review từ hoạt động thực tế";
-    const planNote = latestPlan ? `<div style="font-size:11.5px;color:#64748b;margin-top:5px;padding-bottom:6px;border-bottom:1px dashed #ddd6fe;">${window.LANG_MODE === "en" ? "Today's plan has been assigned. It is not a learning score until real activity is recorded." : "Kế hoạch hôm nay đã được giao. Đây chưa phải điểm đánh giá cho đến khi có hoạt động học thật."}</div>` : "";
-    if (!items.length) {
-      section.innerHTML = `<b>${title}</b>${planNote}<div style="font-size:11.5px;color:#64748b;margin-top:5px;">${window.LANG_MODE === "en" ? "Only verified activity data will appear here; no self-confirmation is used." : "Chỉ dữ liệu hoạt động đã xác minh mới xuất hiện ở đây; không dùng xác nhận tự khai."}</div>`;
-    } else {
-      const rows = items.slice(0, 12).map((item) => {
-        const score = item.scorePercent == null ? (window.LANG_MODE === "en" ? "score pending" : "chưa có điểm tổng") : `${item.scorePercent}%${item.threshold != null ? ` / ${item.threshold}%` : ""}`;
-        const outcome = item.passed === true ? (window.LANG_MODE === "en" ? "passed" : "đạt") : item.action === "incomplete_day_requirements" ? (window.LANG_MODE === "en" ? "requirements incomplete" : "chưa đủ nhiệm vụ") : item.passed === false ? (window.LANG_MODE === "en" ? "review required" : "cần ôn lại") : (window.LANG_MODE === "en" ? "recorded" : "đã ghi nhận");
-        const missing = item.missingTaskIds.length ? ` · ${window.LANG_MODE === "en" ? "still needed" : "còn thiếu"}: ${item.missingTaskIds.map(aiCoachTaskLabel).join(", ")}` : "";
-        const source = item.rawSource === "ai-coach-tone-quest" ? "AI Coach Tone Challenge" : item.source === "pinyin-tone-quest" || item.source === "quest" ? "Pinyin Quest" : item.source === "phonetics-pronunciation" || item.source === "phonetics-listening" || item.source === "phonetics" ? "Phonetics" : item.source === "practice" ? "Từ vựng/Practice" : item.source === "task" ? "Verified task" : "AI Coach";
-        const metrics = [item.attempts != null ? `${item.attempts} lần` : "", item.correct != null && item.total != null ? `${item.correct}/${item.total} đúng` : "", item.durationSeconds != null ? `${Math.round(item.durationSeconds)}s` : ""].filter(Boolean).join(" · ");
-        const sessionLabel = item.isRepeat ? (window.LANG_MODE === "en" ? `Session ${item.sequenceIndex} — continue Day ${item.dayNumber}` : `Session ${item.sequenceIndex} — tiếp tục Ngày ${item.dayNumber}`) : (window.LANG_MODE === "en" ? `Day ${item.dayNumber}` : `Ngày ${item.dayNumber}`);
-        const carried = item.carriedCompletedTasks.length ? ` · ${window.LANG_MODE === "en" ? "carried" : "đã giữ"}: ${item.carriedCompletedTasks.map(aiCoachTaskLabel).join(", ")}` : "";
-        return `<div style="padding:7px 0;border-top:1px solid #ede9fe;font-size:11.5px;line-height:1.45;"><b>${sessionLabel}</b> · ${source}${item.taskId ? ` · ${aiCoachTaskLabel(item.taskId)}` : ""}<br><span>${score} · ${outcome}${missing}${carried}${metrics ? ` · ${metrics}` : ""}</span></div>`;
-      }).join("");
-      section.innerHTML = `<b>${title}</b>${planNote}${rows}`;
-    }
-    area.appendChild(section);
-    area.scrollTop = area.scrollHeight;
+    // History remains stored for assessment; it is no longer shown in Coach chat.
+    area?.querySelectorAll("[data-ai-coach-timeline]").forEach(node => node.remove());
   }
 
   function setAiCoachComposer(active) {
@@ -1753,7 +1728,7 @@ function pvNextSession() {
     const clean = String(text).trim().slice(0, 2000);
     const dayMatch = clean.match(/^(?:\/?day\s*)?(\d{1,3})$/i);
     if (dayMatch) {
-      if(!window.PanTutorLessonAccess?.isTeacher()){renderAiCoachMessage("Tài khoản học sinh cần hoàn thành bài ngày hiện tại để mở ngày tiếp theo.","bot");return;}
+      if(!window.PanTutorLessonAccess?.isTeacher())return;
       const dayNumber = Number(dayMatch[1]);
       if (dayNumber < 1 || dayNumber > 120) {
         renderAiCoachMessage("Nhập số ngày từ 1 đến 120.", "bot");
