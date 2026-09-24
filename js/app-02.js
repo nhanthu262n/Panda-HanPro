@@ -3,8 +3,7 @@
 "use strict";
 
 /* ---------- Language display mode: 'vi' (Trung-Việt) or 'en' (Trung-Anh) ---------- */
-let LANG_MODE = "en";
-localStorage.setItem("pandahan_lang", "en");
+let LANG_MODE = localStorage.getItem("pandahan_lang") === "vi" ? "vi" : "en";
 window.LANG_MODE = LANG_MODE;
 const LEGACY_UI_EN = {
   "Hệ thống học tập thông minh & đồng bộ": "Smart, synced learning system", "Đăng nhập bằng Google": "Sign in with Google", "Đăng nhập ngay": "Sign in now", "Tiếp tục Offline": "Continue offline", "Mật khẩu": "Password", "hoặc": "or",
@@ -18,6 +17,8 @@ const LEGACY_UI_EN = {
   "Giai đoạn 0 · Ngữ âm nền tảng · mở từng chữ để nghe đúng mẫu rồi luyện Flashcard → Game → Quiz": "Stage 0 · Phonetics foundation · open each sound to hear the correct model, then practise Flashcards → Game → Quiz", "Luyện nhóm i đặc biệt: zh · ch · sh · r · z · c · s": "Practise the special i group: zh · ch · sh · r · z · c · s", "🎵 Ngữ âm —": "🎵 Phonetics —", "zh + i · [ʐ̩] · không bật hơi": "zh + i · [ʐ̩] · unaspirated", "Gần “trư”; giữ lưỡi cong, không phì hơi.": "Similar to a retroflex ‘zh’; keep the tongue curled and do not release extra air.", "ch + i · [ʈʂʰ̩] · bật hơi": "ch + i · [ʈʂʰ̩] · aspirated", "Gần “trư”; bật một luồng hơi rõ sau âm tắc-xát.": "Similar to an aspirated retroflex ‘ch’; release a clear puff of air after the affricate.", "sh + i · [ʂ̩] · âm xát": "sh + i · [ʂ̩] · fricative", "Gần “sư”; lưỡi cong và hơi đi liên tục.": "Similar to a retroflex ‘sh’; curl the tongue and keep air flowing continuously.", "Tổng sao": "Total stars", "Buổi hoàn thành": "Completed sessions", "Buổi đã mở": "Unlocked sessions", "📈 Lịch sử phát âm": "📈 Pronunciation history", "Theo dõi từng lần thu, điểm gần nhất và mức tiến bộ theo Pinyin/thanh điệu.": "Track each recording, latest score, and progress by Pinyin/tone.", "Chưa có lần thu âm nào. Mở một ô Pinyin, bấm Ghi âm rồi xem kết quả ở đây.": "No recording attempts yet. Open a Pinyin card, tap Record, then view the result here.", "✅ Phát âm đúng": "✅ Correct pronunciation", "❌ Phát âm sai": "❌ Incorrect pronunciation", ", chữ i là nguyên âm cuống lưỡi đặc biệt, gần “ư” nhưng không phải “ư” tiếng Việt và không đọc như “i” dài. Trong": ", the letter i is a special apical-vowel sound, close to ‘ư’ but not Vietnamese ‘ư’ and not a long ‘i’. In", ", chữ i là nguyên âm đầu lưỡi trước; không quặt lưỡi thành “ư”.": ", the letter i is a front apical vowel; do not curl the tongue into ‘ư’.", "Phân biệt kết thúc mũi trước (-n) vs mũi sau (-ng)": "Contrast front nasal ending (-n) with back nasal ending (-ng)", "Thanh 3+3 · 不 biến điệu · 一 biến điệu": "Third-tone pairs · 不 tone change · 一 tone change", "Kiểm tra tổng hợp buổi 1–6": "Integrated review of Sessions 1–6", "Âm Tiết Co Rút iu · ui · un": "Contracted finals iu · ui · un", "Khinh Thanh & Âm Nhi 儿化": "Neutral tone & erhua 儿化", "Trợ từ khinh thanh: 吗 呢 吧 的 — Erhua 儿化": "Neutral-tone particles: 吗 呢 吧 的 — Erhua 儿化", "Kiểm tra toàn bộ Pinyin Bootcamp — Giai đoạn 0": "Review the full Pinyin Bootcamp — Stage 0"
 };
 window.PandaHanEnglishMap = LEGACY_UI_EN;
+const LEGACY_UI_VI = Object.fromEntries(Object.entries(LEGACY_UI_EN).map(([vi,en]) => [String(en), String(vi)]));
+window.PandaHanVietnameseMap = LEGACY_UI_VI;
 function englishFallback(value) {
   const raw = String(value == null ? "" : value).trim();
   if (!raw) return "";
@@ -92,30 +93,56 @@ function englishLegacyText(original) {
   if (loaded) return `${loaded[1]}/${loaded[2]} parts loaded`;
   return "";
 }
+function vietnameseLegacyText(original) {
+  if (LEGACY_UI_VI[original]) return LEGACY_UI_VI[original];
+  const studied = original.match(/^(\d+\s*\/\s*\d+)\s+studied$/i);
+  if (studied) return `${studied[1]} đã học`;
+  const loaded = original.match(/^(\d+)\s*\/\s*(\d+)\s+parts loaded$/i);
+  if (loaded) return `${loaded[1]}/${loaded[2]} phần đã tải`;
+  return "";
+}
 function translateKnownLegacyUi(root = document.body) {
   if (!root) return;
   legacyTranslationRoots(root).forEach((scope) => {
     scope.querySelectorAll("button, label, option, summary, h1, h2, h3, h4, p, small, span, div").forEach((el) => {
       if (el.children.length) return;
-      const original = el.dataset.i18nLegacyVi || String(el.textContent || "").trim();
-      const english = englishLegacyText(original);
-      if (!english) return;
-      if (!el.dataset.i18nLegacyVi) el.dataset.i18nLegacyVi = original;
-      el.textContent = LANG_MODE === "en" ? english : original;
+      const current = String(el.textContent || "").trim();
+      const storedVi = el.dataset.i18nLegacyVi || "";
+      let vi = storedVi;
+      let en = "";
+      if (storedVi) en = englishLegacyText(storedVi) || current;
+      else if (LEGACY_UI_EN[current]) { vi = current; en = LEGACY_UI_EN[current]; }
+      else if (LEGACY_UI_VI[current]) { vi = LEGACY_UI_VI[current]; en = current; }
+      else {
+        const fwd = englishLegacyText(current), rev = vietnameseLegacyText(current);
+        if (fwd) { vi = current; en = fwd; }
+        else if (rev) { vi = rev; en = current; }
+      }
+      if (!vi || !en) return;
+      if (!el.dataset.i18nLegacyVi) el.dataset.i18nLegacyVi = vi;
+      el.textContent = LANG_MODE === "vi" ? vi : en;
     });
     const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
     let node = walker.nextNode();
     while (node) {
       const parent = node.parentElement;
       if (parent && !parent.closest("script,style")) {
-        const original = node.__pandahanI18nLegacyVi || node.nodeValue || "";
-        const plain = String(original).trim();
-        const english = englishLegacyText(plain);
-        if (english) {
-          node.__pandahanI18nLegacyVi = original;
-          const lead = String(original).match(/^\s*/)?.[0] || "";
-          const trail = String(original).match(/\s*$/)?.[0] || "";
-          node.nodeValue = LANG_MODE === "en" ? `${lead}${english}${trail}` : original;
+        const raw = node.nodeValue || "";
+        const plain = String(raw).trim();
+        let vi = node.__pandahanI18nLegacyVi || "";
+        let en = "";
+        if (vi) en = englishLegacyText(vi) || plain;
+        else if (LEGACY_UI_EN[plain]) { vi = plain; en = LEGACY_UI_EN[plain]; }
+        else if (LEGACY_UI_VI[plain]) { vi = LEGACY_UI_VI[plain]; en = plain; }
+        else {
+          const fwd=englishLegacyText(plain), rev=vietnameseLegacyText(plain);
+          if (fwd){vi=plain;en=fwd}
+          else if(rev){vi=rev;en=plain}
+        }
+        if (vi && en) {
+          node.__pandahanI18nLegacyVi = vi;
+          const lead = raw.match(/^\s*/)?.[0] || "", trail = raw.match(/\s*$/)?.[0] || "";
+          node.nodeValue = `${lead}${LANG_MODE === "vi" ? vi : en}${trail}`;
         }
       }
       node = walker.nextNode();
@@ -123,7 +150,7 @@ function translateKnownLegacyUi(root = document.body) {
   });
 }
 function setLangMode(mode) {
-  LANG_MODE = "en";
+  LANG_MODE = mode === "vi" ? "vi" : "en";
   window.LANG_MODE = LANG_MODE;
   localStorage.setItem("pandahan_lang", LANG_MODE);
   applyStaticLanguageUi();
@@ -1506,7 +1533,7 @@ function showStudyReminder() {
   banner.style.display = "flex";
   const playBtn = document.getElementById("studyReminderPlayBtn");
   playBtn.style.display = "inline-block";
-  playReminderAudio().catch(() => { /* autoplay blocked; user can tap the play button */ });
+  // v57: reminder stays visual; audio plays only when the learner taps the reminder audio button.
 }
 function hideStudyReminder() {
   const banner = document.getElementById("studyReminderBanner");
@@ -3258,7 +3285,7 @@ function checkStreakWarning() {
       `Your <b>${pendingStreak}-day</b> streak is about to break! Study a few words before midnight to keep it!`
     );
     banner.style.display = "flex";
-    playReminderAudio().catch(() => {});
+    // v57: do not auto-play reminder audio on page entry/streak warning.
   } else {
     banner.style.display = "none";
   }
