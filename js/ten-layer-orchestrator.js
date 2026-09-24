@@ -267,7 +267,7 @@
       else await window.PanTutorAttemptHistory?.save?.({dayNumber:rec.dayNumber,taskId:"teacherDraft",scorePercent:0,passed:false,completeSet:false,total:1,items:[{target:rec.target,dimension:q.dimension,input,expected:q.reference,verified:false,status:"pending_review",sourceAttemptId:rec.attemptId}],scheduleSaved:false});
       ov.querySelector("#ptTenResult").innerHTML=`<p>${ESC(message)}</p>${saved?window.PanTutorMemory?.feedback(saved)||"":""}<button id="ptTenAgain" class="ptt-secondary" type="button">Làm lại</button>`;
       ov.querySelectorAll("#ptTenChoices button").forEach(x=>{x.classList.add(norm(x.textContent)===norm(q.answer)?"correct":"wrong")});
-      const resultsBtn=ov.querySelector("[data-memory-results]");if(resultsBtn)resultsBtn.onclick=()=>{ov.remove();window.switchTab?.("dashboard");document.getElementById("memoryResults")?.scrollIntoView({behavior:"smooth"})};
+      const resultsBtn=ov.querySelector("[data-memory-results]");if(resultsBtn)resultsBtn.onclick=()=>{ov.remove();window.switchTab?.("dashboard");const panel=document.getElementById("memoryResultsPanel");if(panel){panel.open=true;panel.scrollIntoView({behavior:"smooth"})}};
       ov.querySelector("#ptTenAgain").onclick=()=>{ov.remove();open(rec)};
       if(step+1<questions.length){const next=document.createElement("button");next.className="ptt-primary";next.type="button";next.textContent="Câu tiếp theo";next.onclick=()=>open(rec,step+1);ov.querySelector("#ptTenResult").appendChild(next)}
       ov.querySelectorAll("#ptTenChoices button,#ptTenSubmit").forEach(x=>x.disabled=true);
