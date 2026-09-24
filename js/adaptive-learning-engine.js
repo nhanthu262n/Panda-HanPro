@@ -119,10 +119,13 @@
     const vocabIntroReady = phoneticsReady && introWords.length > 0;
     const canPracticeNew = introState.completed || !introWords.length;
     const eligible = canPracticeNew ? practiceWords : practiceWords.filter((word) => !exactNew.some((newWord) => newWord.char === word.char));
+    // Dimension-specific interventions may be due even when the full word is not due in SM-2.
+    // Keep them separate from the cumulative whole-word review pool.
+    const targetedInterventions=window.PanTutorTenLayer?.recommendations?.(dayNumber,window.PanTutorAttemptHistory?.allRows?.()||[])||[];
     return {
       dayNumber, date: today(), isPinyinBootcamp, vocabularyMode: isPinyinBootcamp ? "phonetics_with_linked_listening" : "daily_vocab_plus_cumulative_srs", focusGroups: groups, focusLabel: groups.map((group) => group.label).join(" · ") || "theo chủ đề ngày",
       phoneticsReady, vocabIntroReady, introCompleted: !!introState.completed, introWords, newWords: exactNew,
-      practiceWords: eligible, reviewWords: reviewPool, linkedNewWords: exactNew,
+      practiceWords: eligible, reviewWords: reviewPool, linkedNewWords: exactNew, targetedInterventions,
       counts: { new: exactNew.length, intro: introWords.length, review: reviewPool.length, practice: eligible.length },
       schedule: scheduleItem, curriculum, source: "real_vocab_stats_and_excel_day"
     };
