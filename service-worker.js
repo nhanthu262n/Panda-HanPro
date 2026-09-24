@@ -1,5 +1,5 @@
 // v57.2-phonetics-sync-deep-feedback-20260924
-const CACHE_NAME = "pantutor-runtime-v59-next-best-action";
+const CACHE_NAME = "pantutor-runtime-v59-1-teacher-access";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
