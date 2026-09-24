@@ -1,5 +1,5 @@
 // v57.2-phonetics-sync-deep-feedback-20260924
-const CACHE_NAME = "pantutor-runtime-v60-1-memory-layout";
+const CACHE_NAME = "pantutor-runtime-v60-2-coach-cleanup";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
