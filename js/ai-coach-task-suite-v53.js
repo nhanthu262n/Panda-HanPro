@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "v57.1-tone-choice-vi-sync-20260924";
+  const VERSION = "v57.2-phonetics-sync-deep-feedback-20260924";
   const base = window.PandaHanCoachSkills || {};
   const PASS = Object.freeze({
     phonetics_core: 30,
@@ -142,7 +142,7 @@ function nextVariant(mode,day){
 .ptcs-head{position:sticky;top:0;z-index:5;display:flex;gap:14px;align-items:flex-start;justify-content:space-between;padding:19px 22px;background:rgba(255,255,255,.97);border-bottom:1px solid #e5ebf4}.ptcs-title{font-size:22px;font-weight:900;color:#102a43}.ptcs-sub{margin-top:4px;color:#66758a;font-size:12.5px}.ptcs-close{border:1px solid #dfe6f0;background:#fff;border-radius:12px;padding:9px 12px;font-weight:800;color:#536174}.ptcs-body{padding:20px 22px 24px}.ptcs-source{padding:12px 14px;border-radius:14px;background:#eef5ff;border:1px solid #dbeafe;color:#23456f;font-size:12.5px;line-height:1.55;margin-bottom:14px}.ptcs-progress{display:flex;align-items:center;gap:12px;margin-bottom:14px}.ptcs-bar{height:8px;flex:1;background:#e6ebf2;border-radius:99px;overflow:hidden}.ptcs-bar span{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#60a5fa)}.ptcs-count{font-size:12px;font-weight:850;color:#526173}.ptcs-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:22px;box-shadow:0 8px 28px rgba(16,42,67,.055)}.ptcs-kicker{display:inline-flex;padding:6px 9px;border-radius:999px;background:#eef5ff;color:#1d4ed8;font-size:10.5px;font-weight:900}.ptcs-question{margin:14px 0 8px;color:#102a43;font-size:21px;font-weight:900}.ptcs-help{color:#6b778c;font-size:12.5px;line-height:1.55}.ptcs-hanzi{font-size:32px;font-weight:900;color:#102a43}.ptcs-pinyin{font-size:17px;font-weight:850;color:#db2777;margin-top:3px}.ptcs-meaning{color:#526173;margin-top:5px}.ptcs-actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:13px 0}.ptcs-btn{border:1px solid #dfe6f0;background:#fff;color:#16304e;border-radius:12px;padding:10px 14px;font-weight:850}.ptcs-btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}.ptcs-btn.record{background:#e11d48;border-color:#e11d48;color:#fff}.ptcs-btn.stop{background:#102a43;border-color:#102a43;color:#fff}.ptcs-btn:disabled{opacity:.45;cursor:not-allowed}.ptcs-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.ptcs-option{min-height:56px;text-align:left;border:1px solid #dfe6f0;background:#fff;border-radius:13px;padding:12px 13px;color:#172033;font-weight:700}.ptcs-option:hover{border-color:#9fc0ff;background:#f8fbff}.ptcs-option.correct{border-color:#86efac;background:#ecfdf3;color:#166534}.ptcs-option.wrong{border-color:#fecaca;background:#fff1f2;color:#b91c1c}.ptcs-input{width:100%;min-height:48px;border:1px solid #dfe6f0;border-radius:12px;padding:11px 13px;font-size:15px;outline:none}.ptcs-input:focus{border-color:#93b4ff;box-shadow:0 0 0 3px #eef5ff}.ptcs-reveal{margin-top:14px;padding:14px;border-radius:14px;background:#f8fafc;border:1px solid #e6ebf2}.ptcs-next{display:flex;justify-content:flex-end;margin-top:14px}.ptcs-audio-orb{width:112px;height:112px;margin:16px auto;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#dbeafe,#eff6ff);border:1px solid #bfdbfe;font-size:44px}.ptcs-audio-orb.playing{box-shadow:0 0 0 9px rgba(37,99,235,.08)}.ptcs-speak-target{text-align:center;padding:10px}.ptcs-speak-target .ptcs-hanzi{font-size:38px}.ptcs-rec-status{text-align:center;margin:11px 0;color:#526173;font-size:12.5px}.ptcs-score{margin-top:15px;padding:15px;border:1px solid #dbeafe;border-radius:16px;background:#f8fbff}.ptcs-score-big{font-size:34px;font-weight:950;color:#102a43}.ptcs-rubric{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.ptcs-rubric>div{padding:9px;border-radius:11px;background:#fff;border:1px solid #e2e8f0;font-size:11px;color:#526173}.ptcs-rubric b{display:block;color:#102a43;font-size:15px;margin-top:2px}.ptcs-summary{text-align:center;padding:27px}.ptcs-summary .ptcs-score-big{font-size:50px}.ptcs-badge{display:inline-flex;padding:6px 9px;border-radius:999px;background:#ecfdf3;color:#15803d;font-size:11px;font-weight:900}.ptcs-badge.fail{background:#fff1f2;color:#be123c}.ptcs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:13px}.ptcs-mini{border:1px solid #e2e8f0;border-radius:14px;padding:12px;background:#f8fafc}.ptcs-mini b{display:block;color:#102a43}.ptcs-mini span{display:block;color:#6b778c;font-size:11px;margin-top:4px}.ptcs-writing-rubric{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.ptcs-writing-rubric div{background:#f8fafc;border:1px solid #e5ebf4;border-radius:10px;padding:8px;font-size:11px;color:#526173}.ptcs-writing-rubric b{color:#102a43}
 
 .ptcs-teacher-report{margin-top:14px;border:1px solid #dbeafe;border-radius:16px;background:#fbfdff;overflow:hidden;text-align:left}.ptcs-teacher-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:#eef5ff;border-bottom:1px solid #dbeafe}.ptcs-teacher-head b{color:#102a43;font-size:14px}.ptcs-teacher-head span{font-size:11px;font-weight:900;color:#1d4ed8}.ptcs-teacher-body{padding:13px 14px}.ptcs-teacher-section{margin-top:10px;padding-top:10px;border-top:1px dashed #d9e3ef}.ptcs-teacher-section:first-child{margin-top:0;padding-top:0;border-top:0}.ptcs-teacher-section h4{margin:0 0 5px;color:#102a43;font-size:12px}.ptcs-teacher-section p{margin:0;color:#526173;font-size:12px;line-height:1.58}.ptcs-teacher-list{margin:5px 0 0;padding-left:18px;color:#526173;font-size:12px;line-height:1.58}.ptcs-breakdown{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:10px}.ptcs-breakdown>div{padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#66758a;font-size:10.5px}.ptcs-breakdown b{display:block;color:#102a43;font-size:14px;margin-top:2px}.ptcs-model-answer{margin-top:7px;padding:9px 10px;border-left:3px solid #60a5fa;background:#f8fbff;color:#23456f;font-size:12px;line-height:1.55}.ptcs-teacher-summary{margin:16px 0 0;padding:14px;border-radius:15px;background:#f8fbff;border:1px solid #dbeafe;text-align:left}.ptcs-teacher-summary h3{margin:0 0 7px;color:#102a43;font-size:15px}.ptcs-teacher-summary p{margin:5px 0;color:#526173;font-size:12px;line-height:1.55}
-.ptcs-option.ptcs-sound-choice{position:relative;min-height:108px;display:grid;place-items:center;gap:2px;padding:13px 12px}.ptcs-sound-choice .ptcs-choice-letter{position:absolute;top:9px;left:12px;color:#8793a5;font-size:11px;font-weight:900}.ptcs-sound-choice .ptcs-choice-hanzi{font-size:30px;font-weight:900;color:#263548;line-height:1}.ptcs-sound-choice .ptcs-choice-pinyin{font-size:15px;font-weight:900;color:#ec4899;line-height:1.2}.ptcs-sound-choice .ptcs-choice-tone{font-size:10px;color:#7b8798;font-weight:800}.ptcs-option.ptcs-sound-choice.correct .ptcs-choice-pinyin{color:#15803d}.ptcs-option.ptcs-sound-choice.wrong .ptcs-choice-pinyin{color:#b91c1c}
+.ptcs-option.ptcs-sound-choice{position:relative;min-height:108px;display:grid;place-items:center;gap:2px;padding:13px 12px}.ptcs-sound-choice .ptcs-choice-hanzi{font-size:30px;font-weight:900;color:#263548;line-height:1}.ptcs-sound-choice .ptcs-choice-pinyin{font-size:15px;font-weight:900;color:#ec4899;line-height:1.2}.ptcs-sound-choice .ptcs-choice-tone{font-size:10px;color:#7b8798;font-weight:800}.ptcs-option.ptcs-sound-choice.correct .ptcs-choice-pinyin{color:#15803d}.ptcs-option.ptcs-sound-choice.wrong .ptcs-choice-pinyin{color:#b91c1c}
 @media(max-width:680px){.ptcs-breakdown{grid-template-columns:1fr 1fr}}
 
 @media(max-width:680px){#ptCoachSkillOverlay{padding:0;place-items:stretch}#ptCoachSkillPanel{max-height:100vh;border-radius:0}.ptcs-head{padding:14px}.ptcs-body{padding:14px}.ptcs-options{grid-template-columns:1fr}.ptcs-rubric,.ptcs-grid,.ptcs-writing-rubric{grid-template-columns:1fr 1fr}.ptcs-title{font-size:18px}.ptcs-speak-target .ptcs-hanzi{font-size:31px}}
@@ -172,6 +172,131 @@ function nextVariant(mode,day){
   function pinyinOfWord(w){return String(w?.pinyin||"").trim()}
   function exampleOfWord(w){const ex=Array.isArray(w?.examples)&&w.examples[0]?w.examples[0]:null;return ex?{zh:String(ex[0]||""),py:String(ex[1]||""),meaning:exampleMeaning(ex,w)}:{zh:"",py:"",meaning:""}}
   function distractorWordForMeaning(meaning){return vocab().find(w=>wordMeaning(w)===String(meaning||"").trim())||null}
+
+  /*
+   * v57.2 learner-feedback intelligence.
+   * The first ten HSK1 entries mirror the pedagogical fields in the uploaded
+   * HSK1_FIRST10_VOCABULARY_INTELLIGENCE document: usage patterns, confusables,
+   * common learner errors, context/model and repair prompts. Mnemonics/etymology
+   * are intentionally not used as grammar evidence.
+   */
+  const VOCAB_INTELLIGENCE = Object.freeze({
+    "爱":{
+      patterns:["S + 爱 + O","S + 爱 + V","我爱……，但是……"],
+      confusables:["喜欢: thích, thường nhẹ hơn","爱好: sở thích (danh từ)","想: muốn, không phải yêu/thích"],
+      errors:["爱看书 không cần 的 giữa 爱 và 看","Không dùng 爱 thay cho 想 khi diễn đạt “muốn”"],
+      model:"我爱我的家人，也爱看书。",
+      pronunciation:"ài · thanh 4; âm tiết mở đầu không có phụ âm đầu, vần ai."
+    },
+    "八":{
+      patterns:["S + 有 + 八 + lượng từ + N","现在是八点","S + 八岁"],
+      confusables:["六: sáu","九: chín","百: trăm"],
+      errors:["Trong mẫu đếm người/sách cơ bản cần lượng từ phù hợp","八点 là 8 giờ; đọc bā thanh 1"],
+      model:"我家有八口人。现在是八点。",
+      pronunciation:"bā · b + a · thanh 1 cao và ngang."
+    },
+    "爸爸":{
+      patterns:["这是我爸爸","我爸爸是 + nghề nghiệp","爸爸在 + V"],
+      confusables:["妈妈: mẹ","父亲: cha, trang trọng hơn","叔叔: chú/bác nam"],
+      errors:["Khi nói nghề nghiệp dùng 是: 我爸爸是医生","爸爸 là cách gọi thân mật; 父亲 trang trọng hơn"],
+      model:"我爸爸是医生。他在医院工作。",
+      pronunciation:"bàba · âm tiết đầu bà thanh 4; âm tiết sau thường nhẹ/neutral."
+    },
+    "杯子":{
+      patterns:["N + 里 + 有 + substance","请给我一个杯子","用杯子喝……"],
+      confusables:["碗: bát/tô","瓶子: chai","茶杯: tách trà"],
+      errors:["Một cái cốc: 一个杯子, không nói 一杯子","Phân biệt 一个杯子 với 一杯水"],
+      model:"请给我一个杯子。杯子里有茶。",
+      pronunciation:"bēizi · bēi thanh 1; zi thường đọc nhẹ."
+    },
+    "北京":{
+      patterns:["北京是 + place/status","S + 在北京 + V","S + 去北京 + V"],
+      confusables:["南京: Nam Kinh","北方: phía Bắc","首都: thủ đô (danh từ chung)"],
+      errors:["Vị trí dùng 在北京; hướng đi dùng 去北京","北京 là tên riêng, 首都 là chức năng/loại địa danh"],
+      model:"我在北京学习。明年我想去北京旅游。",
+      pronunciation:"Běijīng · Běi thanh 3 + jīng thanh 1."
+    },
+    "本":{
+      patterns:["number + 本 + book","这/那 + 本 + N","S + 看/买 + 一本 + N"],
+      confusables:["个: lượng từ chung","张: tờ/vật phẳng","册: quyển/tập"],
+      errors:["Sách/vở dùng 本: 一本书","Không dùng 本 cho người hoặc cốc"],
+      model:"我买了两本书。这本书很有意思。",
+      pronunciation:"běn · b + en · thanh 3."
+    },
+    "不":{
+      patterns:["S + 不 + V","S + 不 + Adj","不要 + V"],
+      confusables:["没: chưa/không có trong nhiều ngữ cảnh quá khứ","别: đừng","无: không có, văn viết"],
+      errors:["不 thường đứng trước động từ/tính từ","Không dùng 不 máy móc cho hành động quá khứ đã hoàn thành"],
+      model:"我不喜欢喝咖啡。今天我不去学校。",
+      pronunciation:"bù · b + u · thanh 4; trong chuỗi lời nói có thể có biến điệu theo từ sau."
+    },
+    "菜":{
+      patterns:["S + 做菜","这个菜 + 很 + Adj","请给我看看菜单"],
+      confusables:["饭: cơm/bữa ăn","食物: thức ăn nói chung","菜单: thực đơn"],
+      errors:["这个菜很好吃 nói về món ăn trong ngữ cảnh này","菜 và 饭/菜单 không thay thế máy móc cho nhau"],
+      model:"妈妈在买菜。这个菜很好吃。",
+      pronunciation:"cài · c + ai · thanh 4."
+    },
+    "茶":{
+      patterns:["S + 喜欢/喝 + 茶","请 + V + 茶","这/那是 + 茶"],
+      confusables:["水: nước","咖啡: cà phê","茶杯: cốc/tách trà"],
+      errors:["Trong câu cơ bản nói 喝茶, không nói 吃茶","一杯茶 là một cốc trà; 茶 không phải cái cốc"],
+      model:"请喝茶。这是中国茶。",
+      pronunciation:"chá · ch + a · thanh 2 đi lên."
+    },
+    "吃":{
+      patterns:["S + 吃 + O","一起 + 吃饭 + 吧","你吃了吗？","这个菜很好吃"],
+      confusables:["喝: uống","做饭: nấu cơm","好吃: ngon"],
+      errors:["Đồ uống như 茶 dùng 喝, không dùng 吃","好吃 là tính từ đánh giá món ăn"],
+      model:"你吃了吗？我们一起吃饭吧。这个菜很好吃。",
+      pronunciation:"chī · ch + i (âm đỉnh lưỡi sau) · thanh 1."
+    }
+  });
+  function wordIntel(w){
+    const c=String(w?.char||"").trim();
+    return VOCAB_INTELLIGENCE[c]||VOCAB_INTELLIGENCE[firstHanzi(c)]||null;
+  }
+  function joinIntelLines(intel,key,limit=3){
+    const arr=Array.isArray(intel?.[key])?intel[key]:[];
+    return arr.slice(0,limit);
+  }
+  function repairLearnerSentence(raw,target){
+    let out=String(raw||"").trim(),reason="";
+    if(!out)return{changed:false,text:"",reason:""};
+    const before=out;
+    if(target==="爱"){
+      if(out.includes("爱很")){out=out.replace(/爱很/g,"很爱");reason="Đổi trật tự “爱很” thành “很爱” khi 很 bổ nghĩa mức độ cho 爱."}
+    }else if(target==="爸爸"){
+      if(/我爸爸(医生|老师|学生|护士|经理)/.test(out)){out=out.replace(/我爸爸(医生|老师|学生|护士|经理)/,"我爸爸是$1");reason="Thêm 是 giữa chủ ngữ và nghề nghiệp."}
+    }else if(target==="杯子"){
+      if(out.includes("一杯子")){out=out.replace(/一杯子/g,"一个杯子");reason="Dùng lượng từ 个 cho danh từ 杯子; 一杯 thường đo lượng đồ uống."}
+    }else if(target==="北京"){
+      if(out.includes("是北京工作")){out=out.replace(/是北京工作/g,"在北京工作");reason="Dùng 在 để biểu đạt nơi diễn ra hành động."}
+    }else if(target==="本"){
+      if(out.includes("一个书")){out=out.replace(/一个书/g,"一本书");reason="Sách/vở dùng lượng từ 本."}
+      else if(/(^|[我你他她们想要买看有])一书/.test(out)){out=out.replace(/一书/g,"一本书");reason="Bổ sung lượng từ 本 trước 书."}
+    }else if(target==="不"){
+      const rules=[["喜欢不","不喜欢"],["喝不","不喝"],["去不","不去"],["来不","不来"]];
+      for(const [a,b] of rules){if(out.includes(a)){out=out.replace(new RegExp(a,"g"),b);reason="Đưa 不 về trước động từ/tính từ trong mẫu phủ định cơ bản.";break}}
+    }else if(target==="茶"||target==="吃"){
+      if(out.includes("吃茶")){out=out.replace(/吃茶/g,"喝茶");reason="Đồ uống 茶 kết hợp cơ bản với 喝, không phải 吃."}
+    }else if(target==="菜"){
+      if(out.includes("吃菜单")){out=out.replace(/吃菜单/g,"看菜单");reason="菜单 là thực đơn; dùng 看/看看菜单, không dùng 吃菜单."}
+    }
+    return{changed:out!==before,text:out,reason};
+  }
+  function correctionStructureForWord(w){
+    const intel=wordIntel(w);
+    return intel?.patterns?.length?intel.patterns.join(" / "):T("S + từ mục tiêu + thành phần phù hợp","S + target word + appropriate complement");
+  }
+  function detailedWordFeedbackLines(w){
+    const intel=wordIntel(w);if(!intel)return[];
+    const out=[];
+    if(intel.patterns?.length)out.push(`${T("Cấu trúc nên dùng","Recommended structure")}: ${intel.patterns.join(" / ")}`);
+    if(intel.errors?.length)out.push(`${T("Lỗi người học thường gặp","Common learner error")}: ${intel.errors[0]}`);
+    if(intel.confusables?.length)out.push(`${T("Từ dễ nhầm","Confusable")}: ${intel.confusables.slice(0,2).join("; ")}`);
+    return out;
+  }
   function aggregateTeacherSummary(label,score){
     if(!S.reports.length)return "";
     const reports=S.reports.filter(x=>Number.isFinite(x.score));if(!reports.length)return "";
@@ -180,31 +305,88 @@ function nextVariant(mode,day){
     return `<div class="ptcs-teacher-summary"><h3>🧑‍🏫 ${T("Tóm tắt của giáo viên","Teacher summary")}</h3><p><b>${T("Tổng quan","Overall")}:</b> ${Math.round(score)}/100 · ${reports.length} ${T("mục đã chấm","graded item(s)")}. ${overallNote}</p><p><b>${T("Bằng chứng mạnh nhất","Strongest evidence")}:</b> ${esc(strongest?.area||label)} — ${Math.round(strongest?.score||0)}/100${strongest?.strength?` · ${esc(strongest.strength)}`:""}.</p><p><b>${T("Ưu tiên sửa","Priority correction")}:</b> ${esc(weakest?.area||label)} — ${Math.round(weakest?.score||0)}/100. ${esc(weakest?.focus||T("Làm lại mục có điểm thấp nhất và tự giải thích đáp án trước khi tiếp tục.","Repeat the lowest-scoring item and explain the answer before moving on."))}</p></div>`;
   }
   function pinyinTeacherAnalysis(it,value,points){
-    const typed=String(value||"").trim(),target=String(it.answer||"").trim(),typedBase=stripTone(typed),targetBase=stripTone(target),baseSim=editSimilarity(typedBase,targetBase),sameBase=typedBase===targetBase&&!!targetBase,tt=pinyinTones(target),ut=pinyinTones(typed),toneSame=tt.length===ut.length&&tt.every((x,i)=>x===ut[i]);
-    const strength=points===100?T("Âm tiết và dấu thanh đều khớp với mục tiêu.","Both syllable spelling and tone marks match the target."):sameBase?T("Âm tiết cơ sở được nhận diện đúng.","The base syllable is recognized correctly."):T("Một số âm đầu, vần hoặc chữ cái của âm tiết chưa khớp mục tiêu.","Some initials/finals or syllable letters differ from the target.");
-    const focus=points===100?T("Viết lại Pinyin một lần từ trí nhớ mà không nhìn mẫu.","Write the Pinyin once more from memory without looking."):sameBase&&!toneSame?T("Giữ nguyên chữ cái của âm tiết nhưng xây lại dấu thanh theo đường cao độ nghe được.","Keep the same letters, but rebuild the tone marks from the spoken contour."):T("Tách âm tiết thành âm đầu + vần, sau đó thêm thanh khi phần chữ đã chắc.","Separate the syllable into initial + final, then add the tone after the spelling is secure.");
-    return {html:teacherReportHtml({status:points===100?T("TỐT","STRONG"):T("CẦN ÔN","REVIEW"),overview:strength,sections:[{title:T("Câu trả lời và mục tiêu","Your answer vs target"),lines:[`${T("Câu trả lời của bạn","Your answer")}: ${typed||T("(trống)","(blank)")}`,`${T("Mục tiêu","Target")}: ${target}`,`${T("Độ tương đồng âm tiết cơ sở","Base-syllable similarity")}: ${Math.round(baseSim*100)}%`]},{title:T("Lý do chấm điểm","Why this score"),lines:[sameBase?T("Cách viết âm đầu/vần khớp với âm tiết mục tiêu.","Initial/final spelling matches the target base syllable."):T("Cách viết âm tiết cơ sở chưa khớp hoàn toàn với mục tiêu.","The base syllable spelling does not fully match the target."),toneSame?T("Chuỗi dấu thanh khớp.","Tone mark sequence matches."):T("Chuỗi dấu thanh khác hoặc chưa đầy đủ.","Tone mark sequence is different or incomplete."),`${T("Thanh điệu mục tiêu","Target tone(s)")}: ${tt.length?tt.map(toneLabel).join("; "):T("không có dữ liệu","not available")}`]}],model:target,next:focus}),strength,focus}
+    const typed=String(value||"").trim(),target=String(it.answer||"").trim(),typedBase=stripTone(typed),targetBase=stripTone(target),baseSim=editSimilarity(typedBase,targetBase),sameBase=typedBase===targetBase&&!!targetBase,tt=pinyinTones(target),ut=pinyinTones(typed),toneSame=tt.length===ut.length&&tt.every((x,i)=>x===ut[i]),intel=wordIntel(it.word);
+    const difference=phoneticDifference(target,typed);
+    const strength=points===100?T("Âm tiết và dấu thanh đều khớp với mục tiêu.","Both syllable spelling and tone marks match the target."):sameBase?T("Phần âm cơ sở đúng nhưng dấu thanh chưa khớp.","The base sound is correct, but the tone mark does not match."):T("Phần âm cơ sở và/hoặc dấu thanh chưa khớp mục tiêu.","The base sound and/or tone mark does not match the target.");
+    const focus=points===100?T("Viết lại Pinyin một lần từ trí nhớ rồi đọc thành tiếng.","Write the Pinyin once more from memory and say it aloud."):sameBase&&!toneSame?T("Giữ nguyên phần chữ, nghe lại hướng cao độ rồi đặt đúng dấu thanh.","Keep the letters, replay the pitch direction, then place the correct tone mark."):T("Nghe lại → tách âm đầu/vần → viết phần âm → thêm thanh điệu → đọc lại.","Replay → separate initial/final → write the base sound → add the tone → read it aloud.");
+    const lines=[
+      `${T("Đầu vào","Input")}: ${typed||T("(trống)","(blank)")}`,
+      `${T("Đầu ra đúng","Correct output")}: ${target}`,
+      `${T("Sai khác","Difference")}: ${difference}`,
+      `${T("Độ tương đồng phần âm","Base-sound similarity")}: ${Math.round(baseSim*100)}%`,
+      `${T("Thanh mục tiêu","Target tone(s)")}: ${tt.length?tt.map(toneLabel).join("; "):T("không có dữ liệu","not available")}`
+    ];
+    if(intel?.pronunciation)lines.push(`${T("Điểm phát âm cần nhớ","Pronunciation cue")}: ${intel.pronunciation}`);
+    return {html:teacherReportHtml({status:points===100?T("ĐÚNG — CỦNG CỐ","CORRECT — REINFORCE"):T("SAI — PHÂN TÍCH VÀ SỬA","INCORRECT — DIAGNOSE & REPAIR"),overview:strength,sections:[{title:T("Input → Output","Input → Output"),lines},{title:T("Cách tự sửa","Self-repair steps"),lines:[focus]}],model:target,next:focus}),strength,focus,correction:{input:typed,output:target,difference}}
   }
   function writingTeacherAnalysis(it,value){
-    const raw=String(value||"").trim(),target=String(it?.word?.char||""),reference=String(it?.reference||""),hanzi=(raw.match(/[\u3400-\u9fff]/g)||[]).length,hasTarget=!!target&&raw.includes(target),hasPunct=/[。！？!?]$/.test(raw),issues=[],notes=[];
+    const raw=String(value||"").trim(),target=String(it?.word?.char||""),reference=String(it?.reference||""),hanzi=(raw.match(/[\u3400-\u9fff]/g)||[]).length,hasTarget=!!target&&raw.includes(target),hasPunct=/[。！？!?]$/.test(raw),issues=[],notes=[],intel=wordIntel(it.word),repair=repairLearnerSentence(raw,target);
     let task=hasTarget?(hanzi>=5?20:15):Math.min(8,hanzi*2),organization=hanzi>=10?18:hanzi>=6?16:hanzi>=4?12:hanzi>=2?8:2;if(hasPunct)organization=Math.min(20,organization+2);
     let grammar=raw?28:0;
-    if(/(的的|了了|是是|很很|在在)/.test(raw)){grammar-=7;issues.push(T("Phát hiện từ chức năng/trợ từ bị lặp; hãy bỏ phần lặp và đọc lại mệnh đề.","A repeated function word/particle was detected; remove the duplicate and reread the clause."))}
-    if(/虽然/.test(raw)&&!/(但是|可是|不过)/.test(raw)){grammar-=2;notes.push(T("Có 虽然 nhưng chưa có dấu hiệu đối lập rõ. Cấu trúc vẫn có thể đúng theo ngữ cảnh, nhưng 但是/可是/不过 thường giúp quan hệ đối lập rõ hơn.","虽然 is present without an explicit contrast marker. This can be grammatical in context, but 但是/可是/不过 often makes the learner structure clearer."))}
-    if(/因为/.test(raw)&&!/(所以)/.test(raw))notes.push(T("Có 因为 nhưng không có 所以. Tiếng Trung có thể lược 所以, nên đây không tự động là lỗi; cần kiểm tra quan hệ nguyên nhân–kết quả có rõ hay không.","因为 appears without 所以. Chinese can omit 所以, so this is not automatically an error; check whether the cause-result relation is still clear."));
-    if(/把/.test(raw)&&!/(了|好|完|到|在|给|成|开|上|下|走|来|去|掉|清楚|明白)/.test(raw)){grammar-=5;issues.push(T("Cấu trúc 把 chưa thể hiện rõ kết quả, phương hướng, vị trí hoặc dấu hiệu hoàn thành.","The 把 construction does not show a clear result, direction, location or completion marker."))}
-    if(raw&&hanzi<4){grammar-=4;issues.push(T("Câu trả lời quá ngắn để thể hiện cấu trúc câu tiếng Trung ổn định.","The response is too short to show a stable Chinese sentence structure."))}
+
+    if(/(的的|了了|是是|很很|在在)/.test(raw)){grammar-=7;issues.push(T("Phát hiện từ chức năng/trợ từ bị lặp; cần bỏ phần lặp và kiểm tra lại trật tự từ.","A repeated function word/particle was detected; remove the duplicate and recheck word order."))}
+    if(/虽然/.test(raw)&&!/(但是|可是|不过)/.test(raw)){grammar-=2;notes.push(T("Có 虽然 nhưng chưa có dấu hiệu đối lập rõ. Đây không luôn là lỗi, nhưng 但是/可是/不过 thường làm quan hệ đối lập rõ hơn.","虽然 appears without an explicit contrast marker. This is not always an error, but 但是/可是/不过 often makes the contrast clearer."))}
+    if(/因为/.test(raw)&&!/(所以)/.test(raw))notes.push(T("Có 因为 nhưng không có 所以. Tiếng Trung có thể lược 所以, vì vậy chỉ ghi chú chứ không tự động trừ điểm.","因为 appears without 所以. Chinese can omit 所以, so this is noted rather than automatically penalized."));
+    if(/把/.test(raw)&&!/(了|好|完|到|在|给|成|开|上|下|走|来|去|掉|清楚|明白)/.test(raw)){grammar-=5;issues.push(T("Cấu trúc 把 chưa thể hiện rõ kết quả, phương hướng, vị trí hoặc hoàn thành.","The 把 construction lacks a clear result, direction, location or completion cue."))}
+    if(raw&&hanzi<4){grammar-=4;issues.push(T("Câu quá ngắn để thể hiện một cấu trúc câu tiếng Trung ổn định.","The response is too short to demonstrate a stable Chinese sentence structure."))}
+    if(repair.changed){grammar-=4;issues.push(T(`Phát hiện lỗi dùng từ/cấu trúc có thể sửa trực tiếp: ${repair.reason}`,`A high-confidence usage/structure issue can be repaired directly: ${repair.reason}`))}
+
     grammar=Math.max(0,Math.min(30,grammar));
     let vocabulary=hasTarget?(hanzi>=7?15:12):Math.min(6,Math.max(0,hanzi)),naturalness=raw?(hasPunct?13:11):0;if(issues.length)naturalness=Math.max(3,naturalness-issues.length*2);if(hanzi>=10&&!issues.length)naturalness=Math.min(15,naturalness+2);
     let score=Math.round(task+organization+grammar+vocabulary+naturalness);if(!hasTarget)score=Math.min(score,49);
-    const grammarEntry=window.PandaHanGrammarPack?.find?.(raw);if(grammarEntry)notes.push(`Detected structure: ${grammarEntry.form}. ${grammarEntry.cautionEn||grammarEntry.en||""}`.trim());
-    if(!issues.length)issues.push(T("Chưa phát hiện lỗi ngữ pháp cục bộ có độ tin cậy cao. Câu vẫn được đánh giá theo yêu cầu nhiệm vụ, không mặc định là hoàn hảo.","No high-confidence local grammar error was detected. The sentence is still evaluated against the task rather than assumed perfect."));
-    const strength=hasTarget&&grammar>=24?T(`Từ mục tiêu “${target}” đã được sử dụng và câu có khung ngữ pháp phù hợp.`,`The target word “${target}” is used and the sentence shows a workable grammatical frame.`):hasTarget?T(`Đã có từ mục tiêu “${target}”, vì vậy yêu cầu nhiệm vụ được thể hiện rõ.`,`The target word “${target}” is present, so the task intent is clear.`):T("Có nội dung tiếng Trung nhưng thiếu từ mục tiêu bắt buộc.","Some Chinese content is present, but the required target word is missing.");
-    const focus=!hasTarget?T(`Viết lại câu và dùng “${target}” đúng với nghĩa: ${meaningOfWord(it.word)}.`,`Rewrite the sentence and include “${target}” with its intended meaning: ${meaningOfWord(it.word)}.`):grammar<22?T("Sửa lỗi ngữ pháp đã nêu, sau đó đọc lại để kiểm tra trật tự từ tiếng Trung.","Fix the grammar issue identified above, then reread the sentence for Chinese word order."):organization<15?T("Mở rộng câu với chủ ngữ/ngữ cảnh rõ và kết thúc bằng dấu câu tự nhiên.","Expand the sentence with a clear subject/context and finish it with natural punctuation."):T("Viết thêm một câu với cùng từ mục tiêu trong ngữ cảnh khác để chứng minh khả năng vận dụng.","Write a second sentence with the same target word in a different context to prove flexible use.");
+
+    const grammarEntry=window.PandaHanGrammarPack?.find?.(raw);
+    if(grammarEntry)notes.push(`${T("Cấu trúc nhận diện","Detected structure")}: ${grammarEntry.form}. ${grammarEntry.cautionEn||grammarEntry.en||""}`.trim());
+    if(!issues.length)issues.push(T("Chưa phát hiện lỗi ngữ pháp cục bộ có độ tin cậy cao; hệ thống không tự bịa lỗi. Câu vẫn được đánh giá theo yêu cầu nhiệm vụ.","No high-confidence local grammar error was detected; the system does not invent an error. The sentence is still evaluated against the task."));
+
+    const structure=correctionStructureForWord(it.word);
+    const intelLines=detailedWordFeedbackLines(it.word);
+    const suggestedOutput=repair.changed?repair.text:"";
+    const ex=exampleOfWord(it.word);
+    const model=intel?.model||reference||ex.zh||T(`Dùng “${target}” trong một câu hoàn chỉnh có chủ ngữ hoặc ngữ cảnh rõ.`,`Use “${target}” in a complete sentence with a clear subject or context.`);
+
+    const strength=hasTarget&&grammar>=24
+      ?T(`Từ mục tiêu “${target}” đã được sử dụng và câu có khung ngữ pháp phù hợp.`,`The target word “${target}” is used and the sentence has a workable grammatical frame.`)
+      :hasTarget
+        ?T(`Đã sử dụng “${target}”, nhưng câu vẫn cần chỉnh ở cấu trúc hoặc độ tự nhiên.`,`The target word “${target}” is present, but the sentence still needs structural or naturalness repair.`)
+        :T(`Câu chưa đáp ứng yêu cầu vì thiếu từ mục tiêu “${target}”.`,`The response does not meet the task because the required target word “${target}” is missing.`);
+
+    const focus=!hasTarget
+      ?T(`Viết lại câu theo một trong các khung: ${structure}.`,`Rewrite the sentence using one of these frames: ${structure}.`)
+      :repair.changed
+        ?T(`So sánh đầu vào với đầu ra sửa, sau đó tự viết lại mà không sao chép: ${repair.text}`,`Compare the input with the repaired output, then rewrite it independently: ${repair.text}`)
+        :grammar<22
+          ?T(`Sửa lỗi ngữ pháp đã nêu và giữ từ mục tiêu trong khung: ${structure}.`,`Fix the grammar issue above and keep the target word in this frame: ${structure}.`)
+          :T(`Tạo thêm một câu mới với “${target}” theo khung khác để kiểm tra khả năng vận dụng.`,`Create one more sentence with “${target}” using a different frame to test transfer.`);
+
     const breakdown=`<div class="ptcs-breakdown"><div>${T("Hoàn thành nhiệm vụ","Task")} /20<b>${task}</b></div><div>${T("Tổ chức","Organization")} /20<b>${organization}</b></div><div>${T("Ngữ pháp","Grammar")} /30<b>${grammar}</b></div><div>${T("Từ vựng","Vocabulary")} /15<b>${vocabulary}</b></div><div>${T("Tự nhiên","Naturalness")} /15<b>${naturalness}</b></div></div>`;
-    const sections=[{title:T("Bằng chứng từ câu bạn viết","Evidence from your sentence"),lines:[`${T("Câu của người học","Learner sentence")}: ${raw||T("(trống)","(blank)")}`,`${T("Từ bắt buộc","Required word")}: ${target} — ${meaningOfWord(it.word)||T("từ vựng mục tiêu","target vocabulary")}`,`${T("Số chữ Hán nhận diện","Chinese characters detected")}: ${hanzi}`,hasPunct?T("Có dấu câu kết thúc câu.","Sentence-ending punctuation is present."):T("Chưa phát hiện dấu câu kết thúc câu tiếng Trung.","No Chinese sentence-ending punctuation was detected.")]},{title:T("Nội dung cần sửa / lưu ý","Required corrections / cautions"),lines:issues},...(notes.length?[{title:T("Ghi chú giáo viên","Teacher notes"),lines:notes}]:[])];
-    const ex=exampleOfWord(it.word),model=reference?`${reference}${ex.meaning?` — ${ex.meaning}`:""}`:T(`Hãy dùng “${target}” trong một câu hoàn chỉnh có chủ ngữ hoặc ngữ cảnh rõ.`,`Use “${target}” in a complete sentence with a clear subject or context.`);
-    return {score,html:teacherReportHtml({status:score>=90?"EXCELLENT":score>=75?"GOOD":score>=60?"PASS":"REVISE",overview:strength,breakdown,sections,model,next:focus}),strength,focus}
+
+    const sections=[
+      {title:T("Đầu vào của người học","Learner input"),lines:[
+        `${T("Câu gốc","Original sentence")}: ${raw||T("(trống)","(blank)")}`,
+        `${T("Từ mục tiêu","Target word")}: ${target} — ${meaningOfWord(it.word)||T("từ vựng mục tiêu","target vocabulary")}`,
+        `${T("Số chữ Hán nhận diện","Chinese characters detected")}: ${hanzi}`
+      ]},
+      {title:T("Chẩn đoán lỗi","Error diagnosis"),lines:issues},
+      {title:T("Cấu trúc đúng cần đối chiếu","Correct structure to compare"),lines:[
+        `${T("Khung cấu trúc","Structure")}: ${structure}`,
+        ...intelLines
+      ]},
+      {title:T("Đầu ra sửa có căn cứ","Evidence-based corrected output"),lines:suggestedOutput?[
+        `${T("Câu sau khi sửa quy tắc chắc chắn","Rule-based repair")}: ${suggestedOutput}`,
+        `${T("Lý do sửa","Why")}: ${repair.reason}`
+      ]:[
+        T("Không tự viết lại toàn bộ câu khi chưa có đủ căn cứ. Người học đối chiếu cấu trúc đúng và mẫu tham chiếu để tự sửa.","The system does not rewrite the whole sentence without enough evidence. Compare the correct structure and model, then self-repair.")
+      ]},
+      ...(notes.length?[{title:T("Ghi chú giáo viên","Teacher notes"),lines:notes}]:[])
+    ];
+
+    return {
+      score,
+      html:teacherReportHtml({status:score>=90?T("RẤT TỐT","EXCELLENT"):score>=75?T("TỐT","GOOD"):score>=60?T("ĐẠT — CẦN CỦNG CỐ","PASS — REINFORCE"):T("CẦN SỬA","REVISE"),overview:strength,breakdown,sections,model,next:focus}),
+      strength,focus,
+      correction:{input:raw,targetWord:target,structure,suggestedOutput,reason:repair.reason,model}
+    }
   }
 
 
@@ -263,53 +445,94 @@ function nextVariant(mode,day){
   }
   function firstHanzi(v){const m=String(v||"").match(/[\u3400-\u9fff]/u);return m?m[0]:String(v||"").slice(0,1)}
   function toneChoiceOptions(target,words,day,index){
-    const targetPy=firstSyllable(target?.pinyin||""),targetTone=firstTone(targetPy),targetBase=stripTone(targetPy),targetChar=firstHanzi(target?.char||"");
+    const targetPy=String(target?.pinyin||"").trim(),targetTone=firstTone(targetPy),targetBase=stripTone(targetPy),targetChar=String(target?.char||"").trim();
     const all=uniq([...(words||[]),...vocab().filter(w=>w?.pinyin&&w?.char)]);const rnd=seeded(day,5450+index+S.variant*43);
-    const tones=targetTone===5?[1,2,4,5]:[1,2,3,4];if(!tones.includes(targetTone))tones[tones.length-1]=targetTone;
-    const out=[];
-    for(const t of tones){
-      if(t===targetTone){out.push({key:`${targetChar}|${targetPy}`,char:targetChar,pinyin:targetPy,tone:t,correct:true});continue}
-      const candidates=all.filter(w=>w!==target&&firstTone(firstSyllable(w.pinyin))===t).map(w=>{
-        const py=firstSyllable(w.pinyin),base=stripTone(py),char=firstHanzi(w.char);let score=0;
-        if(base===targetBase)score+=100;if(base?.[0]===targetBase?.[0])score+=18;score+=Math.max(0,12-Math.abs(base.length-targetBase.length)*4);if(char&&char!==targetChar)score+=4;return{w,py,char,score,r:rnd()};
-      }).sort((a,b)=>b.score-a.score||a.r-b.r);
-      const pick=candidates.find(c=>!out.some(o=>o.key===`${c.char}|${c.py}`));
-      if(pick)out.push({key:`${pick.char}|${pick.py}`,char:pick.char,pinyin:pick.py,tone:t,correct:false});
-      else {const py=markPinyinTone(targetPy,t);out.push({key:`${targetChar}|${py}`,char:targetChar,pinyin:py,tone:t,correct:false,synthetic:true})}
+    const scored=all.filter(w=>w!==target&&String(w?.char||"").trim()!==targetChar).map(w=>{
+      const py=String(w?.pinyin||"").trim(),base=stripTone(py),tone=firstTone(py),char=String(w?.char||"").trim();let score=0;
+      if(tone!==targetTone)score+=22;
+      if(base===targetBase)score+=90;
+      score+=Math.round(editSimilarity(base,targetBase)*42);
+      if(base?.[0]===targetBase?.[0])score+=10;
+      score-=Math.abs(base.length-targetBase.length)*2;
+      return{key:`${char}|${py}`,char,pinyin:py,tone,correct:false,score,r:rnd()};
+    }).sort((a,b)=>b.score-a.score||a.r-b.r);
+    const out=[{key:`${targetChar}|${targetPy}`,char:targetChar,pinyin:targetPy,tone:targetTone,correct:true}];
+    for(const c of scored){
+      if(!c.char||!c.pinyin||out.some(o=>o.key===c.key))continue;
+      out.push(c);if(out.length===4)break;
+    }
+    /* Last-resort tone variants keep the task usable when a Day has too few real words. */
+    for(const t of [1,2,3,4]){
+      if(out.length===4)break;if(t===targetTone)continue;
+      const py=markPinyinTone(targetPy,t),key=`${targetChar}|${py}`;
+      if(!out.some(o=>o.key===key))out.push({key,char:targetChar,pinyin:py,tone:t,correct:false,synthetic:true});
     }
     return shuffle(out,rnd).slice(0,4);
+  }
+  function pinyinChoiceOptions(target,words,day,index){
+    const targetPy=String(target?.pinyin||"").trim(),targetChar=String(target?.char||"").trim(),base=stripTone(targetPy),rnd=seeded(day,5570+index+S.variant*47);
+    const candidates=uniq([...(words||[]),...vocab().filter(w=>w?.pinyin&&w?.char)]).filter(w=>w!==target&&String(w?.char||"").trim()!==targetChar).map(w=>{
+      const py=String(w?.pinyin||"").trim(),char=String(w?.char||"").trim(),b=stripTone(py);let score=Math.round(editSimilarity(base,b)*70);
+      if(firstTone(py)===firstTone(targetPy))score+=12;
+      if(b?.[0]===base?.[0])score+=10;
+      score-=Math.abs(b.length-base.length)*2;
+      return{key:`${char}|${py}`,char,pinyin:py,correct:false,score,r:rnd()};
+    }).sort((a,b)=>b.score-a.score||a.r-b.r);
+    const out=[{key:`${targetChar}|${targetPy}`,char:targetChar,pinyin:targetPy,correct:true}];
+    for(const c of candidates){
+      if(!c.char||!c.pinyin||out.some(o=>o.key===c.key))continue;
+      out.push(c);if(out.length===4)break;
+    }
+    return shuffle(out,rnd).slice(0,4);
+  }
+  function phoneticDifference(targetPy,chosenPy){
+    const target=String(targetPy||"").trim(),chosen=String(chosenPy||"").trim(),tb=stripTone(target),cb=stripTone(chosen),tt=firstTone(target),ct=firstTone(chosen);
+    if(target===chosen)return T("Âm tiết và thanh điệu khớp hoàn toàn.","The syllable and tone match exactly.");
+    if(tb===cb&&tt!==ct)return T(`Phần âm “${tb}” đúng nhưng thanh điệu sai: bạn chọn ${toneLabel(ct)}, mục tiêu là ${toneLabel(tt)}.`,`The base sound “${tb}” matches, but the tone differs: you chose ${toneLabel(ct)} and the target is ${toneLabel(tt)}.`);
+    if(tt===ct&&tb!==cb)return T(`Thanh điệu đúng nhưng phần âm chưa khớp: “${cb||chosen}” khác “${tb||target}”.`,`The tone matches, but the base sound differs: “${cb||chosen}” vs “${tb||target}”.`);
+    return T(`Cả phần âm và thanh điệu đều khác mục tiêu: “${chosen}” → “${target}”.`,`Both the base sound and tone differ from the target: “${chosen}” → “${target}”.`);
   }
   function buildPhoneticsItems(m){
     const words=wordList(m).filter(w=>w?.pinyin&&w?.char);const rnd=seeded(m?.dayNumber,5301);const chosen=shuffle(words,rnd).slice(0,Math.min(10,Math.max(6,words.length)));
     return chosen.map((w,i)=>{
-      const py=firstSyllable(w.pinyin),kind=i%2?"pinyin":"tone";
-      if(kind==="tone"){
-        const options=toneChoiceOptions(w,words,m?.dayNumber,i),correct=options.find(o=>o.correct)||options[0];
-        return {kind,word:w,text:firstHanzi(w.char),pinyin:py,answer:correct.key,answerLabel:`${correct.char} · ${correct.pinyin}`,options};
-      }
-      return {kind,word:w,text:firstHanzi(w.char),pinyin:py,answer:py,answerLabel:py,options:plausiblePinyinDistractors(py,words,m?.dayNumber,i)};
+      const kind=i%2?"pinyin":"tone",options=kind==="tone"?toneChoiceOptions(w,words,m?.dayNumber,i):pinyinChoiceOptions(w,words,m?.dayNumber,i),correct=options.find(o=>o.correct)||options[0];
+      return {kind,word:w,text:String(w.char||"").trim(),pinyin:String(w.pinyin||"").trim(),answer:correct.key,answerLabel:`${correct.char} · ${correct.pinyin}`,options};
     });
   }
   async function openPhoneticsCore(m){createShell("phonetics_core",m);S.items=avoidImmediateRepeat(buildPhoneticsItems(S.mission),"phonetics_core",S.mission?.dayNumber);S.index=0;S.answers=[];if(!S.items.length){document.getElementById("ptCoachSkillContent").innerHTML=`<div class="ptcs-card">${T("Không có mục ngữ âm liên kết với ngày học này.","No phonetics-linked items are available for this Day.")}</div>`;return}renderPhoneticsCore()}
   function renderPhoneticsCore(){
     const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;
-    const question=it.kind==="tone"?T("Nghe và chọn đáp án đúng.","Listen and choose the correct answer."):T("Nghe và chọn Pinyin phù hợp.","Listen and choose the matching Pinyin.");
-    const help=T("Nghe audio trước, sau đó chọn chữ Hán và Pinyin tương ứng. Đây là nhiệm vụ ngữ âm độc lập của AI Coach, không phải Pinyin Tone Quest chính.","Listen first, then choose the matching Hanzi and Pinyin. This is a standalone AI Coach phonetics task; it is not the main Pinyin Tone Quest.");
-    const letters=["A","B","C","D"];
-    const optionHtml=it.kind==="tone"
-      ? it.options.map((o,i)=>`<button class="ptcs-option ptcs-sound-choice" type="button" data-value="${esc(o.key)}" data-label="${esc(`${o.char} · ${o.pinyin}`)}"><span class="ptcs-choice-letter">${letters[i]||""}</span><span class="ptcs-choice-hanzi">${esc(o.char)}</span><span class="ptcs-choice-pinyin" data-keep-pinyin="true">${esc(o.pinyin)}</span></button>`).join("")
-      : it.options.map((o,i)=>`<button class="ptcs-option" type="button" data-value="${esc(o)}" data-label="${esc(o)}"><span style="font-size:11px;color:#8793a5;font-weight:900;margin-right:8px">${letters[i]||""}</span><span data-keep-pinyin="true">${esc(o)}</span></button>`).join("");
-    host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">${T("PINYIN BOOTCAMP · BÀI NHẬN DIỆN ÂM","PINYIN BOOTCAMP · OBJECTIVE TASK")}</span><div class="ptcs-question">${question}</div><div class="ptcs-help">${help}</div><button class="ptcs-audio-orb" id="ptcsPhOrb" type="button" aria-label="${T("Nghe lại","Replay")}">🔊</button><div class="ptcs-options">${optionHtml}</div><div id="ptcsReveal"></div></div>`;
+    const question=T("Nghe và chọn đáp án đúng.","Listen and choose the correct answer.");
+    const help=T("Nghe audio trước, sau đó chọn thẻ có chữ Hán và Pinyin tương ứng. Không hiển thị A/B/C/D để người học tập trung vào âm–chữ–Pinyin. Đây là nhiệm vụ ngữ âm độc lập của AI Coach, không phải Pinyin Tone Quest chính.","Listen first, then choose the card with the matching Hanzi and Pinyin. A/B/C/D labels are intentionally omitted so attention stays on sound–character–Pinyin mapping. This is a standalone AI Coach phonetics task, not the main Pinyin Tone Quest.");
+    const optionHtml=it.options.map(o=>`<button class="ptcs-option ptcs-sound-choice" type="button" data-value="${esc(o.key)}" data-label="${esc(`${o.char} · ${o.pinyin}`)}" data-pinyin="${esc(o.pinyin)}"><span class="ptcs-choice-hanzi">${esc(o.char)}</span><span class="ptcs-choice-pinyin" data-keep-pinyin="true">${esc(o.pinyin)}</span></button>`).join("");
+    host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">${T("PINYIN BOOTCAMP · BÀI NHẬN DIỆN ÂM","PINYIN BOOTCAMP · SOUND RECOGNITION")}</span><div class="ptcs-question">${question}</div><div class="ptcs-help">${help}</div><button class="ptcs-audio-orb" id="ptcsPhOrb" type="button" aria-label="${T("Nghe lại","Replay")}">🔊</button><div class="ptcs-options">${optionHtml}</div><div id="ptcsReveal"></div></div>`;
     const orb=document.getElementById("ptcsPhOrb");orb.onclick=()=>speak(it.text,orb);host.querySelectorAll(".ptcs-option").forEach(b=>b.onclick=()=>answerPhonetics(b,it));S.autoTimer=setTimeout(()=>speak(it.text,orb),180);localizeRoot(host)
   }
   function answerPhonetics(btn,it){
-    const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")],chosen=String(btn.dataset.value||btn.textContent||"").trim(),chosenLabel=String(btn.dataset.label||btn.textContent||"").trim(),answer=String(it.answer||"").trim(),answerLabel=String(it.answerLabel||it.answer||"").trim(),ok=chosen===answer;
-    opts.forEach(b=>{b.disabled=true;if(String(b.dataset.value||b.textContent||"").trim()===answer)b.classList.add("correct")});if(!ok)btn.classList.add("wrong");S.answers.push({correct:ok,target:it.text,answer:answerLabel,chosen:chosenLabel});
-    const tone=firstTone(it.pinyin),strength=ok?T(`Bạn đã nhận diện đúng âm và thanh điệu của “${it.text}”.`,`You identified the sound and tone for “${it.text}”.`):T("Liên kết giữa âm nghe được và Pinyin/thanh điệu chưa ổn định.","The sound-to-Pinyin/tone mapping is not stable yet."),focus=it.kind==="tone"?T(`Nghe lại “${it.text}” và chú ý hướng cao độ: ${toneLabel(tone)}.`,`Replay “${it.text}” and trace the pitch direction: ${toneLabel(tone)}.`):T(`Đọc chậm “${it.pinyin}”, tách âm đầu–vần rồi xác định dấu thanh.`,`Say “${it.pinyin}” slowly, separate its initial/final, then locate the tone mark.`);recordTeacherReport(T("Nhận diện ngữ âm","Phonetics recognition"),ok?100:0,strength,focus);
-    const report=teacherReportHtml({status:ok?T("ĐÚNG — CÓ GIẢI THÍCH","CORRECT — EXPLAINED"):T("CẦN ÔN ÂM","REVIEW SOUND"),overview:strength,sections:[{title:T("Bằng chứng âm thanh","Sound evidence"),lines:[`${T("Chữ Hán","Hanzi")}: ${it.text}`,`Pinyin: ${it.pinyin}`,`${T("Bạn chọn","Your answer")}: ${chosenLabel}`,`${T("Đáp án đúng","Correct answer")}: ${answerLabel}`,`${T("Gợi ý thanh điệu","Tone cue")}: ${toneLabel(tone)}`]},{title:T("Giải thích","Why"),lines:[it.kind==="tone"?T(`Dấu thanh trong ${it.pinyin} tương ứng với ${toneLabel(tone)}.`,`The tone mark in ${it.pinyin} corresponds to ${toneLabel(tone)}.`):T(`Pinyin đúng của mục này là ${it.pinyin}; cả chữ cái âm tiết và dấu thanh đều quan trọng.`,`The correct learner transcription for this item is ${it.pinyin}; both syllable letters and the tone mark matter.`)]}],model:`${it.text} · ${it.pinyin}`,next:focus});
+    const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")],chosen=String(btn.dataset.value||"").trim(),chosenLabel=String(btn.dataset.label||"").trim(),chosenPy=String(btn.dataset.pinyin||"").trim(),answer=String(it.answer||"").trim(),answerLabel=String(it.answerLabel||it.answer||"").trim(),ok=chosen===answer;
+    opts.forEach(b=>{b.disabled=true;if(String(b.dataset.value||"").trim()===answer)b.classList.add("correct")});if(!ok)btn.classList.add("wrong");S.answers.push({correct:ok,target:it.text,answer:answerLabel,chosen:chosenLabel,input:chosenLabel,expected:answerLabel});
+    const tone=firstTone(it.pinyin),intel=wordIntel(it.word),difference=phoneticDifference(it.pinyin,chosenPy||chosenLabel.split("·").pop()?.trim());
+    const strength=ok?T(`Bạn đã nối đúng âm nghe được với “${it.text}” và Pinyin “${it.pinyin}”.`,`You correctly mapped the sound to “${it.text}” and Pinyin “${it.pinyin}”.`):T(`Bạn đã chọn “${chosenLabel}”, trong khi âm mục tiêu là “${it.text} · ${it.pinyin}”.`,`You chose “${chosenLabel}”, while the target sound is “${it.text} · ${it.pinyin}”.`);
+    const focus=ok?T(`Nghe lại một lần, sau đó đọc “${it.text} · ${it.pinyin}” mà không nhìn thẻ.`,`Replay once, then say “${it.text} · ${it.pinyin}” without looking at the card.`):T(`Nghe lại → xác định phần âm → xác định hướng thanh → đối chiếu chữ Hán → đọc lại “${it.text} · ${it.pinyin}”.`,`Replay → identify the base sound → identify tone direction → match the Hanzi → repeat “${it.text} · ${it.pinyin}”.`);
+    recordTeacherReport(T("Nhận diện ngữ âm","Phonetics recognition"),ok?100:0,strength,focus);
+    const lines=[
+      `${T("Âm/chữ mục tiêu","Target")}: ${it.text} · ${it.pinyin}`,
+      `${T("Bạn đã chọn","Your input")}: ${chosenLabel||T("(trống)","(blank)")}`,
+      `${T("Phân tích sai khác","Difference")}: ${difference}`,
+      `${T("Thanh mục tiêu","Target tone")}: ${toneLabel(tone)}`
+    ];
+    if(intel?.pronunciation)lines.push(`${T("Điểm phát âm cần nhớ","Pronunciation cue")}: ${intel.pronunciation}`);
+    const repairLines=ok
+      ? [T("Không cần sửa đáp án. Hãy củng cố bằng một lần nghe–nhắc lại không nhìn đáp án.","No correction is needed. Reinforce it with one listen-and-repeat attempt without looking.")]
+      : [
+          `${T("Đầu vào sai","Incorrect input")}: ${chosenLabel}`,
+          `${T("Đầu ra đúng","Correct output")}: ${it.text} · ${it.pinyin}`,
+          `${T("Quy trình sửa","Repair sequence")}: ${focus}`
+        ];
+    const report=teacherReportHtml({status:ok?T("ĐÚNG — CỦNG CỐ ÂM","CORRECT — REINFORCE"):T("SAI — PHÂN TÍCH VÀ SỬA ÂM","INCORRECT — DIAGNOSE & REPAIR"),overview:strength,sections:[{title:T("Bằng chứng âm–chữ–Pinyin","Sound–character–Pinyin evidence"),lines},{title:T("Từ đầu vào đến đầu ra đúng","Input → corrected output"),lines:repairLines}],model:`${it.text} · ${it.pinyin}`,next:focus});
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><div class="ptcs-hanzi">${esc(it.text)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.pinyin)}</div>${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsPhNext">${S.index+1>=S.items.length?T("Hoàn thành Ngữ âm","Finish Phonetics"):T("Tiếp theo →","Next →")}</button></div>`;
     localizeRoot(document.getElementById("ptcsReveal"));
-    document.getElementById("ptcsPhNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const score=Math.round(S.answers.filter(x=>x.correct).length/Math.max(1,S.answers.length)*100),r=await saveEvidence("phonetics_core",score,{completeSet:true,correct:S.answers.filter(x=>x.correct).length,total:S.answers.length,teacherReports:S.reports,evidenceType:"ai_coach_pinyin_bootcamp_core_teacher_feedback_v57_1",passThreshold:30});summary(T("Pinyin Bootcamp · Ngữ âm cốt lõi","Pinyin Bootcamp · Phonetics Core"),score,r,T(`${S.answers.filter(x=>x.correct).length}/${S.answers.length} câu nhận diện đúng.`,`${S.answers.filter(x=>x.correct).length} of ${S.answers.length} objective items correct.`))}else renderPhoneticsCore()}
+    document.getElementById("ptcsPhNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const score=Math.round(S.answers.filter(x=>x.correct).length/Math.max(1,S.answers.length)*100),r=await saveEvidence("phonetics_core",score,{completeSet:true,correct:S.answers.filter(x=>x.correct).length,total:S.answers.length,answers:S.answers,teacherReports:S.reports,evidenceType:"ai_coach_pinyin_bootcamp_core_teacher_feedback_v57_2",passThreshold:30});summary(T("Pinyin Bootcamp · Ngữ âm cốt lõi","Pinyin Bootcamp · Phonetics Core"),score,r,T(`${S.answers.filter(x=>x.correct).length}/${S.answers.length} câu nhận diện đúng.`,`${S.answers.filter(x=>x.correct).length} of ${S.answers.length} objective items correct.`))}else renderPhoneticsCore()}
   }
 
   /* ---------------- SRS Due Review inside AI Coach ---------------- */
@@ -331,11 +554,36 @@ function nextVariant(mode,day){
   function renderVocabLearn(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;const bootcamp=Number(S.mission?.dayNumber||1)<=10;if(!bootcamp){try{window.recordView?.(it.char)}catch(_){}};host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">LEARN ALL EXCEL WORDS · PHASE 1/2</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(it.char)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.word.pinyin||it.pinyin)}</div><div class="ptcs-meaning">${esc(wordMeaning(it.word)||it.meaning)}</div></div>${Array.isArray(it.word.examples)&&it.word.examples[0]?`<div class="ptcs-reveal"><b>Example</b><div style="margin-top:5px">${esc(it.word.examples[0][0])}</div><div class="ptcs-pinyin" data-keep-pinyin="true" style="font-size:13px">${esc(it.word.examples[0][1]||"")}</div><div class="ptcs-meaning">${esc(exampleMeaning(it.word.examples[0],it.word))}</div></div>`:""}<div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsVocabAudio">▶ Listen</button><button class="ptcs-btn" id="ptcsVocabNext">${S.index+1>=S.items.length?"Start scored quiz →":"Next word →"}</button></div></div>`;document.getElementById("ptcsVocabAudio").onclick=()=>speak(it.char);document.getElementById("ptcsVocabNext").onclick=()=>{S.index++;if(S.index>=S.items.length){S.phase="quiz";S.index=0;S.items=avoidImmediateRepeat(shuffle(S.items,seeded(S.mission?.dayNumber,5800)),"vocab-intro",S.mission?.dayNumber);renderVocabQuiz()}else renderVocabLearn()};localizeRoot(host)}
   function renderVocabQuiz(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;const answer=cleanOption(String(wordMeaning(it.word)||it.meaning)),options=plausibleMeaningDistractors(it.word,answer,S.mission?.dayNumber,S.index);host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">EXCEL VOCABULARY · SCORED QUIZ</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(it.char)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.word.pinyin||it.pinyin)}</div></div><div class="ptcs-question">Choose the correct meaning.</div><div class="ptcs-options">${options.map(o=>`<button class="ptcs-option">${esc(o)}</button>`).join("")}</div><div id="ptcsReveal"></div></div>`;host.querySelectorAll(".ptcs-option").forEach(b=>b.onclick=()=>answerVocab(b,it,answer));localizeRoot(host)}
   function answerVocab(btn,it,answer){
-    const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")],chosen=btn.textContent.trim(),ok=chosen===answer,bootcamp=Number(S.mission?.dayNumber||1)<=10,py=it.word.pinyin||it.pinyin,ex=exampleOfWord(it.word),dw=distractorWordForMeaning(chosen);opts.forEach(b=>{b.disabled=true;if(b.textContent.trim()===answer)b.classList.add("correct")});if(!ok)btn.classList.add("wrong");if(!bootcamp){try{window.gradeWord?.(it.char,ok?5:1)}catch(_){}}
-    S.answers.push({correct:ok,char:it.char,chosen,answer});const strength=ok?`You matched “${it.char}” (${py}) to its curriculum meaning.`:`The form “${it.char}” is not yet linked reliably to its meaning.`;const focus=ok?`Use “${it.char}” once in the model sentence, then retrieve the meaning without the options.`:`Say “${it.char} — ${py} — ${answer}” once, then use the example sentence before the next SRS interval.`;recordTeacherReport("Vocabulary meaning",ok?100:0,strength,focus);
-    const report=teacherReportHtml({status:ok?"CORRECT — EXPLAINED":"INCORRECT — EXPLAINED",overview:strength,sections:[{title:"Word analysis",lines:[`Hanzi: ${it.char}`,`Pinyin: ${py}`,`Your choice: ${chosen}`,`Correct meaning: ${answer}`]},{title:"Why",lines:[ok?T("Nghĩa đã chọn là nghĩa được lưu trong lộ trình cho từ này.","The selected meaning is the stored curriculum meaning for this word."):dw?`Your choice “${chosen}” is associated with another vocabulary item such as “${dw.char}” (${pinyinOfWord(dw)}), not “${it.char}”.`:"The selected option is a distractor from the vocabulary pool and does not match this word."]}],model:ex.zh?`${ex.zh} — ${ex.meaning}`:`${it.char} · ${py} · ${answer}`,next:focus});
-    document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsVocabQuizNext">${S.index+1>=S.items.length?"Finish vocabulary":"Next →"}</button></div>`;
-    localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsVocabQuizNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),bootcamp=Number(S.mission?.dayNumber||1)<=10,r=await saveEvidence("vocab-intro",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,evidenceType:bootcamp?"ai_coach_phonetics_linked_vocabulary_teacher_feedback_v57":"ai_coach_excel_vocabulary_teacher_feedback_v57",passThreshold:70});summary(bootcamp?"Phonetics-linked vocabulary":"Excel vocabulary",score,r,bootcamp?`${correct} of ${S.answers.length} pronunciation-linked examples correct. Day 1–10 does not add these items to general SRS.`:`${correct} of ${S.answers.length} words correct. Actual answers were saved into the existing SM-2 SRS engine.`)}else renderVocabQuiz()}
+    const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")],chosen=btn.textContent.trim(),ok=chosen===answer,bootcamp=Number(S.mission?.dayNumber||1)<=10,py=it.word.pinyin||it.pinyin,ex=exampleOfWord(it.word),dw=distractorWordForMeaning(chosen),intel=wordIntel(it.word);
+    opts.forEach(b=>{b.disabled=true;if(b.textContent.trim()===answer)b.classList.add("correct")});if(!ok)btn.classList.add("wrong");if(!bootcamp){try{window.gradeWord?.(it.char,ok?5:1)}catch(_){}}
+    S.answers.push({correct:ok,char:it.char,chosen,answer,input:chosen,expected:answer});
+    const strength=ok?T(`Bạn đã nối đúng “${it.char}” (${py}) với nghĩa trong lộ trình.`,`You correctly linked “${it.char}” (${py}) to its curriculum meaning.`):T(`Bạn chọn “${chosen}”, nhưng nghĩa đúng của “${it.char}” là “${answer}”.`,`You chose “${chosen}”, but the correct meaning of “${it.char}” is “${answer}”.`);
+    const structure=correctionStructureForWord(it.word);
+    const focus=ok?T(`Dùng “${it.char}” trong một câu theo khung: ${structure}.`,`Use “${it.char}” in one sentence with this frame: ${structure}.`):T(`Đọc lại nghĩa đúng, đối chiếu từ dễ nhầm, sau đó tạo một câu theo khung: ${structure}.`,`Review the correct meaning, compare confusables, then create a sentence with this frame: ${structure}.`);
+    recordTeacherReport(T("Nghĩa và cách dùng từ","Vocabulary meaning & usage"),ok?100:0,strength,focus);
+
+    const whyLines=[
+      ok?T("Đáp án khớp nghĩa được lưu cho từ mục tiêu.","The answer matches the stored meaning for the target word."):dw?T(`Lựa chọn “${chosen}” thuộc về từ khác như “${dw.char}” (${pinyinOfWord(dw)}), nên là phương án nhiễu ở đây.`,`The choice “${chosen}” belongs to another item such as “${dw.char}” (${pinyinOfWord(dw)}), so it is a distractor here.`):T("Lựa chọn này không khớp nghĩa của từ mục tiêu.","This choice does not match the target word."),
+      ...detailedWordFeedbackLines(it.word)
+    ];
+    if(intel?.model)whyLines.push(`${T("Mẫu sử dụng","Usage model")}: ${intel.model}`);
+
+    const report=teacherReportHtml({
+      status:ok?T("ĐÚNG — MỞ RỘNG CÁCH DÙNG","CORRECT — EXTEND USAGE"):T("SAI — SỬA NGHĨA VÀ CÁCH DÙNG","INCORRECT — REPAIR MEANING & USAGE"),
+      overview:strength,
+      sections:[
+        {title:T("Input → Output","Input → Output"),lines:[
+          `${T("Đầu vào người học","Learner input")}: ${chosen}`,
+          `${T("Đầu ra đúng","Correct output")}: ${answer}`,
+          `${T("Từ mục tiêu","Target word")}: ${it.char} · ${py}`
+        ]},
+        {title:T("Vì sao và dùng thế nào","Why & how to use it"),lines:whyLines}
+      ],
+      model:intel?.model||(ex.zh?`${ex.zh} — ${ex.meaning}`:`${it.char} · ${py} · ${answer}`),
+      next:focus
+    });
+    document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsVocabQuizNext">${S.index+1>=S.items.length?T("Hoàn thành từ vựng","Finish vocabulary"):T("Tiếp theo →","Next →")}</button></div>`;
+    localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsVocabQuizNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),bootcamp=Number(S.mission?.dayNumber||1)<=10,r=await saveEvidence("vocab-intro",score,{completeSet:true,correct,total:S.answers.length,answers:S.answers,teacherReports:S.reports,evidenceType:bootcamp?"ai_coach_phonetics_linked_vocabulary_teacher_feedback_v57_2":"ai_coach_excel_vocabulary_teacher_feedback_v57_2",passThreshold:70});summary(bootcamp?T("Từ vựng gắn với ngữ âm","Phonetics-linked vocabulary"):T("Từ vựng Excel","Excel vocabulary"),score,r,bootcamp?T(`${correct}/${S.answers.length} ví dụ gắn với phát âm đúng. Ngày 1–10 không đưa các mục này vào SRS tổng quát.`,`${correct} of ${S.answers.length} pronunciation-linked examples correct. Day 1–10 does not add these items to general SRS.`):T(`${correct}/${S.answers.length} từ đúng. Các câu trả lời thực tế đã được chuyển vào SRS hiện có.`,`${correct} of ${S.answers.length} words correct. Actual answers were saved into the existing SRS engine.`))}else renderVocabQuiz()}
   }
 
   /* ---------------- Reading / Writing Lab ---------------- */
@@ -356,19 +604,23 @@ function nextVariant(mode,day){
     if(it.kind==="reading")host.querySelectorAll(".ptcs-option").forEach(b=>b.onclick=()=>gradeRW(it,b.textContent.trim(),b));else{const inp=document.getElementById("ptcsRWInput");document.getElementById("ptcsRWCheck").onclick=()=>gradeRW(it,inp.value,null);inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&it.kind!=="writing")gradeRW(it,inp.value,null)});inp.focus()}
   }
   function gradeRW(it,value,btn){
-    let points=0,reportHtml="",strength="",focus="";
+    let points=0,reportHtml="",strength="",focus="",correction=null;
     if(it.kind==="reading"){
       const chosen=String(value||"").trim(),ok=chosen===it.answer;points=ok?100:0;const opts=[...document.querySelectorAll("#ptCoachSkillContent .ptcs-option")];opts.forEach(b=>{b.disabled=true;if(b.textContent.trim()===it.answer)b.classList.add("correct")});if(btn&&!ok)btn.classList.add("wrong");
-      const dw=distractorWordForMeaning(chosen),w=it.word||{},ex=exampleOfWord(w);strength=ok?`You connected the model sentence to the curriculum meaning of “${w.char||"the target word"}”.`:"You completed the comprehension decision, but the selected meaning does not match the target sentence.";focus=ok?"Read the sentence once more and retell the meaning without looking at the options.":`Anchor on “${w.char||"the target word"}” (${pinyinOfWord(w)}) and its meaning “${meaningOfWord(w)||it.answer}”, then reread the whole sentence.`;
-      reportHtml=teacherReportHtml({status:ok?"CORRECT — EXPLAINED":"INCORRECT — EXPLAINED",overview:strength,sections:[{title:"Answer evidence",lines:[`Sentence: ${it.prompt}`,`Your choice: ${chosen}`,`Best meaning: ${it.answer}`,`Target vocabulary: ${w.char||"—"} ${pinyinOfWord(w)?`(${pinyinOfWord(w)})`:""} — ${meaningOfWord(w)||"curriculum target"}`]},{title:"Why",lines:[ok?"The chosen meaning matches the curriculum translation/context for this model sentence.":dw?`Your choice “${chosen}” is associated with another vocabulary item such as “${dw.char}” (${pinyinOfWord(dw)}), so it is a distractor here.`:"The selected option is a distractor from the vocabulary pool rather than the meaning of this sentence."]}],model:ex.zh?`${ex.zh} — ${ex.meaning||it.answer}`:`${it.prompt} — ${it.answer}`,next:focus});
+      const dw=distractorWordForMeaning(chosen),w=it.word||{},ex=exampleOfWord(w),intel=wordIntel(w);strength=ok?T(`Bạn đã nối đúng câu với nghĩa của “${w.char||"từ mục tiêu"}”.`,`You connected the sentence to the meaning of “${w.char||"the target word"}”.`):T("Bạn đã hoàn thành quyết định đọc hiểu nhưng lựa chọn chưa khớp ngữ cảnh câu.","You completed the comprehension decision, but the selected meaning does not match the sentence context.");focus=ok?T("Đọc lại câu và tự diễn đạt nghĩa mà không nhìn đáp án.","Reread the sentence and retell the meaning without the options."):T(`Bám vào “${w.char||"từ mục tiêu"}” (${pinyinOfWord(w)}) và nghĩa “${meaningOfWord(w)||it.answer}”, sau đó đọc lại toàn câu.`,`Anchor on “${w.char||"the target word"}” (${pinyinOfWord(w)}) and its meaning “${meaningOfWord(w)||it.answer}”, then reread the full sentence.`);
+      const usage=detailedWordFeedbackLines(w);
+      reportHtml=teacherReportHtml({status:ok?T("ĐÚNG — GIẢI THÍCH","CORRECT — EXPLAINED"):T("SAI — PHÂN TÍCH NGỮ CẢNH","INCORRECT — CONTEXT ANALYSIS"),overview:strength,sections:[{title:T("Input → Output","Input → Output"),lines:[`${T("Câu","Sentence")}: ${it.prompt}`,`${T("Bạn chọn","Your input")}: ${chosen}`,`${T("Đáp án tốt nhất","Best output")}: ${it.answer}`,`${T("Từ mục tiêu","Target vocabulary")}: ${w.char||"—"} ${pinyinOfWord(w)?`(${pinyinOfWord(w)})`:""} — ${meaningOfWord(w)||T("từ mục tiêu","target")}`]},{title:T("Vì sao","Why"),lines:[ok?T("Lựa chọn khớp nghĩa và ngữ cảnh của câu.","The choice matches the sentence meaning and context."):dw?T(`“${chosen}” gắn với từ khác như “${dw.char}” (${pinyinOfWord(dw)}), nên không phù hợp ở đây.`,`“${chosen}” is associated with another item such as “${dw.char}” (${pinyinOfWord(dw)}), so it does not fit here.`):T("Phương án đã chọn là distractor và không khớp ngữ cảnh.","The selected option is a distractor and does not match the context."),...usage]}],model:intel?.model||(ex.zh?`${ex.zh} — ${ex.meaning||it.answer}`:`${it.prompt} — ${it.answer}`),next:focus});
+      correction={input:chosen,output:it.answer,kind:"reading"};
     }else if(it.kind==="pinyin"){
-      const typed=cleanPinyin(value),target=cleanPinyin(it.answer);points=typed===target?100:(stripTone(typed)===stripTone(target)?55:Math.round(40*editSimilarity(stripTone(typed),stripTone(target))));const a=pinyinTeacherAnalysis(it,value,points);reportHtml=a.html;strength=a.strength;focus=a.focus;document.getElementById("ptcsRWInput").disabled=true;
+      const typed=cleanPinyin(value),target=cleanPinyin(it.answer);points=typed===target?100:(stripTone(typed)===stripTone(target)?55:Math.round(40*editSimilarity(stripTone(typed),stripTone(target))));const a=pinyinTeacherAnalysis(it,value,points);reportHtml=a.html;strength=a.strength;focus=a.focus;correction=a.correction;document.getElementById("ptcsRWInput").disabled=true;
     }else{
-      const a=writingTeacherAnalysis(it,value);points=a.score;reportHtml=a.html;strength=a.strength;focus=a.focus;document.getElementById("ptcsRWInput").disabled=true;
+      const a=writingTeacherAnalysis(it,value);points=a.score;reportHtml=a.html;strength=a.strength;focus=a.focus;correction=a.correction;document.getElementById("ptcsRWInput").disabled=true;
     }
-    S.scores[S.index]=points;recordTeacherReport(it.kind==="writing"?"Writing":it.kind==="reading"?"Reading comprehension":"Pinyin writing",points,strength,focus);
-    document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><b>${points}/100</b>${reportHtml}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsRWNext">${S.index+1>=S.items.length?"Finish Reading / Writing":"Next →"}</button></div>`;
-    localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsRWNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),r=await saveEvidence("reading_writing",score,{completeSet:vals.length===S.items.length,itemScores:vals,teacherReports:S.reports,evidenceType:"ai_coach_reading_writing_teacher_feedback_v57",passThreshold:60});summary("Reading / Writing",score,r,`${vals.length} curriculum-linked items completed with teacher-style feedback.`)}else renderRW()}
+    S.scores[S.index]=points;
+    S.answers.push({kind:it.kind,input:String(value||""),score:points,target:it.word?.char||"",expected:it.answer||it.reference||"",correction});
+    recordTeacherReport(it.kind==="writing"?T("Viết","Writing"):it.kind==="reading"?T("Đọc hiểu","Reading comprehension"):T("Viết Pinyin","Pinyin writing"),points,strength,focus);
+    document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><b>${points}/100</b>${reportHtml}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsRWNext">${S.index+1>=S.items.length?T("Hoàn thành Đọc / Viết","Finish Reading / Writing"):T("Tiếp theo →","Next →")}</button></div>`;
+    localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsRWNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),r=await saveEvidence("reading_writing",score,{completeSet:vals.length===S.items.length,itemScores:vals,attempts:S.answers,teacherReports:S.reports,evidenceType:"ai_coach_reading_writing_input_output_repair_v57_2",passThreshold:60});summary(T("Đọc / Viết","Reading / Writing"),score,r,T(`${vals.length} mục theo lộ trình đã hoàn thành với phản hồi Input → Chẩn đoán → Cấu trúc đúng → Output sửa.`,`${vals.length} curriculum-linked items completed with Input → Diagnosis → Correct structure → Repaired output feedback.`))}else renderRW()}
   }
 
   /* ---------------- Mistake Review Lab ---------------- */
@@ -377,11 +629,25 @@ function nextVariant(mode,day){
   function acceptable(a,b){const x=clean(a),y=clean(b);if(!x||!y)return false;if(x===y)return true;if(Math.min(x.length,y.length)>=3&&(x.includes(y)||y.includes(x)))return true;return editSimilarity(x,y)>=.88}
   function renderMistake(){const host=document.getElementById("ptCoachSkillContent"),it=S.items[S.index];if(!host||!it)return;host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">MISTAKE REVIEW · ACTUAL RETRY</span><div class="ptcs-question">Redo this item.</div><div class="ptcs-reveal"><b>Original prompt</b><div style="margin-top:6px">${esc(it.prompt||it.char||"Review the target item")}</div>${it.selected?`<div class="ptcs-help" style="margin-top:7px">Previous answer: ${esc(it.selected)}</div>`:""}</div><input id="ptcsMistakeInput" class="ptcs-input" autocomplete="off" placeholder="Type the correct answer"><div class="ptcs-actions"><button id="ptcsMistakeCheck" class="ptcs-btn primary">Check</button></div><div id="ptcsReveal2"></div></div>`;const inp=document.getElementById("ptcsMistakeInput");document.getElementById("ptcsMistakeCheck").onclick=()=>checkMistake(inp,it);inp.addEventListener("keydown",e=>{if(e.key==="Enter")checkMistake(inp,it)});inp.focus()}
   function checkMistake(inp,it){
-    if(inp.disabled)return;const typed=String(inp.value||"").trim(),ok=acceptable(typed,it.expected);inp.disabled=true;if(ok){try{window.PandaHanMistakes?.resolveEntry?.(it.key)}catch(_){}}S.answers.push({correct:ok,key:it.key,typed,expected:it.expected});
-    const strength=ok?"You corrected the item on a fresh retrieval attempt, so the mistake can be resolved.":"The retry still does not match the expected answer closely enough, so the mistake stays in the review queue.",focus=ok?"Explain in your own words why the corrected answer works; this helps prevent the same error from returning.":`Compare “${typed||"(blank)"}” with “${it.expected}”. Identify whether the difference is meaning, word form, word order, or omitted information, then retry later.`;recordTeacherReport("Mistake correction",ok?100:0,strength,focus);
-    const report=teacherReportHtml({status:ok?"RESOLVED":"STILL UNRESOLVED",overview:strength,sections:[{title:"Attempt history",lines:[`Original prompt: ${it.prompt||it.char||"Review item"}`,it.selected?`Previous answer: ${it.selected}`:"No previous answer text was stored.",`Current retry: ${typed||"(blank)"}`,`Expected answer: ${it.expected}`]},{title:"Why",lines:[ok?"The current retry matches the stored expected answer closely enough to resolve the mistake.":"The current retry is still outside the accepted match range, so marking it resolved would hide a real learning gap."]}],model:it.expected,next:focus});
-    document.getElementById("ptcsReveal2").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsMistakeNext">${S.index+1>=S.items.length?"Finish review batch":"Next mistake →"}</button></div>`;
-    localizeRoot(document.getElementById("ptcsReveal2"));document.getElementById("ptcsMistakeNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),r=await saveEvidence("mistake_review",score,{completeSet:true,correct,total:S.answers.length,teacherReports:S.reports,remaining:window.PandaHanMistakes?.getQueue?.().length||0,evidenceType:"ai_coach_mistake_review_teacher_feedback_v57",passThreshold:70});summary("Mistake review",score,r,`${correct} of ${S.answers.length} retry items corrected. Remaining queue: ${window.PandaHanMistakes?.getQueue?.().length||0}.`)}else renderMistake()}
+    if(inp.disabled)return;
+    const typed=String(inp.value||"").trim(),ok=acceptable(typed,it.expected);inp.disabled=true;
+    if(ok){try{window.PandaHanMistakes?.resolveEntry?.(it.key)}catch(_){}}
+    const w=vocabMap()[it.char]||null,intel=wordIntel(w),repair=repairLearnerSentence(typed,String(it.char||""));
+    S.answers.push({correct:ok,key:it.key,typed,expected:it.expected,correction:repair.changed?repair:null});
+    const strength=ok?T("Bạn đã sửa đúng ở một lượt truy hồi mới nên lỗi có thể được đánh dấu đã xử lý.","You corrected the item on a fresh retrieval attempt, so the mistake can be resolved."):T("Lần làm lại vẫn chưa khớp đáp án mong đợi nên lỗi tiếp tục ở hàng đợi ôn.","The retry still does not match the expected answer, so the mistake remains in the review queue.");
+    const structure=w?correctionStructureForWord(w):"";
+    const focus=ok?T("Tự giải thích vì sao đáp án mới đúng, sau đó tạo một ví dụ khác.","Explain why the corrected answer works, then create one new example."):structure?T(`So sánh đầu vào với đáp án đúng và kiểm tra lại theo khung: ${structure}.`,`Compare the input with the expected answer and recheck it with this frame: ${structure}.`):T(`So sánh “${typed||"(trống)"}” với “${it.expected}”, xác định sai ở nghĩa, dạng từ, trật tự hay thiếu thông tin rồi làm lại.`,`Compare “${typed||"(blank)"}” with “${it.expected}”, identify whether the error is meaning, word form, order or omission, then retry.`);
+    recordTeacherReport(T("Sửa lỗi","Mistake correction"),ok?100:0,strength,focus);
+    const whyLines=[ok?T("Lần làm lại hiện tại khớp đáp án đủ để giải quyết lỗi.","The current retry matches the expected answer closely enough to resolve the mistake."):T("Lần làm lại vẫn nằm ngoài ngưỡng chấp nhận; không tự đánh dấu đúng để tránh che mất lỗ hổng học tập.","The retry is still outside the accepted match range; it is not auto-resolved so the learning gap remains visible.")];
+    if(structure)whyLines.push(`${T("Cấu trúc cần đối chiếu","Structure to compare")}: ${structure}`);
+    if(intel?.errors?.length)whyLines.push(`${T("Lỗi thường gặp","Common error")}: ${intel.errors[0]}`);
+    if(repair.changed)whyLines.push(`${T("Sửa theo quy tắc","Rule-based repair")}: ${repair.text} · ${repair.reason}`);
+    const report=teacherReportHtml({status:ok?T("ĐÃ SỬA","RESOLVED"):T("CHƯA SỬA XONG","STILL UNRESOLVED"),overview:strength,sections:[
+      {title:T("Lịch sử Input → Output","Input → Output history"),lines:[`${T("Đề gốc","Original prompt")}: ${it.prompt||it.char||T("Mục ôn","Review item")}`,it.selected?`${T("Đáp án trước","Previous answer")}: ${it.selected}`:T("Không có đáp án trước được lưu.","No previous answer text was stored."),`${T("Input hiện tại","Current input")}: ${typed||T("(trống)","(blank)")}`,`${T("Output mong đợi","Expected output")}: ${it.expected}`]},
+      {title:T("Chẩn đoán và cách sửa","Diagnosis & repair"),lines:whyLines}
+    ],model:intel?.model||it.expected,next:focus});
+    document.getElementById("ptcsReveal2").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsMistakeNext">${S.index+1>=S.items.length?T("Hoàn thành ôn lỗi","Finish review batch"):T("Lỗi tiếp theo →","Next mistake →")}</button></div>`;
+    localizeRoot(document.getElementById("ptcsReveal2"));document.getElementById("ptcsMistakeNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),r=await saveEvidence("mistake_review",score,{completeSet:true,correct,total:S.answers.length,attempts:S.answers,teacherReports:S.reports,remaining:window.PandaHanMistakes?.getQueue?.().length||0,evidenceType:"ai_coach_mistake_review_input_output_repair_v57_2",passThreshold:70});summary(T("Ôn lỗi sai","Mistake review"),score,r,T(`${correct}/${S.answers.length} lỗi trong batch đã được sửa. Còn ${window.PandaHanMistakes?.getQueue?.().length||0} lỗi trong hàng đợi.`,`${correct} of ${S.answers.length} retry items corrected. Remaining queue: ${window.PandaHanMistakes?.getQueue?.().length||0}.`))}else renderMistake()}
   }
 
   /* ---------------- Speaking / Read-aloud: canonical PCM WAV + better recognition ---------------- */
@@ -455,15 +721,31 @@ function nextVariant(mode,day){
   function advanceSpeaking(){S.index++;if(S.index>=S.items.length)finishSpeakingFromCurrent();else renderSpeaking()}
   function renderInvalidSpeaking(g,it){const h=document.getElementById("ptcsSpeakScore");if(!h)return;h.innerHTML=`<div class="ptcs-score"><div class="ptcs-help"><b>No score saved for this card.</b> ${esc(g.feedback)}</div><div class="ptcs-transcript" style="margin-top:8px"><b>Recognized:</b> ${esc(g.recognized||"No reliable transcript")}<br><b>Target:</b> ${esc(it.text)}</div><div class="ptcs-next" style="gap:8px"><button class="ptcs-btn" id="ptcsSpeakRetry">Record again</button><button class="ptcs-btn primary" id="ptcsSpeakSkip">${S.index+1>=S.items.length?"Finish without this score":"Skip card →"}</button></div></div>`;document.getElementById("ptcsSpeakRetry").onclick=()=>{h.innerHTML="";document.getElementById("ptcsRecord").disabled=false;document.getElementById("ptcsRecStatus").textContent="Ready to record again."};document.getElementById("ptcsSpeakSkip").onclick=()=>advanceSpeaking()}
   function renderSpeakingScore(g,it){
-    const h=document.getElementById("ptcsSpeakScore");if(!h)return;const mode=g.audioOnly?`<span class="ptcs-badge" style="background:#fff7ed;color:#9a3412">Acoustic-only grading</span>`:`<span class="ptcs-badge">ASR + acoustic grading</span>`;
-    const toneComment=g.tone>=31?"Tone contours are strong and close to the target.":g.tone>=24?"Most tone directions are usable, but one or more contours need clearer height/slope.":g.tone>=16?"Tone direction is inconsistent; practise syllable by syllable first.":"Tone evidence is weak or conflicts with the target pattern.";
-    const segComment=g.segmental>=31?"Initial/final identity is strongly supported by recognition.":g.segmental>=24?"Most syllable content is recognized, with some segmental uncertainty.":g.audioOnly?"No reliable transcript was available, so initial/final identity is only estimated from acoustic timing.":"Several recognized syllables differ from the target; rebuild initials/finals slowly.";
-    const artComment=g.articulation>=17?"Acoustic clarity is stable.":g.articulation>=12?"Clarity is usable but consonant/vowel definition can be sharper.":"Acoustic evidence suggests blurred or unstable articulation; microphone-only scoring cannot directly see tongue/lip position.";
-    const fluComment=g.fluency>=8?"Pacing and continuity are natural for this target.":g.fluency>=5?"The sentence is understandable but timing/pauses are uneven.":"Speech is too fragmented or timing differs substantially from the target.";
-    const strength=g.score>=90?"The read-aloud is close to the model across the available evidence.":g.score>=75?"The sentence is mostly stable, with a small number of pronunciation weaknesses.":g.score>=60?"The attempt passes, but at least one pronunciation component still needs focused practice.":"The recording is valid, but pronunciation is not yet stable enough for this target.";
-    const focus=g.tone<24?"Replay the model and copy only the pitch direction first; then add the words.":g.segmental<24?"Slow down and rebuild the unclear initial/final syllables before restoring normal speed.":g.fluency<6?"Read in short meaning groups, then reconnect them without long pauses.":"Record one more attempt aiming for the same clarity at a slightly more natural pace.";recordTeacherReport("Speaking / Read-aloud",g.score,strength,focus);
-    const report=teacherReportHtml({status:g.fullCompatible?"FULL COMPATIBILITY":g.audioOnly?"AUDIO-ONLY RUBRIC":"RUBRIC ANALYSIS",overview:strength,sections:[{title:"Tone /35",lines:[`${g.tone}/35. ${toneComment}`,`Acoustic tone compatibility: ${g.metrics?.toneCompat==null?"not reliable enough to use":Math.round(g.metrics.toneCompat*100)+"%"}`]},{title:"Initial–final /35",lines:[`${g.segmental}/35. ${segComment}`,`Recognized: ${g.recognized||"Unavailable — acoustic-only grading"}`,`Target: ${it.text}`]},{title:"Articulation /20",lines:[`${g.articulation}/20. ${artComment}`,`Signal quality: ${Math.round(Number(g.metrics?.signalQuality||0)*100)}% · voiced ratio: ${Math.round(Number(g.metrics?.voicedRatio||0)*100)}%`]},{title:"Fluency /10",lines:[`${g.fluency}/10. ${fluComment}`,`Estimated syllables: ${Number(g.metrics?.estimatedSyllables||0)} / target ${Number(g.metrics?.syllables||0)}`]}],model:`${it.text} · ${it.pinyin} · ${it.meaning}`,next:focus});
-    h.innerHTML=`<div class="ptcs-score">${mode}<div class="ptcs-score-big">${g.score}/100</div>${report}<div class="ptcs-next" style="gap:8px"><button class="ptcs-btn" id="ptcsSpeakAgain">Record again</button><button class="ptcs-btn primary" id="ptcsSpeakNext">${S.index+1>=S.items.length?"Finish Speaking":"Next card →"}</button></div></div>`;localizeRoot(h);
+    const h=document.getElementById("ptcsSpeakScore");if(!h)return;
+    const mode=g.audioOnly?`<span class="ptcs-badge" style="background:#fff7ed;color:#9a3412">${T("Chấm chủ yếu bằng âm học","Acoustic-only grading")}</span>`:`<span class="ptcs-badge">${T("ASR + âm học","ASR + acoustic grading")}</span>`;
+    const toneComment=g.tone>=31?T("Đường cao độ gần mục tiêu.","Tone contours are strong and close to the target."):g.tone>=24?T("Phần lớn hướng thanh dùng được nhưng cần làm rõ độ cao/độ dốc.","Most tone directions are usable, but one or more contours need clearer height/slope."):g.tone>=16?T("Hướng thanh chưa ổn định; nên luyện từng âm tiết.","Tone direction is inconsistent; practise syllable by syllable first."):T("Bằng chứng thanh điệu yếu hoặc không khớp mẫu mục tiêu.","Tone evidence is weak or conflicts with the target pattern.");
+    const segComment=g.segmental>=31?T("Âm đầu/vần được nhận dạng tốt.","Initial/final identity is strongly supported by recognition."):g.segmental>=24?T("Phần lớn âm tiết được nhận dạng nhưng vẫn có điểm chưa chắc.","Most syllable content is recognized, with some segmental uncertainty."):g.audioOnly?T("Không có transcript đáng tin cậy nên âm đầu/vần chỉ được ước lượng từ tín hiệu âm học.","No reliable transcript was available, so initial/final identity is only estimated from acoustic timing."):T("Một số âm tiết nhận dạng khác mục tiêu; cần dựng lại âm đầu/vần chậm hơn.","Several recognized syllables differ from the target; rebuild initials/finals slowly.");
+    const artComment=g.articulation>=17?T("Độ rõ âm học ổn định.","Acoustic clarity is stable."):g.articulation>=12?T("Độ rõ dùng được nhưng ranh giới phụ âm/nguyên âm có thể rõ hơn.","Clarity is usable but consonant/vowel definition can be sharper."):T("Tín hiệu cho thấy cấu âm chưa rõ; chấm bằng microphone chỉ là acoustic proxy, không nhìn trực tiếp môi/lưỡi.","Acoustic evidence suggests blurred articulation; microphone scoring cannot directly see tongue/lip position.");
+    const fluComment=g.fluency>=8?T("Nhịp và độ liền mạch tự nhiên.","Pacing and continuity are natural for this target."):g.fluency>=5?T("Câu hiểu được nhưng nhịp/dừng chưa đều.","The sentence is understandable but timing/pauses are uneven."):T("Bài đọc còn rời hoặc thời lượng lệch đáng kể so với mục tiêu.","Speech is too fragmented or timing differs substantially from the target.");
+    const strength=g.score>=90?T("Bài đọc gần mẫu trên các bằng chứng hiện có.","The read-aloud is close to the model across the available evidence."):g.score>=75?T("Câu khá ổn định nhưng còn một vài điểm phát âm cần sửa.","The sentence is mostly stable, with a small number of pronunciation weaknesses."):g.score>=60?T("Bài đạt ngưỡng nhưng vẫn có ít nhất một thành phần cần luyện tập trung.","The attempt passes, but at least one pronunciation component still needs focused practice."):T("Bản ghi hợp lệ nhưng phát âm chưa ổn định với mục tiêu này.","The recording is valid, but pronunciation is not yet stable enough for this target.");
+    const focus=g.tone<24?T("Nghe mẫu và bắt chước riêng đường cao độ trước, sau đó mới ghép chữ.","Replay the model and copy only the pitch direction first; then add the words."):g.segmental<24?T("Đọc chậm và dựng lại âm đầu/vần chưa rõ trước khi tăng tốc.","Slow down and rebuild the unclear initial/final syllables before restoring normal speed."):g.fluency<6?T("Đọc theo cụm nghĩa ngắn rồi nối lại, tránh khoảng dừng dài.","Read in short meaning groups, then reconnect them without long pauses."):T("Thu thêm một lần, giữ độ rõ hiện tại và tăng nhẹ tính tự nhiên.","Record one more attempt aiming for the same clarity at a slightly more natural pace.");
+    const intel=wordIntel(it.word),recognized=g.recognized||T("Không có transcript đáng tin cậy","Unavailable — acoustic-only grading");
+    const inputOutputLines=[
+      `${T("Input máy nghe được","Recognized input")}: ${recognized}`,
+      `${T("Output mục tiêu","Target output")}: ${it.text}`,
+      `Pinyin: ${it.pinyin}`,
+      `${T("Hướng sửa ưu tiên","Priority repair")}: ${focus}`
+    ];
+    if(intel?.pronunciation)inputOutputLines.push(`${T("Điểm phát âm cần nhớ","Pronunciation cue")}: ${intel.pronunciation}`);
+    recordTeacherReport(T("Nói / Đọc thành tiếng","Speaking / Read-aloud"),g.score,strength,focus);
+    const report=teacherReportHtml({status:g.fullCompatible?T("TƯƠNG THÍCH CAO","FULL COMPATIBILITY"):g.audioOnly?T("RUBRIC ÂM HỌC","AUDIO-ONLY RUBRIC"):T("PHÂN TÍCH RUBRIC","RUBRIC ANALYSIS"),overview:strength,sections:[
+      {title:T("Input → Output phát âm","Pronunciation input → target output"),lines:inputOutputLines},
+      {title:"Tone /35",lines:[`${g.tone}/35. ${toneComment}`,`${T("Tương thích đường thanh","Acoustic tone compatibility")}: ${g.metrics?.toneCompat==null?T("chưa đủ tin cậy","not reliable enough to use"):Math.round(g.metrics.toneCompat*100)+"%"}`]},
+      {title:"Initial–final /35",lines:[`${g.segmental}/35. ${segComment}`,`${T("Máy nhận dạng","Recognized")}: ${recognized}`,`${T("Mục tiêu","Target")}: ${it.text}`]},
+      {title:"Articulation /20",lines:[`${g.articulation}/20. ${artComment}`,`${T("Chất lượng tín hiệu","Signal quality")}: ${Math.round(Number(g.metrics?.signalQuality||0)*100)}% · voiced ratio: ${Math.round(Number(g.metrics?.voicedRatio||0)*100)}%`]},
+      {title:"Fluency /10",lines:[`${g.fluency}/10. ${fluComment}`,`${T("Số âm tiết ước lượng","Estimated syllables")}: ${Number(g.metrics?.estimatedSyllables||0)} / ${T("mục tiêu","target")} ${Number(g.metrics?.syllables||0)}`]}
+    ],model:`${it.text} · ${it.pinyin} · ${it.meaning}`,next:focus});
+    h.innerHTML=`<div class="ptcs-score">${mode}<div class="ptcs-score-big">${g.score}/100</div>${report}<div class="ptcs-next" style="gap:8px"><button class="ptcs-btn" id="ptcsSpeakAgain">${T("Thu lại","Record again")}</button><button class="ptcs-btn primary" id="ptcsSpeakNext">${S.index+1>=S.items.length?T("Hoàn thành Nói","Finish Speaking"):T("Thẻ tiếp theo →","Next card →")}</button></div></div>`;localizeRoot(h);
     document.getElementById("ptcsSpeakAgain").onclick=()=>{S.scores[S.index]=undefined;if(S.reports.length)S.reports.pop();renderSpeaking()};document.getElementById("ptcsSpeakNext").onclick=()=>advanceSpeaking()
   }
 
