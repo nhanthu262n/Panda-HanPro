@@ -58,7 +58,7 @@
     host.innerHTML+=panel('Lộ trình 120 ngày · tiến độ hoàn thành',schedule?`<p>${complete}/120 ngày hoàn thành (${Math.round(complete/120*100)}%). Đây là tiến độ theo điều kiện mở ngày; không đồng nghĩa đã hoàn thành tất cả kỹ năng.</p><progress max="120" value="${complete}"></progress>`+table(['Ngày','Trạng thái','Nhiệm vụ đã ghi nhận','Điểm gần nhất'],days.map(d=>`<tr><td>${esc(d.day_number)}</td><td>${esc(({completed:'Hoàn thành',locked:'Chưa mở',available:'Có thể học',in_progress:'Đang học',pending:'Chưa hoàn thành'})[d.status]||d.status||'Chưa xác định')}</td><td>${esc(Object.keys(d.completed_tasks||{}).map(task).join(' · ')||'Chưa ghi nhận')}</td><td>${esc(d.last_score??'—')}</td></tr>`)):'<p>Chưa có lộ trình đã đồng bộ hoặc nguồn đang không truy cập được.</p>',true);
     host.innerHTML+=panel('AI Coach · kết quả từng lượt',resultRows(rows.filter(r=>!['remediation','memory_learning','recommendation_choice'].includes(r.taskId)))+panel('Hoạt động đã xác minh từ phiên bản trước',resultRows(timeline)));
     host.innerHTML+=panel('Pinyin Tone Quest · lịch sử kết quả',resultRows(quests));
-    host.innerHTML+=panel('Kết quả ghi nhớ · căn cứ và tiến bộ',values[0]&&window.PanTutorMemory?window.PanTutorMemory.resultsHtml(rows,false):'<p>Chưa tải được kết quả ghi nhớ.</p>');
+    host.innerHTML+=panel('Kết quả ghi nhớ · căn cứ và tiến bộ',values[0]&&window.PanTutorMemory?window.PanTutorMemory.resultsHtml(rows,false):'<p>Chưa tải được kết quả ghi nhớ.</p>',true);
     host.innerHTML+=panel('Ôn tập bổ sung · lịch sử làm lại',resultRows(rows.filter(r=>r.taskId==='remediation')));
     host.querySelector('[data-refresh-monitor]').onclick=()=>mount(uid);
   }
