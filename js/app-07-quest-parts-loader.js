@@ -283,7 +283,8 @@
     }
     try{lang=(parent&&parent.LANG_MODE==='en')?'en':'vi';}catch(_){};
     window.addEventListener('message',function(e){var d=e.data||{};if(d.type==='PANDAHAN_QUEST_LANGUAGE'){lang=d.lang==='en'?'en':'vi';localize();}});
-    var observer=new MutationObserver(function(){localize();});observer.observe(document.documentElement,{subtree:true,childList:true});
+    document.addEventListener('click',function(){setTimeout(localize,0);},true);
+    document.addEventListener('change',function(){setTimeout(localize,0);},true);
     setTimeout(localize,0);
   })();</script>`;
 
