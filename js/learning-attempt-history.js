@@ -2,55 +2,53 @@
 (() => {
   "use strict";
   const PREFIX="pantutor_learning_attempts_v1_";
-  const uid=()=>window.firebase?.auth?.().currentUser?.uid||null;
+  const uid=()=>window.firebase?.auth?.().currentUser?.uid||(window.PanTutorLessonAccess?.namespace?.()!=="guest"?window.PanTutorLessonAccess?.namespace?.():null)||null;
   const key=id=>PREFIX+id;
   const read=id=>{try{return JSON.parse(localStorage.getItem(key(id))||"[]")}catch(_){return[]}};
-  const write=(id,rows)=>{
-    const pending=rows.filter(x=>!x.synced),recent=rows.filter(x=>x.synced).slice(-500);
-    const kept=[...pending,...recent].sort((a,b)=>a.createdAt-b.createdAt);
-    try{localStorage.setItem(key(id),JSON.stringify(kept))}
-    catch(e){
-      // Preserve all unsynced evidence; evict only copies confirmed in Firestore.
-      localStorage.setItem(key(id),JSON.stringify([...pending,...recent.slice(-100)].sort((a,b)=>a.createdAt-b.createdAt)));
-    }
-  };
+  const write=(id,rows)=>localStorage.setItem(key(id),JSON.stringify(rows.slice().sort((a,b)=>a.createdAt-b.createdAt)));
   const clean=value=>JSON.parse(JSON.stringify(value,(k,v)=>typeof v==="number"&&!Number.isFinite(v)?null:v));
   const newId=()=>window.crypto?.randomUUID?.()||`${Date.now()}_${Math.random().toString(36).slice(2)}`;
   function localRows(id,day,task){return read(id).filter(x=>x.dayNumber===Number(day)&&x.taskId===task).sort((a,b)=>b.createdAt-a.createdAt)}
   function dayRows(day){return read(uid()||"guest").filter(x=>x.dayNumber===Number(day)).sort((a,b)=>b.createdAt-a.createdAt)}
   function allRows(){return read(uid()||"guest").slice().sort((a,b)=>a.createdAt-b.createdAt)}
+  const flushing=new Map();
   async function flush(){
     const id=uid(),db=window.PandaHanFirebase?.firestore;if(!id||!db)return {synced:0};
-    const rows=read(id);let synced=0;
-    for(const row of rows.filter(x=>!x.synced)){
-      try{
-        const {synced:ignored,...payload}=row;
-        await db.collection("learningAttempts").doc(id).collection("attempts").doc(row.attemptId).set(payload);
-        row.synced=true;synced++;write(id,rows);
-      }catch(e){console.warn("Attempt sync pending:",e?.code||e?.message||e);break}
-    }
-    return {synced};
+    if(flushing.has(id))return flushing.get(id);
+    const job=(async()=>{let synced=0;
+      for(;;){const row=read(id).find(x=>!x.synced);if(!row)break;
+        try{const ref=db.collection("learningAttempts").doc(id).collection("attempts").doc(row.attemptId);
+          const existing=await ref.get();
+          if(!existing.exists){const {synced:ignored,...payload}=row;await ref.set(payload)}
+          const latest=read(id),saved=latest.find(x=>x.attemptId===row.attemptId);if(saved)saved.synced=true;write(id,latest);synced++;
+        }catch(e){console.warn("Attempt sync pending:",e?.code||e?.message||e);break}
+      }return {synced};
+    })();flushing.set(id,job);try{return await job}finally{flushing.delete(id)}
   }
   async function hydrate(){
     const id=uid(),db=window.PandaHanFirebase?.firestore;if(!id||!db)return;
     try{
-      const snap=await db.collection("learningAttempts").doc(id).collection("attempts").orderBy("createdAt","desc").limit(500).get();
-      const current=read(id),seen=new Map(current.map(x=>[x.attemptId,x]));
-      snap.forEach(doc=>{const remote=doc.data();seen.set(doc.id,{...remote,attemptId:doc.id,synced:true})});
-      write(id,[...seen.values()].sort((a,b)=>a.createdAt-b.createdAt));
+      let cursor=null;
+      do{
+        let query=db.collection("learningAttempts").doc(id).collection("attempts").orderBy("createdAt","desc").limit(500);
+        if(cursor)query=query.startAfter(cursor);
+        const snap=await query.get(),seen=new Map(read(id).map(x=>[x.attemptId,x]));
+        snap.forEach(doc=>seen.set(doc.id,{...doc.data(),attemptId:doc.id,synced:true}));
+        write(id,[...seen.values()]);cursor=snap.docs.length===500?snap.docs[snap.docs.length-1]:null;
+      }while(cursor);
       window.dispatchEvent(new CustomEvent("pantutor-attempt-saved",{detail:{restored:true}}));
     }catch(e){console.warn("Attempt history load pending:",e?.code||e?.message||e)}
   }
   async function save(data){
     const id=uid()||"guest",day=Number(data.dayNumber),score=Number(data.scorePercent);
     if(!Number.isInteger(day)||day<1||day>120||!data.taskId||!Number.isFinite(score)||score<0||score>100)throw Error("Invalid learning attempt");
-    const attemptId=newId(),createdAt=Date.now();
+    const attemptId=newId(),createdAt=Math.max(Date.now(),Number(read(id).at(-1)?.createdAt||0)+1);
     const items=(Array.isArray(data.items)?data.items:[]).map(x=>x||{status:"skipped",score:null}).map(x=>({
       ...x,input:x.input??x.typed??x.chosen??x.recognized??"",
       expected:x.expected??x.answer??x.meaning??x.char??x.target??""
     }));
-    const row=clean({attemptId,ownerId:id,dayNumber:day,taskId:String(data.taskId),scorePercent:score,passed:!!data.passed,completeSet:!!data.completeSet,correct:Number(data.correct||0),total:Number(data.total||0),items,teacherReports:Array.isArray(data.teacherReports)?data.teacherReports:[],scheduleSaved:!!data.scheduleSaved,createdAt,synced:false});
-    const rows=read(id);rows.push(row);write(id,rows);
+    let row=clean({attemptId,ownerId:id,dayNumber:day,taskId:String(data.taskId),scorePercent:score,passed:!!data.passed,completeSet:!!data.completeSet,correct:Number(data.correct||0),total:Number(data.total||0),items,teacherReports:Array.isArray(data.teacherReports)?data.teacherReports:[],scheduleSaved:!!data.scheduleSaved,createdAt,synced:false});
+    const rows=read(id);row=clean(window.PanTutorMemory?.snapshot?.(row,rows)||row);rows.push(row);write(id,rows);
     if(id!=="guest")await flush();
     window.dispatchEvent(new CustomEvent("pantutor-attempt-saved",{detail:{attemptId,dayNumber:day,taskId:row.taskId}}));
     return {...row,synced:read(id).find(x=>x.attemptId===attemptId)?.synced===true};
