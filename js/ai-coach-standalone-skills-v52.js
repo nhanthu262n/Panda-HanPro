@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "v56-detailed-listening-teacher-feedback-20260907";
+  const VERSION = "v57-listening-mcq-quality-vi-mode-20260923";
   const state = {
     mode: null, mission: null, items: [], index: 0, answers: [], scores: [],
     recorder: null, stream: null, chunks: [], recognition: null, recognized: "", confidence: 0,
@@ -94,8 +94,49 @@
     return (type==="listening"?listenTaskEn:speakTaskEn).get(s) || (type==="listening" ? "Complete the listening activity assigned for this Excel curriculum day." : "Complete the speaking activity assigned for this Excel curriculum day.");
   }
 
-  function seeded(day, salt){ let x=(Number(day)||1)*2654435761 + salt*1013904223; return ()=>{ x|=0; x=x+0x6D2B79F5|0; let t=Math.imul(x^x>>>15,1|x); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  function seeded(day, salt){ let x=(Number(day)||1)*2654435761 + (salt+Number(state.variant||0)*7919)*1013904223; return ()=>{ x|=0; x=x+0x6D2B79F5|0; let t=Math.imul(x^x>>>15,1|x); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
   function shuffle(arr, rnd=Math.random){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+  function nextVariant(mode,day){
+    const key=`pantutor_v57_attempt_${String(mode||"task")}_${Number(day)||1}`;
+    const n=(Number(localStorage.getItem(key)||0)+1)%9973;
+    localStorage.setItem(key,String(n));
+    return n||1;
+  }
+  function cleanOption(v){
+    let x=String(v??"").normalize("NFKC").trim();
+    x=x.replace(/^\s*[\(\[\{【]?\s*[A-Da-d]\s*[\)\]\}】.:\-、]\s*/u,"");
+    x=x.replace(/^\s*[A-Da-d]\s*[.)：:\-、]\s*/u,"");
+    const pairs=[["(",")"],["[","]"],["{","}"],["【","】"],["“","”"],['"','"'],["'","'"]];
+    let again=true;while(again&&x.length>1){again=false;for(const [a,b] of pairs){if(x.startsWith(a)&&x.endsWith(b)){x=x.slice(a.length,-b.length).trim();again=true}}}
+    if(x.length<=40)x=x.replace(/[\s。．.，,；;：:！？!?]+$/u,"").trim();
+    return x.replace(/\s+/g," ").trim();
+  }
+  function validateOptions(answer,candidates,rnd=Math.random){
+    const ans=cleanOption(answer),out=[ans],seen=new Set([ans]);
+    const pool=(candidates||[]).map(cleanOption).filter(Boolean).filter(x=>!seen.has(x));
+    for(const x of shuffle(pool,rnd)){if(!seen.has(x)){seen.add(x);out.push(x)}if(out.length===4)break}
+    return out.length===4?shuffle(out,rnd):out;
+  }
+  function plausibleListeningOptions(item,words,day,index){
+    const w=item?.word||{},pos=String(w?.pos||""),hsk=Number(w?.hsk||1);
+    const pool=(words||[]).filter(x=>x?.char!==w?.char)
+      .filter(x=>!pos||String(x?.pos||"")===pos)
+      .filter(x=>Math.abs(Number(x?.hsk||1)-hsk)<=1)
+      .map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+    const fallback=getVocab().filter(x=>!pos||String(x?.pos||"")===pos).map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+    const broad=getVocab().map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+    return validateOptions(item.meaning,pool.concat(fallback,broad),seeded(day,9000+index+Number(state.variant||0)*41));
+  }
+  function avoidImmediateRepeat(items,mode,day){
+    const arr=[...(items||[])];if(!arr.length)return arr;
+    const sig=x=>String(x?.text||x?.word?.char||x?.pinyin||"").trim();
+    const key=`pantutor_v57_last_question_${String(mode)}_${Number(day)||1}`,prev=localStorage.getItem(key)||"";
+    if(arr.length>1&&sig(arr[0])&&sig(arr[0])===prev)arr.push(arr.shift());
+    localStorage.setItem(key,sig(arr[0]));
+    return arr;
+  }
+
   function itemFromWord(w){
     const ex=Array.isArray(w?.examples)&&w.examples.length ? w.examples[0] : null;
     return { word:w, text:String(ex?.[0]||w?.char||""), pinyin:String(ex?.[1]||w?.pinyin||""), meaning:String(ex?.[3]||w?.meaning_en||w?.meaning||w?.char||"") };
@@ -104,11 +145,7 @@
     const words=await wordsForMission(m), base=words.map(itemFromWord).filter(x=>x.text&&x.meaning);
     const count=Math.min(Number(m?.dayNumber)%7===0?8:6, Math.max(4,base.length));
     const rnd=seeded(m?.dayNumber,11), selected=shuffle(base,rnd).slice(0,count);
-    const allMeanings=uniqStrings([...base.map(x=>x.meaning),...getVocab().slice(0,60).map(w=>w.meaning_en).filter(Boolean)]);
-    return selected.map((x,i)=>{
-      const distract=shuffle(allMeanings.filter(v=>v!==x.meaning), seeded(m?.dayNumber,i+31)).slice(0,3);
-      return {...x, options:shuffle([x.meaning,...distract],seeded(m?.dayNumber,i+71))};
-    });
+    return avoidImmediateRepeat(selected.map((x,i)=>({...x,meaning:cleanOption(x.meaning),options:plausibleListeningOptions(x,words,m?.dayNumber,i)})),"listening",m?.dayNumber);
   }
   async function buildSpeaking(m){
     const words=await wordsForMission(m), day=Number(m?.dayNumber||1);
@@ -119,7 +156,7 @@
       const meaning = day<=10 ? String(w.meaning_en||w.meaning||"") : String(ex?.[3]||w.meaning_en||w.meaning||"");
       return {word:w,text:sentence,pinyin,meaning};
     }).filter(x=>x.text);
-    return shuffle(base,seeded(day,101)).slice(0, day%7===0?8:5);
+    return avoidImmediateRepeat(shuffle(base,seeded(day,101)).slice(0, day%7===0?8:5),"speaking",day);
   }
   function uniqStrings(a){ return [...new Set((a||[]).map(v=>String(v||"").trim()).filter(Boolean))]; }
 
@@ -145,7 +182,7 @@
     cleanupRecording(); root()?.remove(); state.mode=null; state.items=[]; state.index=0;
   }
   function createShell(mode,m){
-    ensureStyle(); close(); state.mode=mode; state.mission=m; state.answers=[];state.scores=[];state.reports=[];state.index=0;
+    ensureStyle(); close(); state.mode=mode; state.mission=m; state.variant=nextVariant(mode,m?.dayNumber); state.answers=[];state.scores=[];state.reports=[];state.index=0;
     const ov=document.createElement("div");ov.id="ptCoachSkillOverlay";
     const raw=mode==="listening"?m?.curriculum?.listening_task:m?.curriculum?.speaking_task;
     const title=mode==="listening"?"🎧 AI Coach Listening Lab":"🗣️ AI Coach Speaking · Read-aloud Lab";
@@ -194,7 +231,7 @@
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsListenNext" type="button">${state.index+1>=state.items.length?"Finish Listening":"Next audio →"}</button></div>`;document.getElementById("ptcsListenNext").onclick=()=>{state.index++;state.index>=state.items.length?finishListening():renderListening()}
   }
   async function finishListening(){
-    const total=state.answers.length||1,correct=state.answers.filter(x=>x.correct).length,score=Math.round(correct/total*100),saved=await saveEvidence("listening",score,{evidenceType:"ai_coach_standalone_listening_teacher_feedback_v56",correct,total,teacherReports:state.reports,wrongItems:state.answers.filter(x=>!x.correct).map(x=>({target:x.target,chosen:x.chosen,answer:x.meaning})),completeSet:true,passThreshold:60});renderSummary("Listening",score,`${correct} of ${total} audio questions correct. Each item includes an explanation and a targeted listening cue.`,saved)
+    const total=state.answers.length||1,correct=state.answers.filter(x=>x.correct).length,score=Math.round(correct/total*100),saved=await saveEvidence("listening",score,{evidenceType:"ai_coach_standalone_listening_teacher_feedback_v57",correct,total,teacherReports:state.reports,wrongItems:state.answers.filter(x=>!x.correct).map(x=>({target:x.target,chosen:x.chosen,answer:x.meaning})),completeSet:true,passThreshold:60});renderSummary("Listening",score,`${correct} of ${total} audio questions correct. Each item includes an explanation and a targeted listening cue.`,saved)
   }
 
   async function openSpeaking(m){
@@ -256,7 +293,7 @@
     const report=teacherHtml({status:"PRONUNCIATION RUBRIC",overview:strength,sections:[{title:"Tone /35",lines:[`${g.tone}/35. ${toneComment}`]},{title:"Initial–final /35",lines:[`${g.segmental}/35. ${segComment}`,`Recognized: ${g.recognized||"No reliable transcript"}`,`Target: ${item.text}`]},{title:"Articulation /20",lines:[`${g.articulation}/20. ${artComment}`]},{title:"Fluency /10",lines:[`${g.fluency}/10. ${fluComment}`]}],model:`${item.text} · ${item.pinyin}`,next:focus});host.innerHTML=`<div class="ptcs-score"><div class="ptcs-score-big">${g.score}/100</div>${report}<div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsSpeakNext" type="button">${state.index+1>=state.items.length?"Finish Speaking":"Next card →"}</button></div></div>`;document.getElementById("ptcsSpeakNext").onclick=()=>{state.index++;state.index>=state.items.length?finishSpeaking():renderSpeaking()}
   }
   async function finishSpeaking(){
-    const vals=state.scores.filter(Number.isFinite),score=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0,saved=await saveEvidence("speaking",score,{evidenceType:"ai_coach_standalone_speaking_teacher_feedback_v56",cardScores:vals,teacherReports:state.reports,total:state.items.length,graded:vals.length,completeSet:vals.length===state.items.length,passThreshold:60});renderSummary("Speaking / Read-aloud",score,`${vals.length} of ${state.items.length} cards were recorded and graded with criterion-level feedback.`,saved)
+    const vals=state.scores.filter(Number.isFinite),score=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0,saved=await saveEvidence("speaking",score,{evidenceType:"ai_coach_standalone_speaking_teacher_feedback_v57",cardScores:vals,teacherReports:state.reports,total:state.items.length,graded:vals.length,completeSet:vals.length===state.items.length,passThreshold:60});renderSummary("Speaking / Read-aloud",score,`${vals.length} of ${state.items.length} cards were recorded and graded with criterion-level feedback.`,saved)
   }
   function cleanupStreamOnly(){try{state.stream?.getTracks?.().forEach(t=>t.stop())}catch(_){}state.stream=null;state.recorder=null;state.recognition=null;}
   function cleanupRecording(){try{if(state.recorder&&state.recorder.state!=="inactive")state.recorder.stop()}catch(_){}try{state.recognition?.abort?.()}catch(_){}cleanupStreamOnly();if(state.recordUrl){try{URL.revokeObjectURL(state.recordUrl)}catch(_){}state.recordUrl=""}state.recordBlob=null;}
