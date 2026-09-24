@@ -230,8 +230,15 @@
     });
   }
 
-  async function openListening(m){
+  async function openListening(m,targetWord){
     createShell("listening",m);state.items=await buildListening(m);state.index=0;
+    if(targetWord){
+      const target=getMap()[String(targetWord)]||getVocab().find(w=>w.char===String(targetWord));
+      if(target){const focused=itemFromWord(target),pool=await wordsForMission(m);if(focused.text&&focused.meaning){
+        focused.meaning=cleanOption(focused.meaning);focused.options=plausibleListeningOptions(focused,pool,m?.dayNumber||1,0);
+        state.items=[focused,...state.items.filter(x=>x.word?.char!==target.char)].slice(0,Math.max(4,state.items.length));
+      }}
+    }
     if(!state.items.length){document.getElementById("ptCoachSkillContent").innerHTML=`<div class="ptcs-card">${T("Không có mục nghe liên kết với lộ trình cho ngày này.","No curriculum-linked audio items are available for this day.")}</div>`;return;}
     renderListening();
   }
