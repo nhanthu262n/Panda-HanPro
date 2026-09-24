@@ -656,7 +656,7 @@
     const m = mission();
     const c = m.curriculum;
     const adaptive = m.adaptivePlan;
-    const langEn = true;
+    const langEn = window.LANG_MODE === "en";
     const stageLabel = langEn ? (m.stageCode === "stage_0" ? "Pinyin Bootcamp" : m.stageCode === "stage_1" ? "HSK 1 foundation" : m.stageCode === "stage_2" ? "HSK 2 development" : "HSK 3 communication") : (m.stage || m.stageCode);
     const phase = m.vocabPhase || {};
     const learningSequence = renderLearningSequence(m, langEn);
@@ -690,10 +690,12 @@
     return /\b(tôi|bạn|mình|viết|đoạn|chủ đề|giúp|là gì|như thế nào|cuối tuần|gia đình|trường học|giải thích|dùng|ví dụ|lỗi|thường|cách|ngữ pháp|từ vựng)\b/.test(raw);
   }
   function coachResponseLanguage(text, preferred = "auto") {
-    if (preferred === "zh") return "zh";
+    if (["zh", "en", "vi"].includes(preferred)) return preferred;
     const raw = String(text || "");
     if (/[\u3400-\u9fff]/.test(raw)) return "zh";
-    return "en";
+    if (coachUsesVietnamese(raw)) return "vi";
+    if (coachUsesEnglish(raw)) return "en";
+    return window.LANG_MODE === "vi" ? "vi" : "en";
   }
   function topicLengthProfile(level, selected = "adaptive") {
     const base = Number(level || 1);
@@ -957,7 +959,7 @@
     const paragraph = paragraphForLength(topic, length);
     return { id: topic.id, level: topic.level, length, zh: paragraph.zh, pinyin: paragraph.pinyin, vi: paragraph.vi, en: paragraph.en, topicVi: topic.topicVi, topicEn: topic.topicEn };
   }
-  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getRouteStatusText: (language) => routeStatusChatText(mission(), language === "zh" ? "zh" : "en"), detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
+  window.PandaHanMission = { load, mission, getCurrent: mission, getTargetVocabulary, startTask, renderCoach, replyTo, getRouteStatusText: (language) => routeStatusChatText(mission(), ["zh","en","vi"].includes(language) ? language : (window.LANG_MODE === "vi" ? "vi" : "en")), detectResponseLanguage: (text, preferred) => coachResponseLanguage(text, preferred || "auto"), topicLengthProfile, formatTopicForTutor, getTopicLibrary: () => window.PandaHanHskLibrary?.items || [], getActiveTask: () => activeTask, parseVocabulary, getCurriculumDay: findCurriculumDay };
   let coachPlanRefreshQueued = false;
   function refreshCoachPlanSoon() {
     if (coachPlanRefreshQueued) return;
