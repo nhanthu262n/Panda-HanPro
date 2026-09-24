@@ -3556,7 +3556,7 @@ async function renderTeacherDashboard() {
 async function viewStudentProgress(uid, name) {
     try {
         const prog = await db.collection("progress").doc(uid).get();
-        const stats = prog.exists ? prog.data().stats : {};
+        const stats = (prog.exists ? prog.data().stats : null) || {};
         
         // Tổng số từ HSK 1-3 lấy trực tiếp từ payload VOCAB đang chạy.
         const totalWords = typeof VOCAB !== "undefined" && Array.isArray(VOCAB) ? VOCAB.length : 0;
@@ -3600,7 +3600,7 @@ async function viewStudentProgress(uid, name) {
               <div class="time-box"><div class="num">${totalQuizAttempts}</div><div class="lbl">Tổng lượt quiz</div></div>
             </div>
             <div style="margin-top:14px;">
-              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Tiến độ tổng: ${pct}%</div>
+              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Tiến độ từ vựng: ${pct}%</div>
               <div style="background:var(--hsk2-light);border-radius:30px;height:9px;overflow:hidden;">
                 <div class="fill" style="height:100%;border-radius:30px;width:${pct}%;background:linear-gradient(90deg,var(--hsk1),var(--pink));transition:width 0.6s ease;"></div>
               </div>
@@ -3620,6 +3620,7 @@ async function viewStudentProgress(uid, name) {
             </div>
         `;
         showScreen("teacherDetail");
+        window.PanTutorTeacherMonitor?.mount(uid);
     } catch(e) {
         alert("Lỗi khi tải tiến độ: " + e.message);
         console.error("viewStudentProgress error:", e);
