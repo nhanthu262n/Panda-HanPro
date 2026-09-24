@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "v57-listening-mcq-quality-vi-mode-20260923";
+  const VERSION = "v57.1-listening-speaking-vi-sync-20260924";
   const state = {
     mode: null, mission: null, items: [], index: 0, answers: [], scores: [],
     recorder: null, stream: null, chunks: [], recognition: null, recognized: "", confidence: 0,
@@ -17,8 +17,22 @@
 
   function clamp(v, a=0, b=1){ return Math.max(a, Math.min(b, Number(v) || 0)); }
   function esc(v){ return String(v ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+  const T=(vi,en)=>window.LANG_MODE==="vi"?String(vi??""):String(en??vi??"");
+  const localizeRoot=(root)=>{try{window.PanTutorV57Vietnamese?.apply?.(root||document.body)}catch(_){}};
   function getVocab(){ try { return typeof VOCAB !== "undefined" && Array.isArray(VOCAB) ? VOCAB : (Array.isArray(window.VOCAB) ? window.VOCAB : []); } catch (_) { return Array.isArray(window.VOCAB) ? window.VOCAB : []; } }
   function getMap(){ try { return typeof VOCAB_BY_CHAR !== "undefined" ? VOCAB_BY_CHAR : (window.VOCAB_BY_CHAR || {}); } catch (_) { return window.VOCAB_BY_CHAR || {}; } }
+  function wordMeaning(w){
+    return String(window.LANG_MODE==="vi"
+      ? (w?.meaning ?? w?.meaning_vn ?? w?.meaning_en ?? "")
+      : (w?.meaning_en ?? w?.meaning ?? w?.meaning_vn ?? "")
+    ).trim();
+  }
+  function exampleMeaning(ex,w){
+    return String(window.LANG_MODE==="vi"
+      ? (ex?.[2] ?? wordMeaning(w))
+      : (ex?.[3] ?? wordMeaning(w))
+    ).trim();
+  }
   function uniqWords(list){ const seen=new Set(); return (list||[]).filter(w=>w&&w.char&&!seen.has(w.char)&&seen.add(w.char)); }
   function parseChars(raw){
     if (!raw || raw === "-") return [];
@@ -88,8 +102,12 @@
     ["Đóng vai Hội thoại mẫu với bạn học hoặc ghi âm 1 mình 2 vai","Role-play the model dialogue with a partner, or record both roles yourself."],
     ["Nhiệm vụ thực hành: đóng vai / viết đoạn văn theo gợi ý trong tài liệu","Practice task: role-play and produce a guided spoken/written response from the source material."]
   ]);
-  function taskEnglish(raw, type){
+  function taskText(raw, type){
     const s=String(raw||"").trim();
+    if (window.LANG_MODE==="vi") {
+      if (!s || s === "-") return type==="listening" ? "Hoàn thành nhiệm vụ nghe hôm nay." : "Hoàn thành nhiệm vụ nói hôm nay.";
+      return s;
+    }
     if (!s || s === "-") return type==="listening" ? "Complete today's listening task." : "Complete today's speaking task.";
     return (type==="listening"?listenTaskEn:speakTaskEn).get(s) || (type==="listening" ? "Complete the listening activity assigned for this Excel curriculum day." : "Complete the speaking activity assigned for this Excel curriculum day.");
   }
@@ -123,9 +141,9 @@
     const pool=(words||[]).filter(x=>x?.char!==w?.char)
       .filter(x=>!pos||String(x?.pos||"")===pos)
       .filter(x=>Math.abs(Number(x?.hsk||1)-hsk)<=1)
-      .map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
-    const fallback=getVocab().filter(x=>!pos||String(x?.pos||"")===pos).map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
-    const broad=getVocab().map(x=>x?.meaning_en||x?.meaning).filter(Boolean);
+      .map(wordMeaning).filter(Boolean);
+    const fallback=getVocab().filter(x=>!pos||String(x?.pos||"")===pos).map(wordMeaning).filter(Boolean);
+    const broad=getVocab().map(wordMeaning).filter(Boolean);
     return validateOptions(item.meaning,pool.concat(fallback,broad),seeded(day,9000+index+Number(state.variant||0)*41));
   }
   function avoidImmediateRepeat(items,mode,day){
@@ -139,7 +157,7 @@
 
   function itemFromWord(w){
     const ex=Array.isArray(w?.examples)&&w.examples.length ? w.examples[0] : null;
-    return { word:w, text:String(ex?.[0]||w?.char||""), pinyin:String(ex?.[1]||w?.pinyin||""), meaning:String(ex?.[3]||w?.meaning_en||w?.meaning||w?.char||"") };
+    return { word:w, text:String(ex?.[0]||w?.char||""), pinyin:String(ex?.[1]||w?.pinyin||""), meaning:exampleMeaning(ex,w)||String(w?.char||"") };
   }
   async function buildListening(m){
     const words=await wordsForMission(m), base=words.map(itemFromWord).filter(x=>x.text&&x.meaning);
@@ -153,7 +171,7 @@
       const ex=Array.isArray(w?.examples)&&w.examples.length ? w.examples[(day+String(w.char).length)%w.examples.length] : null;
       const sentence = day<=10 ? String(w.char||"") : String(ex?.[0]||w.char||"");
       const pinyin = day<=10 ? String(w.pinyin||"") : String(ex?.[1]||w.pinyin||"");
-      const meaning = day<=10 ? String(w.meaning_en||w.meaning||"") : String(ex?.[3]||w.meaning_en||w.meaning||"");
+      const meaning = day<=10 ? wordMeaning(w) : exampleMeaning(ex,w);
       return {word:w,text:sentence,pinyin,meaning};
     }).filter(x=>x.text);
     return avoidImmediateRepeat(shuffle(base,seeded(day,101)).slice(0, day%7===0?8:5),"speaking",day);
@@ -185,18 +203,18 @@
     ensureStyle(); close(); state.mode=mode; state.mission=m; state.variant=nextVariant(mode,m?.dayNumber); state.answers=[];state.scores=[];state.reports=[];state.index=0;
     const ov=document.createElement("div");ov.id="ptCoachSkillOverlay";
     const raw=mode==="listening"?m?.curriculum?.listening_task:m?.curriculum?.speaking_task;
-    const title=mode==="listening"?"🎧 AI Coach Listening Lab":"🗣️ AI Coach Speaking · Read-aloud Lab";
-    ov.innerHTML=`<section id="ptCoachSkillPanel" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header class="ptcs-head"><div><div class="ptcs-title">${title}</div><div class="ptcs-sub">Day ${Number(m?.dayNumber||1)} · ${esc(String(m?.topic||"120-day curriculum"))}</div></div><button class="ptcs-close" type="button">✕ Exit</button></header><div class="ptcs-body"><div class="ptcs-source"><b>Excel curriculum task:</b> ${esc(taskEnglish(raw,mode))}</div><div id="ptCoachSkillContent"><div class="ptcs-card" style="text-align:center">Preparing today's task…</div></div></div></section>`;
-    document.body.appendChild(ov);ov.querySelector(".ptcs-close").onclick=close;ov.addEventListener("click",e=>{if(e.target===ov)close()});
+    const title=mode==="listening"?T("🎧 AI Coach · Luyện nghe","🎧 AI Coach Listening Lab"):T("🗣️ AI Coach · Nói / Đọc thành tiếng","🗣️ AI Coach Speaking · Read-aloud Lab");
+    ov.innerHTML=`<section id="ptCoachSkillPanel" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header class="ptcs-head"><div><div class="ptcs-title">${title}</div><div class="ptcs-sub">${T("Ngày","Day")} ${Number(m?.dayNumber||1)} · ${esc(String(m?.topic||T("lộ trình 120 ngày","120-day curriculum")))}</div></div><button class="ptcs-close" type="button">✕ ${T("Thoát","Exit")}</button></header><div class="ptcs-body"><div class="ptcs-source"><b>${T("Nhiệm vụ theo lộ trình Excel:","Excel curriculum task:")}</b> ${esc(taskText(raw,mode))}</div><div id="ptCoachSkillContent"><div class="ptcs-card" style="text-align:center">${T("Đang chuẩn bị nhiệm vụ hôm nay…","Preparing today's task…")}</div></div></div></section>`;
+    document.body.appendChild(ov);ov.querySelector(".ptcs-close").onclick=close;ov.addEventListener("click",e=>{if(e.target===ov)close()});localizeRoot(ov);
     return ov;
   }
   function progressHtml(){ const total=state.items.length||1, idx=Math.min(total,state.index+1);return `<div class="ptcs-progress"><div class="ptcs-bar"><span style="width:${Math.round((state.index)/total*100)}%"></span></div><div class="ptcs-count">${idx} / ${total}</div></div>`; }
   function recordReport(area,score,strength,focus){state.reports.push({area:String(area||"Task"),score:Number(score)||0,strength:String(strength||""),focus:String(focus||"")})}
   function teacherHtml(cfg={}){
-    const sections=(cfg.sections||[]).map(x=>`<div class="ptcs-teacher-section"><h4>${esc(x.title||"Analysis")}</h4><ul class="ptcs-teacher-list">${(x.lines||[]).filter(Boolean).map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div>`).join("");
-    return `<div class="ptcs-teacher-report"><div class="ptcs-teacher-head"><b>🧑‍🏫 Teacher feedback</b><span>${esc(cfg.status||"ANALYSIS")}</span></div><div class="ptcs-teacher-body"><div class="ptcs-teacher-section"><h4>Overall comment</h4><p>${esc(cfg.overview||"")}</p></div>${sections}${cfg.model?`<div class="ptcs-teacher-section"><h4>Model / reference</h4><p>${esc(cfg.model)}</p></div>`:""}${cfg.next?`<div class="ptcs-teacher-section"><h4>Next practice</h4><p>${esc(cfg.next)}</p></div>`:""}</div></div>`
+    const sections=(cfg.sections||[]).map(x=>`<div class="ptcs-teacher-section"><h4>${esc(x.title||T("Phân tích","Analysis"))}</h4><ul class="ptcs-teacher-list">${(x.lines||[]).filter(Boolean).map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div>`).join("");
+    return `<div class="ptcs-teacher-report"><div class="ptcs-teacher-head"><b>🧑‍🏫 ${T("Phản hồi giáo viên","Teacher feedback")}</b><span>${esc(cfg.status||T("PHÂN TÍCH","ANALYSIS"))}</span></div><div class="ptcs-teacher-body"><div class="ptcs-teacher-section"><h4>${T("Nhận xét tổng quan","Overall comment")}</h4><p>${esc(cfg.overview||"")}</p></div>${sections}${cfg.model?`<div class="ptcs-teacher-section"><h4>${T("Mẫu / tham chiếu","Model / reference")}</h4><p>${esc(cfg.model)}</p></div>`:""}${cfg.next?`<div class="ptcs-teacher-section"><h4>${T("Luyện tập tiếp theo","Next practice")}</h4><p>${esc(cfg.next)}</p></div>`:""}</div></div>`
   }
-  function summaryTeacher(label,score){if(!state.reports.length)return "";const r=state.reports.filter(x=>Number.isFinite(x.score));if(!r.length)return "";const best=[...r].sort((a,b)=>b.score-a.score)[0],weak=[...r].sort((a,b)=>a.score-b.score)[0];return `<div class="ptcs-teacher-summary"><h3>🧑‍🏫 Teacher summary</h3><p><b>Overall:</b> ${Math.round(score)}/100 across ${r.length} graded item(s).</p><p><b>Strongest evidence:</b> ${esc(best.area)} — ${Math.round(best.score)}/100${best.strength?` · ${esc(best.strength)}`:""}.</p><p><b>Priority practice:</b> ${esc(weak.focus||"Repeat the lowest-scoring item and explain the answer before moving on.")}</p></div>`}
+  function summaryTeacher(label,score){if(!state.reports.length)return "";const r=state.reports.filter(x=>Number.isFinite(x.score));if(!r.length)return "";const best=[...r].sort((a,b)=>b.score-a.score)[0],weak=[...r].sort((a,b)=>a.score-b.score)[0];return `<div class="ptcs-teacher-summary"><h3>🧑‍🏫 ${T("Tóm tắt của giáo viên","Teacher summary")}</h3><p><b>${T("Tổng quan","Overall")}:</b> ${Math.round(score)}/100 · ${r.length} ${T("mục đã chấm","graded item(s)")}.</p><p><b>${T("Bằng chứng mạnh nhất","Strongest evidence")}:</b> ${esc(best.area)} — ${Math.round(best.score)}/100${best.strength?` · ${esc(best.strength)}`:""}.</p><p><b>${T("Ưu tiên luyện tập","Priority practice")}:</b> ${esc(weak.focus||T("Làm lại mục có điểm thấp nhất và tự giải thích đáp án trước khi tiếp tục.","Repeat the lowest-scoring item and explain the answer before moving on."))}</p></div>`}
 
 
   function zhVoice(){
@@ -214,34 +232,36 @@
 
   async function openListening(m){
     createShell("listening",m);state.items=await buildListening(m);state.index=0;
-    if(!state.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No curriculum-linked audio items are available for this day.</div>';return;}
+    if(!state.items.length){document.getElementById("ptCoachSkillContent").innerHTML=`<div class="ptcs-card">${T("Không có mục nghe liên kết với lộ trình cho ngày này.","No curriculum-linked audio items are available for this day.")}</div>`;return;}
     renderListening();
   }
   function renderListening(){
     const host=document.getElementById("ptCoachSkillContent"), item=state.items[state.index];if(!host||!item)return;
-    host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">LISTENING · AUDIO FIRST</span><div class="ptcs-question">Which meaning best matches the audio?</div><div class="ptcs-help">The model audio plays automatically. Replay it as many times as needed, then choose one answer.</div><button class="ptcs-audio-orb" id="ptcsListenOrb" type="button" aria-label="Replay audio">🔊</button><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsReplay" type="button">▶ Replay audio</button></div><div class="ptcs-options">${item.options.map((o,i)=>`<button class="ptcs-option" type="button" data-i="${i}">${esc(o)}</button>`).join("")}</div><div id="ptcsReveal"></div></div>`;
+    host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">${T("LUYỆN NGHE · NGHE TRƯỚC","LISTENING · AUDIO FIRST")}</span><div class="ptcs-question">${T("Nghĩa nào phù hợp nhất với audio?","Which meaning best matches the audio?")}</div><div class="ptcs-help">${T("Audio mẫu sẽ tự phát. Có thể nghe lại nhiều lần rồi chọn một đáp án.","The model audio plays automatically. Replay it as many times as needed, then choose one answer.")}</div><button class="ptcs-audio-orb" id="ptcsListenOrb" type="button" aria-label="${T("Nghe lại audio","Replay audio")}">🔊</button><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsReplay" type="button">▶ ${T("Nghe lại audio","Replay audio")}</button></div><div class="ptcs-options">${item.options.map((o,i)=>`<button class="ptcs-option" type="button" data-i="${i}">${esc(o)}</button>`).join("")}</div><div id="ptcsReveal"></div></div>`;
+    localizeRoot(host);
     const orb=document.getElementById("ptcsListenOrb"), replay=()=>speak(item.text,orb);orb.onclick=replay;document.getElementById("ptcsReplay").onclick=replay;
     host.querySelectorAll(".ptcs-option").forEach(btn=>btn.onclick=()=>answerListening(btn,item));
     state.autoPlayTimer=setTimeout(replay,160);
   }
   function answerListening(btn,item){
     const host=document.getElementById("ptCoachSkillContent"),options=[...host.querySelectorAll(".ptcs-option")],chosen=btn.textContent.trim(),correct=chosen===item.meaning;options.forEach(b=>{b.disabled=true;if(b.textContent.trim()===item.meaning)b.classList.add("correct")});if(!correct)btn.classList.add("wrong");state.answers.push({target:item.text,pinyin:item.pinyin,meaning:item.meaning,chosen,correct});
-    const keyword=String(item?.word?.char||"").trim(),py=String(item?.word?.pinyin||item.pinyin||"").trim(),strength=correct?"You mapped the complete audio sentence to its intended meaning.":"The audio was heard, but the selected meaning does not match the curriculum sentence.",focus=correct?"Replay once without looking at the Hanzi and mentally repeat the sentence before the next item.":`Replay and listen specifically for ${keyword?`“${keyword}” (${py})`:"the key vocabulary"}, then connect that cue to “${item.meaning}”.`;recordReport("Listening comprehension",correct?100:0,strength,focus);
-    const report=teacherHtml({status:correct?"CORRECT — EXPLAINED":"INCORRECT — EXPLAINED",overview:strength,sections:[{title:"What the audio contained",lines:[`Hanzi: ${item.text}`,`Pinyin: ${item.pinyin}`,keyword?`Key vocabulary: ${keyword} ${py?`(${py})`:""}`:"Curriculum model sentence"]},{title:"Answer comparison",lines:[`Your choice: ${chosen}`,`Correct meaning: ${item.meaning}`,correct?"Your choice matches the sentence meaning.":"The selected option is a distractor; it does not match the sentence that was played."]}],model:`${item.text} — ${item.meaning}`,next:focus});
-    document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsListenNext" type="button">${state.index+1>=state.items.length?"Finish Listening":"Next audio →"}</button></div>`;document.getElementById("ptcsListenNext").onclick=()=>{state.index++;state.index>=state.items.length?finishListening():renderListening()}
+    const keyword=String(item?.word?.char||"").trim(),py=String(item?.word?.pinyin||item.pinyin||"").trim(),strength=correct?T("Bạn đã ghép đúng câu audio với nghĩa dự kiến.","You mapped the complete audio sentence to its intended meaning."):T("Bạn đã nghe được audio nhưng nghĩa đã chọn chưa khớp câu trong lộ trình.","The audio was heard, but the selected meaning does not match the curriculum sentence."),focus=correct?T("Nghe lại một lần mà không nhìn chữ Hán và nhẩm lại câu trước khi sang mục tiếp theo.","Replay once without looking at the Hanzi and mentally repeat the sentence before the next item."):T(`Nghe lại và tập trung vào ${keyword?`“${keyword}” (${py})`:"từ vựng trọng tâm"}, sau đó nối tín hiệu đó với nghĩa “${item.meaning}”.`,`Replay and listen specifically for ${keyword?`“${keyword}” (${py})`:"the key vocabulary"}, then connect that cue to “${item.meaning}”.`);recordReport(T("Đọc hiểu nghe","Listening comprehension"),correct?100:0,strength,focus);
+    const report=teacherHtml({status:correct?T("ĐÚNG — CÓ GIẢI THÍCH","CORRECT — EXPLAINED"):T("SAI — CÓ GIẢI THÍCH","INCORRECT — EXPLAINED"),overview:strength,sections:[{title:T("Nội dung audio","What the audio contained"),lines:[`${T("Chữ Hán","Hanzi")}: ${item.text}`,`Pinyin: ${item.pinyin}`,keyword?`${T("Từ khóa","Key vocabulary")}: ${keyword} ${py?`(${py})`:""}`:T("Câu mẫu theo lộ trình","Curriculum model sentence")]},{title:T("So sánh đáp án","Answer comparison"),lines:[`${T("Lựa chọn của bạn","Your choice")}: ${chosen}`,`${T("Nghĩa đúng","Correct meaning")}: ${item.meaning}`,correct?T("Lựa chọn của bạn khớp với nghĩa của câu.","Your choice matches the sentence meaning."):T("Phương án đã chọn là đáp án nhiễu và không khớp câu vừa phát.","The selected option is a distractor; it does not match the sentence that was played.")]}],model:`${item.text} — ${item.meaning}`,next:focus});
+    document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsListenNext" type="button">${state.index+1>=state.items.length?T("Hoàn thành Nghe","Finish Listening"):T("Audio tiếp theo →","Next audio →")}</button></div>`;localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsListenNext").onclick=()=>{state.index++;state.index>=state.items.length?finishListening():renderListening()}
   }
   async function finishListening(){
-    const total=state.answers.length||1,correct=state.answers.filter(x=>x.correct).length,score=Math.round(correct/total*100),saved=await saveEvidence("listening",score,{evidenceType:"ai_coach_standalone_listening_teacher_feedback_v57",correct,total,teacherReports:state.reports,wrongItems:state.answers.filter(x=>!x.correct).map(x=>({target:x.target,chosen:x.chosen,answer:x.meaning})),completeSet:true,passThreshold:60});renderSummary("Listening",score,`${correct} of ${total} audio questions correct. Each item includes an explanation and a targeted listening cue.`,saved)
+    const total=state.answers.length||1,correct=state.answers.filter(x=>x.correct).length,score=Math.round(correct/total*100),saved=await saveEvidence("listening",score,{evidenceType:"ai_coach_standalone_listening_teacher_feedback_v57",correct,total,teacherReports:state.reports,wrongItems:state.answers.filter(x=>!x.correct).map(x=>({target:x.target,chosen:x.chosen,answer:x.meaning})),completeSet:true,passThreshold:60});renderSummary(T("Nghe","Listening"),score,T(`${correct}/${total} câu nghe đúng. Mỗi mục có giải thích và gợi ý nghe trọng tâm.`,`${correct} of ${total} audio questions correct. Each item includes an explanation and a targeted listening cue.`),saved)
   }
 
   async function openSpeaking(m){
     createShell("speaking",m);state.items=await buildSpeaking(m);state.index=0;
-    if(!state.items.length){document.getElementById("ptCoachSkillContent").innerHTML='<div class="ptcs-card">No curriculum-linked speaking cards are available for this day.</div>';return;}
+    if(!state.items.length){document.getElementById("ptCoachSkillContent").innerHTML=`<div class="ptcs-card">${T("Không có thẻ nói liên kết với lộ trình cho ngày này.","No curriculum-linked speaking cards are available for this day.")}</div>`;return;}
     renderSpeaking();
   }
   function renderSpeaking(){
     const host=document.getElementById("ptCoachSkillContent"), item=state.items[state.index];if(!host||!item)return;cleanupRecording();
-    host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">SPEAKING · LISTEN → READ → RECORD → SCORE</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(item.text)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(item.pinyin)}</div><div class="ptcs-meaning">${esc(item.meaning)}</div></div><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsModel" type="button">▶ Play model</button><button class="ptcs-btn record" id="ptcsRecord" type="button">● Record</button><button class="ptcs-btn stop" id="ptcsStop" type="button" disabled>■ Stop & grade</button><button class="ptcs-btn" id="ptcsPlayback" type="button" disabled>▶ Replay my recording</button></div><div class="ptcs-rec-status" id="ptcsRecStatus">Listen to the model, then record the complete target.</div><div id="ptcsSpeakScore"></div></div>`;
+    host.innerHTML=progressHtml()+`<div class="ptcs-card"><span class="ptcs-kicker">${T("LUYỆN NÓI · NGHE → ĐỌC → GHI ÂM → CHẤM","SPEAKING · LISTEN → READ → RECORD → SCORE")}</span><div class="ptcs-speak-target"><div class="ptcs-hanzi">${esc(item.text)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(item.pinyin)}</div><div class="ptcs-meaning">${esc(item.meaning)}</div></div><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsModel" type="button">▶ ${T("Nghe mẫu","Play model")}</button><button class="ptcs-btn record" id="ptcsRecord" type="button">● ${T("Ghi âm","Record")}</button><button class="ptcs-btn stop" id="ptcsStop" type="button" disabled>■ ${T("Dừng & chấm","Stop & grade")}</button><button class="ptcs-btn" id="ptcsPlayback" type="button" disabled>▶ ${T("Nghe lại bản ghi","Replay my recording")}</button></div><div class="ptcs-rec-status" id="ptcsRecStatus">${T("Nghe mẫu, sau đó ghi âm đầy đủ nội dung mục tiêu.","Listen to the model, then record the complete target.")}</div><div id="ptcsSpeakScore"></div></div>`;
+    localizeRoot(host);
     const model=document.getElementById("ptcsModel");model.onclick=()=>speak(item.text);document.getElementById("ptcsRecord").onclick=()=>startRecording(item);document.getElementById("ptcsStop").onclick=()=>stopRecordingAndGrade(item);document.getElementById("ptcsPlayback").onclick=()=>playRecording();
     state.autoPlayTimer=setTimeout(()=>speak(item.text),180);
   }
@@ -254,14 +274,14 @@
       const types=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/mp4"];const mime=types.find(t=>window.MediaRecorder?.isTypeSupported?.(t))||"";
       state.chunks=[];state.recorder=new MediaRecorder(state.stream,mime?{mimeType:mime}:undefined);state.recorder.ondataavailable=e=>{if(e.data?.size)state.chunks.push(e.data)};state.recordStartedAt=performance.now();state.recognized="";state.confidence=0;
       const RC=recognitionCtor();if(RC){try{const r=new RC();state.recognition=r;r.lang="zh-CN";r.interimResults=false;r.continuous=false;r.maxAlternatives=3;r.onresult=e=>{let best=null;for(let i=0;i<e.results.length;i++){for(let j=0;j<e.results[i].length;j++){const a=e.results[i][j];if(!best||Number(a.confidence||0)>Number(best.confidence||0))best=a}}if(best){state.recognized=String(best.transcript||"").trim();state.confidence=Number(best.confidence||0)}};r.onerror=()=>{};r.start()}catch(_){}}
-      state.recorder.start(160);recBtn.disabled=true;stopBtn.disabled=false;if(status)status.textContent="Recording… read the full target naturally, then press Stop & grade.";
-    }catch(e){if(status)status.textContent="Microphone permission is required for this speaking task.";cleanupRecording();}
+      state.recorder.start(160);recBtn.disabled=true;stopBtn.disabled=false;if(status)status.textContent=T("Đang ghi âm… hãy đọc tự nhiên toàn bộ nội dung rồi nhấn Dừng & chấm.","Recording… read the full target naturally, then press Stop & grade.");
+    }catch(e){if(status)status.textContent=T("Cần quyền truy cập microphone để thực hiện nhiệm vụ nói.","Microphone permission is required for this speaking task.");cleanupRecording();}
   }
   async function stopRecordingAndGrade(item){
-    const status=document.getElementById("ptcsRecStatus"),stopBtn=document.getElementById("ptcsStop");if(!state.recorder||state.recorder.state==="inactive")return;stopBtn.disabled=true;if(status)status.textContent="Analyzing pronunciation…";
+    const status=document.getElementById("ptcsRecStatus"),stopBtn=document.getElementById("ptcsStop");if(!state.recorder||state.recorder.state==="inactive")return;stopBtn.disabled=true;if(status)status.textContent=T("Đang phân tích phát âm…","Analyzing pronunciation…");
     const blob=await new Promise(resolve=>{const r=state.recorder;r.onstop=()=>resolve(new Blob(state.chunks,{type:r.mimeType||"audio/webm"}));try{r.stop()}catch(_){resolve(new Blob(state.chunks))}});
     try{state.recognition?.stop?.()}catch(_){};await new Promise(r=>setTimeout(r,650));state.recordBlob=blob;if(state.recordUrl)URL.revokeObjectURL(state.recordUrl);state.recordUrl=URL.createObjectURL(blob);document.getElementById("ptcsPlayback").disabled=false;
-    const metrics=await analyzeRecording(blob,item.pinyin);const grade=gradeSpeaking(item,state.recognized,state.confidence,metrics);state.scores[state.index]=grade.score;renderSpeakingScore(grade,item);if(status)status.textContent="Recording graded. Replay it, compare with the model, then continue.";cleanupStreamOnly();
+    const metrics=await analyzeRecording(blob,item.pinyin);const grade=gradeSpeaking(item,state.recognized,state.confidence,metrics);state.scores[state.index]=grade.score;renderSpeakingScore(grade,item);if(status)status.textContent=T("Đã chấm bản ghi. Hãy nghe lại, so sánh với mẫu rồi tiếp tục.","Recording graded. Replay it, compare with the model, then continue.");cleanupStreamOnly();
   }
   function playRecording(){if(!state.recordUrl)return;const a=new Audio(state.recordUrl);a.play().catch(()=>{});}
   function cleanText(v){return String(v||"").toLowerCase().normalize("NFKC").replace(/[\s\p{P}\p{S}]/gu,"");}
@@ -290,10 +310,10 @@
   }
   function renderSpeakingScore(g,item){
     const host=document.getElementById("ptcsSpeakScore");if(!host)return;const toneComment=g.tone>=31?"Tone contour is close to the target.":g.tone>=24?"Tone direction is mostly usable but needs clearer pitch movement.":"Tone direction needs focused retraining.",segComment=g.segmental>=31?"Initial/final content is strongly supported.":g.segmental>=24?"Most syllables are supported, with some uncertainty.":"Several syllables or segmental cues differ from the target.",artComment=g.articulation>=17?"Acoustic clarity is strong.":g.articulation>=12?"Clarity is usable but can be sharper.":"Clarity/articulation evidence is weak; microphone scoring is only an acoustic proxy for tongue/lip position.",fluComment=g.fluency>=8?"Rhythm and pacing are natural.":g.fluency>=5?"Pacing is understandable but uneven.":"The read-aloud is too fragmented or timing is unstable.",strength=g.score>=90?"The read-aloud is very close to the model.":g.score>=75?"The sentence is mostly stable with a few pronunciation weaknesses.":g.score>=60?"The attempt passes, but at least one component still needs practice.":"The recording is valid but needs another focused attempt.",focus=g.tone<24?"Copy only the pitch directions first, then add the words.":g.segmental<24?"Slow down and rebuild the unclear initials/finals.":g.fluency<6?"Read in short meaning groups and reconnect them smoothly.":"Repeat once more at the same clarity with slightly more natural pacing.";recordReport("Speaking / Read-aloud",g.score,strength,focus);
-    const report=teacherHtml({status:"PRONUNCIATION RUBRIC",overview:strength,sections:[{title:"Tone /35",lines:[`${g.tone}/35. ${toneComment}`]},{title:"Initial–final /35",lines:[`${g.segmental}/35. ${segComment}`,`Recognized: ${g.recognized||"No reliable transcript"}`,`Target: ${item.text}`]},{title:"Articulation /20",lines:[`${g.articulation}/20. ${artComment}`]},{title:"Fluency /10",lines:[`${g.fluency}/10. ${fluComment}`]}],model:`${item.text} · ${item.pinyin}`,next:focus});host.innerHTML=`<div class="ptcs-score"><div class="ptcs-score-big">${g.score}/100</div>${report}<div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsSpeakNext" type="button">${state.index+1>=state.items.length?"Finish Speaking":"Next card →"}</button></div></div>`;document.getElementById("ptcsSpeakNext").onclick=()=>{state.index++;state.index>=state.items.length?finishSpeaking():renderSpeaking()}
+    const report=teacherHtml({status:"PRONUNCIATION RUBRIC",overview:strength,sections:[{title:"Tone /35",lines:[`${g.tone}/35. ${toneComment}`]},{title:"Initial–final /35",lines:[`${g.segmental}/35. ${segComment}`,`Recognized: ${g.recognized||"No reliable transcript"}`,`Target: ${item.text}`]},{title:"Articulation /20",lines:[`${g.articulation}/20. ${artComment}`]},{title:"Fluency /10",lines:[`${g.fluency}/10. ${fluComment}`]}],model:`${item.text} · ${item.pinyin}`,next:focus});host.innerHTML=`<div class="ptcs-score"><div class="ptcs-score-big">${g.score}/100</div>${report}<div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsSpeakNext" type="button">${state.index+1>=state.items.length?"Finish Speaking":"Next card →"}</button></div></div>`;localizeRoot(host);document.getElementById("ptcsSpeakNext").onclick=()=>{state.index++;state.index>=state.items.length?finishSpeaking():renderSpeaking()}
   }
   async function finishSpeaking(){
-    const vals=state.scores.filter(Number.isFinite),score=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0,saved=await saveEvidence("speaking",score,{evidenceType:"ai_coach_standalone_speaking_teacher_feedback_v57",cardScores:vals,teacherReports:state.reports,total:state.items.length,graded:vals.length,completeSet:vals.length===state.items.length,passThreshold:60});renderSummary("Speaking / Read-aloud",score,`${vals.length} of ${state.items.length} cards were recorded and graded with criterion-level feedback.`,saved)
+    const vals=state.scores.filter(Number.isFinite),score=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0,saved=await saveEvidence("speaking",score,{evidenceType:"ai_coach_standalone_speaking_teacher_feedback_v57",cardScores:vals,teacherReports:state.reports,total:state.items.length,graded:vals.length,completeSet:vals.length===state.items.length,passThreshold:60});renderSummary(T("Nói / Đọc thành tiếng","Speaking / Read-aloud"),score,T(`${vals.length}/${state.items.length} thẻ đã được ghi âm và chấm với phản hồi theo tiêu chí.`,`${vals.length} of ${state.items.length} cards were recorded and graded with criterion-level feedback.`),saved)
   }
   function cleanupStreamOnly(){try{state.stream?.getTracks?.().forEach(t=>t.stop())}catch(_){}state.stream=null;state.recorder=null;state.recognition=null;}
   function cleanupRecording(){try{if(state.recorder&&state.recorder.state!=="inactive")state.recorder.stop()}catch(_){}try{state.recognition?.abort?.()}catch(_){}cleanupStreamOnly();if(state.recordUrl){try{URL.revokeObjectURL(state.recordUrl)}catch(_){}state.recordUrl=""}state.recordBlob=null;}
@@ -311,8 +331,8 @@
     return {passed:persistedPassed,scorePassed,threshold,saveError:saveError?String(saveError.code||saveError.message||saveError):"",sync:out};
   }
   function renderSummary(label,score,detail,result){
-    const host=document.getElementById("ptCoachSkillContent");if(!host)return;const passed=!!result?.passed,scorePassed=!!result?.scorePassed,badge=passed?`✓ Verified — green check saved to Day ${Number(state.mission?.dayNumber||1)}`:scorePassed?"Score passed, but evidence was not saved":"Needs another attempt",err=(!passed&&scorePassed)?`<p style="color:#b91c1c"><b>Save error:</b> ${esc(result?.saveError||"schedule write was not confirmed")}.</p>`:"";host.innerHTML=`<div class="ptcs-card ptcs-summary"><span class="ptcs-badge ${passed?"":"fail"}">${badge}</span><h2>${esc(label)} complete</h2><div class="ptcs-score-big">${score}/100</div><p>${esc(detail)}</p>${summaryTeacher(label,score)}${err}<p>Pass mark: <b>${Number(result?.threshold||60)}%</b>. This task records evidence only. <b>Pinyin Tone Quest remains the only next-day unlock gate.</b></p><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsDone" type="button">Return to AI Coach</button><button class="ptcs-btn" id="ptcsRedo" type="button">Redo task</button></div></div>`;document.getElementById("ptcsDone").onclick=close;document.getElementById("ptcsRedo").onclick=()=>{const m=state.mission,mode=state.mode;mode==="listening"?openListening(m):openSpeaking(m)}
+    const host=document.getElementById("ptCoachSkillContent");if(!host)return;const passed=!!result?.passed,scorePassed=!!result?.scorePassed,badge=passed?`✓ Verified — green check saved to Day ${Number(state.mission?.dayNumber||1)}`:scorePassed?"Score passed, but evidence was not saved":"Needs another attempt",err=(!passed&&scorePassed)?`<p style="color:#b91c1c"><b>Save error:</b> ${esc(result?.saveError||"schedule write was not confirmed")}.</p>`:"";host.innerHTML=`<div class="ptcs-card ptcs-summary"><span class="ptcs-badge ${passed?"":"fail"}">${badge}</span><h2>${esc(label)} complete</h2><div class="ptcs-score-big">${score}/100</div><p>${esc(detail)}</p>${summaryTeacher(label,score)}${err}<p>Pass mark: <b>${Number(result?.threshold||60)}%</b>. This task records evidence only. <b>Pinyin Tone Quest remains the only next-day unlock gate.</b></p><div class="ptcs-actions"><button class="ptcs-btn primary" id="ptcsDone" type="button">Return to AI Coach</button><button class="ptcs-btn" id="ptcsRedo" type="button">Redo task</button></div></div>`;localizeRoot(host);document.getElementById("ptcsDone").onclick=close;document.getElementById("ptcsRedo").onclick=()=>{const m=state.mission,mode=state.mode;mode==="listening"?openListening(m):openSpeaking(m)}
   }
 
-  window.PandaHanCoachSkills={openListening,openSpeaking,close,taskEnglish,version:VERSION};
+  window.PandaHanCoachSkills={openListening,openSpeaking,close,taskEnglish:taskText,taskText,version:VERSION};
 })();
