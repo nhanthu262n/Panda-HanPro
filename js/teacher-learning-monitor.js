@@ -11,7 +11,17 @@
     do{let q=db.collection('learningAttempts').doc(uid).collection('attempts').orderBy('createdAt','desc').limit(500);if(cursor)q=q.startAfter(cursor);const snap=await q.get();rows.push(...snap.docs.map(d=>({...d.data(),attemptId:d.id,synced:true})));cursor=snap.docs.length===500?snap.docs.at(-1):null}while(cursor);
     return rows;
   }
-  async function remote(path,uid){const db=window.PandaHanFirebase?.database||window.firebase?.database?.();if(!db)throw Error('Chưa kết nối dữ liệu lộ trình');return (await db.ref(path+'/'+uid).once('value')).val()}
+  async function teacherData(uid){
+    const user=window.firebase?.auth?.().currentUser;
+    if(!user)throw Error('Vui lòng đăng nhập lại.');
+    const project=window.firebase.app().options.projectId;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),65000);
+    try{
+      const response=await fetch(`https://asia-southeast1-${project}.cloudfunctions.net/teacherLearningMonitor`,{method:'POST',headers:{Authorization:'Bearer '+await user.getIdToken(),'Content-Type':'application/json'},body:JSON.stringify({uid}),signal:controller.signal});
+      if(!response.ok){const error=Error(response.status===403?'Tài khoản chưa có vai trò giáo viên trong Firebase.':response.status===401?'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.':response.status===404?'Chưa triển khai Firebase Function teacherLearningMonitor.':'Máy chủ chưa tải được dữ liệu giám sát.');throw error}
+      return await response.json();
+    }catch(e){if(e instanceof TypeError)throw Error('Chưa kết nối được chức năng giám sát. Kiểm tra mạng và triển khai Firebase Function teacherLearningMonitor.');throw e}finally{clearTimeout(timer)}
+  }
   function table(head,rows){return rows.length?`<div class="tm-scroll"><table class="time-table"><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<p>Chưa có kết quả đã đồng bộ.</p>'}
   function panel(title,body,open=false){return `<details class="dash-details" ${open?'open':''}><summary>${esc(title)}</summary><div class="inner">${body}</div></details>`}
   function resultRows(rows){return table(['Ngày / nhiệm vụ','Thời gian','Kết quả','Câu trả lời'],rows.map(r=>`<tr><td>Ngày ${esc(r.dayNumber||r.day_number)}<br>${esc(task(r.taskId||r.source))}</td><td>${stamp(r.createdAt||r.created_at||r.date)}</td><td>${r.taskId==='teacherDraft'?'Chờ chấm':r.scorePercent==null?'Chưa có điểm':`${esc(r.scorePercent)}/100`}<br>${r.passed===true?'Đạt':r.passed===false?'Cần luyện thêm':''}${r.total?`<br>${esc(r.correct)}/${esc(r.total)} câu đúng`:''}</td><td>${Array.isArray(r.items)&&r.items.length?`<details><summary>Xem ${r.items.length} câu</summary>${r.items.map(i=>`<p><b>${esc(i.target||i.prompt||'Câu hỏi')}</b><br>Trả lời: ${esc(i.input||'—')}<br>Đáp án: ${esc(i.expected||'—')}<br>${i.correct===true?'Đúng':i.correct===false?'Sai':'Chưa xác minh'}${Number(i.responseMs)>0?' · '+(i.responseMs/1000).toFixed(1)+' giây':''}</p>`).join('')}</details>`:'Chưa có dữ liệu từng câu'}</td></tr>`))}
@@ -38,8 +48,11 @@
     const parent=document.getElementById('teacherDetailStats');if(!parent)return;
     document.getElementById('teacherLearningMonitor')?.remove();const host=document.createElement('section');host.id='teacherLearningMonitor';parent.appendChild(host);const token=++generation;host.innerHTML='<p role="status">Đang tải kết quả học tập…</p>';
     const sources=['Lượt làm bài / Kết quả ghi nhớ','Lộ trình 120 ngày','Lịch sử Tone Quest','AI Coach đã đồng bộ','Kết quả Quest đã đồng bộ'];
-    let mirror=null;try{const doc=await window.PandaHanFirebase.firestore.collection('studentProgress').doc(uid).get();mirror=doc.data()?.teacherMonitor}catch(_){}
-    const settled=await Promise.allSettled([attempts(uid),remote('studentSchedules',uid),remote('reviewLogs',uid),remote('studentProgress',uid),remote('quizResults',uid)]);
+    const [attemptResult,serverResult,mirrorResult]=await Promise.allSettled([
+      attempts(uid),teacherData(uid),window.PandaHanFirebase.firestore.collection('studentProgress').doc(uid).get()
+    ]);
+    const mirror=mirrorResult.status==='fulfilled'?mirrorResult.value.data()?.teacherMonitor:null;
+    const settled=[attemptResult,...['schedule','logs','progress','quiz'].map(key=>serverResult.status==='fulfilled'?{status:'fulfilled',value:serverResult.value[key]}:{status:'rejected',reason:serverResult.reason})];
     if(token!==generation||!host.isConnected)return;
     if(mirror?.schedule&&(settled[1].status==='rejected'||!settled[1].value))settled[1]={status:'fulfilled',value:mirror.schedule};
     if(mirror?.quests&&settled[2].status==='rejected')settled[2]={status:'fulfilled',value:mirror.quests.map(r=>({...r,review_type:'quest'}))};
@@ -52,7 +65,7 @@
     const questMap=new Map();[...questCached,...logs.filter(r=>r.review_type==='quest'||r.source==='pinyin-tone-quest')].forEach(r=>questMap.set(r.resultToken||JSON.stringify([r.dayNumber,r.scorePercent,r.createdAt||r.created_at]),r));
     const quests=[...questMap.values()].sort((a,b)=>Date.parse(b.createdAt||'')-Date.parse(a.createdAt||''));
     const complete=days.filter(d=>d.status==='completed').length;
-    const failures=settled.map((r,i)=>r.status==='rejected'?`<p role="alert">${esc(sources[i])}: không tải được (${esc(r.reason?.code||r.reason?.message)}). Có thể cần kiểm tra quyền đọc hoặc kết nối.</p>`:'').join('');
+    const failures=[...new Set(settled.filter(r=>r.status==='rejected').map(r=>r.reason?.message||r.reason?.code||'Không tải được dữ liệu.'))].map(message=>`<p role="alert">${esc(message)}</p>`).join('')+(serverResult.status==='rejected'&&mirror?'<p>Đang hiển thị bản đồng bộ gần nhất; dữ liệu trực tiếp chưa tải được.</p>':'');
     host.innerHTML=`<div class="tm-heading"><h2>Theo dõi học tập</h2><button class="btn" type="button" data-refresh-monitor>Làm mới</button></div><p>Đọc dữ liệu của học sinh đã chọn · tải lúc ${stamp(Date.now())}</p>${failures}<div class="tm-metrics"><div><b>${schedule?complete+'/120':'—'}</b><span>Ngày đã hoàn thành</span></div><div><b>${values[0]?rows.filter(r=>!['recommendation_choice','memory_learning'].includes(r.taskId)).length:'—'}</b><span>Lượt làm bài đã lưu</span></div><div><b>${values[2]||values[4]?quests.length:'—'}</b><span>Kết quả Tone Quest đã đồng bộ</span></div></div>`;
     if(mirror?.updatedAt)host.insertAdjacentHTML('beforeend',`<p>Bản đồng bộ học sinh gần nhất: ${stamp(mirror.updatedAt)}</p>`);
     host.innerHTML+=panel('Lộ trình 120 ngày · tiến độ hoàn thành',schedule?`<p>${complete}/120 ngày hoàn thành (${Math.round(complete/120*100)}%). Đây là tiến độ theo điều kiện mở ngày; không đồng nghĩa đã hoàn thành tất cả kỹ năng.</p><progress max="120" value="${complete}"></progress>`+table(['Ngày','Trạng thái','Nhiệm vụ đã ghi nhận','Điểm gần nhất'],days.map(d=>`<tr><td>${esc(d.day_number)}</td><td>${esc(({completed:'Hoàn thành',locked:'Chưa mở',available:'Có thể học',in_progress:'Đang học',pending:'Chưa hoàn thành'})[d.status]||d.status||'Chưa xác định')}</td><td>${esc(Object.keys(d.completed_tasks||{}).map(task).join(' · ')||'Chưa ghi nhận')}</td><td>${esc(d.last_score??'—')}</td></tr>`)):'<p>Chưa có lộ trình đã đồng bộ hoặc nguồn đang không truy cập được.</p>',true);
