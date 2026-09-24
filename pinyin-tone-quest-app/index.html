@@ -16,7 +16,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
     <script src="./assets/quest-english-source-v39.js?v=v39-source-english-20260903"></script>
-    <script type="module" crossorigin src="./assets/index-PanTutorV38-EnglishOnly.js?v=v39-source-english-20260903"></script>
+    <script src="./assets/lesson-access.js?v=v59-1-role-access"></script>
+    <script type="module" crossorigin src="./assets/index-PanTutorV38-EnglishOnly.js?v=v59-1-role-access"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-D5tQmQye.css">
   </head>
 
@@ -116,6 +117,7 @@ Error generating stack: `+l.message+`
     } catch(_){}
   }
   function notify(day,score){
+    if(!window.PanTutorQuestAccess?.canOpen(day))return;
     saveLocal(day,score);
     var token="certificate-v21:"+day+":"+score;
     try { parent.postMessage({type:"PANDAHAN_QUEST_DAY_RESULT",day:day,scorePercent:score,resultToken:token,source:"certificate-v21"},"*"); } catch(_){}
