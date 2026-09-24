@@ -43,7 +43,7 @@
       const addOwner = (v) => { v = String(v || '').replace(/[^a-zA-Z0-9_-]/g, '_'); if (v && !owners.includes(v)) owners.push(v); };
       try { addOwner(storageNamespace()); } catch (_) {}
       try { addOwner(window.CURRENT_USER?.uid); addOwner(window.CURRENT_USER?.username); } catch (_) {}
-      addOwner('guest'); // Handles Quest results saved during auth/bootstrap race.
+      if(!getUid())addOwner('guest');
       owners.forEach((ns) => {
         try {
           const progress = JSON.parse(localStorage.getItem(`pinyin-tone-quest-offline-progress-v2_${ns}`) || "{}") || {};
@@ -95,25 +95,15 @@
   function applyQuestEvidenceGate(schedule) {
     if (!schedule || !Array.isArray(schedule.days)) return schedule;
     compactLegacyRepeats(schedule);
-    const testTarget = Number(schedule?._meta?.test_unlock_day || 0);
-    if (Number.isInteger(testTarget) && testTarget >= 1 && testTarget <= 120) {
-      const today = core.todayVietnam();
-      schedule.days.forEach((day) => {
-        const n = Number(day.day_number);
-        day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
-        day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
-        if (n < testTarget) {
-          day.status = "completed";
-          day.completed_at = day.completed_at || today;
-          day.completed_tasks.quest = day.completed_tasks.quest || { completed_at: today, source: "TEST_ONLY_CHAT_UNLOCK", score: 100 };
-          day.task_scores.quest = Math.max(Number(day.task_scores.quest || 0), 100);
-          day.last_score = Math.max(Number(day.last_score || 0), 100);
-          day.best_score = Math.max(Number(day.best_score || 0), 100);
-        } else if (n === testTarget) {
-          day.status = "unlocked";
-          day.scheduled_date = today;
-        } else day.status = "locked";
-      });
+    if(schedule._meta){delete schedule._meta.test_unlock_day;delete schedule._meta.test_unlock_local_only;delete schedule._meta.test_unlock_at;}
+    schedule.days.forEach(day=>{
+      if(day.completed_tasks?.quest?.source==="TEST_ONLY_CHAT_UNLOCK"){
+        delete day.completed_tasks.quest;if(day.task_scores)delete day.task_scores.quest;
+        day.last_score=0;day.best_score=0;day.completed_at=null;day.status="locked";
+      }
+    });
+    if(window.PanTutorLessonAccess?.isTeacher()){
+      schedule.days.forEach(day=>{if(day.status!=="completed")day.status="unlocked";});
       return schedule;
     }
     const scores = questEvidenceScores();
@@ -142,7 +132,7 @@
         day.completed_at = null;
         day.scheduled_date = today;
         delete day.completed_tasks.quest;
-      } else if (day.status !== "completed") {
+      } else {
         day.status = "locked";
         day.completed_at = null;
         day.scheduled_date = null;
@@ -401,6 +391,7 @@
     const numericScore = Math.max(0, Math.min(100, Number(score)));
     const day = schedule.days.find((item) => Number(item.day_number) === numericDay && !item.is_repeat_of);
     if (!day) throw new Error(`Không tìm thấy ngày ${numericDay}.`);
+    if(!window.PanTutorLessonAccess?.isTeacher()&&day.status==="locked")throw new Error("Hãy hoàn thành ngày hiện tại trước.");
     day.required_tasks = ["quest"];
     day.completed_tasks = day.completed_tasks || {};
     day.task_scores = day.task_scores || {};
@@ -546,7 +537,7 @@
     const localBeforeWrite = loadLocal();
     let explicitTestDay = 0;
     try { explicitTestDay = Number(localStorage.getItem("pandahan_test_active_day") || 0); } catch (_) {}
-    const testLocalOnly = !!localBeforeWrite?._meta?.test_unlock_local_only || (Number.isInteger(explicitTestDay) && explicitTestDay >= 1 && Number(dayNumber) === explicitTestDay);
+    const testLocalOnly = window.PanTutorLessonAccess?.isTeacher()===true;
     let output = null;
     // TEST ONLY day-jump is intentionally local-only. Do not send its task evidence
     // to the learner's real RTDB schedule, where that curriculum day can still be locked.
@@ -589,7 +580,7 @@
     const localBeforeWrite = loadLocal();
     let explicitTestDay = 0;
     try { explicitTestDay = Number(localStorage.getItem("pandahan_test_active_day") || 0); } catch (_) {}
-    const testLocalOnly = !!localBeforeWrite?._meta?.test_unlock_local_only || (Number.isInteger(explicitTestDay) && explicitTestDay >= 1 && Number(dayNumber) === explicitTestDay);
+    const testLocalOnly = window.PanTutorLessonAccess?.isTeacher()===true;
     let output = null;
     if (!uid || !rtdb || testLocalOnly) {
       const local = localBeforeWrite || await initScheduleIfNeeded();
@@ -724,38 +715,18 @@
   }
 
   async function testUnlockToDay(dayNumber) {
-    const target = Math.max(1, Math.min(120, Number(dayNumber || 1)));
-    if (!Number.isInteger(target)) throw new Error("Test day must be an integer from 1 to 120.");
-    let schedule = loadLocal() || await initScheduleIfNeeded();
-    if (!schedule) throw new Error("Learning schedule is not ready.");
-    compactLegacyRepeats(schedule);
-    schedule._meta = { ...(schedule._meta || {}), test_unlock_day: target, test_unlock_local_only: true, test_unlock_at: Date.now() };
-    try { localStorage.setItem("pandahan_test_active_day", String(target)); } catch (_) {}
-    const today = core.todayVietnam();
-    schedule.days.forEach((day) => {
-      const n = Number(day.day_number);
-      day.completed_tasks = day.completed_tasks && typeof day.completed_tasks === "object" ? day.completed_tasks : {};
-      day.task_scores = day.task_scores && typeof day.task_scores === "object" ? day.task_scores : {};
-      if (n < target) {
-        day.status = "completed";
-        day.completed_at = day.completed_at || today;
-        day.last_score = Math.max(Number(day.last_score || 0), 100);
-        day.best_score = Math.max(Number(day.best_score || 0), 100);
-        day.completed_tasks.quest = day.completed_tasks.quest || { completed_at: today, source: "TEST_ONLY_CHAT_UNLOCK", score: 100 };
-        day.task_scores.quest = Math.max(Number(day.task_scores.quest || 0), 100);
-      } else if (n === target) {
-        day.status = "unlocked";
-        day.scheduled_date = today;
-        delete day.completed_at;
-      } else day.status = "locked";
-    });
-    saveLocal(schedule);
-    publishLocalDailyPlan(schedule);
-    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated", { detail: { schedule, source: "TEST_ONLY_CHAT_UNLOCK", dayNumber: target } }));
+    if(!window.PanTutorLessonAccess?.isTeacher())throw new Error("Chỉ giáo viên được chọn ngày bất kỳ.");
+    const target=Number(dayNumber);window.PanTutorLessonAccess.selectDay(target);
+    const schedule=loadLocal()||await initScheduleIfNeeded();
+    if(!schedule)throw new Error("Chưa tải được lộ trình.");
+    applyQuestEvidenceGate(schedule);saveLocal(schedule);publishLocalDailyPlan(schedule);
+    window.dispatchEvent(new CustomEvent("pandahan-schedule-updated",{detail:{schedule,dayNumber:target,source:"teacher-preview"}}));
     return schedule;
   }
 
   async function clearTestUnlock() {
+    if(!window.PanTutorLessonAccess?.isTeacher())throw new Error("Chỉ giáo viên được đổi ngày xem.");
+    window.PanTutorLessonAccess.clearDay();
     let schedule = loadLocal() || await initScheduleIfNeeded();
     if (!schedule) return null;
     try { localStorage.removeItem("pandahan_test_active_day"); } catch (_) {}
