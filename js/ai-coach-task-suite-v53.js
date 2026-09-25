@@ -536,6 +536,7 @@ function nextVariant(mode,day){
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><div class="ptcs-hanzi">${esc(it.text)}</div><div class="ptcs-pinyin" data-keep-pinyin="true">${esc(it.pinyin)}</div>${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsPhNext">${S.index+1>=S.items.length?T("Hoàn thành Ngữ âm","Finish Phonetics"):T("Tiếp theo →","Next →")}</button></div>`;
     localizeRoot(document.getElementById("ptcsReveal"));
     document.getElementById("ptcsPhNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const score=Math.round(S.answers.filter(x=>x.correct).length/Math.max(1,S.answers.length)*100),r=await saveEvidence("phonetics_core",score,{completeSet:true,correct:S.answers.filter(x=>x.correct).length,total:S.answers.length,answers:S.answers,teacherReports:S.reports,evidenceType:"ai_coach_pinyin_bootcamp_core_teacher_feedback_v57_2",passThreshold:30});summary(T("Pinyin Bootcamp · Ngữ âm cốt lõi","Pinyin Bootcamp · Phonetics Core"),score,r,T(`${S.answers.filter(x=>x.correct).length}/${S.answers.length} câu nhận diện đúng.`,`${S.answers.filter(x=>x.correct).length} of ${S.answers.length} objective items correct.`))}else renderPhoneticsCore()}
+    window.PandaHanAdaptiveRetryV1?.wrapNext("ptcsPhNext",S.mission,it.word?.char||it.text,ok,4);
   }
 
   /* ---------------- SRS Due Review inside AI Coach ---------------- */
@@ -587,6 +588,7 @@ function nextVariant(mode,day){
     });
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal">${report}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsVocabQuizNext">${S.index+1>=S.items.length?T("Hoàn thành từ vựng","Finish vocabulary"):T("Tiếp theo →","Next →")}</button></div>`;
     localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsVocabQuizNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const correct=S.answers.filter(x=>x.correct).length,score=Math.round(correct/Math.max(1,S.answers.length)*100),bootcamp=Number(S.mission?.dayNumber||1)<=10,r=await saveEvidence("vocab-intro",score,{completeSet:true,correct,total:S.answers.length,answers:S.answers,teacherReports:S.reports,evidenceType:bootcamp?"ai_coach_phonetics_linked_vocabulary_teacher_feedback_v57_2":"ai_coach_excel_vocabulary_teacher_feedback_v57_2",passThreshold:70});summary(bootcamp?T("Từ vựng gắn với ngữ âm","Phonetics-linked vocabulary"):T("Từ vựng Excel","Excel vocabulary"),score,r,bootcamp?T(`${correct}/${S.answers.length} ví dụ gắn với phát âm đúng. Ngày 1–10 không đưa các mục này vào SRS tổng quát.`,`${correct} of ${S.answers.length} pronunciation-linked examples correct. Day 1–10 does not add these items to general SRS.`):T(`${correct}/${S.answers.length} từ đúng. Các câu trả lời thực tế đã được chuyển vào SRS hiện có.`,`${correct} of ${S.answers.length} words correct. Actual answers were saved into the existing SRS engine.`))}else renderVocabQuiz()}
+    window.PandaHanAdaptiveRetryV1?.wrapNext("ptcsVocabQuizNext",S.mission,it.char,ok,3);
   }
 
   /* ---------------- Reading / Writing Lab ---------------- */
@@ -624,6 +626,7 @@ function nextVariant(mode,day){
     recordTeacherReport(it.kind==="writing"?T("Viết","Writing"):it.kind==="reading"?T("Đọc hiểu","Reading comprehension"):T("Viết Pinyin","Pinyin writing"),points,strength,focus);
     document.getElementById("ptcsReveal").innerHTML=`<div class="ptcs-reveal"><b>${points}/100</b>${reportHtml}</div><div class="ptcs-next"><button class="ptcs-btn primary" id="ptcsRWNext">${S.index+1>=S.items.length?T("Hoàn thành Đọc / Viết","Finish Reading / Writing"):T("Tiếp theo →","Next →")}</button></div>`;
     localizeRoot(document.getElementById("ptcsReveal"));document.getElementById("ptcsRWNext").onclick=async()=>{S.index++;if(S.index>=S.items.length){const vals=S.scores.filter(Number.isFinite),score=Math.round(vals.reduce((a,b)=>a+b,0)/Math.max(1,vals.length)),r=await saveEvidence("reading_writing",score,{completeSet:vals.length===S.items.length,itemScores:vals,attempts:S.answers,teacherReports:S.reports,evidenceType:"ai_coach_reading_writing_input_output_repair_v57_2",passThreshold:60});summary(T("Đọc / Viết","Reading / Writing"),score,r,T(`${vals.length} mục theo lộ trình đã hoàn thành với phản hồi Input → Chẩn đoán → Cấu trúc đúng → Output sửa.`,`${vals.length} curriculum-linked items completed with Input → Diagnosis → Correct structure → Repaired output feedback.`))}else renderRW()}
+    window.PandaHanAdaptiveRetryV1?.wrapNext("ptcsRWNext",S.mission,it.word?.char,points>=75,it.kind==="pinyin"?4:10);
   }
 
   /* ---------------- Mistake Review Lab ---------------- */
@@ -750,6 +753,7 @@ function nextVariant(mode,day){
     ],model:`${it.text} · ${it.pinyin} · ${it.meaning}`,next:focus});
     h.innerHTML=`<div class="ptcs-score">${mode}<div class="ptcs-score-big">${g.score}/100</div>${report}<div class="ptcs-next" style="gap:8px"><button class="ptcs-btn" id="ptcsSpeakAgain">${T("Thu lại","Record again")}</button><button class="ptcs-btn primary" id="ptcsSpeakNext">${S.index+1>=S.items.length?T("Hoàn thành Nói","Finish Speaking"):T("Thẻ tiếp theo →","Next card →")}</button></div></div>`;localizeRoot(h);
     document.getElementById("ptcsSpeakAgain").onclick=()=>{S.scores[S.index]=undefined;S.speakingItems[S.index]=undefined;if(S.reports.length)S.reports.pop();renderSpeaking()};document.getElementById("ptcsSpeakNext").onclick=()=>advanceSpeaking()
+    window.PandaHanAdaptiveRetryV1?.wrapNext("ptcsSpeakNext",S.mission,it.word?.char||it.text,g.score>=75,8);
   }
 
   window.PandaHanCoachSkills={...base,openPhoneticsCore,openSrs,openVocabulary,openReadingWriting,openMistakeReview,openSpeaking,close,passThresholds:PASS,version:VERSION};
