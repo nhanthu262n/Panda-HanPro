@@ -13,6 +13,7 @@
   function word(char){try{return (typeof VOCAB_BY_CHAR!=="undefined"?VOCAB_BY_CHAR:window.VOCAB_BY_CHAR||{})?.[char]||vocab().find(x=>x.char===char)||null}catch(_){return null}}
   function meaning(w){return String(w?.meaning??w?.meaning_vn??w?.meaning_en??"").trim()}
   function lexicalEvidence(row,item){
+    if(item.verified===false||item.hintShown===true)return null;
     const task=row.taskId, char=String(item.char||item.word||item.target||"");
     if(task==="listening")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:item.correct===true,kind:"audio"};
     if(task==="phonetics_core")return {char:hanzi(char),dim:"SOUND",correct:item.correct===true,kind:"phonetics"};
@@ -20,7 +21,7 @@
     if(task==="vocab-intro")return {char,dim:"MEANING",correct:item.correct===true,kind:"meaning"};
     if(task==="srs")return {char:String(item.char||item.expected||""),dim:"FORM",correct:item.correct===true,kind:"form"};
     if(task==="reading_writing"){
-      const dim=item.kind==="writing"?"USAGE":item.kind==="pinyin"?"SOUND":"MEANING";
+      const dim=item.dimension|| (item.kind==="writing"?"USAGE":item.kind==="pinyin"?"SOUND":"MEANING");
       return {char,dim,correct:Number(item.score)>=75&&!item.correction?.reason,kind:item.kind};
     }
     if(task==="remediation")return {char:String(item.target||""),dim:item.dimension,correct:item.correct===true,kind:"remediation"};
@@ -42,7 +43,7 @@
       const measured=Number(item.responseMs);
       if(e.correct){
         if(Number.isFinite(measured)&&measured>0){
-          cls=measured<=3500&&item.confidence==="certain"?1:measured>=6000||item.confidence==="unsure"?2:null;
+          cls=measured<3000&&item.confidence==="certain"?1:measured>=3000||item.confidence==="unsure"?2:null;
           confidence=cls===1?0.95:cls===2?0.85:0;
         }
       }else if(priorWrong>=2&&threeDistinctAttempts&&e.kind!=="remediation"){
@@ -228,6 +229,11 @@
     document.head.appendChild(style);
   }
   function open(rec,step=0){
+    const retry=window.PandaHanAdaptiveRetryV1;
+    if([1,12].includes(Number(rec.dayNumber))&&retry?.isPilot(rec.target)&&rec.diagnosisClass!==7&&rec.diagnosisClass!==1){
+      return retry.renderRetryPanel([{char:rec.target,layer:rec.diagnosisClass,dimension:rec.dimension}],null,{dayNumber:rec.dayNumber});
+    }
+
     if(!rec)return;
     const reviewed=decisions.get(recommendationId(rec));
     if(rec.diagnosisClass!==7&&reviewed?.status==="approved"&&reviewed.teacherRoute&&!rec._teacherApplied){
