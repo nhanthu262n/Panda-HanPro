@@ -1,5 +1,5 @@
 // v57.2-phonetics-sync-deep-feedback-20260924
-const CACHE_NAME = "pantutor-runtime-v60-5-teacher-permissions";
+const CACHE_NAME = "pantutor-runtime-v61-adaptive-retry";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
