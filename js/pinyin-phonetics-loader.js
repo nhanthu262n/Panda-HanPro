@@ -6,7 +6,7 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
-  const PHONETICS_BUILD = "v51-canonical-wav-compatible100-rubric-20260905";
+  const PHONETICS_BUILD = "v68-readable-phonetics";
   const PARTS = [
     { file: "phonetics-chunks-v45/phonetics-01.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-02.js", chars: 4000000 },
@@ -16,7 +16,7 @@
     { file: "phonetics-chunks-v45/phonetics-06.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-07.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-08.js", chars: 4000000 },
-    { file: "phonetics-chunks-v45/phonetics-09.js", chars: 4000000 },
+    { file: "phonetics-chunks-v45/phonetics-09.js", chars: 4000012 },
     { file: "phonetics-chunks-v45/phonetics-10.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-11.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-12.js", chars: 4000000 },
@@ -31,7 +31,7 @@
     { file: "phonetics-chunks-v45/phonetics-21.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-22.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-23.js", chars: 4000000 },
-    { file: "phonetics-chunks-v45/phonetics-24.js", chars: 3870987 }
+    { file: "phonetics-chunks-v45/phonetics-24.js", chars: 3871007 }
   ];
 
   let loadingPromise = null;
@@ -46,12 +46,12 @@
     if (!root) return;
     const pct = Math.round((done / PARTS.length) * 100);
     root.innerHTML = `<div style="padding:28px;text-align:center;color:#9ca3af;font-weight:700">
-      <div style="font-size:18px;margin-bottom:8px">Loading Pinyin Phonetics…</div>
-      <div style="font-size:13px;margin-bottom:12px">Audio and flashcard data load on first use.</div>
+      <div style="font-size:20px;margin-bottom:8px">Loading Pinyin Phonetics…</div>
+      <div style="font-size:15px;margin-bottom:12px">Audio and flashcard data load on first use.</div>
       <div style="height:8px;background:#fce7f3;border-radius:99px;overflow:hidden">
         <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#ec4899,#a855f7);transition:width .25s"></div>
       </div>
-      <div style="font-size:12px;margin-top:8px">${done}/${PARTS.length} parts loaded</div>
+      <div style="font-size:14px;margin-top:8px">${done}/${PARTS.length} parts loaded</div>
     </div>`;
   }
 
@@ -62,8 +62,8 @@
     const message = String(error?.message || error || 'Unknown loading error');
     root.innerHTML = `<div style="margin:20px auto;max-width:760px;padding:18px;color:#991b1b;background:#fee2e2;border:1px solid #fecaca;border-radius:14px;line-height:1.6">
       <strong>Unable to load the Phonetics module.</strong><br>
-      <span style="font-size:13px">A Phonetics data chunk could not be loaded completely. This can happen on a slow or interrupted connection.</span>
-      <details style="margin-top:8px;font-size:11px;color:#7f1d1d"><summary>Technical detail</summary><code>${message.replace(/</g,'&lt;')}</code></details>
+      <span style="font-size:15px">A Phonetics data chunk could not be loaded completely. This can happen on a slow or interrupted connection.</span>
+      <details style="margin-top:8px;font-size:14px;color:#7f1d1d"><summary>Technical detail</summary><code>${message.replace(/</g,'&lt;')}</code></details>
       <button type="button" id="pinyinRetryLoadBtn" style="margin-top:12px;border:0;border-radius:10px;padding:9px 15px;background:#db2777;color:#fff;font-weight:800;cursor:pointer">Retry Phonetics</button>
     </div>`;
     root.querySelector('#pinyinRetryLoadBtn')?.addEventListener('click', () => {
@@ -158,7 +158,7 @@
         .pinyin-sticky-nav button { min-height:44px; }
         @media (max-width:640px) {
           .pinyin-sticky-nav { gap:8px !important; padding:8px !important; bottom:8px; }
-          .pinyin-sticky-nav button { min-height:44px; font-size:12px !important; }
+          .pinyin-sticky-nav button { min-height:44px; font-size:14px !important; }
         }
       `;
       shadow.appendChild(style);
