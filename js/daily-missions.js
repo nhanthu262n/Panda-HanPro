@@ -476,12 +476,12 @@
 
     const rows = sequence.map((step, index) => {
       const action = step.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "verified" : "đã xác minh"}</small>` : `<button type="button" data-mission-task="${step.type}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:10.5px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
-      return `<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:16px;">${step.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(step.title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(step.description)}</small></span>${action}</div>`;
+      return `<div class="coach-task-card" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:16px;">${step.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(step.title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(step.description)}</small></span>${action}</div>`;
     }).join("");
     const phaseText = day <= 10
       ? (langEn ? "Day 1-10: Pinyin Bootcamp. Excel vocabulary entries are pronunciation examples, not general vocabulary lessons." : "Day 1–10: Pinyin Bootcamp + Từ vựng liên kết — nghe theo âm của ngày; chưa mở từ vựng đại trà/SRS lũy kế.")
       : (langEn ? "Day 11-120: exact Excel vocabulary + SRS + language skills." : "Day 11–120: học đúng nhóm từ Excel + SRS + Nghe/Nói/Đọc/Viết.");
-    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #ddd6fe;border-radius:11px;background:#fbfaff;"><b>${langEn ? "Excel master learning flow" : "Luồng học theo Excel Master"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${esc(phaseText)} ${langEn ? "The order is recommended; non-Quest tasks never block progression." : "Thứ tự là khuyến nghị; mọi nhiệm vụ ngoài Quest đều không chặn tiến độ."}</div>${rows}</div>`;
+    return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #ddd6fe;border-radius:11px;background:#fbfaff;"><b>${langEn ? "Your learning activities" : "Chọn bài để bắt đầu"}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${esc(phaseText)} ${langEn ? "The order is recommended; non-Quest tasks never block progression." : "Thứ tự là khuyến nghị; mọi nhiệm vụ ngoài Quest đều không chặn tiến độ."}</div><div class="coach-task-grid">${rows}</div></div>`;
   }
   function localizedCurriculumTopic(m, langEn) {
     if (!langEn) return m.curriculum?.topic || m.topic || "";
@@ -676,7 +676,7 @@
       m.questCheckpointQuestion !== "-" ? `${langEn ? "Checkpoint" : "Câu hỏi chốt"}: ${m.questCheckpointQuestion}` : ""
     ].filter(Boolean);
     const excelNote = excelDetails.length ? `<details style="margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:9px;padding:7px 9px;font-size:11px;color:#475569;"><summary style="cursor:pointer;font-weight:800;color:#7e22ce;">Xem đầy đủ nội dung ngày từ Excel</summary><div style="margin-top:6px;line-height:1.5;overflow-wrap:anywhere;">${excelDetails.map(esc).join("<br>")}</div></details>` : "";
-    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "AI learning plan · Excel + real learner data" : "Kế hoạch học với AI · Excel + dữ liệu học thật"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${renderCoachRouteStatus(m, langEn)}${adaptiveNote}${carryNote}${excelNote}${renderCoachAssessment(m, langEn)}${learningSequence}${renderRequiredChecklist(m, langEn)}</div>`;
+    container.innerHTML = `<div data-ai-coach-plan="true" style="border:1px solid #f3d5e5;border-radius:14px;background:linear-gradient(135deg,#fff7fb,#f5f3ff);padding:12px;"><div style="font-size:11px;color:#a855f7;font-weight:800;text-transform:uppercase;">${langEn ? "TODAY’S LEARNING" : "BÀI HỌC CỦA BẠN"}</div><h3 style="margin:3px 0;font-size:16px;">${langEn ? `${m.sessionLabelEn} · Week ${m.weekNumber} · ${stageLabel}` : `${m.sessionLabelVi} · Tuần ${m.weekNumber} · ${stageLabel}`}</h3><div style="font-weight:700;overflow-wrap:anywhere;">${esc(localizedCurriculumTopic(m, langEn))}</div><div style="font-size:11.5px;color:#64748b;margin-top:5px;">${langEn ? `Target score: ${m.requiredScore}% · XP: ${m.xpTarget} · Estimated time: ${m.totalMinutes} minutes` : `Mục tiêu: ${m.requiredScore}% · XP: ${m.xpTarget} · Thời lượng dự kiến: ${m.totalMinutes} phút`}</div>${renderCoachRouteStatus(m, langEn)}${adaptiveNote}${carryNote}${learningSequence}<details class="coach-extra"><summary>${langEn?"Feedback & learning results":"Nhận xét & kết quả học tập"}</summary>${renderCoachAssessment(m, langEn)}${renderRequiredChecklist(m, langEn)}</details><details class="coach-extra"><summary>${langEn?"Lesson details":"Nội dung chi tiết của ngày học"}</summary>${excelNote}</details></div>`;
     container.querySelectorAll("[data-mission-task]").forEach((button) => button.addEventListener("click", () => startTask(button.dataset.missionTask)));
   }
 
@@ -969,7 +969,7 @@
       coachPlanRefreshQueued = false;
       activeMission = null;
       const area = document.getElementById("chatMessagesArea");
-      const host = area?.querySelector("[data-ai-coach-plan-host]");
+      const host = document.getElementById("coachLessonHost") || area?.querySelector("[data-ai-coach-plan-host]");
       if (host) renderCoach(host);
       else if (area?.querySelector("[data-ai-coach-plan]")) renderCoach(area);
     };
