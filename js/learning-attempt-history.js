@@ -49,6 +49,7 @@
     }));
     let row=clean({attemptId,ownerId:id,dayNumber:day,taskId:String(data.taskId),scorePercent:score,passed:!!data.passed,completeSet:!!data.completeSet,correct:Number(data.correct||0),total:Number(data.total||0),items,teacherReports:Array.isArray(data.teacherReports)?data.teacherReports:[],scheduleSaved:!!data.scheduleSaved,createdAt,synced:false});
     const rows=read(id);row=clean(window.PanTutorMemory?.snapshot?.(row,rows)||row);rows.push(row);write(id,rows);
+    window.dispatchEvent(new CustomEvent("pantutor-attempt-saved",{detail:{attemptId,dayNumber:day,taskId:row.taskId,local:true}}));
     if(id!=="guest")await flush();
     window.dispatchEvent(new CustomEvent("pantutor-attempt-saved",{detail:{attemptId,dayNumber:day,taskId:row.taskId}}));
     return {...row,synced:read(id).find(x=>x.attemptId===attemptId)?.synced===true};
