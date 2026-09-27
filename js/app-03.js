@@ -242,7 +242,7 @@ function renderSessionList(container) {
       <div class="pv-session-body">
         <div class="pv-session-emoji">${unlocked ? s.emoji : '🔒'}</div>
         <div class="pv-session-info">
-          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">${pvT("Session", "Session")} ${s.id}</span>${done ? '<span style="font-size:12px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
+          <div><span class="pv-session-badge" style="background:${unlocked ? s.color : '#9ca3af'}">${pvT("Session", "Session")} ${s.id}</span>${done ? '<span style="font-size:14px">'+'⭐'.repeat(p.stars)+'☆'.repeat(3-p.stars)+'</span>' : ''}</div>
           <div class="pv-session-title">${pvSessionTitle(s)}</div>
           <div class="pv-session-sub">${pvSessionSub(s)}</div>
           ${done ? `<div style="margin-top:6px;height:4px;background:#f3f4f6;border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;width:${(p.bestScore/10)*100}%;background:linear-gradient(to right,${s.color},#a855f7)"></div></div>` : ''}
@@ -268,7 +268,7 @@ function renderSessionDetail(container) {
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid #fbcfe8;margin-bottom:8px">
       <button class="pv-back-btn" onclick="pvBackToList()" style="color:${session.color}">← ${pvT("Quay lại", "Back")}</button>
       <div style="font-family:'Baloo 2',sans-serif;font-weight:800;color:#1e1b4b">${session.emoji} ${pvSessionTitle(session)}</div>
-      <div style="font-size:16px">${'⭐'.repeat(progress.stars)}${'☆'.repeat(3-progress.stars)}</div>
+      <div style="font-size:18px">${'⭐'.repeat(progress.stars)}${'☆'.repeat(3-progress.stars)}</div>
     </div>`;
 
   if (phase !== 'result') {
@@ -334,7 +334,7 @@ function renderToneGuide(tone) {
   if (!g) return '';
   return `<div class="pv-tone-guide" style="background:${g.bg};border-color:${g.border}">
     <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px">
-      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">CAO</div>
+      <div style="font-size:14px;font-weight:800;color:#9ca3af;letter-spacing:2px">CAO</div>
       <svg class="pv-tone-svg" width="90" height="70" viewBox="0 0 100 80">
         <line x1="5" y1="15" x2="95" y2="15" stroke="#f1f5f9" stroke-width="1"/>
         <line x1="5" y1="30" x2="95" y2="30" stroke="#f1f5f9" stroke-width="1"/>
@@ -344,7 +344,7 @@ function renderToneGuide(tone) {
         <polyline points="${g.path.replace('M','').replace(/L/g,' ').trim()}" fill="none" stroke="${g.color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="pv-tone-line" style="filter:drop-shadow(0 2px 4px ${g.color}55)"/>
         <text x="50" y="78" text-anchor="middle" font-size="11" font-weight="800" fill="${g.color}" font-family="'Nunito',sans-serif">${tone}声</text>
       </svg>
-      <div style="font-size:10px;font-weight:800;color:#9ca3af;letter-spacing:2px">THẤP</div>
+      <div style="font-size:14px;font-weight:800;color:#9ca3af;letter-spacing:2px">THẤP</div>
     </div>
     <div class="tg-info">
       <div class="tg-name" style="color:${g.color}">${g.name}</div>
@@ -389,13 +389,13 @@ function renderFlash(session) {
         <div style="display:flex;gap:4px;margin-top:8px">`;
   [1,2,3,4].forEach(t => {
     const isThis = t === card.tone;
-    html += `<span style="width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid;transition:all .2s;background:${isThis ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};border-color:${isThis ? 'transparent' : '#fbcfe8'};color:${isThis ? '#fff' : '#f9a8d4'};transform:${isThis ? 'scale(1.15)' : 'scale(1)'}">${t}</span>`;
+    html += `<span style="width:24px;height:24px;border-radius:50%;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid;transition:all .2s;background:${isThis ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};border-color:${isThis ? 'transparent' : '#fbcfe8'};color:${isThis ? '#fff' : '#f9a8d4'};transform:${isThis ? 'scale(1.15)' : 'scale(1)'}">${t}</span>`;
   });
   html += `</div>
         <button class="pv-flash-btn" style="margin-top:14px;background:${speaking ? 'linear-gradient(135deg,#ec4899,#a855f7)' : '#fdf2f8'};color:${speaking ? '#fff' : '#ec4899'};box-shadow:${speaking ? '0 4px 14px rgba(236,72,153,.4)' : 'none'}" onclick="event.stopPropagation();pvTeacherSpeak('${card.hanzi}')">
           ${speaking ? `🔊 ${pvT("Đang đọc...", "Reading...")}` : `🔊 ${pvT("Nghe giáo viên", "Listen to teacher")}`}
         </button>
-        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:11px;animation:pvPulse 2s ease infinite">${pvT("nhấn thẻ để xem chữ", "tap card to see Hanzi")} ↗</div>
+        <div style="position:absolute;bottom:12px;color:#d1d5db;font-size:14px;animation:pvPulse 2s ease infinite">${pvT("nhấn thẻ để xem chữ", "tap card to see Hanzi")} ↗</div>
       </div>
       <div class="pv-flash-back">
         <div class="pv-flash-hanzi" style="font-size:4.5rem">${card.hanzi}</div>
@@ -858,7 +858,7 @@ function pvNextSession() {
   async function initChatSystem() {
     const contactListEl = document.getElementById("chatContactList");
     if (!contactListEl) return;
-    contactListEl.innerHTML = `<div style="font-size:12px;color:var(--text-light);padding:8px;">${window.LANG_MODE === "en" ? "Loading contacts..." : "Đang tải danh sách..."}</div>`;
+    contactListEl.innerHTML = `<div style="font-size:14px;color:var(--text-light);padding:8px;">${window.LANG_MODE === "en" ? "Loading contacts..." : "Đang tải danh sách..."}</div>`;
 
     const broadcastBtn = document.getElementById("chatBroadcastBtn");
     if (broadcastBtn) {
@@ -890,7 +890,7 @@ function pvNextSession() {
 
     if (contacts.length === 0) {
       const empty = document.createElement("div");
-      empty.style.cssText = "font-size:12px;color:var(--text-light);padding:8px;";
+      empty.style.cssText = "font-size:14px;color:var(--text-light);padding:8px;";
       empty.textContent = window.LANG_MODE === "en" ? (isTeacherRole() ? "No contacts yet." : "No teacher is available for messaging yet.") : (isTeacherRole() ? "Chưa có liên hệ nào." : "Chưa có giáo viên nào để nhắn tin.");
       contactListEl.appendChild(empty);
       return;
@@ -983,10 +983,10 @@ function pvNextSession() {
     section.setAttribute("data-ai-topic-library", "true");
     section.style.cssText = "margin-top:10px;padding:10px 11px;border:1px solid #f2bfd8;border-radius:12px;background:#fff7fb;";
     const groups = [1, 2, 3, 4, 5, 6].map((level) => {
-      const buttons = library.filter((item) => Number(item.level) === level).map((item) => `<button type="button" data-ai-topic="${escapeHtml(item.id)}" style="border:1px solid #efb6ce;background:#fce7f3;color:#201c22;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:700;cursor:pointer;">${escapeHtml(en ? item.topicEn : item.topicVi)}</button>`).join("");
-      return `<div style="margin-top:7px;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;"><b style="font-size:11px;color:#a21c5a;min-width:38px;padding-top:6px;">HSK ${level}</b>${buttons}</div>`;
+      const buttons = library.filter((item) => Number(item.level) === level).map((item) => `<button type="button" data-ai-topic="${escapeHtml(item.id)}" style="border:1px solid #efb6ce;background:#fce7f3;color:#201c22;border-radius:999px;padding:6px 9px;font-size:14px;font-weight:700;cursor:pointer;">${escapeHtml(en ? item.topicEn : item.topicVi)}</button>`).join("");
+      return `<div style="margin-top:7px;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;"><b style="font-size:14px;color:#a21c5a;min-width:38px;padding-top:6px;">HSK ${level}</b>${buttons}</div>`;
     }).join("");
-    section.innerHTML = `<b style="color:#75214c;">${en ? "Choose a structured HSK topic" : "Chọn chủ đề HSK có sẵn"}</b><div style="font-size:11.5px;color:#5b4964;margin-top:3px;">${en ? "Each topic gives a multi-sentence paragraph, pinyin, meaning, vocabulary, grammar and a mini dialogue." : "Mỗi chủ đề sẽ có đoạn nhiều câu, pinyin, nghĩa, từ vựng, ngữ pháp và hội thoại ngắn."}</div>${groups}`;
+    section.innerHTML = `<b style="color:#75214c;">${en ? "Choose a structured HSK topic" : "Chọn chủ đề HSK có sẵn"}</b><div style="font-size:14px;color:#5b4964;margin-top:3px;">${en ? "Each topic gives a multi-sentence paragraph, pinyin, meaning, vocabulary, grammar and a mini dialogue." : "Mỗi chủ đề sẽ có đoạn nhiều câu, pinyin, nghĩa, từ vựng, ngữ pháp và hội thoại ngắn."}</div>${groups}`;
     section.querySelectorAll("[data-ai-topic]").forEach((button) => button.addEventListener("click", () => {
       const topic = library.find((item) => item.id === button.dataset.aiTopic);
       if (!topic) return;
@@ -1071,8 +1071,8 @@ function pvNextSession() {
     return [1, 2, 3, 4, 5, 6].map((level) => {
       const topics = library.filter((topic) => Number(topic.level) === level && (!aiTutorState.level || Number(aiTutorState.level) === level));
       if (!topics.length) return "";
-      const buttons = topics.map((topic) => `<button type="button" data-ai-tutor-topic="${escapeHtml(topic.id)}" style="border:1px solid ${aiTutorState.selectedTopicId === topic.id ? "#be185d" : "#efb6ce"};background:${aiTutorState.selectedTopicId === topic.id ? "#f8d7e7" : "#fce7f3"};color:#201c22;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer;">${escapeHtml(language === "vi" ? topic.topicVi : topic.topicEn)}</button>`).join("");
-      return `<div style="display:flex;gap:7px;align-items:flex-start;flex-wrap:wrap;margin-top:8px;"><b style="min-width:42px;padding-top:7px;color:#a21c5a;font-size:11px;">HSK ${level}</b>${buttons}</div>`;
+      const buttons = topics.map((topic) => `<button type="button" data-ai-tutor-topic="${escapeHtml(topic.id)}" style="border:1px solid ${aiTutorState.selectedTopicId === topic.id ? "#be185d" : "#efb6ce"};background:${aiTutorState.selectedTopicId === topic.id ? "#f8d7e7" : "#fce7f3"};color:#201c22;border-radius:999px;padding:7px 10px;font-size:14px;font-weight:800;cursor:pointer;">${escapeHtml(language === "vi" ? topic.topicVi : topic.topicEn)}</button>`).join("");
+      return `<div style="display:flex;gap:7px;align-items:flex-start;flex-wrap:wrap;margin-top:8px;"><b style="min-width:42px;padding-top:7px;color:#a21c5a;font-size:14px;">HSK ${level}</b>${buttons}</div>`;
     }).join("");
   }
   function tutorSelectedTopic() {
@@ -1348,15 +1348,15 @@ function pvNextSession() {
     form.setAttribute('data-chatbox-exam-form', 'true');
     form.style.cssText = 'margin:8px 0;padding:12px;border:2px solid #f0a6c8;border-radius:14px;background:#fff7fb;line-height:1.55;';
     const rows = (exam.items || []).map((item, index) => {
-      const options = Array.isArray(item.options) ? `<div style="font-size:12px;color:#5b4964;margin:4px 0;">${item.options.map((o,j)=>`${String.fromCharCode(65+j)}. ${escapeHtml(o)}`).join(' · ')}</div>` : '';
+      const options = Array.isArray(item.options) ? `<div style="font-size:14px;color:#5b4964;margin:4px 0;">${item.options.map((o,j)=>`${String.fromCharCode(65+j)}. ${escapeHtml(o)}`).join(' · ')}</div>` : '';
       const inputType = item.section === 'writing' ? 'textarea' : 'input';
       const saved = chatboxExamState.draftAnswers[String(index)] || '';
       const helper = item.section === 'writing'
         ? 'Write your answer / 请作答…'
         : (Array.isArray(item.options) && item.options.length ? 'Enter A, B, C, D or the answer text / 输入 A、B、C、D 或答案文字…' : 'Your answer / 请输入答案…');
-      return `<div style="padding:8px 0;border-top:1px solid #f4c6dc;"><b>${index+1}. ${escapeHtml(item.prompt || '')}</b>${item.passage ? `<div style="margin:4px 0;color:#334155;">${escapeHtml(item.passage)}</div>` : ''}${options}<${inputType} data-chatbox-answer="${index}" placeholder="${helper}" style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #e8b5ce;border-radius:8px;font-family:inherit;${inputType === 'textarea' ? 'min-height:64px;' : ''}">${inputType === 'textarea' ? escapeHtml(saved) : ''}</${inputType}><div data-live-grade="${index}" style="min-height:14px;margin-top:3px;font-size:11px;"></div>${item.section === 'writing' ? `<small style="color:#8b5cf6;">中文写作 / Chinese writing · English rubric feedback after submission</small>` : ''}</div>`;
+      return `<div style="padding:8px 0;border-top:1px solid #f4c6dc;"><b>${index+1}. ${escapeHtml(item.prompt || '')}</b>${item.passage ? `<div style="margin:4px 0;color:#334155;">${escapeHtml(item.passage)}</div>` : ''}${options}<${inputType} data-chatbox-answer="${index}" placeholder="${helper}" style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #e8b5ce;border-radius:8px;font-family:inherit;${inputType === 'textarea' ? 'min-height:64px;' : ''}">${inputType === 'textarea' ? escapeHtml(saved) : ''}</${inputType}><div data-live-grade="${index}" style="min-height:14px;margin-top:3px;font-size:14px;"></div>${item.section === 'writing' ? `<small style="color:#8b5cf6;">中文写作 / Chinese writing · English rubric feedback after submission</small>` : ''}</div>`;
     }).join('');
-    form.innerHTML = `<strong>✍️ 直接答题 / Take the exam here</strong><div style="font-size:11px;color:#64748b;margin:3px 0 8px;">Enter A/a, B/b, C/c, D/d or the option text. Answers are saved locally while you work and graded only after Submit. / 可输入选项字母或答案文字；作答会暂存，提交后统一评分。</div>${rows}<button type="button" data-chatbox-submit style="margin-top:10px;border:0;border-radius:9px;padding:9px 13px;background:#db2777;color:#fff;font-weight:800;cursor:pointer;">提交 / Submit</button><div data-chatbox-grade style="margin-top:8px;"></div>`;
+    form.innerHTML = `<strong>✍️ 直接答题 / Take the exam here</strong><div style="font-size:14px;color:#64748b;margin:3px 0 8px;">Enter A/a, B/b, C/c, D/d or the option text. Answers are saved locally while you work and graded only after Submit. / 可输入选项字母或答案文字；作答会暂存，提交后统一评分。</div>${rows}<button type="button" data-chatbox-submit style="margin-top:10px;border:0;border-radius:9px;padding:9px 13px;background:#db2777;color:#fff;font-weight:800;cursor:pointer;">提交 / Submit</button><div data-chatbox-grade style="margin-top:8px;"></div>`;
     area.appendChild(form);
 
     // Restore input values after innerHTML creation (input value attributes are intentionally avoided).
@@ -1417,7 +1417,7 @@ function pvNextSession() {
       const total100 = writingTotal ? Math.round(objectivePercent * 0.8 + writingPercent * 0.2) : objectivePercent;
       const grade = form.querySelector('[data-chatbox-grade]');
       grade.innerHTML = `<b>总分 / Total score: ${total100}/100</b><br><span>客观题 / Objective: ${correct}/${objective.length} = ${objectivePercent}%${writingTotal ? ` · 写作完成度 / Writing completion: ${writing.length}/${writingTotal} = ${writingPercent}%` : ''}</span><br><span>Accepted objective input: A/a, B/b, C/c, D/d or exact option text. / 客观题可输入大小写选项字母或答案文字。</span>${writingTotal ? '<br><span>写作 rubric / Writing rubric: Task completion / 完成任务 · Organization / 结构与衔接 · Grammar / 语法 · Vocabulary / 词汇 · Naturalness & style / 自然度与文体. AI score is a teaching suggestion; teacher confirms the final score.</span>' : ''}`;
-      writing.forEach(x => { const node = document.createElement('div'); node.style.cssText='margin-top:7px;padding:7px;border-top:1px dashed #e5b5cc;font-size:11px;'; node.innerHTML = `<b>${x.item.id}</b> · 中文解析 / Chinese feedback: 检查任务完成、结构、语法、词汇和表达自然度。 English feedback: check task completion, organization, grammar, vocabulary and naturalness. <br><em>Suggested correction / 建议修改: review the answer against the prompt and target structures.</em>`; grade.appendChild(node); });
+      writing.forEach(x => { const node = document.createElement('div'); node.style.cssText='margin-top:7px;padding:7px;border-top:1px dashed #e5b5cc;font-size:14px;'; node.innerHTML = `<b>${x.item.id}</b> · 中文解析 / Chinese feedback: 检查任务完成、结构、语法、词汇和表达自然度。 English feedback: check task completion, organization, grammar, vocabulary and naturalness. <br><em>Suggested correction / 建议修改: review the answer against the prompt and target structures.</em>`; grade.appendChild(node); });
       saveExamDraft(displayExam, chatboxExamState.draftAnswers);
       grade.scrollIntoView({ behavior:'smooth', block:'nearest' });
     });
@@ -1496,7 +1496,7 @@ function pvNextSession() {
     if (!mount) return;
     const language = tutorResponseLanguage("");
     const copy = (vi, en, zh) => language === "zh" ? zh : language === "bilingual" ? `${zh} / ${window.LANG_MODE === "vi" ? vi : en}` : language === "en" ? en : vi;
-    mount.innerHTML = `<section data-ai-tutor-workspace="true" style="display:grid;grid-template-columns:minmax(230px,0.8fr) minmax(0,1.45fr);gap:14px;align-items:start;"><aside style="padding:13px;border:1px solid #f2bfd8;border-radius:16px;background:linear-gradient(135deg,#fff7fb,#fff);"><div style="font-size:11px;font-weight:900;letter-spacing:.08em;color:#a21c5a;text-transform:uppercase;">${copy("AI TUTOR STUDIO", "AI TUTOR STUDIO", "AI TUTOR 工作室")}</div><h3 style="margin:4px 0 5px;color:#3a2432;font-size:18px;">${copy("Luyện theo chủ đề", "Practise by topic", "按主题练习")}</h3><p style="margin:0;color:#645565;font-size:12px;line-height:1.5;">${copy("Chọn HSK, độ dài và ngôn ngữ trả lời. Bạn vẫn có thể gõ bất kỳ yêu cầu học nào.", "Choose HSK, length and reply language. You can still type any learning request.", "选择 HSK、篇幅和回复语言；你也可以输入任何学习要求。")}</p><label style="display:block;margin-top:12px;font-size:11px;font-weight:800;color:#75214c;">${copy("Cấp độ", "Level", "等级")}</label><select id="aiTutorLevel" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="0">${copy("Tất cả HSK 1–6", "All HSK 1–6", "全部 HSK 1–6")}</option>${[1,2,3,4,5,6].map((n) => `<option value="${n}" ${Number(aiTutorState.level)===n?"selected":""}>HSK ${n}</option>`).join("")}</select><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Số bộ đề", "Set number", "套题编号")}</label><input id="aiTutorSet" aria-label="Set number / 套题编号" type="number" min="1" max="100" value="${Math.max(1, Math.min(100, Number(aiTutorState.set || 1)))}" style="width:100%;box-sizing:border-box;margin-top:5px;padding:11px 12px;border:2px solid #db2777;border-radius:10px;background:#fff7fb;color:#831843;font-size:17px;font-weight:900;box-shadow:0 0 0 3px rgba(219,39,119,.12);"><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Độ dài đoạn", "Text length", "篇幅")}</label><select id="aiTutorLength" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="adaptive" ${aiTutorState.length==="adaptive"?"selected":""}>${copy("Theo cấp độ", "By level", "按等级")}</option><option value="short" ${aiTutorState.length==="short"?"selected":""}>${copy("Ngắn", "Short", "短篇")}</option><option value="medium" ${aiTutorState.length==="medium"?"selected":""}>${copy("Vừa", "Medium", "中篇")}</option><option value="long" ${aiTutorState.length==="long"?"selected":""}>${copy("Dài", "Long", "长篇")}</option></select><label style="display:block;margin-top:10px;font-size:11px;font-weight:800;color:#75214c;">${copy("Ngôn ngữ phản hồi", "Reply language", "回复语言")}</label><select id="aiTutorLanguage" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="auto" ${aiTutorState.language==="auto"?"selected":""}>${copy("Tự nhận diện", "Auto-detect", "自动识别")}</option><option value="zh" ${aiTutorState.language==="zh"?"selected":""}>中文</option><option value="vi" ${aiTutorState.language==="vi"?"selected":""}>Tiếng Việt</option><option value="en" ${aiTutorState.language==="en"?"selected":""}>English</option><option value="bilingual" ${aiTutorState.language==="bilingual"?"selected":""}>${window.LANG_MODE === "vi" ? "中文 + Tiếng Việt" : "中文 + English"}</option></select><div style="margin-top:12px;padding:9px;border-radius:10px;background:#fff0f6;color:#5d3347;font-size:11px;line-height:1.5;">${copy("Kho đề AI Tutor đã sẵn sàng: 420 bộ HSK1–HSK6, mỗi bộ 36 câu; HSK1–3 có 40 bộ/cấp, HSK4–6 có 100 bộ/cấp. Bạn có thể tạo, giải, sửa và chấm đề ngay. HSK 3–6 dùng đọc hiểu theo ngữ cảnh, suy luận, grammar trong câu hoàn chỉnh, sắp xếp câu và đặt câu theo từ gợi ý; Cloud AI dùng cho hội thoại mở.", "AI Tutor exam bank ready: 420 HSK1–HSK6 sets, 36 items each; 40 sets for each of HSK1–3 and 100 sets for each of HSK4–6. Create, solve, revise and grade exams now. HSK 3–6 uses context-based reading, inference, grammar-in-context, non-trivial sentence ordering, and guided sentence production; Cloud AI is for open conversation.", "AI Tutor 题库已就绪：HSK1–HSK6 共 420 套，每套 36 题；HSK1–HSK3 各 40 套，HSK4–HSK6 各 100 套。现在即可生成、解答、修改和评分；开放对话使用 Cloud AI。")}</div></aside><main style="min-width:0;"><div data-ai-tutor-topic-grid style="padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff9fc;"><b style="color:#75214c;">${copy("Chọn chủ đề", "Choose a topic", "选择主题")}</b><div style="font-size:11.5px;color:#5b4964;margin-top:3px;">${copy("Mỗi chủ đề có đoạn tiếng Trung, pinyin, nghĩa, từ mục tiêu, ngữ pháp và hội thoại.", "Every topic includes Chinese text, pinyin, meaning, target vocabulary, grammar and dialogue.", "每个主题含中文短文、拼音、释义、重点词汇、语法和对话。")}</div>${tutorTopicGroups()}</div><div id="aiTutorMessages" style="margin-top:12px;min-height:260px;max-height:420px;overflow:auto;padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:7px;"></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;"><b style="font-size:11px;color:#75214c;">${copy("Chọn nhanh HSK", "Quick HSK", "快速选择 HSK")}</b>${[1,2,3,4,5,6].map((n) => `<button type="button" data-ai-tutor-level="${n}" style="border:1px solid #efb6ce;background:#fff0f6;color:#75214c;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer;">HSK ${n}</button>`).join("")}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button type="button" data-ai-tutor-action="create">${copy("Soạn đề", "Create exam", "生成试题")}</button><button type="button" data-ai-tutor-action="solve">${copy("Giải đề", "Solve exam", "解答试题")}</button><button type="button" data-ai-tutor-action="review">${copy("Sửa đề", "Revise exam", "修改试题")}</button><span style="font-size:11px;color:#6b5564;padding:6px 2px;">${copy("Chọn HSK ở hàng trên rồi chọn thao tác.", "Choose HSK above, then choose an action.", "先选择 HSK，再选择操作。")}</span></div><div style="display:flex;gap:8px;margin-top:10px;"><input id="aiTutorInput" type="text" placeholder="${escapeHtml(copy("Nhập bằng 中文, Tiếng Việt hoặc English...", "Type in 中文, Vietnamese, or English...", "可用中文、越南语或 English 输入…"))}" style="flex:1;min-width:0;padding:10px 12px;border:1px solid #efb6ce;border-radius:10px;color:#211d22;background:#fff;font-family:inherit;"><button id="aiTutorSend" type="button" style="border:0;border-radius:10px;padding:10px 14px;background:#e5488d;color:#fff;font-weight:900;cursor:pointer;">${copy("Gửi", "Send", "发送")}</button></div></main></section>`;
+    mount.innerHTML = `<section data-ai-tutor-workspace="true" style="display:grid;grid-template-columns:minmax(230px,0.8fr) minmax(0,1.45fr);gap:14px;align-items:start;"><aside style="padding:13px;border:1px solid #f2bfd8;border-radius:16px;background:linear-gradient(135deg,#fff7fb,#fff);"><div style="font-size:14px;font-weight:900;letter-spacing:.08em;color:#a21c5a;text-transform:uppercase;">${copy("AI TUTOR STUDIO", "AI TUTOR STUDIO", "AI TUTOR 工作室")}</div><h3 style="margin:4px 0 5px;color:#3a2432;font-size:20px;">${copy("Luyện theo chủ đề", "Practise by topic", "按主题练习")}</h3><p style="margin:0;color:#645565;font-size:14px;line-height:1.5;">${copy("Chọn HSK, độ dài và ngôn ngữ trả lời. Bạn vẫn có thể gõ bất kỳ yêu cầu học nào.", "Choose HSK, length and reply language. You can still type any learning request.", "选择 HSK、篇幅和回复语言；你也可以输入任何学习要求。")}</p><label style="display:block;margin-top:12px;font-size:14px;font-weight:800;color:#75214c;">${copy("Cấp độ", "Level", "等级")}</label><select id="aiTutorLevel" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="0">${copy("Tất cả HSK 1–6", "All HSK 1–6", "全部 HSK 1–6")}</option>${[1,2,3,4,5,6].map((n) => `<option value="${n}" ${Number(aiTutorState.level)===n?"selected":""}>HSK ${n}</option>`).join("")}</select><label style="display:block;margin-top:10px;font-size:14px;font-weight:800;color:#75214c;">${copy("Số bộ đề", "Set number", "套题编号")}</label><input id="aiTutorSet" aria-label="Set number / 套题编号" type="number" min="1" max="100" value="${Math.max(1, Math.min(100, Number(aiTutorState.set || 1)))}" style="width:100%;box-sizing:border-box;margin-top:5px;padding:11px 12px;border:2px solid #db2777;border-radius:10px;background:#fff7fb;color:#831843;font-size:19px;font-weight:900;box-shadow:0 0 0 3px rgba(219,39,119,.12);"><label style="display:block;margin-top:10px;font-size:14px;font-weight:800;color:#75214c;">${copy("Độ dài đoạn", "Text length", "篇幅")}</label><select id="aiTutorLength" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="adaptive" ${aiTutorState.length==="adaptive"?"selected":""}>${copy("Theo cấp độ", "By level", "按等级")}</option><option value="short" ${aiTutorState.length==="short"?"selected":""}>${copy("Ngắn", "Short", "短篇")}</option><option value="medium" ${aiTutorState.length==="medium"?"selected":""}>${copy("Vừa", "Medium", "中篇")}</option><option value="long" ${aiTutorState.length==="long"?"selected":""}>${copy("Dài", "Long", "长篇")}</option></select><label style="display:block;margin-top:10px;font-size:14px;font-weight:800;color:#75214c;">${copy("Ngôn ngữ phản hồi", "Reply language", "回复语言")}</label><select id="aiTutorLanguage" style="width:100%;margin-top:5px;padding:8px;border:1px solid #efb6ce;border-radius:9px;background:#fff;color:#2d2430;"><option value="auto" ${aiTutorState.language==="auto"?"selected":""}>${copy("Tự nhận diện", "Auto-detect", "自动识别")}</option><option value="zh" ${aiTutorState.language==="zh"?"selected":""}>中文</option><option value="vi" ${aiTutorState.language==="vi"?"selected":""}>Tiếng Việt</option><option value="en" ${aiTutorState.language==="en"?"selected":""}>English</option><option value="bilingual" ${aiTutorState.language==="bilingual"?"selected":""}>${window.LANG_MODE === "vi" ? "中文 + Tiếng Việt" : "中文 + English"}</option></select><div style="margin-top:12px;padding:9px;border-radius:10px;background:#fff0f6;color:#5d3347;font-size:14px;line-height:1.5;">${copy("Kho đề AI Tutor đã sẵn sàng: 420 bộ HSK1–HSK6, mỗi bộ 36 câu; HSK1–3 có 40 bộ/cấp, HSK4–6 có 100 bộ/cấp. Bạn có thể tạo, giải, sửa và chấm đề ngay. HSK 3–6 dùng đọc hiểu theo ngữ cảnh, suy luận, grammar trong câu hoàn chỉnh, sắp xếp câu và đặt câu theo từ gợi ý; Cloud AI dùng cho hội thoại mở.", "AI Tutor exam bank ready: 420 HSK1–HSK6 sets, 36 items each; 40 sets for each of HSK1–3 and 100 sets for each of HSK4–6. Create, solve, revise and grade exams now. HSK 3–6 uses context-based reading, inference, grammar-in-context, non-trivial sentence ordering, and guided sentence production; Cloud AI is for open conversation.", "AI Tutor 题库已就绪：HSK1–HSK6 共 420 套，每套 36 题；HSK1–HSK3 各 40 套，HSK4–HSK6 各 100 套。现在即可生成、解答、修改和评分；开放对话使用 Cloud AI。")}</div></aside><main style="min-width:0;"><div data-ai-tutor-topic-grid style="padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff9fc;"><b style="color:#75214c;">${copy("Chọn chủ đề", "Choose a topic", "选择主题")}</b><div style="font-size:14px;color:#5b4964;margin-top:3px;">${copy("Mỗi chủ đề có đoạn tiếng Trung, pinyin, nghĩa, từ mục tiêu, ngữ pháp và hội thoại.", "Every topic includes Chinese text, pinyin, meaning, target vocabulary, grammar and dialogue.", "每个主题含中文短文、拼音、释义、重点词汇、语法和对话。")}</div>${tutorTopicGroups()}</div><div id="aiTutorMessages" style="margin-top:12px;min-height:260px;max-height:420px;overflow:auto;padding:12px;border:1px solid #f2bfd8;border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:7px;"></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;"><b style="font-size:14px;color:#75214c;">${copy("Chọn nhanh HSK", "Quick HSK", "快速选择 HSK")}</b>${[1,2,3,4,5,6].map((n) => `<button type="button" data-ai-tutor-level="${n}" style="border:1px solid #efb6ce;background:#fff0f6;color:#75214c;border-radius:999px;padding:5px 8px;font-size:14px;font-weight:800;cursor:pointer;">HSK ${n}</button>`).join("")}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button type="button" data-ai-tutor-action="create">${copy("Soạn đề", "Create exam", "生成试题")}</button><button type="button" data-ai-tutor-action="solve">${copy("Giải đề", "Solve exam", "解答试题")}</button><button type="button" data-ai-tutor-action="review">${copy("Sửa đề", "Revise exam", "修改试题")}</button><span style="font-size:14px;color:#6b5564;padding:6px 2px;">${copy("Chọn HSK ở hàng trên rồi chọn thao tác.", "Choose HSK above, then choose an action.", "先选择 HSK，再选择操作。")}</span></div><div style="display:flex;gap:8px;margin-top:10px;"><input id="aiTutorInput" type="text" placeholder="${escapeHtml(copy("Nhập bằng 中文, Tiếng Việt hoặc English...", "Type in 中文, Vietnamese, or English...", "可用中文、越南语或 English 输入…"))}" style="flex:1;min-width:0;padding:10px 12px;border:1px solid #efb6ce;border-radius:10px;color:#211d22;background:#fff;font-family:inherit;"><button id="aiTutorSend" type="button" style="border:0;border-radius:10px;padding:10px 14px;background:#e5488d;color:#fff;font-weight:900;cursor:pointer;">${copy("Gửi", "Send", "发送")}</button></div></main></section>`;
     const readingMount = document.createElement("div");
     readingMount.id = "aiTutorReadingMount";
     mount.querySelector("#aiTutorMessages")?.before(readingMount);
@@ -1815,7 +1815,7 @@ function pvNextSession() {
     if (!preview || !pendingChatFile) return;
     preview.style.display = "flex";
     preview.innerHTML = '<span>📎 ' + escapeHtml(pendingChatFile.name) + '</span>' +
-      '<button type="button" id="chatFileRemoveBtn" style="background:none;border:none;color:var(--pink);font-weight:800;cursor:pointer;font-size:13px;">✕</button>';
+      '<button type="button" id="chatFileRemoveBtn" style="background:none;border:none;color:var(--pink);font-weight:800;cursor:pointer;font-size:15px;">✕</button>';
     const rm = document.getElementById("chatFileRemoveBtn");
     if (rm) rm.onclick = clearPendingChatFile;
   }
@@ -1846,7 +1846,7 @@ function pvNextSession() {
     const timeStr = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : (en ? "Just now" : "Vừa xong");
 
     let inner = "";
-    if (isBroadcast) inner += `<div style="font-size:9.5px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 ${en ? "Broadcast" : "Thông báo chung"}</div>`;
+    if (isBroadcast) inner += `<div style="font-size:14px;font-weight:800;opacity:0.8;margin-bottom:3px;">📢 ${en ? "Broadcast" : "Thông báo chung"}</div>`;
     if (m.fileUrl) {
       if (m.isImage) {
         inner += '<a href="' + m.fileUrl + '" target="_blank" rel="noopener">' +
@@ -1890,7 +1890,7 @@ function pvNextSession() {
     if (chatUnsubscribe) chatUnsubscribe();
 
     const msgArea = document.getElementById("chatMessagesArea");
-    if (msgArea) msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:12px;">${window.LANG_MODE === "en" ? "Loading messages..." : "Đang tải tin nhắn..."}</div>`;
+    if (msgArea) msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:14px;">${window.LANG_MODE === "en" ? "Loading messages..." : "Đang tải tin nhắn..."}</div>`;
 
     try {
       const chatRef = db.collection("chats").doc(activeChatId);
@@ -1899,7 +1899,7 @@ function pvNextSession() {
       chatUnsubscribe = chatRef.collection("messages").orderBy("createdAt", "asc").onSnapshot(snapshot => {
         msgArea.innerHTML = "";
         if (snapshot.empty) {
-          msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:12px;margin-top:20px;">No messages yet. Send a greeting!</div>`;
+          msgArea.innerHTML = `<div style="text-align:center;color:var(--text-light);font-size:14px;margin-top:20px;">No messages yet. Send a greeting!</div>`;
           return;
         }
         snapshot.forEach(doc => {
@@ -1910,11 +1910,11 @@ function pvNextSession() {
         msgArea.scrollTop = msgArea.scrollHeight;
       }, (error) => {
         console.error("Chat messages listener error:", error);
-        if (msgArea) msgArea.innerHTML = `<div style="color:#b91c1c;font-size:12px;text-align:center;padding:12px;">Unable to load messages (${escapeHtml(error?.code || "Firestore error")}).</div>`;
+        if (msgArea) msgArea.innerHTML = `<div style="color:#b91c1c;font-size:14px;text-align:center;padding:12px;">Unable to load messages (${escapeHtml(error?.code || "Firestore error")}).</div>`;
       });
     } catch(e) {
       console.error("Chat error:", e);
-      if (msgArea) msgArea.innerHTML = `<div style="color:#b91c1c;font-size:12px;text-align:center;padding:12px;">Unable to open chat (${escapeHtml(e?.code || e?.message || "Firestore error")}).</div>`;
+      if (msgArea) msgArea.innerHTML = `<div style="color:#b91c1c;font-size:14px;text-align:center;padding:12px;">Unable to open chat (${escapeHtml(e?.code || e?.message || "Firestore error")}).</div>`;
     }
   }
 
@@ -1928,17 +1928,17 @@ function pvNextSession() {
     overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;";
     overlay.innerHTML = `
       <div style="background:#fff;color:#2d2a3a;border-radius:16px;padding:20px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <h3 style="font-size:16px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 Broadcast to all students</h3>
-        <p style="font-size:11.5px;color:#6b6478;margin-bottom:12px;">The message will appear automatically in each student's private conversation with you.</p>
-        <textarea id="broadcastText" rows="4" placeholder="Type the announcement..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:13px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
+        <h3 style="font-size:18px;font-weight:800;color:var(--pink);margin-bottom:4px;">📢 Broadcast to all students</h3>
+        <p style="font-size:14px;color:#6b6478;margin-bottom:12px;">The message will appear automatically in each student's private conversation with you.</p>
+        <textarea id="broadcastText" rows="4" placeholder="Type the announcement..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e0dce8;outline:none;font-family:inherit;font-size:15px;resize:vertical;margin-bottom:10px;color:#2d2a3a;background:#fff;"></textarea>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <input type="file" id="broadcastFileInput" style="display:none;" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" />
-          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;">📎 Attach file</button>
-          <span id="broadcastFileName" style="font-size:11px;color:#6b6478;"></span>
+          <button type="button" id="broadcastAttachBtn" style="background:#f7f5fa;color:#2d2a3a;border:1.5px solid #e0dce8;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;">📎 Attach file</button>
+          <span id="broadcastFileName" style="font-size:14px;color:#6b6478;"></span>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:12.5px;">Cancel</button>
-          <button type="button" id="broadcastSendBtn" class="btn btn-pink" style="padding:8px 16px;font-size:12.5px;">Send to all</button>
+          <button type="button" id="broadcastCancelBtn" class="btn btn-outline" style="padding:8px 16px;font-size:14.5px;">Cancel</button>
+          <button type="button" id="broadcastSendBtn" class="btn btn-pink" style="padding:8px 16px;font-size:14.5px;">Send to all</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
