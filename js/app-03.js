@@ -1638,12 +1638,10 @@ function pvNextSession() {
     if (titleEl) titleEl.textContent = window.LANG_MODE === "en" ? "PanTutor AI Coach · Learning Path" : "PanTutor AI Coach · Lộ trình học";
     const area = document.getElementById("chatMessagesArea");
     if (!area) return;
-    area.innerHTML = '<section data-ai-coach-message-intro="true" style="padding:10px 11px;border:1px solid #f2bfd8;border-radius:12px;background:#fff7fb;font-size:11.5px;line-height:1.5;color:#5b4964;"></section><div data-ai-coach-plan-host="true"></div>';
-    const intro = area.querySelector("[data-ai-coach-message-intro]");
-    if (intro) intro.textContent = window.LANG_MODE === "en"
-      ? "AI Coach allocates today’s verified learning sequence. Free practice and chat do not unlock the next curriculum day."
-      : "AI Coach phân bổ chuỗi học hôm nay từ dữ liệu đã xác minh. Học tự do và chat không tự mở ngày giáo trình tiếp theo.";
-    window.PandaHanMission?.renderCoach?.(area.querySelector("[data-ai-coach-plan-host]"));
+    area.innerHTML = "";
+    // Learning content is mounted in the page; chat contains conversation only.
+    window.PandaHanMission?.renderCoach?.(document.getElementById("coachLessonHost"));
+    if(titleEl){titleEl.removeAttribute("data-lang-en");titleEl.removeAttribute("data-lang-vi");}
     renderAiCoachHistory();
     renderAiCoachTimeline(area);
     setAiCoachComposer(true);
