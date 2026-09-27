@@ -1,5 +1,5 @@
 // v57.2-phonetics-sync-deep-feedback-20260924
-const CACHE_NAME = "pantutor-runtime-v61-adaptive-retry";
+const CACHE_NAME = "pantutor-runtime-v62-unified-memory";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
