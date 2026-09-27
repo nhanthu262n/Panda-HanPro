@@ -50,7 +50,7 @@
     @media(max-width:520px){ .first-guide-card{border-radius:18px;} .first-guide-head,.first-guide-body,.first-guide-actions{padding-left:18px;padding-right:18px;} .first-guide-title{font-size:20px;} }
 </style>
 <link rel="stylesheet" href="css/teacher-monitor.css?v=v60-5-teacher-permissions">
-<link rel="stylesheet" href="css/coach-workspace.css?v=v63-study-workspace">
+<link rel="stylesheet" href="css/coach-workspace.css?v=v64">
 </head>
 <body>
 <div id="proAuthOverlay">
@@ -406,14 +406,6 @@
 </div>
 <section class="dashboard-view coach-workspace" id="aiCoachView" style="display:none;">
 <div class="coach-hero"><div><span class="coach-kicker">PANTUTOR AI COACH</span><h2 data-lang-vi="Học từng bước, tiến bộ mỗi ngày" data-lang-en="Learn step by step, improve every day">Học từng bước, tiến bộ mỗi ngày</h2><p data-lang-vi="Mở bài hôm nay, luyện phần còn yếu và hỏi khi cần hỗ trợ." data-lang-en="Start today's lessons, practise difficult skills and ask for help.">Mở bài hôm nay, luyện phần còn yếu và hỏi khi cần hỗ trợ.</p></div><div class="coach-shortcuts"><button class="btn" onclick="switchTab('memoryPractice')" data-lang-vi="Ôn tập &amp; ghi nhớ" data-lang-en="Review &amp; memory">Ôn tập &amp; ghi nhớ</button><button class="btn" onclick="switchTab('dashboard')" data-lang-vi="Xem tiến độ" data-lang-en="View progress">Xem tiến độ</button></div></div><div class="coach-study-layout">
-<nav class="coach-study-nav" aria-label="Điều hướng học tập">
-<span class="coach-nav-label">KHÔNG GIAN HỌC</span>
-<button type="button" class="selected" data-coach-section="coachLessonHost">📚 Bài học hôm nay</button>
-<button type="button" onclick="switchTab('memoryPractice')">↻ Ôn tập &amp; ghi nhớ</button>
-<button type="button" onclick="switchTab('dashboard')">📊 Kết quả của tôi</button>
-<button type="button" onclick="switchTab('browse')">📖 Tra từ điển</button>
-<div class="coach-nav-help"><b>Cần giải thích thêm?</b><p>Bấm nút trò chuyện ở góc dưới để hỏi AI Coach khi cần.</p><button type="button" data-coach-chat-open>💬 Hỏi AI Coach</button></div>
-</nav>
 <main class="coach-study-main"><div id="coachLessonHost" data-ai-coach-plan-host="true"></div></main>
 </div>
 <button type="button" id="coachChatLauncher" aria-controls="coachChatPanel" aria-expanded="false" aria-label="Mở trò chuyện AI Coach">💬 <span>Hỏi AI Coach</span></button>
@@ -625,7 +617,7 @@
 <script defer="" src="js/ai-tutor-grammar-pack.js?v=ai-tutor-grammar-pack-20260826-v1"></script>
 <script defer="" src="js/ai-tutor-hsk-complete-library.js?v=user-hsk1-6-reading-meaning-20260827-v2"></script>
 <script defer="" src="js/ai-tutor-reading-extension-translations.js?v=ai-tutor-extension-meaning-20260827-v1"></script>
-<script defer="" src="js/daily-missions.js?v=v63-study-workspace"></script>
+<script defer="" src="js/daily-missions.js?v=v64"></script>
 <script defer src="js/learning-attempt-history.js?v=v62-unified-memory"></script>
 <script defer src="js/memory-review.js?v=v62-unified-memory"></script>
 <script defer src="js/ten-layer-orchestrator.js?v=v62-unified-memory"></script>
@@ -643,7 +635,7 @@
 <script defer="" src="js/offline-enhancements.js?v=real-evidence-20260824-v2"></script>
 <script defer="" src="js/first-time-guide.js?v=english-onboarding-20260826-v3"></script>
 <script defer="" src="js/international-mode.js?v=v57-1-safe-i18n-20260924"></script><script defer src="js/v57-language-quality.js?v=v57-1-vi-sync-20260924"></script><script defer src="js/teacher-learning-monitor.js?v=v61-adaptive-retry"></script>
-<script defer src="js/day1-day12-adaptive-retry.js?v=v61-adaptive-retry"></script>
+<script defer src="js/day1-day12-adaptive-retry.js?v=v64"></script>
 <script defer src="js/vocabulary-memory-sync.js?v=v62-unified-memory"></script>
 <script defer src="js/coach-study-workspace.js?v=v63"></script>
 </body>
