@@ -144,7 +144,7 @@
     const prior=window.PanTutorMemory?.getState?.(q.char,q.dimension);
     const taskId=q.learnMode?'memory_learning':q.openEnded?'teacherDraft':reading?'reading_writing':'remediation';
     const verified=!q.openEnded&&!q.learnMode;
-    const item={target:q.char,dimension:q.dimension,input:value,expected:q.answerLabel,prompt:q.prompt,correct:verified?correct:null,score:verified?(correct?100:0):null,verified,responseMs,diagnosisClass:q.layer||null,kind:q.dimension==='SOUND'?'pinyin':q.dimension==='FORM'?'form':'reading',source:'adaptive-retry-v61',hintShown:!!q.hintShown,openEnded:!!q.openEnded,leg:q.leg||null,sentenceLen:q.sentenceLen||0,memoryReview:!reading&&verified&&['FORM','MEANING','SOUND'].includes(q.dimension),learnCompleted:prior?.learned===true,confidence:'unspecified'};
+    const item={target:q.char,dimension:q.dimension,input:value,expected:q.answerLabel,prompt:q.prompt,correct:verified?correct:null,score:verified?(correct?100:0):null,verified,responseMs,diagnosisClass:q.layer||null,kind:q.dimension==='SOUND'?'pinyin':q.dimension==='FORM'?'form':'reading',source:'adaptive-retry-v61',hintShown:!!q.hintShown,openEnded:!!q.openEnded,leg:q.leg||null,sentenceLen:q.sentenceLen||0,memoryReview:!reading&&verified&&['FORM','MEANING','SOUND','USAGE','PRODUCTION'].includes(q.dimension),learnCompleted:prior?.learned===true,confidence:'unspecified'};
     const saved=await window.PanTutorAttemptHistory.save({dayNumber:day,taskId,scorePercent:verified&&correct?100:0,passed:verified&&correct,completeSet:false,correct:verified&&correct?1:0,total:verified?1:0,items:[item],scheduleSaved:false});
     return{...item,saved,leg:q.leg};
   }
