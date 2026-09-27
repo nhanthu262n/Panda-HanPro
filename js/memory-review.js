@@ -18,6 +18,7 @@
     return {level:1,label:'Đang làm quen',reason:'Đã trả lời đúng nhưng cần kiểm tra thêm ở ngày khác.'};
   }
   function replay(input){
+    input=window.PanTutorVocabularyMemory?.normalize(input)||input;
     const states={},seen=new Set(),timeline=[];
     for(const row of [...input].sort((a,b)=>a.createdAt-b.createdAt||String(a.attemptId).localeCompare(String(b.attemptId)))){
       for(const [index,item] of (row.items||[]).entries()){
@@ -31,14 +32,14 @@
         const recall=item.memoryReview===true&&['FORM','MEANING','SOUND'].includes(dimension);
         let quality=null;
         if(recall&&state.learned&&!item.hintShown){
-          quality=item.correct?(item.confidence==='certain'&&Number(item.responseMs)>0&&Number(item.responseMs)<=3500?5:4):2;
+          quality=item.correct?(item.confidence==='certain'&&Number(item.responseMs)>0&&Number(item.responseMs)<3000?5:4):2;
           if(quality<3){state.repetitions=0;state.interval=1}else{state.repetitions++;state.interval=state.repetitions===1?1:state.repetitions===2?6:Math.max(1,Math.round(state.interval*state.ef))}
           state.ef=Math.max(1.3,state.ef+(.1-(5-quality)*(.08+(5-quality)*.02)));
           state.lastReview=row.createdAt;state.nextReview=row.createdAt+state.interval*DAY;
         }
         const test={id,at:row.createdAt,correct:item.correct,responseMs:item.responseMs,quality};
         // A displayed model is not a recall test and cannot raise memory mastery.
-        if(!item.hintShown)state.tests.push(test);
+        if(!item.hintShown){state.tests.push(test);if(item.correct)state.learned=true;}
         const after=assess(state),result={id,target,dimension,dayNumber:row.dayNumber,at:row.createdAt,input:item.input,expected:item.expected,prompt:item.prompt||'',correct:item.correct,score:item.correct?100:0,responseMs:item.responseMs,quality,before:before.label,after:after.label,beforeCorrect:beforeTests.filter(t=>t.correct).length,beforeTotal:beforeTests.length,afterCorrect:state.tests.slice(-5).filter(t=>t.correct).length,afterTotal:state.tests.slice(-5).length,reason:after.reason,nextReview:state.nextReview,synced:row.synced,recall};
         state.history.push(result);timeline.push(result);
       }
@@ -56,19 +57,20 @@
 .pm-wrap{color:var(--text,#342b42);font:inherit}.pm-hero{background:linear-gradient(120deg,#fff1f7,#f3eeff);border:1px solid #f5cddd;border-radius:22px;padding:24px;margin:16px 0}.pm-hero h2{margin:0 0 8px;color:var(--pink,#dc4b8f)}.pm-muted{font-size:13px;color:var(--text-light,#746b80);line-height:1.6}.pm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.pm-card{padding:18px;background:var(--surface,#fff);border:1px solid #eadfeb;border-radius:17px;margin:10px 0;box-shadow:0 4px 15px #5e385a08}.pm-card h3{margin:0 0 9px}.pm-btn{padding:10px 15px;border:1px solid #e8ccde;border-radius:11px;background:#fff;color:#88366a;font:inherit;cursor:pointer}.pm-btn.primary{background:var(--pink,#e65498);color:white;border-color:transparent}.pm-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.pm-pill{display:inline-block;background:#f8eefa;color:#8e3d80;border-radius:99px;padding:5px 10px;font-size:12px}.pm-table{width:100%;border-collapse:collapse;font-size:13px}.pm-table td,.pm-table th{padding:10px;border-bottom:1px solid #eee2ed;text-align:left;vertical-align:top}.pm-scroll{overflow:auto}.pm-ok{color:#167649}.pm-wrong{color:#b03755}.pm-filter{padding:10px;border:1px solid #e8ccde;border-radius:10px;font:inherit;max-width:100%;background:white}.pm-count{font-size:28px;font-weight:800;color:var(--pink,#dc4b8f)}@media(max-width:600px){.pm-hero{padding:16px}.pm-card{padding:14px}.pm-grid{grid-template-columns:1fr}.pm-table{min-width:560px}}
 `;document.head.appendChild(el)}
   function historyHtml(input){
-    const attempts=input.filter(r=>['remediation','teacherDraft','memory_learning'].includes(r.taskId)).slice().sort((a,b)=>b.createdAt-a.createdAt),model=replay(input),map=new Map(model.timeline.map(t=>[t.id,t]));
+    const attempts=(window.PanTutorVocabularyMemory?.normalize(input)||input).filter(r=>['remediation','teacherDraft','memory_learning'].includes(r.taskId)&&r.items?.length).slice().sort((a,b)=>b.createdAt-a.createdAt),model=replay(input),map=new Map(model.timeline.map(t=>[t.id,t]));
     if(!attempts.length)return '<p class="pm-muted">Chưa có lượt luyện bổ sung. Kết quả sẽ xuất hiện sau khi bạn làm bài.</p>';
     return attempts.map(r=>`<details class="pm-card"><summary><b>Ngày ${Number(r.dayNumber)} · ${date(r.createdAt)}</b> · ${r.taskId==='teacherDraft'?'Chờ chấm':r.taskId==='memory_learning'?'Đã xem mẫu':r.scorePercent+'/100'} · ${r.synced?'Đã đồng bộ':'Đã lưu trên máy · chờ đồng bộ'}</summary>${r.items.map((i,n)=>{const derived=map.get(r.attemptId+':'+n),result=i.rubricResult?{...derived,...i.rubricResult}:derived;return `<div style="padding-top:12px"><b>${esc(i.target||'')} · ${esc(names[i.dimension]||'')}</b><p>${esc(i.prompt||'Câu hỏi của phiên bản cũ chưa được lưu.')}</p><div>Bạn trả lời: <b>${esc(i.input||'—')}</b></div><div>Đáp án: ${esc(i.expected||'—')}</div><div class="${i.correct?'pm-ok':'pm-wrong'}">${typeof i.correct==='boolean'?(i.correct?'Đúng':'Sai'):'Chưa chấm'}${Number(i.responseMs)>0?' · '+(i.responseMs/1000).toFixed(1)+' giây':''}</div>${result?`<p>${esc(result.before)} → <b>${esc(result.after)}</b><br><small>${esc(result.reason)}</small></p><div>Lịch ôn: ${result.nextReview?date(result.nextReview):'Chưa bắt đầu lịch ghi nhớ cho kỹ năng này'}</div>`:''}</div>`}).join('')}</details>`).join('');
   }
-  function resultsHtml(input,showTitle=true){
+  function resultsHtml(input,showTitle=true,wordStats=null){
     style();
     const model=replay(input),states=Object.values(model.states);
+    if(wordStats)states.forEach(s=>{const word=wordStats[s.target];if(word&&(s.dimension==='MEANING'||s.dimension===word.wordMemoryDimension)){s.nextReview=word.nextReview||0;s.lastReview=word.studyLog?.at(-1)?.t||0}});
     return `<div class="pm-wrap">${showTitle?'<h3>Kết quả ghi nhớ</h3>':''}<p class="pm-muted">Đánh giá riêng từng kỹ năng từ câu trả lời đã kiểm tra. Câu viết chờ chấm chưa được tính điểm.</p><details class="pm-card"><summary>Tiêu chí đánh giá</summary><ul><li>Chưa học: chưa có bước học và câu trả lời đã kiểm tra.</li><li>Đang làm quen: mới xem mẫu hoặc mới có câu đúng; cần kiểm tra lại vào ngày khác.</li><li>Cần ôn thêm: lần gần nhất sai hoặc đúng dưới 60% của tối đa 5 câu gần nhất.</li><li>Nhớ khá chắc: đúng ít nhất 80% của 3–5 câu gần nhất, ở ít nhất 2 ngày.</li><li>Nhớ vững qua nhiều lần ôn: đúng 5 câu gần nhất, ít nhất 3 ngày ôn trải qua 7 ngày, và 3 lần ôn ghi nhớ đạt liên tiếp.</li></ul><p class="pm-muted">Xem đáp án không được tính là nhớ. Thời gian chỉ hỗ trợ đánh giá khi bài có đo thời gian. Bài nhận diện âm không chứng minh khả năng phát âm; điểm dùng từ không thay thế điểm hiểu nghĩa.</p></details>${states.length?`<div class="pm-scroll"><table class="pm-table"><thead><tr><th>Từ / kỹ năng</th><th>Kết quả</th><th>Căn cứ</th><th>Ôn gần nhất / tiếp theo</th></tr></thead><tbody>${states.map(s=>`<tr><td><b>${esc(s.target)}</b><br>${esc(names[s.dimension])}</td><td>${esc(s.assessment.label)}</td><td>${s.tests.filter(t=>t.correct).length}/${s.tests.length} câu đúng<br>${esc(s.assessment.reason)}</td><td>${date(s.lastReview)}<br>${s.nextReview?date(s.nextReview):'Chưa có lịch ôn ghi nhớ'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="pm-muted">Chưa có kết quả theo tiêu chí mới. Bạn có thể bắt đầu trong Ôn tập & ghi nhớ; các lượt cũ vẫn có trong lịch sử bên dưới.</p>'}<details><summary>Xem kết quả từng lượt và thay đổi trước/sau</summary>${historyHtml(input)}</details></div>`;
   }
   function mountDashboard(){
     style();
     const host=document.getElementById('memoryResults');
-    if(host)host.innerHTML=resultsHtml(rows(),false);
+    if(host)host.innerHTML=(window.PanTutorVocabularyMemory?.wordTable()||'')+resultsHtml(rows(),false,typeof STATS!=='undefined'?STATS:null);
   }
 
   let section='today';
@@ -96,5 +98,6 @@
     return {...row,items:row.items.map((item,i)=>{const result=results.get(row.attemptId+':'+i);return result?{...item,rubricVersion:"memory-v1",rubricResult:{before:result.before,after:result.after,reason:result.reason,beforeCorrect:result.beforeCorrect,beforeTotal:result.beforeTotal,afterCorrect:result.afterCorrect,afterTotal:result.afterTotal,quality:result.quality,nextReview:result.nextReview,score:result.score}}:item})};
   }
   window.PanTutorMemory={snapshot,replay,assess,getState,openPractice,renderPractice,mountDashboard,historyHtml,resultsHtml,feedback};
+  window.addEventListener('pantutor-vocabulary-memory-updated',()=>{if(document.getElementById('dashboardView')?.style.display==='block')mountDashboard()});
   window.addEventListener('pantutor-attempt-saved',()=>{renderPractice();if(document.getElementById('dashboardView')?.style.display==='block')mountDashboard()});
 })();
