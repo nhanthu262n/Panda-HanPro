@@ -71,6 +71,17 @@
     const explicit={'八':'1','爸爸':'4 5','二':'4','九':'3','六':'4','妈妈':'1 5','你':'3','七':'1','大':'4','的':'5','点':'3','电脑':'4 3','电视':'4 4','电影':'4 3','东西':'1 5','都':'1','对':'4','多':'1','多少':'1 5'};
     return explicit[char]||tones(pinyin).join(' ');
   }
+  // Vary the final syllable; preserve earlier syllables and ü.
+  function retryPinyinTone(pinyin,tone){
+    const text=String(pinyin).normalize('NFC');
+    const match=text.match(/([aāáǎàeēéěèiīíǐìoōóǒòuūúǔùüǖǘǚǜ]+)(ng?|r)?$/i);
+    if(!match)return text;
+    const base=match[1].normalize('NFD').replace(/[\u0300\u0301\u0304\u030c]/g,'').normalize('NFC');
+    let index=base.search(/a/i);if(index<0)index=base.search(/e/i);if(index<0&&/ou/i.test(base))index=base.toLowerCase().indexOf('o');if(index<0)index=base.length-1;
+    const marks=['','\u0304','\u0301','\u030c','\u0300',''];
+    const result=(base.slice(0,index+1)+marks[tone]+base.slice(index+1)).normalize('NFC');
+    return text.slice(0,match.index)+result+(match[2]||'');
+  }
   function question(inputType,prompt,answer,options,extras={}){return{inputType,prompt,answerLabel:answer,options:options||[],checkAnswer:v=>clean(v)===clean(answer),...extras}}
   function choices(char,seed){const p=profile(char);return shuffle([char,...(p.confusables||[]).map(x=>String(x).replace(/\(.*\)/,'').trim()).filter(x=>x!==char&&wordOf(x)),...vocab().filter(w=>w.char!==char&&w.hsk===wordOf(char)?.hsk).slice(0,8).map(w=>w.char)],seed).slice(0,4)}
   function withTarget(char,seed){return shuffle([char,...choices(char,seed).filter(x=>x!==char).slice(0,3)],seed)}
@@ -86,7 +97,7 @@
     else if(layer===5)q=question('choice',`Chọn chữ có Pinyin “${w.pinyin}” và nghĩa “${meaning(w)}”.`,char,withTarget(char,seed));
     else if(layer===6)q=question('text',`Học mẫu: ${char} · ${w.pinyin} · ${meaning(w)}. ${ex} Gõ lại chữ vừa học.`,char,[],{hintShown:true,learnMode:true});
     else if(layer===7)q=question('text',`Bạn đã gặp khó khăn nhiều lần với “${char}”. Viết câu mới để giáo viên xem lại. Ví dụ tham khảo: ${ex}`,ex,[],{openEnded:true,escalateToTeacher:true});
-    else if(layer===8){const seq=toneSequence(char,w.pinyin),parts=seq.split(' '),alts=[seq,...['1','2','3','4','5'].filter(n=>n!==parts[parts.length-1]).map(n=>[...parts.slice(0,-1),n].join(' '))];q=question('choice','Nghe và chọn chuỗi thanh điệu theo thứ tự âm tiết (5 = thanh nhẹ).',seq,shuffle(alts,seed),{speak:char});}
+    else if(layer===8){const answer=String(w.pinyin).normalize('NFC'),alts=[...new Set([answer,...[1,2,3,4,5].map(t=>retryPinyinTone(answer,t))])];q=question('choice','Nghe và chọn Pinyin có thanh điệu đúng.',answer,shuffle(alts,seed),{speak:char});}
     else if(layer===9)q=question('choice','Nghe và chọn nghĩa phù hợp.',meaning(w),shuffle([meaning(w),...vocab().filter(v=>v.char!==char).map(meaning).filter(x=>x!==meaning(w)).slice(0,3)],seed),{speak:char});
     else if(layer===10)q=ex.includes(char)?question('text',`Điền đúng từ vào câu: ${ex.split(char).join('____')}`,char):question('text',`Viết câu mới dùng “${char}”.`,ex,[],{openEnded:true});
     else return buildRetryQuestion(char,2,context);
