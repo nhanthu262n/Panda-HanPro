@@ -970,7 +970,7 @@ function renderWordListView(cat) {
   const words = VOCAB.filter(def.filter);
   const el = document.getElementById("wordListContent");
   if (!words.length) {
-    el.innerHTML = `<div style="font-size:13px;color:var(--text-light);">${L("Chưa có từ nào trong mục này.", "No words in this category yet.")}</div>`;
+    el.innerHTML = `<div style="font-size:15px;color:var(--text-light);">${L("Chưa có từ nào trong mục này.", "No words in this category yet.")}</div>`;
     return;
   }
   el.innerHTML = words.map(w => {
@@ -978,10 +978,10 @@ function renderWordListView(cat) {
     const tierInfo = RUBRIC[t];
     return `<div class="cert-mini" data-char="${esc(w.char)}">
       <div>
-        <div style="font-weight:700;font-size:14px;">${esc(w.char)} <span style="font-size:12px;font-weight:400;color:var(--text-light);">${esc(w.pinyin)} · ${esc(w.hanviet)}</span></div>
-        <div style="font-size:12px;color:var(--text-light);">${esc(L(w.meaning, w.meaning_en))} · HSK${w.hsk}</div>
+        <div style="font-weight:700;font-size:16px;">${esc(w.char)} <span style="font-size:14px;font-weight:400;color:var(--text-light);">${esc(w.pinyin)} · ${esc(w.hanviet)}</span></div>
+        <div style="font-size:14px;color:var(--text-light);">${esc(L(w.meaning, w.meaning_en))} · HSK${w.hsk}</div>
       </div>
-      <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${tierInfo.light};color:${tierInfo.color};">${esc(L(tierInfo.name, tierInfo.en))}</span>
+      <span style="font-size:14px;font-weight:700;padding:3px 10px;border-radius:20px;background:${tierInfo.light};color:${tierInfo.color};">${esc(L(tierInfo.name, tierInfo.en))}</span>
     </div>`;
   }).join("");
   el.querySelectorAll("[data-char]").forEach(elm => {
@@ -1129,12 +1129,12 @@ function showDictLookupCard(text) {
         <div style="font-size:24px;font-weight:800;">${esc(w.char)}</div>
         <span class="hsk-tag" style="background:${hskColor};flex:none;">HSK${w.hsk}</span>
       </div>
-      <div style="font-size:13px;color:var(--text-light);margin-top:2px;">${esc(w.pinyin)} · ${esc(w.hanviet)} · ${esc(localizedPos(w.pos))}</div>
-      <div style="font-size:14px;font-weight:600;margin-top:6px;">${esc(L(w.meaning, w.meaning_en))}</div>
-      ${w.chietu_vi ? `<div style="background:#fffbeb;border-radius:8px;padding:9px 11px;margin-top:9px;font-size:12.5px;line-height:1.6;">🎨 ${esc(L(w.chietu_vi, w.chietu_en))}</div>` : ""}
+      <div style="font-size:15px;color:var(--text-light);margin-top:2px;">${esc(w.pinyin)} · ${esc(w.hanviet)} · ${esc(localizedPos(w.pos))}</div>
+      <div style="font-size:16px;font-weight:600;margin-top:6px;">${esc(L(w.meaning, w.meaning_en))}</div>
+      ${w.chietu_vi ? `<div style="background:#fffbeb;border-radius:8px;padding:9px 11px;margin-top:9px;font-size:14.5px;line-height:1.6;">🎨 ${esc(L(w.chietu_vi, w.chietu_en))}</div>` : ""}
       <div style="display:flex;gap:8px;margin-top:12px;">
-        <button id="dictLookupSaveBtn" data-char="${w.char}" class="btn ${flagged ? "btn-outline" : "btn-hsk3"}" style="font-size:11.5px;padding:7px 12px;">${flagged ? "✅ " + L("Đã có trong Từ đã thêm", "Already in Words Added") : "💾 " + L("Lưu vào Từ đã thêm", "Save to Words Added")}</button>
-        <button id="dictLookupClose" class="btn btn-outline" style="font-size:11.5px;padding:7px 12px;">${L("Đóng", "Close")}</button>
+        <button id="dictLookupSaveBtn" data-char="${w.char}" class="btn ${flagged ? "btn-outline" : "btn-hsk3"}" style="font-size:14px;padding:7px 12px;">${flagged ? "✅ " + L("Đã có trong Từ đã thêm", "Already in Words Added") : "💾 " + L("Lưu vào Từ đã thêm", "Save to Words Added")}</button>
+        <button id="dictLookupClose" class="btn btn-outline" style="font-size:14px;padding:7px 12px;">${L("Đóng", "Close")}</button>
       </div>
     </div>`;
   card.style.display = "block";
@@ -1160,9 +1160,9 @@ async function generateWordExplanation(text) {
   const card = document.getElementById("dictLookupPopup");
   const overlay = document.getElementById("dictLookupOverlay");
   card.innerHTML = `<div style="padding:22px;text-align:center;min-width:220px;">
-    <div style="font-size:22px;font-weight:800;">${esc(text)}</div>
+    <div style="font-size:24px;font-weight:800;">${esc(text)}</div>
     <div style="margin:14px 0;font-size:26px;">🐼💭</div>
-    <p style="font-size:12.5px;color:var(--text-light);">${L("Từ này chưa có trong từ điển — đang nhờ AI đóng vai giáo viên soạn giải thích...", "Not in the dictionary yet — asking the AI to act as a teacher and write an explanation...")}</p>
+    <p style="font-size:14.5px;color:var(--text-light);">${L("Từ này chưa có trong từ điển — đang nhờ AI đóng vai giáo viên soạn giải thích...", "Not in the dictionary yet — asking the AI to act as a teacher and write an explanation...")}</p>
   </div>`;
   card.style.display = "block";
   overlay.style.display = "block";
@@ -1182,9 +1182,9 @@ Nếu chuỗi này không phải chữ Hán hợp lệ, trả về {"error":"inv
     renderAiWordCard(text, parsed);
   } catch (e) {
     card.innerHTML = `<div style="padding:20px;text-align:center;">
-      <div style="font-size:22px;font-weight:800;">${esc(text)}</div>
-      <p style="font-size:12.5px;color:var(--text-light);margin:10px 0;">${L("Không thể tạo giải thích cho từ này lúc này. Có thể đây không phải chữ Hán hợp lệ, hoặc thử lại sau.", "Couldn't generate an explanation for this right now. It may not be valid Chinese, or please try again.")}</p>
-      <button id="dictLookupClose" class="btn btn-outline" style="font-size:12px;">${L("Đóng", "Close")}</button>
+      <div style="font-size:24px;font-weight:800;">${esc(text)}</div>
+      <p style="font-size:14.5px;color:var(--text-light);margin:10px 0;">${L("Không thể tạo giải thích cho từ này lúc này. Có thể đây không phải chữ Hán hợp lệ, hoặc thử lại sau.", "Couldn't generate an explanation for this right now. It may not be valid Chinese, or please try again.")}</p>
+      <button id="dictLookupClose" class="btn btn-outline" style="font-size:14px;">${L("Đóng", "Close")}</button>
     </div>`;
     document.getElementById("dictLookupClose").addEventListener("click", closeDictLookup);
   }
@@ -1214,16 +1214,16 @@ function renderAiWordCard(text, parsed) {
       <div style="font-size:24px;font-weight:800;">${esc(char)}</div>
       <span class="hsk-tag" style="background:${hskColor};flex:none;">HSK${hsk}</span>
     </div>
-    <div style="font-size:13px;color:var(--text-light);margin-top:2px;">${esc(parsed.pinyin || "")} · ${esc(parsed.hanviet || "")} · ${esc(parsed.pos || "")}</div>
-    <div style="font-size:14px;font-weight:600;margin-top:6px;">${esc(L(parsed.meaning || "", parsed.meaning_en || ""))}</div>
+    <div style="font-size:15px;color:var(--text-light);margin-top:2px;">${esc(parsed.pinyin || "")} · ${esc(parsed.hanviet || "")} · ${esc(parsed.pos || "")}</div>
+    <div style="font-size:16px;font-weight:600;margin-top:6px;">${esc(L(parsed.meaning || "", parsed.meaning_en || ""))}</div>
     ${parsed.example_zh
-      ? `<div style="font-size:12px;color:var(--text-light);margin-top:6px;">${esc(parsed.example_zh)}${parsed.example_pinyin ? `<br><span style="color:#a8a29e;">${esc(parsed.example_pinyin)}</span>` : ""}<br>${esc(L(parsed.example_vi || "", parsed.example_en || ""))}</div>`
-      : `<button id="aiExampleBtn" class="btn btn-outline" style="font-size:10.5px;padding:4px 9px;margin-top:6px;">➕ ${L("Thêm câu ví dụ", "Add example sentence")}</button>`}
-    ${parsed.chietu_vi ? `<div style="background:#fffbeb;border-radius:8px;padding:9px 11px;margin-top:9px;font-size:12.5px;line-height:1.6;">🎨 ${esc(L(parsed.chietu_vi, parsed.chietu_en))}</div>` : ""}
-    <div style="font-size:10.5px;color:#b8a074;margin-top:6px;">🤖 ${L("Giải thích do AI biên soạn — nên xem lại trước khi tin tưởng hoàn toàn.", "AI-generated explanation — worth double-checking before fully relying on it.")}</div>
+      ? `<div style="font-size:14px;color:var(--text-light);margin-top:6px;">${esc(parsed.example_zh)}${parsed.example_pinyin ? `<br><span style="color:#a8a29e;">${esc(parsed.example_pinyin)}</span>` : ""}<br>${esc(L(parsed.example_vi || "", parsed.example_en || ""))}</div>`
+      : `<button id="aiExampleBtn" class="btn btn-outline" style="font-size:14px;padding:4px 9px;margin-top:6px;">➕ ${L("Thêm câu ví dụ", "Add example sentence")}</button>`}
+    ${parsed.chietu_vi ? `<div style="background:#fffbeb;border-radius:8px;padding:9px 11px;margin-top:9px;font-size:14.5px;line-height:1.6;">🎨 ${esc(L(parsed.chietu_vi, parsed.chietu_en))}</div>` : ""}
+    <div style="font-size:14px;color:#b8a074;margin-top:6px;">🤖 ${L("Giải thích do AI biên soạn — nên xem lại trước khi tin tưởng hoàn toàn.", "AI-generated explanation — worth double-checking before fully relying on it.")}</div>
     <div style="display:flex;gap:8px;margin-top:12px;">
-      <button id="aiWordSaveBtn" class="btn btn-hsk3" style="font-size:11.5px;padding:7px 12px;" ${alreadyExists ? "disabled" : ""}>${alreadyExists ? "✅ " + L("Đã có", "Already added") : "💾 " + L("Lưu vào Từ đã thêm", "Save to Words Added")}</button>
-      <button id="dictLookupClose" class="btn btn-outline" style="font-size:11.5px;padding:7px 12px;">${L("Đóng", "Close")}</button>
+      <button id="aiWordSaveBtn" class="btn btn-hsk3" style="font-size:14px;padding:7px 12px;" ${alreadyExists ? "disabled" : ""}>${alreadyExists ? "✅ " + L("Đã có", "Already added") : "💾 " + L("Lưu vào Từ đã thêm", "Save to Words Added")}</button>
+      <button id="dictLookupClose" class="btn btn-outline" style="font-size:14px;padding:7px 12px;">${L("Đóng", "Close")}</button>
     </div>
   </div>`;
   document.getElementById("dictLookupClose").addEventListener("click", closeDictLookup);
@@ -1818,8 +1818,8 @@ function renderSrsPanel(char) {
     `<span class="tier-badge" style="background:${r.light};color:${r.color};">
       <span class="tier-dot tier-${tier}" style="position:static;"></span> ${L(r.name, r.en)}
     </span>
-    <p style="font-size:12px;color:var(--text-light);margin-top:6px;">${L(r.desc, r.descEn)}</p>` +
-    (isDue(char) ? `<p style="color:#e74c3c;font-weight:700;font-size:12.5px;margin-top:6px;">⏰ ${L('Đến hạn ôn tập!','Review is due!')}</p>` : "");
+    <p style="font-size:14px;color:var(--text-light);margin-top:6px;">${L(r.desc, r.descEn)}</p>` +
+    (isDue(char) ? `<p style="color:#e74c3c;font-weight:700;font-size:14.5px;margin-top:6px;">⏰ ${L('Đến hạn ôn tập!','Review is due!')}</p>` : "");
 
   const icons = ["🥚", "🐣", "🐥", "🐤", "🐼"];
   document.getElementById("dPowerIcon").textContent = icons[tier];
@@ -1862,7 +1862,7 @@ function renderSrsPanel(char) {
     document.getElementById("dSpacingInfo").style.display = "block";
     document.getElementById("dSpacingInfo").innerHTML =
       `🧮 <b>${L("Hiệu suất giãn cách (Cepeda et al. 2006)", "Spacing efficiency (Cepeda et al. 2006)")}: ${eff}%</b><br>
-       <span style="font-size:11px;color:var(--text-light);">${L(
+       <span style="font-size:14px;color:var(--text-light);">${L(
          `Khoảng ôn thực tế: ${s.interval} ngày · ISI tối ưu (RI=30 ngày): ${optimal} ngày · Hệ số dễ nhớ EF: ${s.ef.toFixed(2)} · Số lần ôn đúng liên tiếp: ${s.repetitions}`,
          `Actual interval: ${s.interval} days · Optimal ISI (RI=30 days): ${optimal} days · Ease Factor: ${s.ef.toFixed(2)} · Consecutive correct reps: ${s.repetitions}`
        )}</span>`;
@@ -1899,7 +1899,7 @@ function renderSrsPanel(char) {
       const isLast = i === days.length - 1;
       const avg = day.grades.reduce((a, b) => a + b, 0) / day.grades.length;
       const gradeLabel = day.grades.length > 1
-        ? `${avg.toFixed(1)}/5 <span style="color:var(--text-light);font-size:11px;">(${day.grades.length} ${L("lần", "attempts")})</span>`
+        ? `${avg.toFixed(1)}/5 <span style="color:var(--text-light);font-size:14px;">(${day.grades.length} ${L("lần", "attempts")})</span>`
         : `${day.grades[0]}/5`;
       rows += `<tr class="${isLast ? 'highlight' : ''}"><td>${i + 1}</td><td>${fmtDate(day.t)}</td><td>${i === 0 ? '—' : gap + ' ngày'}</td><td>${gradeLabel}</td></tr>`;
     });
@@ -2143,7 +2143,7 @@ function startAdaptiveVocabularyLesson(words, dayNumber) {
     }
     recordView(w.char);
     const hasPlayed = played.has(w.char);
-    body.innerHTML = `<div style="text-align:center;padding:18px 10px;"><div style="font-size:11px;color:var(--text-light);">${index + 1}/${pool.length} · ${L("Từ mới liên kết với Ngữ âm", "New word linked to phonetics")}</div><div style="font-size:54px;font-weight:800;margin-top:8px;">${esc(w.char)}</div><div style="font-size:17px;color:var(--pink);font-weight:800;">${esc(w.pinyin)}</div><div style="margin:8px 0;color:var(--text-light);">${esc(L(w.meaning, w.meaning_en))}</div><div style="font-size:12px;color:var(--text-light);">${esc(w.examples?.[0]?.[0] || "")}</div><div style="display:flex;justify-content:center;gap:8px;margin-top:15px;"><button class="btn btn-outline" id="adaptivePlayAudio">🔊 ${L("Nghe mẫu", "Play audio")}</button><button class="btn btn-hsk2" id="adaptiveNextWord" ${hasPlayed ? "" : "disabled"}>${index + 1 === pool.length ? L("Hoàn tất nhóm từ", "Finish word set") : L("Từ tiếp theo", "Next word")} →</button></div><div id="adaptiveAudioStatus" style="font-size:11px;color:#64748b;margin-top:9px;">${hasPlayed ? L("Đã có lượt nghe thật cho từ này.", "Real playback recorded for this word.") : L("Hãy nghe audio mẫu trước khi sang từ tiếp theo.", "Play the reference audio before continuing.")}</div></div>`;
+    body.innerHTML = `<div style="text-align:center;padding:18px 10px;"><div style="font-size:14px;color:var(--text-light);">${index + 1}/${pool.length} · ${L("Từ mới liên kết với Ngữ âm", "New word linked to phonetics")}</div><div style="font-size:54px;font-weight:800;margin-top:8px;">${esc(w.char)}</div><div style="font-size:19px;color:var(--pink);font-weight:800;">${esc(w.pinyin)}</div><div style="margin:8px 0;color:var(--text-light);">${esc(L(w.meaning, w.meaning_en))}</div><div style="font-size:14px;color:var(--text-light);">${esc(w.examples?.[0]?.[0] || "")}</div><div style="display:flex;justify-content:center;gap:8px;margin-top:15px;"><button class="btn btn-outline" id="adaptivePlayAudio">🔊 ${L("Nghe mẫu", "Play audio")}</button><button class="btn btn-hsk2" id="adaptiveNextWord" ${hasPlayed ? "" : "disabled"}>${index + 1 === pool.length ? L("Hoàn tất nhóm từ", "Finish word set") : L("Từ tiếp theo", "Next word")} →</button></div><div id="adaptiveAudioStatus" style="font-size:14px;color:#64748b;margin-top:9px;">${hasPlayed ? L("Đã có lượt nghe thật cho từ này.", "Real playback recorded for this word.") : L("Hãy nghe audio mẫu trước khi sang từ tiếp theo.", "Play the reference audio before continuing.")}</div></div>`;
     document.getElementById("adaptivePlayAudio")?.addEventListener("click", () => {
       const audioButton = document.getElementById("adaptivePlayAudio");
       const button = document.getElementById("adaptiveNextWord");
@@ -2204,7 +2204,7 @@ function startAdaptiveVocabularySpeaking(words, dayNumber) {
       return;
     }
     recordView(word.char);
-    body.innerHTML = `<div style="text-align:center;padding:18px 10px;"><div style="font-size:11px;color:var(--text-light);">${index + 1}/${pool.length} · 🗣️ ${L("Nói từ vựng", "Vocabulary speaking")}</div><div style="font-size:54px;font-weight:800;margin-top:8px;">${esc(word.char)}</div><div style="font-size:17px;color:var(--pink);font-weight:800;">${esc(word.pinyin)}</div><div style="margin:8px 0;color:var(--text-light);">${esc(L(word.meaning, word.meaning_en))}</div><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:15px;"><button class="btn btn-outline" id="vocabSpeakPlay">🔊 ${L("Nghe mẫu", "Play model")}</button><button class="btn btn-hsk2" id="vocabSpeakStart">🎙️ ${L("Bắt đầu nói", "Start speaking")}</button></div><div id="vocabSpeakFeedback" style="font-size:12px;color:#64748b;margin-top:12px;min-height:20px;">${L("Hãy nghe mẫu rồi đọc từ này vào micro.", "Play the model, then say the word into the microphone.")}</div></div>`;
+    body.innerHTML = `<div style="text-align:center;padding:18px 10px;"><div style="font-size:14px;color:var(--text-light);">${index + 1}/${pool.length} · 🗣️ ${L("Nói từ vựng", "Vocabulary speaking")}</div><div style="font-size:54px;font-weight:800;margin-top:8px;">${esc(word.char)}</div><div style="font-size:19px;color:var(--pink);font-weight:800;">${esc(word.pinyin)}</div><div style="margin:8px 0;color:var(--text-light);">${esc(L(word.meaning, word.meaning_en))}</div><div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:15px;"><button class="btn btn-outline" id="vocabSpeakPlay">🔊 ${L("Nghe mẫu", "Play model")}</button><button class="btn btn-hsk2" id="vocabSpeakStart">🎙️ ${L("Bắt đầu nói", "Start speaking")}</button></div><div id="vocabSpeakFeedback" style="font-size:14px;color:#64748b;margin-top:12px;min-height:20px;">${L("Hãy nghe mẫu rồi đọc từ này vào micro.", "Play the model, then say the word into the microphone.")}</div></div>`;
     document.getElementById("vocabSpeakPlay")?.addEventListener("click", () => speak(word.char));
     document.getElementById("vocabSpeakStart")?.addEventListener("click", () => {
       const feedback = document.getElementById("vocabSpeakFeedback");
@@ -2442,20 +2442,20 @@ function showQuizResult() {
   if (!inAdvancedSetMode) savePracticeCompletion(pct, "quiz");
   if (goingToVocabularyFlow) {
     btnHtml = `<button class="btn btn-hsk2" id="qContinueVocabBtn" style="margin-top:14px;">➡️ ${L("Học từ tiếp theo", "Continue to next word")}</button>`;
-    noteHtml = `<p style="font-size:12.5px;color:var(--text-light);">${L("Điểm đã được lấy từ câu trả lời được chấm và lưu vào SM-2 hôm nay.", "The score came from the graded answers and was saved to today’s SM-2 data.")}</p>`;
+    noteHtml = `<p style="font-size:14.5px;color:var(--text-light);">${L("Điểm đã được lấy từ câu trả lời được chấm và lưu vào SM-2 hôm nay.", "The score came from the graded answers and was saved to today’s SM-2 data.")}</p>`;
   } else if (goingToDialogue) {
     btnHtml = `<button class="btn btn-hsk3" id="qContinueDialogueBtn" style="margin-top:14px;">➡️ ${L("Tiếp tục: Sắp xếp hội thoại", "Continue: Dialogue Reorder")}</button>`;
-    noteHtml = `<p style="font-size:12.5px;color:var(--text-light);">${L("Phần 1 (trắc nghiệm) xong! Còn phần 2: sắp xếp hội thoại.", "Part 1 (multiple choice) done! Part 2: dialogue reordering next.")}</p>`;
+    noteHtml = `<p style="font-size:14.5px;color:var(--text-light);">${L("Phần 1 (trắc nghiệm) xong! Còn phần 2: sắp xếp hội thoại.", "Part 1 (multiple choice) done! Part 2: dialogue reordering next.")}</p>`;
   } else if (goingToReview) {
     btnHtml = `<button class="btn btn-hsk2" id="qContinueReviewBtn" style="margin-top:14px;">➡️ ${L("Vào Ôn tập", "Go to Review")}</button>`;
-    noteHtml = `<p style="font-size:12.5px;color:var(--text-light);">${L("Đã có dữ liệu quiz — giờ hệ thống có thể đánh giá mức độ nhớ của bạn.", "Quiz data recorded — the system can now assess your recall.")}</p>`;
+    noteHtml = `<p style="font-size:14.5px;color:var(--text-light);">${L("Đã có dữ liệu quiz — giờ hệ thống có thể đánh giá mức độ nhớ của bạn.", "Quiz data recorded — the system can now assess your recall.")}</p>`;
   } else {
     btnHtml = `<button class="btn btn-hsk2" id="qBackBtn" style="margin-top:14px;">📊 ${L("Xem tiến độ", "View progress")}</button>`;
   }
   document.getElementById("qContent").innerHTML =
     `<div class="quiz-result"><div class="score">${pct}%</div>
      <p>${L(`Đúng ${quizScore}/${quizQueue.length} câu`, `${quizScore}/${quizQueue.length} correct`)}</p>
-     <div style="margin:12px auto;max-width:520px;padding:10px 12px;border-radius:10px;background:${pct >= 80 ? '#f0fdf4' : pct >= 30 ? '#fffbeb' : '#fef2f2'};color:${pct >= 80 ? '#166534' : pct >= 30 ? '#92400e' : '#b91c1c'};font-size:13px;line-height:1.5;">🤖 <b>${L("AI Coach nhận xét", "AI Coach feedback")}:</b> ${esc(feedback)}${wrongItems.length ? `<br><span style="font-size:12px;">${L("Cần ôn", "Review")}: ${wrongItems.map((item) => esc(item.char || item.expected)).filter(Boolean).join(" · ")}</span>` : ""}</div>
+     <div style="margin:12px auto;max-width:520px;padding:10px 12px;border-radius:10px;background:${pct >= 80 ? '#f0fdf4' : pct >= 30 ? '#fffbeb' : '#fef2f2'};color:${pct >= 80 ? '#166534' : pct >= 30 ? '#92400e' : '#b91c1c'};font-size:15px;line-height:1.5;">🤖 <b>${L("AI Coach nhận xét", "AI Coach feedback")}:</b> ${esc(feedback)}${wrongItems.length ? `<br><span style="font-size:14px;">${L("Cần ôn", "Review")}: ${wrongItems.map((item) => esc(item.char || item.expected)).filter(Boolean).join(" · ")}</span>` : ""}</div>
      ${noteHtml}
      ${btnHtml}</div>`;
   document.getElementById("qProgress").textContent = quizQueue.length;
@@ -2732,7 +2732,7 @@ function renderDashboard() {
   let barsHtml = "";
   [1, 2, 3].forEach(level => {
     const levelWords = VOCAB.filter(w => w.hsk === level);
-    barsHtml += `<h4 style="font-size:12.5px;color:var(--text-light);margin:10px 0 4px;">HSK ${level} (${levelWords.length} từ)</h4>`;
+    barsHtml += `<h4 style="font-size:14.5px;color:var(--text-light);margin:10px 0 4px;">HSK ${level} (${levelWords.length} từ)</h4>`;
     for (let t = 0; t <= 4; t++) {
       const count = levelWords.filter(w => getTier(w.char) === t).length;
       const pctT = levelWords.length ? Math.round((count / levelWords.length) * 100) : 0;
@@ -3265,7 +3265,7 @@ function updateNotifBell() {
   const summary = count > 0
     ? L(`${count} cập nhật học tập đang chờ xem`, `${count} learning update${count === 1 ? "" : "s"} to review`)
     : L("Kế hoạch và nhận xét nằm trong AI Coach", "Your plan and feedback are in AI Coach");
-  dd.innerHTML = `<div style="padding:4px 0 10px;text-align:center;color:#5b4964;line-height:1.45;">🔔 <b>${summary}</b><div style="font-size:11px;color:#64748b;margin-top:3px;">${L("Xem kế hoạch, điểm và phần cần ôn trong một nơi.", "View your plan, scores and review items in one place.")}</div></div><button type="button" id="notifAiCoachBtn" style="display:block;width:100%;border:0;border-radius:9px;padding:8px 10px;background:var(--pink,#ec4899);color:#fff;font-weight:800;cursor:pointer;">💬 ${L("Mở AI Coach", "Open AI Coach")}</button>`;
+  dd.innerHTML = `<div style="padding:4px 0 10px;text-align:center;color:#5b4964;line-height:1.45;">🔔 <b>${summary}</b><div style="font-size:14px;color:#64748b;margin-top:3px;">${L("Xem kế hoạch, điểm và phần cần ôn trong một nơi.", "View your plan, scores and review items in one place.")}</div></div><button type="button" id="notifAiCoachBtn" style="display:block;width:100%;border:0;border-radius:9px;padding:8px 10px;background:var(--pink,#ec4899);color:#fff;font-weight:800;cursor:pointer;">💬 ${L("Mở AI Coach", "Open AI Coach")}</button>`;
   const coachBtn = document.getElementById("notifAiCoachBtn");
   if (coachBtn) coachBtn.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -3298,10 +3298,10 @@ function renderMergedHistory() {
     const mins = Math.max(1, Math.round(s.duration / 60000));
     const acts = ACTLOG.filter(l => l.t >= s.start && l.t <= s.end).sort((a, b) => b.t - a.t);
     html += `<div style="border:1px solid var(--hsk2-light);border-radius:10px;padding:8px 10px;margin-bottom:8px;">
-      <div style="font-weight:700;font-size:12px;">⏱️ ${startD.toLocaleDateString("vi-VN")} · ${fmtTime(startD)} → ${s.ongoing ? L("đang mở", "ongoing") : fmtTime(endD)} <span style="color:var(--text-light);font-weight:400;">(${mins} ${L("phút", "min")})</span></div>
+      <div style="font-weight:700;font-size:14px;">⏱️ ${startD.toLocaleDateString("vi-VN")} · ${fmtTime(startD)} → ${s.ongoing ? L("đang mở", "ongoing") : fmtTime(endD)} <span style="color:var(--text-light);font-weight:400;">(${mins} ${L("phút", "min")})</span></div>
       ${acts.length
-        ? `<ul style="list-style:none;padding:0;margin-top:5px;">` + acts.map(a => `<li style="padding:2px 0 2px 14px;font-size:12px;color:var(--text-light);">• ${esc(a.text)}</li>`).join("") + `</ul>`
-        : `<div style="font-size:11.5px;color:var(--text-light);margin-top:3px;padding-left:14px;">${L("Không có hoạt động ghi nhận", "No recorded activity")}</div>`}
+        ? `<ul style="list-style:none;padding:0;margin-top:5px;">` + acts.map(a => `<li style="padding:2px 0 2px 14px;font-size:14px;color:var(--text-light);">• ${esc(a.text)}</li>`).join("") + `</ul>`
+        : `<div style="font-size:14px;color:var(--text-light);margin-top:3px;padding-left:14px;">${L("Không có hoạt động ghi nhận", "No recorded activity")}</div>`}
     </div>`;
   });
   el.innerHTML = html || L("Chưa có hoạt động nào.", "No activity yet.");
@@ -3400,8 +3400,8 @@ async function renderTeacherDashboard() {
       
       // ─── HEADER: Phân cấp vai trò ───
       html += `<div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:14px 18px;margin-bottom:14px;color:#fff;">
-        <div style="font-weight:700;font-size:15px;">${isMaster ? '🏛️ Administration Center' : '👨‍🏫 Teacher Dashboard'}</div>
-        <div style="font-size:12px;opacity:.9;margin-top:3px;">${isMaster ? 'Manage classes, teachers, and learner data' : 'View learner progress and manage students'}</div>
+        <div style="font-weight:700;font-size:17px;">${isMaster ? '🏛️ Administration Center' : '👨‍🏫 Teacher Dashboard'}</div>
+        <div style="font-size:14px;opacity:.9;margin-top:3px;">${isMaster ? 'Manage classes, teachers, and learner data' : 'View learner progress and manage students'}</div>
       </div>`;
       
       // ─── Đọc progress từ Firestore cho từng học sinh ───
@@ -3418,10 +3418,10 @@ async function renderTeacherDashboard() {
       
       // ─── HỌC SINH (Giáo viên và Master đều thấy) ───
       if (students.length > 0 || (isMaster && (teachers.length > 0 || masters.length > 0))) {
-        html += `<h3 style="font-size:15px;margin:14px 0 10px;color:var(--hsk2);">🎓 Learners (${students.length})</h3>`;
+        html += `<h3 style="font-size:17px;margin:14px 0 10px;color:var(--hsk2);">🎓 Learners (${students.length})</h3>`;
         
         if (students.length === 0 && isMaster) {
-            html += `<p style="font-size:12.5px;color:#888;padding:8px;">No learners found.</p>`;
+            html += `<p style="font-size:14.5px;color:#888;padding:8px;">No learners found.</p>`;
         }
         
         html += students.map(u => {
@@ -3440,21 +3440,21 @@ async function renderTeacherDashboard() {
             
             // Nút đổi role: Master thấy tất cả, GV chỉ thấy đổi student↔teacher
             const changeRoleBtns = isMaster ? `
-              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ Teacher</button>
-              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','master_teacher')" style="font-size:11px;padding:5px 9px;background:#7c3aed;color:#fff;border:none;border-radius:8px;">↗ Master</button>
+              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:14px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ Teacher</button>
+              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','master_teacher')" style="font-size:14px;padding:5px 9px;background:#7c3aed;color:#fff;border:none;border-radius:8px;">↗ Master</button>
             ` : `
-              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ Teacher</button>
+              <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:14px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↗ Teacher</button>
             `;
             
             return `<div style="background:#fafcfe;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #eef2f7;margin-bottom:8px;">
               <div>
-                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge role-student" style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:11px;">🎓 Student</span></div>
-                <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
-                <div style="font-size:11px;color:var(--pink);margin-top:3px;">📚 ${L(`${learnedCount} từ đã học${lastSeenLabel !== "–" ? " · Cập nhật: " + lastSeenLabel : ""}`, `${learnedCount} words studied${lastSeenLabel !== "–" ? " · Updated: " + lastSeenLabel : ""}`)}</div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge role-student" style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:6px;font-size:14px;">🎓 Student</span></div>
+                <div style="font-size:14px;color:var(--text-light);">${u.email}</div>
+                <div style="font-size:14px;color:var(--pink);margin-top:3px;">📚 ${L(`${learnedCount} từ đã học${lastSeenLabel !== "–" ? " · Cập nhật: " + lastSeenLabel : ""}`, `${learnedCount} words studied${lastSeenLabel !== "–" ? " · Updated: " + lastSeenLabel : ""}`)}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:11px;padding:6px 10px;">📊 Details</button>
-                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
+                <button class="btn btn-outline" onclick="viewStudentProgress('${u.uid}', '${esc(u.name)}')" style="font-size:14px;padding:6px 10px;">📊 Details</button>
+                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:14px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
                 ${changeRoleBtns}
               </div>
             </div>`;
@@ -3463,17 +3463,17 @@ async function renderTeacherDashboard() {
       
       // ─── GIÁO VIÊN (Chỉ Master thấy) ───
       if (isMaster && teachers.length > 0) {
-          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:var(--hsk3);">👨‍🏫 Teachers (${teachers.length})</h3>`;
+          html += `<h3 style="font-size:17px;margin:20px 0 10px;color:var(--hsk3);">👨‍🏫 Teachers (${teachers.length})</h3>`;
           html += teachers.map(u => {
             // Đếm số học sinh của giáo viên này (dựa vào shared data)
             return `<div style="background:#fffbeb;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #fde68a;margin-bottom:8px;">
               <div>
-                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;font-size:11px;">👨‍🏫 Teacher</span></div>
-                <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;font-size:14px;">👨‍🏫 Teacher</span></div>
+                <div style="font-size:14px;color:var(--text-light);">${u.email}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','student')" style="font-size:11px;padding:5px 9px;background:#ef4444;color:#fff;border:none;border-radius:8px;">↘ Student</button>
-                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
+                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','student')" style="font-size:14px;padding:5px 9px;background:#ef4444;color:#fff;border:none;border-radius:8px;">↘ Student</button>
+                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:14px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
               </div>
             </div>`;
           }).join("");
@@ -3481,23 +3481,23 @@ async function renderTeacherDashboard() {
       
       // ─── MASTER / TRUNG TÂM (Chỉ Master thấy) ───
       if (isMaster && masters.length > 0) {
-          html += `<h3 style="font-size:15px;margin:20px 0 10px;color:#7c3aed;">🏛️ Center / Master (${masters.length})</h3>`;
+          html += `<h3 style="font-size:17px;margin:20px 0 10px;color:#7c3aed;">🏛️ Center / Master (${masters.length})</h3>`;
           html += masters.map(u => {
             return `<div style="background:#f5f3ff;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid #e0d4fc;margin-bottom:8px;">
               <div>
-                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:6px;font-size:11px;">🏛️ Master</span></div>
-                <div style="font-size:12px;color:var(--text-light);">${u.email}</div>
+                <div style="font-weight:700;">${esc(u.name)} <span class="role-badge" style="background:#ede9fe;color:#6d28d9;padding:2px 8px;border-radius:6px;font-size:14px;">🏛️ Master</span></div>
+                <div style="font-size:14px;color:var(--text-light);">${u.email}</div>
               </div>
               <div style="display:flex;gap:6px;align-items:center;">
-                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:11px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↘ Teacher</button>
-                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:11px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
+                <button class="btn btn-outline" onclick="changeUserRole('${u.uid}','teacher')" style="font-size:14px;padding:5px 9px;background:#3b82f6;color:#fff;border:none;border-radius:8px;">↘ Teacher</button>
+                <button class="btn btn-outline" onclick="confirmRemoveRole('${u.uid}')" style="font-size:14px;padding:5px 9px;color:#dc2626;border-color:#dc2626;">Remove</button>
               </div>
             </div>`;
           }).join("");
       }
       
       if (students.length === 0 && (!isMaster || (teachers.length === 0 && masters.length === 0))) {
-          html += `<p style="font-size:12.5px;color:#888;padding:10px;">Chưa có thành viên nào.</p>`;
+          html += `<p style="font-size:14.5px;color:#888;padding:10px;">Chưa có thành viên nào.</p>`;
       }
       
       list.innerHTML = html;
@@ -3547,7 +3547,7 @@ async function viewStudentProgress(uid, name) {
 
         document.getElementById("teacherDetailName").textContent = `Tiến độ của ${name}`;
         document.getElementById("teacherDetailStats").innerHTML = `
-            <div style="margin-bottom:14px;font-size:11px;color:var(--text-light);">Cập nhật lần cuối: ${lastUpdatedStr}</div>
+            <div style="margin-bottom:14px;font-size:14px;color:var(--text-light);">Cập nhật lần cuối: ${lastUpdatedStr}</div>
             <div class="time-grid" style="grid-template-columns:1fr 1fr;">
               <div class="time-box"><div class="num">${learned}</div><div class="lbl">${L("Từ đã học", "Words studied")}</div></div>
               <div class="time-box"><div class="num">${mastered}</div><div class="lbl">Từ thành thạo</div></div>
@@ -3555,7 +3555,7 @@ async function viewStudentProgress(uid, name) {
               <div class="time-box"><div class="num">${totalQuizAttempts}</div><div class="lbl">Tổng lượt quiz</div></div>
             </div>
             <div style="margin-top:14px;">
-              <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Tiến độ từ vựng: ${pct}%</div>
+              <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Tiến độ từ vựng: ${pct}%</div>
               <div style="background:var(--hsk2-light);border-radius:30px;height:9px;overflow:hidden;">
                 <div class="fill" style="height:100%;border-radius:30px;width:${pct}%;background:linear-gradient(90deg,var(--hsk1),var(--pink));transition:width 0.6s ease;"></div>
               </div>
@@ -3570,7 +3570,7 @@ async function viewStudentProgress(uid, name) {
                 <tr><td>🐼 Thành thạo</td><td>${tierCounts[4]}</td></tr>
               </tbody>
             </table>
-            <div style="margin-top:20px; font-size:13px; color:var(--text-light);">
+            <div style="margin-top:20px; font-size:15px; color:var(--text-light);">
                 <i>Dữ liệu được lấy trực tiếp từ Firebase Firestore.</i>
             </div>
         `;
@@ -3734,12 +3734,12 @@ function renderCustomWordsList() {
   if (!el) return;
   const custom = loadCustomWords();
   if (!custom.length) {
-    el.innerHTML = `<div style="font-size:12.5px;color:var(--text-light);">${L("Chưa có từ nào được giáo viên thêm.","No teacher-added words yet.")}</div>`;
+    el.innerHTML = `<div style="font-size:14.5px;color:var(--text-light);">${L("Chưa có từ nào được giáo viên thêm.","No teacher-added words yet.")}</div>`;
     return;
   }
   el.innerHTML = custom.map((w, i) => `<div style="display:flex;justify-content:space-between;align-items:center;background:#fafcfe;border:1px solid var(--hsk2-light);border-radius:10px;padding:8px 12px;">
-    <div><b>${esc(w.char)}</b> · ${esc(w.pinyin)} · ${esc(L(w.meaning, w.meaning_en))} <span style="color:var(--text-light);font-size:11px;">(HSK${w.hsk})</span></div>
-    <button data-idx="${i}" class="del-custom-word" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;">🗑️</button>
+    <div><b>${esc(w.char)}</b> · ${esc(w.pinyin)} · ${esc(L(w.meaning, w.meaning_en))} <span style="color:var(--text-light);font-size:14px;">(HSK${w.hsk})</span></div>
+    <button data-idx="${i}" class="del-custom-word" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:14px;">🗑️</button>
   </div>`).join("");
   el.querySelectorAll(".del-custom-word").forEach(b => {
     b.addEventListener("click", () => {
@@ -4053,9 +4053,9 @@ function renderAdvancedSetsList() {
     return `<div style="background:#fafcfe;border:2px solid var(--hsk3-light);border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
       <div>
         <div style="font-weight:700;">${esc(L(s.title, s.titleEn))}</div>
-        <div style="font-size:12px;color:var(--text-light);margin-top:2px;">📝 ${L("~40 câu (trắc nghiệm/điền từ + hội thoại sắp xếp)", "~40 questions (MC/cloze + dialogue reorder)")} · ⏱️ ${L("60 phút, không giới hạn thời gian từng câu", "60 min total, no per-question timer")}</div>
+        <div style="font-size:14px;color:var(--text-light);margin-top:2px;">📝 ${L("~40 câu (trắc nghiệm/điền từ + hội thoại sắp xếp)", "~40 questions (MC/cloze + dialogue reorder)")} · ⏱️ ${L("60 phút, không giới hạn thời gian từng câu", "60 min total, no per-question timer")}</div>
       </div>
-      <button class="btn btn-hsk3" data-set="${s.id}" style="font-size:12.5px;">▶️ ${L("Bắt đầu", "Start")}</button>
+      <button class="btn btn-hsk3" data-set="${s.id}" style="font-size:14.5px;">▶️ ${L("Bắt đầu", "Start")}</button>
     </div>`;
   }).join("");
   el.querySelectorAll("button[data-set]").forEach(b => {
@@ -4156,7 +4156,7 @@ function buildCertificateHtml(rec) {
       <span><span class="pct" style="color:${band.color};">${rec.pct}%</span><span class="grade">${band.grade}</span></span>
     </div>
     <div class="cert-label" style="color:${band.color};">${L(band.label, band.labelEn)}</div>
-    <div style="font-size:11px;color:#a9899a;">${L(`Đúng ${rec.mcScore}/${rec.mcTotal} câu trắc nghiệm/điền từ · ${rec.dlgScore}/${rec.dlgTotal} hội thoại sắp xếp`, `${rec.mcScore}/${rec.mcTotal} MC/cloze correct · ${rec.dlgScore}/${rec.dlgTotal} dialogue reorders correct`)}</div>
+    <div style="font-size:14px;color:#a9899a;">${L(`Đúng ${rec.mcScore}/${rec.mcTotal} câu trắc nghiệm/điền từ · ${rec.dlgScore}/${rec.dlgTotal} hội thoại sắp xếp`, `${rec.mcScore}/${rec.mcTotal} MC/cloze correct · ${rec.dlgScore}/${rec.dlgTotal} dialogue reorders correct`)}</div>
     <div class="cert-feedback">📝 ${L(band.vi, band.en)}</div>
     <div class="cert-seal">
       <div class="cert-seal-icon">${pandaSeal}</div>
@@ -4211,15 +4211,15 @@ function renderSavedCerts() {
   if (!el) return;
   const list = getSavedCertificates();
   if (!list.length) {
-    el.innerHTML = `<div style="font-size:12.5px;color:var(--text-light);">${L("Chưa có chứng chỉ nào được lưu. Hoàn thành 1 Đề nâng cao ở tab Luyện tập để nhận chứng chỉ!", "No certificates saved yet. Complete an Advanced Set in the Practice tab to earn one!")}</div>`;
+    el.innerHTML = `<div style="font-size:14.5px;color:var(--text-light);">${L("Chưa có chứng chỉ nào được lưu. Hoàn thành 1 Đề nâng cao ở tab Luyện tập để nhận chứng chỉ!", "No certificates saved yet. Complete an Advanced Set in the Practice tab to earn one!")}</div>`;
     return;
   }
   el.innerHTML = list.map((rec, i) => {
     const band = gradeBandFromPct(rec.pct);
     return `<div class="cert-mini" data-idx="${i}">
       <div>
-        <div style="font-weight:700;font-size:13px;">${esc(L(rec.setTitle, rec.setTitleEn))}</div>
-        <div style="font-size:11px;color:var(--text-light);">${new Date(rec.date).toLocaleDateString("vi-VN")}</div>
+        <div style="font-weight:700;font-size:15px;">${esc(L(rec.setTitle, rec.setTitleEn))}</div>
+        <div style="font-size:14px;color:var(--text-light);">${new Date(rec.date).toLocaleDateString("vi-VN")}</div>
       </div>
       <div style="font-weight:800;color:${band.color};">${rec.pct}% · ${band.grade}</div>
     </div>`;
@@ -4365,8 +4365,8 @@ function startMatchGame(options = {}) {
     </div>
     <p id="matchStatus" style="text-align:center;margin-top:14px;font-weight:600;"></p>`;
   const charBox = document.getElementById("matchChars"), meanBox = document.getElementById("matchMeanings");
-  charBox.innerHTML = chars.map(c => `<button class="btn btn-outline" data-id="${c.id}" data-type="char" style="font-size:22px;">${esc(c.char)}</button>`).join("");
-  meanBox.innerHTML = meanings.map(m => `<button class="btn btn-outline" data-id="${m.id}" data-type="meaning" style="font-size:12px;text-align:left;">${esc(m.meaning)}</button>`).join("");
+  charBox.innerHTML = chars.map(c => `<button class="btn btn-outline" data-id="${c.id}" data-type="char" style="font-size:24px;">${esc(c.char)}</button>`).join("");
+  meanBox.innerHTML = meanings.map(m => `<button class="btn btn-outline" data-id="${m.id}" data-type="meaning" style="font-size:14px;text-align:left;">${esc(m.meaning)}</button>`).join("");
   function tryMatch(el) {
     if (el.classList.contains("btn-hsk1")) return;
     const type = el.dataset.type, id = el.dataset.id;
@@ -4472,7 +4472,7 @@ function renderWriteGameShell(options = {}) {
       const wordPct = gradedTotal ? Math.round((correct / gradedTotal) * 100) : 0;
       const grammarPct = grammarScores.length ? Math.round(grammarScores.reduce((sum, value) => sum + value, 0) / grammarScores.length) : 0;
       const pct = gradedTotal && grammarScores.length ? Math.round(wordPct * 0.6 + grammarPct * 0.4) : (wordPct || grammarPct);
-      body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")}</h3><p style="text-align:center;">${gradedTotal ? `${correct}/${gradedTotal} ${L("từ đơn đúng", "graded words correct")}` : L("Không có câu tự động chấm", "No auto-graded word items")} · ${L("Rubric grammar", "Grammar rubric")}: ${grammarPct}% · ${L("Điểm Reading/Writing tổng hợp", "Combined Reading/Writing score")}: <b>${pct}%</b></p><p style="text-align:center;font-size:11px;color:var(--text-light);">${L("Rubric tự động chỉ kiểm tra tín hiệu cấu trúc; AI Coach/Giáo viên mới đánh giá được nghĩa và độ tự nhiên hoàn toàn.", "The automatic rubric checks structural signals only; AI Coach/teacher is required for semantic accuracy and naturalness.")}</p>`;
+      body.innerHTML = `<h3 style="text-align:center;">🎉 ${L("Hoàn thành!", "Done!")}</h3><p style="text-align:center;">${gradedTotal ? `${correct}/${gradedTotal} ${L("từ đơn đúng", "graded words correct")}` : L("Không có câu tự động chấm", "No auto-graded word items")} · ${L("Rubric grammar", "Grammar rubric")}: ${grammarPct}% · ${L("Điểm Reading/Writing tổng hợp", "Combined Reading/Writing score")}: <b>${pct}%</b></p><p style="text-align:center;font-size:14px;color:var(--text-light);">${L("Rubric tự động chỉ kiểm tra tín hiệu cấu trúc; AI Coach/Giáo viên mới đánh giá được nghĩa và độ tự nhiên hoàn toàn.", "The automatic rubric checks structural signals only; AI Coach/teacher is required for semantic accuracy and naturalness.")}</p>`;
       if (gradedTotal || grammarScores.length) savePracticeCompletion(pct, "write", { gradedItems: gradedTotal, grammarItems: grammarScores.length, wordScore: wordPct, grammarScore: grammarPct, score: pct, scoring: "objective_words_plus_transparent_grammar_rubric" });
       return;
     }
@@ -4483,10 +4483,10 @@ function renderWriteGameShell(options = {}) {
   function renderWordItem(body, w) {
     body.innerHTML = `
       <div style="text-align:center;">
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">${idx + 1}/${finalQueue.length} · ✍️ ${L("Từ đơn", "Word")}</div>
+        <div style="font-size:14px;color:var(--text-light);margin-bottom:4px;">${idx + 1}/${finalQueue.length} · ✍️ ${L("Từ đơn", "Word")}</div>
         <div style="font-size:48px;font-weight:700;">${esc(w.char)}</div>
         <div style="color:var(--pink);font-weight:700;">${esc(w.pinyin)}</div>
-        <input type="text" id="writeInput" placeholder="${L('Nhập nghĩa...', 'Type meaning...')}" style="margin-top:14px;padding:10px 18px;border-radius:30px;border:2px solid var(--hsk2-light);font-size:14px;width:280px;">
+        <input type="text" id="writeInput" placeholder="${L('Nhập nghĩa...', 'Type meaning...')}" style="margin-top:14px;padding:10px 18px;border-radius:30px;border:2px solid var(--hsk2-light);font-size:16px;width:280px;">
         <br><button class="btn btn-hsk2" id="writeSubmit" style="margin-top:10px;">${L("Kiểm tra", "Check")}</button>
         <p id="writeFeedback" style="margin-top:10px;font-weight:600;"></p>
       </div>`;
@@ -4516,21 +4516,21 @@ function renderWriteGameShell(options = {}) {
     }
     body.innerHTML = `
       <div style="text-align:center;">
-        <div style="font-size:11px;color:var(--text-light);margin-bottom:4px;">${idx + 1}/${finalQueue.length} · 📝 ${L("Dịch câu", "Sentence")}</div>
-        <div style="font-size:20px;font-weight:700;background:var(--card-bg,#fafcfe);border-radius:12px;padding:12px 16px;display:inline-block;max-width:340px;">${sourceLabel} ${esc(sourceText)}</div>
+        <div style="font-size:14px;color:var(--text-light);margin-bottom:4px;">${idx + 1}/${finalQueue.length} · 📝 ${L("Dịch câu", "Sentence")}</div>
+        <div style="font-size:22px;font-weight:700;background:var(--card-bg,#fafcfe);border-radius:12px;padding:12px 16px;display:inline-block;max-width:340px;">${sourceLabel} ${esc(sourceText)}</div>
         <br>
-        <textarea id="wgSentInput" rows="2" placeholder="${L('Gõ bản dịch của bạn...', 'Type your translation...')}" style="margin-top:14px;padding:10px 14px;border-radius:16px;border:2px solid var(--hsk2-light);font-size:14px;width:320px;max-width:90%;font-family:inherit;"></textarea>
+        <textarea id="wgSentInput" rows="2" placeholder="${L('Gõ bản dịch của bạn...', 'Type your translation...')}" style="margin-top:14px;padding:10px 14px;border-radius:16px;border:2px solid var(--hsk2-light);font-size:16px;width:320px;max-width:90%;font-family:inherit;"></textarea>
         <br><button class="btn btn-hsk2" id="wgCheckBtn" style="margin-top:10px;">${L("Chấm rubric & so đáp án", "Score rubric & compare")}</button>
-        <div style="margin-top:8px;font-size:11px;color:var(--text-light);max-width:340px;margin-left:auto;margin-right:auto;">${L("Rubric: độ đầy đủ 20 · dấu câu 15 · từ mục tiêu 20 · mẫu ngữ pháp 25 · chủ-vị 20.", "Rubric: completeness 20 · punctuation 15 · target word 20 · grammar pattern 25 · subject-predicate 20.")}</div>
+        <div style="margin-top:8px;font-size:14px;color:var(--text-light);max-width:340px;margin-left:auto;margin-right:auto;">${L("Rubric: độ đầy đủ 20 · dấu câu 15 · từ mục tiêu 20 · mẫu ngữ pháp 25 · chủ-vị 20.", "Rubric: completeness 20 · punctuation 15 · target word 20 · grammar pattern 25 · subject-predicate 20.")}</div>
         <div id="wgGrammarReport" style="display:none;margin-top:10px;border:1px solid #f3d5e5;background:#fff7fb;border-radius:10px;padding:9px 11px;text-align:left;max-width:340px;margin-left:auto;margin-right:auto;"></div>
         <div id="wgAnswerBox" style="display:none;margin-top:12px;background:#fffbeb;border-radius:10px;padding:10px 14px;text-align:left;max-width:340px;margin-left:auto;margin-right:auto;">
-          <div style="font-size:11px;color:var(--text-light);margin-bottom:3px;">${answerLabel}</div>
+          <div style="font-size:14px;color:var(--text-light);margin-bottom:3px;">${answerLabel}</div>
           <div style="font-weight:700;">${esc(ex[0])}</div>
-          <div style="color:var(--pink);font-size:12.5px;">${esc(ex[1])}</div>
-          <div style="font-size:13px;margin-top:3px;">🇻🇳 ${esc(ex[2])}</div>
-          <div style="font-size:13px;color:var(--text-light);">🇬🇧 ${esc(ex[3])}</div>
+          <div style="color:var(--pink);font-size:14.5px;">${esc(ex[1])}</div>
+          <div style="font-size:15px;margin-top:3px;">🇻🇳 ${esc(ex[2])}</div>
+          <div style="font-size:15px;color:var(--text-light);">🇬🇧 ${esc(ex[3])}</div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <div style="font-size:11px;color:var(--text-light);">${L("Câu dịch này chỉ để tự luyện và không được dùng làm điểm hay bằng chứng hoàn thành.", "This translation is for reflection only and is not used as a score or completion evidence.")}</div>
+            <div style="font-size:14px;color:var(--text-light);">${L("Câu dịch này chỉ để tự luyện và không được dùng làm điểm hay bằng chứng hoàn thành.", "This translation is for reflection only and is not used as a score or completion evidence.")}</div>
           </div>
         </div>
       </div>`;
@@ -4540,7 +4540,7 @@ function renderWriteGameShell(options = {}) {
       const labels = Object.fromEntries(GRAMMAR_RUBRIC.map((item) => [item.id, LANG_MODE === "en" ? item.en : item.vi]));
       const detail = GRAMMAR_RUBRIC.map((item) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:2px 0;"><span>${labels[item.id]}</span><b>${report.scores[item.id]}/${item.max}</b></div>`).join("");
       const reportBox = document.getElementById("wgGrammarReport");
-      reportBox.innerHTML = `<b>${L("Điểm grammar có thể kiểm chứng", "Verifiable grammar score")}: ${report.total}/100</b>${detail}<div style="font-size:10.5px;color:var(--text-light);margin-top:5px;">${report.matchedMarkers.length ? `${L("Mẫu phát hiện", "Detected patterns")}: ${esc(report.matchedMarkers.join(" · "))}.` : L("Chưa phát hiện mẫu ngữ pháp mục tiêu; hãy thử dùng một cấu trúc HSK phù hợp.", "No target HSK pattern detected; try adding a suitable HSK structure.")}</div>`;
+      reportBox.innerHTML = `<b>${L("Điểm grammar có thể kiểm chứng", "Verifiable grammar score")}: ${report.total}/100</b>${detail}<div style="font-size:14px;color:var(--text-light);margin-top:5px;">${report.matchedMarkers.length ? `${L("Mẫu phát hiện", "Detected patterns")}: ${esc(report.matchedMarkers.join(" · "))}.` : L("Chưa phát hiện mẫu ngữ pháp mục tiêu; hãy thử dùng một cấu trúc HSK phù hợp.", "No target HSK pattern detected; try adding a suitable HSK structure.")}</div>`;
       reportBox.style.display = "block";
       document.getElementById("wgAnswerBox").style.display = "block";
       window.setTimeout(() => { idx++; render(); }, 2800);
