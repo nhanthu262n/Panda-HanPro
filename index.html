@@ -50,6 +50,7 @@
     @media(max-width:520px){ .first-guide-card{border-radius:18px;} .first-guide-head,.first-guide-body,.first-guide-actions{padding-left:18px;padding-right:18px;} .first-guide-title{font-size:20px;} }
 </style>
 <link rel="stylesheet" href="css/teacher-monitor.css?v=v60-5-teacher-permissions">
+<link rel="stylesheet" href="css/coach-workspace.css?v=v62-unified-memory">
 </head>
 <body>
 <div id="proAuthOverlay">
@@ -168,6 +169,7 @@
 <button data-lang-en="🎵 Phonics" data-tab="pinyin">🎵 Phonics</button>
 <button data-lang-en="💬 Messages (Learning Path)" data-tab="chat" style="position:relative;">💬 Messages (Learning Path)<span class="notif-dot" id="chatNotifDot"></span></button>
 <button data-lang-en="🤖 AI Tutor" data-tab="ai" id="aiTeacherTabBtn">🤖 AI Tutor</button>
+<button data-tab="coach" data-lang-vi="🐼 PanTutor AI Coach" data-lang-en="🐼 PanTutor AI Coach">🐼 PanTutor AI Coach</button>
 <button data-lang-en="🧠 Review &amp; memory" data-lang-vi="🧠 Ôn tập &amp; ghi nhớ" data-tab="memoryPractice" id="memoryPracticeTabBtn">🧠 Ôn tập &amp; ghi nhớ</button>
 <button data-lang-en="👩‍🏫 Teacher" data-tab="teacher" id="teacherTabBtn" style="display:none;">👩‍🏫 Teacher</button>
 <div style="flex:1;"></div>
@@ -402,6 +404,9 @@
 </div>
 <div id="aiChatMount"></div>
 </div>
+<section class="dashboard-view coach-workspace" id="aiCoachView" style="display:none;">
+<div class="coach-hero"><div><span class="coach-kicker">PANTUTOR AI COACH</span><h2 data-lang-vi="Học từng bước, tiến bộ mỗi ngày" data-lang-en="Learn step by step, improve every day">Học từng bước, tiến bộ mỗi ngày</h2><p data-lang-vi="Mở bài hôm nay, luyện phần còn yếu và hỏi khi cần hỗ trợ." data-lang-en="Start today's lessons, practise difficult skills and ask for help.">Mở bài hôm nay, luyện phần còn yếu và hỏi khi cần hỗ trợ.</p></div><div class="coach-shortcuts"><button class="btn" onclick="switchTab('memoryPractice')" data-lang-vi="Ôn tập &amp; ghi nhớ" data-lang-en="Review &amp; memory">Ôn tập &amp; ghi nhớ</button><button class="btn" onclick="switchTab('dashboard')" data-lang-vi="Xem tiến độ" data-lang-en="View progress">Xem tiến độ</button></div></div><div id="coachConversation"></div>
+</section>
 <div class="dashboard-view" id="chatView" style="display:none;">
 <h2 data-lang-en="💬 Direct Teacher–Student Messages" style="font-size:20px;font-weight:800;color:var(--pink);margin-bottom:16px;">💬 Direct Teacher–Student Messages</h2>
 <div class="chat-wrap" id="chatWrap">
@@ -410,7 +415,7 @@
 <button class="chat-broadcast-btn" data-lang-en="📢 Broadcast to all students" id="chatBroadcastBtn" style="display:none;" type="button">📢 Broadcast to all students</button>
 <div id="chatContactList" style="display:flex;flex-direction:column;gap:4px;"></div>
 </div>
-<div class="chat-main">
+<div class="chat-main" id="sharedChatMain">
 <div class="chat-header2" id="chatBoxHeader">
 <button class="back-btn" data-title-en="Back to contacts" id="chatBackBtn" title="Back to contacts" type="button">←</button>
 <span data-lang-en="Select a contact to start chatting" id="activeChatTitle">Select a contact to start chatting</span>
@@ -523,17 +528,18 @@
 </div>
 </div>
 <details class="dash-details" id="retentionRubric">
-<summary data-lang-en="🎓 Retention rubric (SM-2 detail)">🎓 Retention rubric (SM-2 detail)</summary>
+<summary data-lang-vi="🎓 Rubric ghi nhớ · Từ vựng &amp; lỗi cần ôn" data-lang-en="🎓 Memory rubric · Vocabulary &amp; errors">🎓 Rubric ghi nhớ · Từ vựng &amp; lỗi cần ôn</summary>
 <div class="inner">
-<p style="font-size:11.5px;color:var(--text-light);margin-bottom:8px;">Evaluation is based on <b>actual review history</b> (consecutive correct reviews, memory ease, and review intervals) — not self-confirmation. / Based on <b>actual review history</b> (consecutive correct repetitions, ease factor, review interval) — not on students self-reporting "understood".</p>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:12px;" data-lang-vi="Đánh giá từ các câu trả lời đã kiểm tra trong Từ điển, AI Coach và bài ôn. Xem mẫu không tự tăng mức ghi nhớ; lỗi nghe và dùng câu được theo dõi riêng." data-lang-en="Based on verified answers from Dictionary, AI Coach and review tasks. Viewing examples does not raise mastery; listening and usage errors are tracked separately.">Đánh giá từ các câu trả lời đã kiểm tra trong Từ điển, AI Coach và bài ôn. Xem mẫu không tự tăng mức ghi nhớ; lỗi nghe và dùng câu được theo dõi riêng.</p>
 <div id="tierBreakdown"></div>
 <div id="rubricList" style="margin-top:10px;"></div>
-</div>
-</details>
 <details class="dash-details" id="memoryResultsPanel">
 <summary data-lang-en="🧠 Memory results" data-lang-vi="🧠 Kết quả ghi nhớ">🧠 Kết quả ghi nhớ</summary>
 <div class="inner" id="memoryResults"></div>
 </details>
+</div>
+</details>
+
 <details class="dash-details">
 <summary data-lang-en="📋 Activity history">📋 Activity history</summary>
 <div class="inner">
@@ -590,10 +596,10 @@
 <!-- PHONETICS — 10-SESSION BOOTCAMP -->
 <!-- ═══ PINYIN PHONETICS MODULE: extracted standalone module, kept intact ═══ -->
 <script defer="" src="js/app-01.js?v=mobile-google-auth-20260825-v4"></script>
-<script defer="" src="js/app-02.js?v=v60-5-teacher-permissions"></script>
+<script defer="" src="js/app-02.js?v=v62-unified-memory"></script>
 <script defer="" src="js/adaptive-learning-engine.js?v=linked-vocab-v17-20260901"></script>
 <script defer src="js/lesson-access.js?v=v59-1-teacher-access"></script>
-<script defer="" src="js/app-03.js?v=v60-5-teacher-permissions"></script>
+<script defer="" src="js/app-03.js?v=v62-unified-memory"></script>
 <script defer="" src="js/ai-tutor-chatbox-exam-data.js?v=v57-mcq-audit-20260923"></script>
 <script defer="" src="js/firebase-boot.js"></script>
 <script defer="" src="js/auth-bridge.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
@@ -605,11 +611,11 @@
 <script defer="" src="js/ai-tutor-hsk-complete-library.js?v=user-hsk1-6-reading-meaning-20260827-v2"></script>
 <script defer="" src="js/ai-tutor-reading-extension-translations.js?v=ai-tutor-extension-meaning-20260827-v1"></script>
 <script defer="" src="js/daily-missions.js?v=v60-5-teacher-permissions"></script>
-<script defer src="js/learning-attempt-history.js?v=v60-5-teacher-permissions"></script>
-<script defer src="js/memory-review.js?v=v60-5-teacher-permissions"></script>
-<script defer src="js/ten-layer-orchestrator.js?v=v61-adaptive-retry"></script>
+<script defer src="js/learning-attempt-history.js?v=v62-unified-memory"></script>
+<script defer src="js/memory-review.js?v=v62-unified-memory"></script>
+<script defer src="js/ten-layer-orchestrator.js?v=v62-unified-memory"></script>
 <script defer src="js/ai-coach-standalone-skills-v52.js?v=v61-adaptive-retry"></script>
-<script defer src="js/ai-coach-task-suite-v53.js?v=v61-adaptive-retry"></script>
+<script defer src="js/ai-coach-task-suite-v53.js?v=v62-v61-adaptive-retry"></script>
 <script defer="" src="js/app-05-rtdb-block1.js"></script>
 <script defer="" src="js/app-06-quest-ui.js"></script>
 <script defer="" src="js/quest-progression-core.js?v=quest-gate-v15-no-calendar-repeat-20260901"></script>
@@ -623,5 +629,6 @@
 <script defer="" src="js/first-time-guide.js?v=english-onboarding-20260826-v3"></script>
 <script defer="" src="js/international-mode.js?v=v57-1-safe-i18n-20260924"></script><script defer src="js/v57-language-quality.js?v=v57-1-vi-sync-20260924"></script><script defer src="js/teacher-learning-monitor.js?v=v61-adaptive-retry"></script>
 <script defer src="js/day1-day12-adaptive-retry.js?v=v61-adaptive-retry"></script>
+<script defer src="js/vocabulary-memory-sync.js?v=v62-unified-memory"></script>
 </body>
 </html>
