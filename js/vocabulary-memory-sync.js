@@ -15,11 +15,11 @@
     if(!['dictionary_quiz','vocab-intro','srs','listening','phonetics_core','reading_writing'].includes(row.taskId))return {...row,items:[]};
     return {...row,sourceTask:row.taskId,taskId:'remediation',items:(row.items||[]).map(item=>{
       const target=String(item.char||item.word||item.target||'');
-      const dimension=item.dimension||({dictionary_quiz:dictionaryDimension(item),'vocab-intro':Number(row.dayNumber)<=10?'SOUND':'MEANING',srs:'FORM',listening:'SOUND',phonetics_core:'SOUND'})[row.taskId]||(item.kind==='pinyin'?'SOUND':item.kind==='writing'?'USAGE':'MEANING');
+      const dimension=item.dimension||({dictionary_quiz:dictionaryDimension(item),'vocab-intro':'MEANING',srs:'FORM',listening:'SOUND',phonetics_core:'SOUND'})[row.taskId]||(item.kind==='pinyin'?'SOUND':item.kind==='writing'?'USAGE':'MEANING');
       let correct=item.correct,verified=item.verified!==false&&typeof correct==='boolean';
       if(row.taskId==='reading_writing'&&item.kind!=='writing'&&item.verified!==false&&Number.isFinite(item.score)){correct=item.score===100;verified=true}
-      if(item.openEnded||item.kind==='writing'){verified=false;correct=null}
-      return {...item,target,dimension,correct,verified,input:item.input??item.chosen??item.typed??'',expected:item.expected??item.answer??'',memoryReview:item.memoryReview!==false&&verified&&['MEANING','FORM','SOUND'].includes(dimension),learnCompleted:item.learnCompleted===true||item.priorExposure===true,sourceTask:row.taskId};
+      if(item.openEnded||item.kind==='writing'){verified=item.verified===true&&typeof item.correct==='boolean';correct=verified?item.correct:null}
+      return {...item,target,dimension,correct,verified,input:item.input??item.chosen??item.typed??'',expected:item.expected??item.answer??'',memoryReview:item.memoryReview!==false&&verified&&['MEANING','FORM','SOUND','USAGE','PRODUCTION'].includes(dimension),learnCompleted:item.learnCompleted===true||item.priorExposure===true,sourceTask:row.taskId};
     })};
   });}
   function validAccount(){try{return typeof STORE_KEY==='string'&&STORE_KEY==='pandahan_pro_stats_v1_'+storageNamespace()}catch(_){return false}}
