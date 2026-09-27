@@ -19,11 +19,12 @@
     if(task==="listening")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:item.correct===true,kind:"audio"};
     if(task==="phonetics_core")return {char:hanzi(char),dim:"SOUND",correct:item.correct===true,kind:"phonetics"};
     if(task==="speaking")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:Number(item.score)>=75,kind:"speaking"};
-    if(task==="vocab-intro")return {char,dim:"MEANING",correct:item.correct===true,kind:"meaning"};
+    if(task==="vocab-intro")return {char,dim:item.dimension||"MEANING",correct:item.correct===true,kind:"meaning"};
     if(task==="srs")return {char:String(item.char||item.expected||""),dim:"FORM",correct:item.correct===true,kind:"form"};
     if(task==="reading_writing"){
       const dim=item.dimension|| (item.kind==="writing"?"USAGE":item.kind==="pinyin"?"SOUND":"MEANING");
-      return {char,dim,correct:Number(item.score)>=75&&!item.correction?.reason,kind:item.kind};
+      if(item.kind==="writing"&&!(item.verified===true&&typeof item.correct==="boolean"))return null;
+      return {char,dim,correct:typeof item.correct==="boolean"?item.correct:Number(item.score)===100,kind:item.kind};
     }
     if(task==="remediation")return {char:String(item.target||""),dim:item.dimension,correct:item.correct===true,kind:"remediation"};
     return null;
@@ -64,6 +65,7 @@
       }else if(e.kind==="phonetics"||e.kind==="pinyin"){
         cls=4;confidence=0.7;reason="Âm bạn chọn khác âm mẫu. Hãy nghe lại và chú ý thanh điệu.";
       }
+      if(!e.correct&&!cls){cls=e.dim==='SOUND'?4:e.dim==='FORM'?5:['USAGE','PRODUCTION'].includes(e.dim)?10:2;confidence=.65;reason="Câu trả lời chưa đạt. Hãy luyện lại đúng kỹ năng của từ này.";}
       const event={attemptId:row.attemptId,itemIndex:index,dayNumber:row.dayNumber,target:e.char,dimension:e.dim,dimensions,correct:e.correct,kind:e.kind,diagnosisClass:cls,confidence,reason,createdAt:row.createdAt,input:item.input,expected:item.expected,score:item.score};
       events.push(event);previous.push(event);history.set(e.char,previous);
     }
@@ -243,7 +245,7 @@
     }
     if(rec.diagnosisClass===7){const status=decisions.get(recommendationId(rec))?.status;if(status==="approved"){const route=decisions.get(recommendationId(rec))?.teacherRoute||rec.route;const cls=({hanzi_form:5,tone_practice:8,listening:9,meaning_contrast:3,learn:6,usage_rewrite:10})[route]||6;open({...rec,diagnosisClass:cls});return}if(status==="pending"||status==="rejected")return;sendTeacher(rec);return}
     const questions=practiceQuestions(rec),q=questions[step];if(!q||q.mode==="choice"&&new Set(q.options.map(norm)).size<2){alert("Chưa có cặp đáp án đã duyệt cho từ này. Hãy chọn bài học hiện có hoặc nhờ giáo viên bổ sung học liệu.");return}
-    const memoryReview=[2,3,4,5,6].includes(rec.diagnosisClass)&&["FORM","MEANING","SOUND"].includes(q.dimension)&&q.mode!=="production";
+    const memoryReview=[2,3,4,5,6,8,9,10].includes(rec.diagnosisClass)&&DIMS.includes(q.dimension)&&q.mode!=="production";
     const state=window.PanTutorMemory?.getState(rec.target,q.dimension);
     const priorLearned=state?.learned===true||(window.PanTutorAttemptHistory?.allRows?.()||[]).some(r=>r.taskId==="vocab-intro"&&(r.items||[]).some(i=>(i.char||i.target)===rec.target&&i.correct===true));
     if(memoryReview&&!priorLearned){
