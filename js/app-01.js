@@ -431,11 +431,11 @@ async function loadStudentList() {
       <div class="student-card">
         <div>
           <div style="font-weight:700;">${u.name}</div>
-          <div style="font-size:12px;color:#888;">${u.email}</div>
+          <div style="font-size:14px;color:#888;">${u.email}</div>
         </div>
         <div style="text-align:right;">
           <div style="color:var(--pink);font-weight:800;">${learned} words studied</div>
-          <button onclick="viewStudentDetail('${u.uid}')" style="font-size:11px;background:#eee;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">View details</button>
+          <button onclick="viewStudentDetail('${u.uid}')" style="font-size:14px;background:#eee;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;">View details</button>
         </div>
       </div>
     `;
