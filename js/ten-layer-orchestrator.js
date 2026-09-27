@@ -15,6 +15,7 @@
   function lexicalEvidence(row,item){
     if(item.verified===false||item.hintShown===true)return null;
     const task=row.taskId, char=String(item.char||item.word||item.target||"");
+    if(task==="dictionary_quiz")return {char,dim:item.dimension||"MEANING",correct:item.correct===true,kind:item.dimension==="SOUND"?"phonetics":item.dimension==="USAGE"?"writing":"meaning"};
     if(task==="listening")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:item.correct===true,kind:"audio"};
     if(task==="phonetics_core")return {char:hanzi(char),dim:"SOUND",correct:item.correct===true,kind:"phonetics"};
     if(task==="speaking")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:Number(item.score)>=75,kind:"speaking"};
@@ -273,7 +274,7 @@
       else await window.PanTutorAttemptHistory?.save?.({dayNumber:rec.dayNumber,taskId:"teacherDraft",scorePercent:0,passed:false,completeSet:false,total:1,items:[{target:rec.target,dimension:q.dimension,input,expected:q.reference,verified:false,status:"pending_review",sourceAttemptId:rec.attemptId}],scheduleSaved:false});
       ov.querySelector("#ptTenResult").innerHTML=`<p>${ESC(message)}</p>${saved?window.PanTutorMemory?.feedback(saved)||"":""}<button id="ptTenAgain" class="ptt-secondary" type="button">Làm lại</button>`;
       ov.querySelectorAll("#ptTenChoices button").forEach(x=>{x.classList.add(norm(x.textContent)===norm(q.answer)?"correct":"wrong")});
-      const resultsBtn=ov.querySelector("[data-memory-results]");if(resultsBtn)resultsBtn.onclick=()=>{ov.remove();window.switchTab?.("dashboard");const panel=document.getElementById("memoryResultsPanel");if(panel){panel.open=true;panel.scrollIntoView({behavior:"smooth"})}};
+      const resultsBtn=ov.querySelector("[data-memory-results]");if(resultsBtn)resultsBtn.onclick=()=>{ov.remove();window.switchTab?.("dashboard");const panel=document.getElementById("memoryResultsPanel");if(panel){const outer=document.getElementById("retentionRubric");if(outer)outer.open=true;panel.open=true;panel.scrollIntoView({behavior:"smooth"})}};
       ov.querySelector("#ptTenAgain").onclick=()=>{ov.remove();open(rec)};
       if(step+1<questions.length){const next=document.createElement("button");next.className="ptt-primary";next.type="button";next.textContent="Câu tiếp theo";next.onclick=()=>open(rec,step+1);ov.querySelector("#ptTenResult").appendChild(next)}
       ov.querySelectorAll("#ptTenChoices button,#ptTenSubmit").forEach(x=>x.disabled=true);
