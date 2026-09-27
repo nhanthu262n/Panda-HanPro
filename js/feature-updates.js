@@ -142,38 +142,14 @@
     const chars = Array.from(raw.matchAll(/([\u3400-\u9fff]+)\s*\(/g)).map((m) => m[1]);
     return chars.map(getWord).filter(Boolean);
   }
-  function ensureFlowPanel() {
-    const host = document.getElementById("detailView") || document.querySelector("#detailView,.detail-view");
-    if (!host) return null;
-    let panel = document.getElementById("pandahanFlashcardReview");
-    if (!panel) {
-      panel = document.createElement("section");
-      panel.id = "pandahanFlashcardReview";
-      panel.style.cssText = "margin:14px 0 4px;padding:12px;border:1px solid #f3c4d8;border-radius:12px;background:#fff8fb;";
-      host.appendChild(panel);
-    }
-    return panel;
-  }
-  function renderFlowPanel() {
-    const panel = ensureFlowPanel();
-    if (!panel || !flow) return;
-    const word = flow.words[flow.index];
-    if (!word) {
-      panel.innerHTML = `<b>${text("Đã hoàn thành toàn bộ từ vựng hôm nay.", "All vocabulary for today is complete.")}</b>`;
-      return;
-    }
-    const stat = window.getStat?.(word.char) || {};
-    const graded = Object.values(flow.grades || {});
-    const dailyAverage = graded.length ? Math.round(graded.reduce((sum, item) => sum + Number(item.scorePercent || 0), 0) / graded.length) : 0;
-    panel.innerHTML = `<div style="font-weight:800;font-size:12px;">${text("Học từ vựng liên kết", "Linked vocabulary study")} · ${flow.index + 1}/${flow.words.length}</div><div style="font-size:10.5px;color:#7e2258;margin:4px 0 7px;">${text("Điểm SM-2 trong ngày", "Today's SM-2 score")}: <b>${dailyAverage}%</b> · ${graded.length}/${flow.words.length}</div><div style="font-size:11px;color:#64748b;margin:5px 0 9px;">${text("Xem nghĩa và ví dụ ở phía trên, sau đó bấm Trắc nghiệm. Điểm được lấy từ câu trả lời được chấm, không tự đánh giá.", "Review the meaning and examples above, then start the quiz. Scores come from graded answers, not self-assessment.")}</div><button type="button" data-vocab-quiz="1" style="border:0;border-radius:9px;background:#db2777;color:#fff;padding:8px 13px;font-weight:800;font-size:11px;cursor:pointer;">📝 ${text("Trắc nghiệm từ này", "Quiz this word")} · ${flow.index + 1 === flow.words.length ? text("Từ cuối", "Last word") : text("Tiếp", "Next")}</button><div style="font-size:10.5px;color:#64748b;margin-top:7px;">SM-2: ${Number(stat.repetitions || 0)} ${text("lần đúng", "successful repetitions")} · EF ${Number(stat.ef || 2.5).toFixed(2)}</div>`;
-    panel.querySelector("[data-vocab-quiz]")?.addEventListener("click", () => window.startQuizForWord?.(word.char, { vocabularyFlow: true }));
-  }
-    function startVocabularyFlow(words, dayNumber = null) {
-    const normalized = (words || []).map((w) => typeof w === "string" ? getWord(w) : w).filter(Boolean);
-    if (!normalized.length) return false;
-    flow = { words: normalized, index: 0, dayNumber: Number(dayNumber || 0) || null, grades: {} };
-    if (typeof window.openDetail === "function") window.openDetail(normalized[0].char);
-    setTimeout(renderFlowPanel, 0);
+  function renderFlowPanel() { document.getElementById("pandahanFlashcardReview")?.remove(); }
+  function startVocabularyFlow(words, dayNumber = null) {
+    renderFlowPanel();
+    const current=window.PandaHanMission?.getCurrent?.();
+    if(!current||!window.PandaHanCoachSkills?.openVocabulary)return false;
+    // Keep the canonical active day and its permissions; no dictionary overlay.
+    window.openAiCoachChat?.();
+    window.PandaHanCoachSkills.openVocabulary(current);
     return true;
   }
   let vocabularyReconcileKey = "";
@@ -244,16 +220,6 @@
       renderFlowPanel();
     }
   };
-  document.addEventListener("click", (event) => {
-    const card = event.target.closest?.("#wordListContent [data-char]");
-    if (card) {
-      const chars = Array.from(document.querySelectorAll("#wordListContent [data-char]" )).map((node) => node.dataset.char);
-      setTimeout(() => startVocabularyFlow(chars), 0);
-      return;
-    }
-    const task = event.target.closest?.('[data-mission-task="vocab-intro"]');
-    if (task) setTimeout(() => startVocabularyFlow(getDayWords(window.PandaHanMission?.getCurrent?.()?.dayNumber)), 0);
-  });
   window.addEventListener("pandahan-detail-opened", renderFlowPanel);
   window.addEventListener("pandahan-schedule-updated", () => setTimeout(reconcileSavedVocabularyQuiz, 300));
   window.addEventListener("pandahan-learning-evaluation", () => setTimeout(reconcileSavedVocabularyQuiz, 300));
