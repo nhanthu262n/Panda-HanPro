@@ -367,7 +367,7 @@ const RI_TARGET_DAYS = 30; // mục tiêu duy trì trí nhớ dài hạn (30 ng�
    quá dày (over-encoding, chưa quên nên ôn lại không hiệu quả) hoặc quá thưa (retrieval failure, đã quên hẳn). */
 function spacingEfficiency(char) {
   const s = getStat(char);
-  if (s.repetitions === 0) return 0;
+  if (s.repetitions === 0) return s.learned || s.quizAttempts > 0 ? 1 : 0;
   const optimal = optimalISI(RI_TARGET_DAYS);
   const ratio = Math.max(s.interval, 0.5) / optimal;
   const logRatio = Math.log(ratio);
@@ -760,14 +760,19 @@ window.PandaHanTutorSrs = { add: addTutorSrsWord, getAll: () => getTutorSrsWords
 
 function recordQuizResult(char, correct, meta = {}) {
   const s = getStat(char);
+  const learnedBefore=!!(s.learned||s.repetitions||s.quizAttempts||meta.priorExposure);
+  const dimension=window.PanTutorVocabularyMemory?.dictionaryDimension(meta)||"MEANING";
   s.quizAttempts += 1;
   if (correct) s.quizCorrect += 1;
   s.quizLog.push({ t: Date.now(), correct });
   if (s.quizLog.length > 30) s.quizLog = s.quizLog.slice(-30);
-  if (correct) resolveVocabularyMistake(char);
-  else recordVocabularyMistake(char, { ...meta, source: meta.source || "quiz" });
-  // Testing effect: quiz performance also feeds the SRS as a graded review
-  gradeWord(char, correct ? 4 : 2);
+  if (correct) {
+    const error=getAllVocabularyMistakes().filter(e=>e.char===char&&window.PanTutorVocabularyMemory?.dictionaryDimension(e)===dimension).sort((a,b)=>b.lastWrongAt-a.lastWrongAt)[0];
+    if(error)resolveVocabularyMistake(char,{key:error.key});
+  } else recordVocabularyMistake(char, { ...meta, source: meta.source || "quiz" });
+  // The immutable saved answer is the only input to the shared SM-2 update.
+  s.learned=learnedBefore||!!correct;saveStats();
+  window.PanTutorVocabularyMemory?.captureDictionary(char,correct,{...meta,dimension,learnCompleted:learnedBefore,memoryReview:learnedBefore,canonicalApplied:false,sm2Quality:null});
 }
 
 /* ---------- Practice completion -> adaptive 120-day schedule ---------- */
@@ -889,7 +894,7 @@ const RUBRIC = [
 
 function getTier(char) {
   const s = getStat(char);
-  if (s.repetitions === 0) return 0;
+  if (s.repetitions === 0) return s.learned || s.quizAttempts > 0 ? 1 : 0;
   const eff = spacingEfficiency(char);
   if (s.repetitions >= 5 && s.ef >= 2.5 && s.interval >= 30 && eff >= 0.5) return 4;
   if (s.repetitions >= 3 && s.ef >= 2.2 && s.interval >= 15 && eff >= 0.35) return 3;
@@ -898,7 +903,7 @@ function getTier(char) {
 }
 function isDue(char) {
   const s = getStat(char);
-  return s.repetitions > 0 && Date.now() >= s.nextReview;
+  return (s.learned || s.repetitions > 0 || s.quizAttempts > 0) && s.nextReview > 0 && Date.now() >= s.nextReview;
 }
 /* ---------- Student self-add: "save this word into my vocabulary" — this is
    exactly the same "➕ Từ đã thêm" bucket already shown in the Progress stat
@@ -2484,25 +2489,6 @@ let fcQueue = [], fcIdx = 0, fcCorrect = 0, fcWrong = 0;
 let pendingFlashcardQueue = null, postQuizGoToReview = false;
 function startReviewForWord(char, options = {}) {
   beginPracticeSession(options);
-  // Step 1: if this exact word has never been quizzed, send the learner to a
-  // quiz for it first (SM-2 needs real performance data to grade — see
-  // computeAutoQuality). Step 2: if it already has quiz data, skip the quiz
-  // and go straight to the flashcard, where they can listen + see the result.
-  const s = getStat(char);
-  if (s.quizAttempts === 0) {
-    const w = VOCAB_BY_CHAR[char];
-    const qs = genReadingQuestions(w);
-    if (qs.length) {
-      // Require the FULL quiz set for this word (all question types), not just one,
-      // so the SM-2 auto-assessment is based on real, complete performance data.
-      quizQueue = shuffle(qs).map(q => ({ ...q, char }));
-      pendingFlashcardQueue = [char];
-      postQuizGoToReview = true;
-      runQuiz();
-      return;
-    }
-    // no quiz questions authored for this word at all — fall through to flashcard
-  }
   fcQueue = [char];
   runFlashcards();
 }
@@ -2521,31 +2507,6 @@ function startReviewSession(options = {}) {
   hideStudyReminder();
   playReminderAudio().catch(() => {});
 
-  // Words with no quiz attempts yet have no performance data for the auto-assessment
-  // (see computeAutoQuality) — send the learner to practice those first.
-  const needsQuiz = queue.filter(char => getStat(char).quizAttempts === 0);
-  if (needsQuiz.length) {
-    let qq = [];
-    needsQuiz.forEach(char => {
-      const w = VOCAB_BY_CHAR[char];
-      const qs = genReadingQuestions(w);
-      // Use the FULL question set per word here too, so every word entering
-      // the queue gets a complete, real assessment — not just one sample question.
-      qs.forEach(q => qq.push({ ...q, char }));
-    });
-    qq = shuffle(qq);
-    if (qq.length) {
-      quizQueue = qq;
-      pendingFlashcardQueue = queue;
-      postQuizGoToReview = true;
-      alert(L(
-        `Bạn có ${qq.length} từ chưa làm bài luyện tập — hãy làm quiz trước để hệ thống đánh giá đúng mức độ nhớ, sau đó sẽ tự chuyển sang phần Ôn tập.`,
-        `You have ${qq.length} word(s) without practice data yet — do the quiz first so the system can assess your recall, then you'll move on to Review.`
-      ));
-      runQuiz();
-      return;
-    }
-  }
   fcQueue = queue;
   runFlashcards();
 }
@@ -2582,10 +2543,12 @@ function endFlashcards() {
   document.getElementById("fcCard").style.display = "none";
   document.getElementById("fcActions").style.display = "none";
   document.getElementById("fcEnd").style.display = "block";
-  document.getElementById("fcEndCorrect").textContent = fcCorrect;
+  document.getElementById("fcEndCorrect").parentElement.parentElement.style.display = "none";
   document.getElementById("fcEndWrong").textContent = fcWrong;
-  logActivity(`🎯 Ôn tập: ${fcCorrect} nhớ tốt, ${fcWrong} cần ôn lại`);
-  savePracticeCompletion(fcQueue.length ? Math.round((fcCorrect / fcQueue.length) * 100) : 0, "flashcards");
+  document.getElementById("fcEnd").querySelectorAll(".time-grid").forEach(n=>n.style.display="none");
+  let note=document.getElementById("fcViewedSummary");if(!note){note=document.createElement("p");note.id="fcViewedSummary";document.getElementById("fcEnd").prepend(note)}
+  note.textContent=L(`Đã xem lại ${fcQueue.length} từ. Điểm và lịch ôn cập nhật từ bài làm được chấm; xem thẻ không tính là trả lời đúng.`,`Reviewed ${fcQueue.length} word cards. Scores and review dates come from graded answers, not card views.`);
+  logActivity(`🎯 Đã xem lại ${fcQueue.length} thẻ từ`);
   fcStreak = 0;
   if (fcCorrect > 0 && fcCorrect >= fcWrong) {
     playFanfare();
@@ -3247,19 +3210,6 @@ function startTreasureReview() {
     return (sa.lastSeen || 0) - (sb.lastSeen || 0);
   }).slice(0, size);
   hideStudyReminder();
-  const needsQuiz = queue.filter(char => getStat(char).quizAttempts === 0);
-  if (needsQuiz.length) {
-    let qq = [];
-    needsQuiz.forEach(char => { const w = VOCAB_BY_CHAR[char]; genReadingQuestions(w).forEach(q => qq.push({ ...q, char })); });
-    if (qq.length) {
-      quizQueue = shuffle(qq);
-      pendingFlashcardQueue = queue;
-      postQuizGoToReview = true;
-      alert(L("Một số từ kho báu chưa có dữ liệu quiz — làm quiz trước rồi sẽ tự chuyển sang Ôn tập Kho báu nhé!", "Some treasure words have no quiz data yet — do the quiz first, then it'll take you to the Treasure Review!"));
-      runQuiz();
-      return;
-    }
-  }
   fcQueue = queue;
   alert(L(`🎁 Ôn tập Kho báu: ${queue.length} từ bạn dễ quên nhất! Cùng cứu lấy trí nhớ nào 🐼`, `🎁 Treasure Review: ${queue.length} of your most-forgettable words! Let's rescue your memory 🐼`));
   runFlashcards();
@@ -3359,6 +3309,7 @@ function renderMergedHistory() {
 
 /* ===================== TAB / SCREEN NAVIGATION ===================== */
   function switchTab(tab) {
+  if (tab === "coach") { window.openAiCoachChat?.(); return; }
   if (tab === "memoryPractice") { window.PanTutorMemory?.openPractice(); return; }
   document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   if (tab === "chat") {
@@ -3368,14 +3319,19 @@ function renderMergedHistory() {
   showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "chat" ? "chat" : tab === "ai" ? "aiTeacher" : tab === "pinyin" ? "pinyin" : "dashboard");
 }
 function showScreen(name) {
+  document.body.classList.toggle("coach-workspace-open", name === "coach");
+  const chatMain=document.getElementById("sharedChatMain");
+  if(chatMain&&name==="coach")document.getElementById("coachConversation")?.appendChild(chatMain);
+  if(chatMain&&name==="chat")document.getElementById("chatWrap")?.appendChild(chatMain);
   // Move the floating AI assistant away from the direct-message composer.
   document.body.classList.toggle("direct-chat-open", name === "chat");
-  ["memoryPracticeView", "browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "aiTeacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
+  ["aiCoachView", "memoryPracticeView", "browseTab", "detailView", "quizView", "flashcardView", "unscrambleView", "practiceTab", "dashboardView", "teacherView", "aiTeacherView", "chatView", "teacherStudentDetail", "certificateView", "addWordView", "wordListView", "pinyinView"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = "none"; el.classList.remove("visible"); }
   });
   const el = (id) => document.getElementById(id);
-  if (name === "browse") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); }
+  if (name === "coach") { if(el("aiCoachView"))el("aiCoachView").style.display="block"; }
+  else if (name === "browse") { if (el("browseTab")) el("browseTab").style.display = "block"; if (typeof renderGrids === "function") renderGrids(); }
   else if (name === "detail") { if (el("detailView")) { el("detailView").classList.add("visible"); el("detailView").style.display = "block"; } }
   else if (name === "quiz") { if (el("quizView")) { el("quizView").classList.add("visible"); el("quizView").style.display = "block"; } }
   else if (name === "flashcard") { if (el("flashcardView")) { el("flashcardView").classList.add("visible"); el("flashcardView").style.display = "block"; } }
@@ -3407,7 +3363,7 @@ function clearUserData(username) {
   localStorage.removeItem("pandahan_pro_log_v1_" + username);
 }
 function tierFromStat(s) {
-  if (!s || !s.repetitions) return 0;
+  if (!s || !s.repetitions) return s?.learned || s?.quizAttempts > 0 ? 1 : 0;
   if (s.repetitions >= 5 && s.ef >= 2.5 && s.interval >= 30) return 4;
   if (s.repetitions >= 3 && s.ef >= 2.2 && s.interval >= 15) return 3;
   if (s.repetitions >= 2 && s.ef >= 1.8 && s.interval >= 6) return 2;
@@ -4036,50 +3992,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const fch = document.getElementById("fcHidden"); if (fch) fch.classList.add("show");
     const frb = document.getElementById("fcRevealBtn"); if (frb) frb.style.display = "none";
     const fac = document.getElementById("fcActions"); if (fac) fac.style.display = "flex";
-    if (typeof computeAutoQuality === "function") {
-      const auto = computeAutoQuality(fcQueue[fcIdx]);
-      const assessEl = document.getElementById("fcAutoAssess");
-      if (assessEl) {
-        if (auto.quality === null) {
-          assessEl.innerHTML = L(
-            `📊 Chưa thể chấm tự động: <b>${auto.label}</b> (hãy làm bài có chấm điểm hôm nay; hệ thống không dùng tự đánh giá)`,
-            `📊 Cannot grade automatically: <b>${auto.label}</b> (complete a scored activity today; self-assessment is not used)`
-          );
-        } else {
-          assessEl.innerHTML = L(
-            `📊 Điểm SM-2 hôm nay: <b>${auto.label}</b> · ${auto.dailyAverage.toFixed(1)}/5 · ${auto.dailyCount} lượt`,
-            `📊 Today's SM-2 score: <b>${auto.label}</b> · ${auto.dailyAverage.toFixed(1)}/5 · ${auto.dailyCount} attempt(s)`
-          );
-        }
-      }
-      const fcb = document.getElementById("fcContinueBtn");
-      if (fcb) {
-        fcb.dataset.grade = auto.quality === null ? "" : String(auto.quality);
-        fcb.disabled = auto.quality === null;
-      }
-    }
+    window.PanTutorVocabularyMemory?.markLearned(fcQueue[fcIdx]);
+    const assessEl=document.getElementById("fcAutoAssess");
+    if(assessEl)assessEl.innerHTML=window.PanTutorVocabularyMemory?.wordSummary(fcQueue[fcIdx])||"Đã mở mẫu từ. Xem thẻ không tự tăng điểm ghi nhớ.";
+    const fcb=document.getElementById("fcContinueBtn");if(fcb){fcb.disabled=false;fcb.textContent=L("Tiếp theo →","Next →")}
   });
   safeAdd("fcContinueBtn", "click", (e) => {
-    const grade = Number(e.currentTarget.dataset.grade);
-    if (!Number.isFinite(grade) || grade < 1 || grade > 5) {
-      alert(L("Chưa có điểm SM-2 hôm nay cho từ này. Hãy làm bài có chấm điểm trước; hệ thống không dùng tự đánh giá.", "There is no SM-2 score for this word today. Complete a scored activity first; self-assessment is not used."));
-      return;
-    }
-    const char = fcQueue[fcIdx];
-    const prevTier = getTier(char);
-    if (typeof gradeWord === "function") gradeWord(char, grade);
-    const newTier = getTier(char);
-    const leveledUp = newTier > prevTier;
-    if (typeof playTing === "function") playTing(leveledUp ? "levelup" : (grade >= 4 ? "correct" : "wrong"));
-    if (typeof reactMascot === "function") reactMascot(grade);
-    if (typeof updateStreak === "function") updateStreak(grade);
-    if (grade >= 4) fcCorrect++; else fcWrong++;
-    if (grade === 5 || leveledUp || (typeof fcStreak !== "undefined" && fcStreak > 0 && fcStreak % 5 === 0)) {
-      const fcc = document.getElementById("fcCard"); if (fcc && typeof burstConfetti === "function") burstConfetti(fcc);
-      if (leveledUp && typeof playFanfare === "function") playFanfare();
-    }
-    fcIdx++;
-    setTimeout(() => { if (typeof showFlashcard === "function") showFlashcard(); }, grade >= 4 ? 550 : 300);
+    if(e.currentTarget.disabled)return;e.currentTarget.disabled=true;
+    fcIdx++;showFlashcard();
   });
   safeAdd("fcEndBtn", "click", () => switchTab("dashboard"));
 
