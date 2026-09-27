@@ -881,7 +881,6 @@ function pvNextSession() {
       // tin trực tiếp được với học viên khác.
       if (!isTeacherRole()) {
         contacts = contacts.filter(u => u.role === "teacher" || u.role === "master_teacher");
-        contacts.unshift({ uid: "__pandahan_ai__", name: "PanTutor AI Coach", isAi: true, role: "ai_coach" });
       }
     } catch (e) {
       console.error("initChatSystem error:", e);
@@ -1627,6 +1626,9 @@ function pvNextSession() {
     history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
   }
   function openAiCoachChat() {
+    window.showScreen?.("coach");
+    document.querySelectorAll(".nav-tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab==="coach"));
+    bindChatComposer();
     activeChatUserId = "__pandahan_ai__";
     activeChatId = null;
     if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
