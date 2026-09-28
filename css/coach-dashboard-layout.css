@@ -29,3 +29,24 @@
 @media(max-width:760px){#aiCoachView{padding:14px 12px 88px}#aiCoachView .coach-overview-grid{grid-template-columns:1fr}#aiCoachView .coach-focus-card,#aiCoachView .coach-journey-card{grid-column:auto;grid-row:auto;padding:18px}#aiCoachView .coach-hero h2{font-size:24px}#aiCoachView .coach-hero{flex-wrap:wrap}#aiCoachView .coach-feedback-section{padding:16px}}
 @media(max-width:520px){#aiCoachView .coach-task-grid{grid-template-columns:1fr}#aiCoachView .coach-shortcuts{width:100%}#aiCoachView .coach-shortcuts .btn{flex:1}}
 @media(prefers-reduced-motion:reduce){#aiCoachView .coach-task-card{transition:none}}
+
+/* Real account progress, shared with the lesson cards. */
+#aiCoachView .coach-progress-charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px}
+#aiCoachView .coach-chart-card{padding:24px;background:#fff;border:1px solid #f3d5e5;border-radius:22px;box-shadow:0 7px 24px #7d417a0a;min-width:0}
+#aiCoachView .coach-chart-card h3{font-size:21px;margin:0 0 18px;color:#47334f}
+#aiCoachView .coach-chart-card p{font-size:16px;color:#64748b;margin:10px 0;line-height:1.5}
+#aiCoachView .coach-chart-number{font-size:34px;font-weight:800;color:#db388d}
+#aiCoachView .coach-day-track{height:14px;border-radius:20px;background:#f0e8f5;position:relative;margin:30px 9px 12px}
+#aiCoachView .coach-day-track>span{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#ed4c9f,#a879df)}
+#aiCoachView .coach-day-track i{position:absolute;top:50%;width:22px;height:22px;border:4px solid white;background:#df3992;box-shadow:0 0 0 2px #df3992;border-radius:50%;transform:translate(-50%,-50%)}
+#aiCoachView .coach-day-labels{display:flex;justify-content:space-between;color:#7b6785;font-size:15px}
+#aiCoachView .coach-completion-content{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+#aiCoachView .coach-progress-ring{flex:none;width:150px;height:150px;border-radius:50%;background:conic-gradient(#e94498 var(--progress),#f0e8f5 0);display:grid;place-items:center}
+#aiCoachView .coach-progress-ring>div{width:118px;height:118px;border-radius:50%;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#aiCoachView .coach-progress-ring strong{font-size:32px;color:#d73488}
+#aiCoachView .coach-progress-ring span{font-size:14px;color:#64748b}
+#aiCoachView .coach-chart-legend{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:14px;color:#64748b}
+#aiCoachView .coach-chart-legend span{width:10px;height:10px;border-radius:50%;background:#e94498}
+#aiCoachView .coach-chart-legend span:nth-of-type(2){background:#f0e8f5;margin-left:7px}
+#aiCoachView .coach-chart-card .coach-chart-note{font-size:14px;margin-top:20px}
+@media(max-width:850px){#aiCoachView .coach-progress-charts{grid-template-columns:1fr}#aiCoachView .coach-chart-card{padding:20px}}
