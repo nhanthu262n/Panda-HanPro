@@ -1,0 +1,31 @@
+/* Dashboard presentation only: existing lesson content and handlers are preserved. */
+#aiCoachView{--coach-border:#e8e0ed;--coach-shadow:0 5px 18px #4a315b0a;background:radial-gradient(ellipse at 90% 0%,#fff3e8aa,transparent 40%),linear-gradient(145deg,#f5f6fc88,#fff6fb66);border-radius:24px;padding:20px 20px 92px}
+#aiCoachView .coach-hero{padding:8px 2px 20px;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;gap:18px;align-items:center}
+#aiCoachView .coach-hero h2{color:var(--text,#342b42);font-size:28px;line-height:1.35;margin:7px 0}
+#aiCoachView .coach-shortcuts .btn{box-shadow:var(--coach-shadow);font-size:15px;min-height:44px}
+#aiCoachView [data-ai-coach-plan]{padding:0!important;background:transparent!important;border:0!important}
+#aiCoachView .coach-overview-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-bottom:16px;align-items:stretch}
+#aiCoachView .coach-focus-card,#aiCoachView .coach-journey-card{background:#ffffffed;border:1px solid var(--coach-border);border-radius:18px;box-shadow:var(--coach-shadow);padding:22px;min-width:0}
+#aiCoachView .coach-focus-card{grid-column:2;grid-row:1;border-top:4px solid #ed72aa}
+#aiCoachView .coach-focus-card h3{font-size:23px!important;line-height:1.4;margin:9px 0 12px!important}
+#aiCoachView .coach-journey-card{grid-column:1;grid-row:1;border-top:4px solid #dfbb71}
+#aiCoachView [data-ai-coach-route-status]{margin:0!important;padding:0!important;border:0!important;background:transparent!important;line-height:1.7}
+#aiCoachView [data-ai-coach-route-status]>div:first-child{font-size:19px!important;margin-bottom:12px;gap:12px}
+#aiCoachView [data-ai-coach-route-status]>div:not(:first-child){font-size:15px!important;line-height:1.7!important}
+#aiCoachView .coach-context-notes{margin-bottom:16px}
+#aiCoachView .coach-task-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:16px}
+#aiCoachView .coach-task-card{display:grid!important;grid-template-columns:24px minmax(0,1fr);grid-template-rows:1fr auto;gap:10px!important;padding:18px!important;background:#fff!important;border:1px solid var(--coach-border)!important;border-radius:16px;box-shadow:var(--coach-shadow);min-width:0;transition:box-shadow .15s,border-color .15s}
+#aiCoachView .coach-task-card:hover{border-color:#e5b0cf!important;box-shadow:0 8px 24px #5a315b12}
+#aiCoachView .coach-task-card>span:nth-child(2){min-width:0;overflow-wrap:anywhere}
+#aiCoachView .coach-task-card b{font-size:17px;line-height:1.5}
+#aiCoachView .coach-task-card small{font-size:15px!important;line-height:1.65!important}
+#aiCoachView .coach-task-card>button,#aiCoachView .coach-task-card>small{grid-column:1/-1;align-self:end;margin-top:14px;white-space:normal!important}
+#aiCoachView .coach-task-card>button{background:linear-gradient(105deg,#e44b96,#c79e46)!important;min-height:46px;font-weight:800;font-size:16px!important}
+#aiCoachView .coach-task-card>small{padding:10px 12px;border-radius:10px;background:#eef9f1}
+#aiCoachView .coach-feedback-section{margin-top:22px;padding:22px;border:1px solid var(--coach-border);background:#ffffffdc;box-shadow:var(--coach-shadow)}
+#aiCoachView [data-ai-coach-assessment]{background:linear-gradient(120deg,#fff7fb,#fffaf0)!important}
+#aiCoachView #coachChatLauncher{box-shadow:0 6px 24px #683e6530}
+@media(max-width:1250px){#aiCoachView .coach-task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){#aiCoachView{padding:14px 12px 88px}#aiCoachView .coach-overview-grid{grid-template-columns:1fr}#aiCoachView .coach-focus-card,#aiCoachView .coach-journey-card{grid-column:auto;grid-row:auto;padding:18px}#aiCoachView .coach-hero h2{font-size:24px}#aiCoachView .coach-hero{flex-wrap:wrap}#aiCoachView .coach-feedback-section{padding:16px}}
+@media(max-width:520px){#aiCoachView .coach-task-grid{grid-template-columns:1fr}#aiCoachView .coach-shortcuts{width:100%}#aiCoachView .coach-shortcuts .btn{flex:1}}
+@media(prefers-reduced-motion:reduce){#aiCoachView .coach-task-card{transition:none}}
