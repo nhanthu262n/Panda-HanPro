@@ -476,11 +476,15 @@
 
     return sequence;
   }
+  function coachTaskIcon(type) {
+    const icons = { phonetics_core: "🎵", listening: "🎧", speaking: "🎙️", "vocab-intro": "📚", reading_writing: "✍️", quest: "🎯", srs: "🔄", "wrong-review": "🧩", mistake_review: "🧩" };
+    return `<span class="coach-task-icon" aria-hidden="true">${icons[type] || "📖"}</span>`;
+  }
   function renderLearningSequence(m, langEn, sequence = coachLearningSteps(m, langEn)) {
     const day = Number(m.dayNumber || 1);
     const rows = sequence.map((step, index) => {
       const action = step.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "Completed" : "Hoàn thành"}</small>` : `<button type="button" data-mission-task="${step.type}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:14px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
-      return `<div class="coach-task-card" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span style="font-size:18px;">${step.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(step.title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(step.description)}</small></span>${action}</div>`;
+      return `<div class="coach-task-card" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;">${coachTaskIcon(step.type)}<span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(step.title)}</b><br><small style="color:#64748b;line-height:1.4;">${esc(step.description)}</small></span>${action}</div>`;
     }).join("");
     return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #ddd6fe;border-radius:11px;background:#fbfaff;"><b>${langEn ? "Your learning activities" : "Chọn bài để bắt đầu"}</b><div class="coach-task-grid">${rows}</div></div>`;
   }
@@ -496,7 +500,7 @@
     const entries = coachLearningSteps(m, langEn).map(step => ({ id: step.type, description: step.description, done: step.done }));
     const rows = entries.map((entry, index) => {
       const action = entry.done ? `<small style="color:#15803d;font-weight:800;white-space:nowrap;">${langEn ? "Completed" : "Hoàn thành"}</small>` : `<button type="button" data-mission-task="${entry.id}" style="border:1px solid #c084fc;background:#fff;border-radius:7px;padding:4px 7px;color:#7e22ce;font-size:14px;font-weight:800;white-space:nowrap;">${langEn ? "Open" : "Vào học"}</button>`;
-      return `<div class="coach-task-card" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;"><span>${entry.done ? "✅" : "⬜"}</span><span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(requiredTaskLabel(entry.id, langEn))}</b><br><small style="color:#64748b;">${esc(entry.description)}</small></span>${action}</div>`;
+      return `<div class="coach-task-card" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f1e8f5;">${coachTaskIcon(entry.id)}<span style="flex:1;min-width:0;"><b>${index + 1}. ${esc(requiredTaskLabel(entry.id, langEn))}</b><br><small style="color:#64748b;">${esc(entry.description)}</small></span>${action}</div>`;
     }).join("");
     return `<div style="margin-top:10px;padding:9px 10px;border:1px solid #e9d5ff;border-radius:11px;background:#fbfaff;"><b>${langEn ? "Learning results" : "Kết quả bài học"}</b><div class="coach-task-grid">${rows}</div></div>`;
   }
