@@ -40,6 +40,7 @@
     }catch(e){console.warn("Attempt history load pending:",e?.code||e?.message||e)}
   }
   async function save(data){
+    data=window.PanTutorReviewGate?.annotate?.(data)||data;
     const id=uid()||"guest",day=Number(data.dayNumber),score=Number(data.scorePercent);
     if(!Number.isInteger(day)||day<1||day>120||!data.taskId||!Number.isFinite(score)||score<0||score>100)throw Error("Invalid learning attempt");
     const attemptId=newId(),createdAt=Math.max(Date.now(),Number(read(id).at(-1)?.createdAt||0)+1);
@@ -60,7 +61,9 @@
     if(!rows.length)return "";
     return `<details class="ptcs-reveal" style="text-align:left"><summary>Lịch sử làm bài (${rows.length} lần gần nhất)</summary>${rows.map(r=>`<details style="padding:9px 0;border-bottom:1px solid #ddd"><summary>${esc(new Date(r.createdAt).toLocaleString("vi-VN"))} · ${r.taskId==="teacherDraft"?"Chờ chấm":r.scorePercent+"/100"} · ${r.taskId==="teacherDraft"?"Chờ giáo viên":r.passed?"Đạt":"Chưa đạt"} · ${r.synced?"Đã đồng bộ":"Chờ đồng bộ"}</summary>${r.items.map((item,i)=>`<div style="padding:5px 0"><b>Câu ${i+1}</b>: ${esc(item.input??item.typed??item.chosen??item.recognized??"")} → ${esc(item.expected??item.answer??item.target??"")} · ${item.correct===true?"Đúng":item.correct===false?"Sai":`${esc(item.score??"")} điểm`}</div>`).join("")}</details>`).join("")}</details>`;
   }
-  window.PanTutorAttemptHistory={save,flush,hydrate,html,localRows,dayRows,allRows};
-  window.firebase?.auth?.().onAuthStateChanged(user=>{if(user)flush().then(hydrate).catch(()=>{})});
+  const readyJobs=new Map();
+  function ready(){const id=uid();if(!id)return Promise.resolve();if(!readyJobs.has(id))readyJobs.set(id,hydrate());return readyJobs.get(id)}
+  window.PanTutorAttemptHistory={ready,save,flush,hydrate,html,localRows,dayRows,allRows};
+  window.firebase?.auth?.().onAuthStateChanged(user=>{if(user){readyJobs.delete(user.uid);flush().catch(()=>{});ready().catch(()=>{})}});
   window.addEventListener("online",()=>flush().catch(()=>{}));
 })();
