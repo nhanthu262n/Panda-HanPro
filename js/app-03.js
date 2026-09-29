@@ -1629,6 +1629,7 @@ function pvNextSession() {
     history.forEach((item) => renderAiCoachMessage(item.text, item.role, false));
   }
   function openAiCoachChat() {
+    if(window.PanTutorReviewGate&&!window.PanTutorReviewGate.enterCoach())return;
     window.showScreen?.("coach");
     document.querySelectorAll(".nav-tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab==="coach"));
     bindChatComposer();
