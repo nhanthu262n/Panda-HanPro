@@ -6,7 +6,7 @@
   const API_BASE = "";
   window.__PINYIN_TEACHER_API_BASE__ = "";
 
-  const PHONETICS_BUILD = "v68-readable-phonetics";
+  const PHONETICS_BUILD = "v79-hidden-evidence";
   const PARTS = [
     { file: "phonetics-chunks-v45/phonetics-01.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-02.js", chars: 4000000 },
@@ -31,7 +31,7 @@
     { file: "phonetics-chunks-v45/phonetics-21.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-22.js", chars: 4000000 },
     { file: "phonetics-chunks-v45/phonetics-23.js", chars: 4000000 },
-    { file: "phonetics-chunks-v45/phonetics-24.js", chars: 3871007 }
+    { file: "phonetics-chunks-v45/phonetics-24.js", chars: 3871319 }
   ];
 
   let loadingPromise = null;
