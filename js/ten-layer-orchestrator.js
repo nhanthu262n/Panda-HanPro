@@ -15,9 +15,11 @@
   function lexicalEvidence(row,item){
     if(item.verified===false||item.hintShown===true)return null;
     const task=row.taskId, char=String(item.char||item.word||item.target||"");
+    if(task==="hidden_response")return {char,dim:item.dimension,correct:item.correct===true,kind:item.dimension==="SOUND"?"phonetics":item.dimension==="USAGE"?"writing":"meaning"};
     if(task==="dictionary_quiz")return {char,dim:item.dimension||"MEANING",correct:item.correct===true,kind:item.dimension==="SOUND"?"phonetics":item.dimension==="USAGE"?"writing":"meaning"};
     if(task==="listening")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:item.correct===true,kind:"audio"};
     if(task==="phonetics_core")return {char:hanzi(char),dim:"SOUND",correct:item.correct===true,kind:"phonetics"};
+    if(task==="speaking"&&item.verified!==true)return null;
     if(task==="speaking")return {char:String(item.word||hanzi(char)),dim:"SOUND",correct:Number(item.score)>=75,kind:"speaking"};
     if(task==="vocab-intro")return {char,dim:item.dimension||"MEANING",correct:item.correct===true,kind:"meaning"};
     if(task==="srs")return {char:String(item.char||item.expected||""),dim:"FORM",correct:item.correct===true,kind:"form"};
@@ -32,7 +34,7 @@
   function errorDetails(target, dimension, rows) {
     const matches=[], seen=new Set();
     for(const raw of [...rows].sort((a,b)=>a.createdAt-b.createdAt)) {
-      const row=window.PanTutorVocabularyMemory?.normalize?.(raw)||raw;
+      const row=window.PanTutorVocabularyMemory?.normalize?.([raw])?.[0]||raw;
       for(const [index,item] of (row.items||[]).entries()) {
         const id=row.attemptId+":"+index;
         const char=String(item.target||item.char||item.word||"");
