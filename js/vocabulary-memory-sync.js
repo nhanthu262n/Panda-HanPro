@@ -12,12 +12,14 @@
   function dictionaryDimension(meta={}){if(meta.dimension)return meta.dimension;const source=String(meta.source||'');if(/unscramble|sentence/.test(source))return 'USAGE';if(/tone|pinyin|listen|sound/.test(source)||/pinyin|thanh điệu|phiên âm/i.test(meta.prompt||''))return 'SOUND';if(/hanzi|character/.test(source))return 'FORM';return 'MEANING'}
   function normalize(input){return input.map(row=>{
     if(['remediation','memory_learning'].includes(row.taskId))return row;
-    if(!['dictionary_quiz','vocab-intro','srs','listening','phonetics_core','reading_writing'].includes(row.taskId))return {...row,items:[]};
+    if(!['dictionary_quiz','vocab-intro','srs','listening','phonetics_core','reading_writing','speaking','mistake_review','hidden_response'].includes(row.taskId))return {...row,items:[]};
     return {...row,sourceTask:row.taskId,taskId:'remediation',items:(row.items||[]).map(item=>{
       const target=String(item.char||item.word||item.target||'');
-      const dimension=item.dimension||({dictionary_quiz:dictionaryDimension(item),'vocab-intro':'MEANING',srs:'FORM',listening:'SOUND',phonetics_core:'SOUND'})[row.taskId]||(item.kind==='pinyin'?'SOUND':item.kind==='writing'?'USAGE':'MEANING');
+      const dimension=item.dimension||({dictionary_quiz:dictionaryDimension(item),'vocab-intro':'MEANING',srs:'FORM',listening:'SOUND',phonetics_core:'SOUND',speaking:'SOUND'})[row.taskId]||(item.kind==='pinyin'?'SOUND':item.kind==='writing'?'USAGE':'MEANING');
       let correct=item.correct,verified=item.verified!==false&&typeof correct==='boolean';
       if(row.taskId==='reading_writing'&&item.kind!=='writing'&&item.verified!==false&&Number.isFinite(item.score)){correct=item.score===100;verified=true}
+      if(row.taskId==='speaking'){verified=item.verified===true&&typeof item.correct==='boolean';correct=verified?item.correct:null}
+      if(row.taskId==='mistake_review'&&!item.dimension){verified=false;correct=null}
       if(item.openEnded||item.kind==='writing'){verified=item.verified===true&&typeof item.correct==='boolean';correct=verified?item.correct:null}
       return {...item,target,dimension,correct,verified,input:item.input??item.chosen??item.typed??'',expected:item.expected??item.answer??'',memoryReview:item.memoryReview!==false&&verified&&['MEANING','FORM','SOUND','USAGE','PRODUCTION'].includes(dimension),learnCompleted:item.learnCompleted===true||item.priorExposure===true,sourceTask:row.taskId};
     })};
