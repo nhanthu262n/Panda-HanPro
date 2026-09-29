@@ -285,7 +285,7 @@
   function seenKey(rec){const uid=window.firebase?.auth?.().currentUser?.uid|| (typeof STORE_KEY!=='undefined'?STORE_KEY:'guest');return 'pt-review-questions-v81:'+uid+':'+rec.target+':'+rec.dimension;}
   function seenQuestions(rec){let local=[];try{local=JSON.parse(localStorage.getItem(seenKey(rec))||'[]')}catch(_){}const seen=new Set(local);for(const row of window.PanTutorAttemptHistory?.allRows?.()||[])for(const i of row.items||[])if(i.target===rec.target&&i.dimension===rec.dimension&&i.questionId)seen.add(i.questionId);return seen;}
   function rememberQuestion(rec,q){const seen=seenQuestions(rec);seen.add(questionId(q));try{localStorage.setItem(seenKey(rec),JSON.stringify([...seen]))}catch(_){} }
-  function practiceQuestions(rec){
+  function practiceQuestions(rec,settings={}){
     const w=word(rec.target),py=w?.pinyin||'',m=meaning(w),bank=[],dim=rec.dimension;
     const add=q=>{q.sourcePrompt=q.sourcePrompt||q.prompt;bank.push(q)};
     const examples=(w?.examples||[]).map(e=>Array.isArray(e)?e[0]:e?.zh||e?.sentence||'').filter(e=>typeof e==='string'&&e.includes(rec.target));
@@ -308,7 +308,7 @@
       contexts.forEach(([vi,eng],i)=>add({mode:'production',prompt:tr('Dùng “','Use “')+rec.target+tr('” để '+vi+'.','” to '+eng+'.'),sourcePrompt:'production-context:'+i,reference:'',dimension:dim}));
       examples.forEach(sentence=>add({mode:'typing',prompt:tr('Điền từ phù hợp với nghĩa ','Fill the blank using the word meaning ')+m+': '+sentence.replaceAll(rec.target,'____'),sourcePrompt:'usage-context:'+sentence,answer:rec.target,dimension:dim}));
     }
-    const seen=seenQuestions(rec),unique=new Set();const prior=(window.PanTutorAttemptHistory?.allRows?.()||[]).flatMap(r=>r.items||[]).filter(i=>(i.target||i.char||i.word)===rec.target&&(i.dimension===dim||dim==='SOUND'&&i.kind==='pinyin'));return bank.sort((a,b)=>(a.mode==='production')-(b.mode==='production')).filter(q=>{const id=questionId(q);if(seen.has(id)||unique.has(id)||prior.some(i=>i.prompt===q.prompt)||!q.sourcePrompt.includes('context:')&&q.sourcePrompt.startsWith('sound-')&&!q.sourcePrompt.startsWith('sound-sequence')&&prior.some(i=>!i.questionId&&i.verified!==false)||q.mode==='choice'&&new Set(q.options).size<2)return false;unique.add(id);return true}).slice(0,1);
+    const seen=settings.includeSeen?new Set():seenQuestions(rec),unique=new Set();const prior=settings.includeSeen?[]:(window.PanTutorAttemptHistory?.allRows?.()||[]).flatMap(r=>r.items||[]).filter(i=>(i.target||i.char||i.word)===rec.target&&(i.dimension===dim||dim==='SOUND'&&i.kind==='pinyin'));const available=bank.sort((a,b)=>(a.mode==='production')-(b.mode==='production')).filter(q=>{const id=questionId(q);if(seen.has(id)||unique.has(id)||prior.some(i=>i.prompt===q.prompt)||!q.sourcePrompt.includes('context:')&&q.sourcePrompt.startsWith('sound-')&&!q.sourcePrompt.startsWith('sound-sequence')&&prior.some(i=>!i.questionId&&i.verified!==false)||q.mode==='choice'&&new Set(q.options).size<2)return false;unique.add(id);return true});return settings.all?available:available.slice(0,1);
   }
   function ensurePracticeStyle(){
     if(document.getElementById("ptTenPracticeStyle"))return;
@@ -330,7 +330,7 @@
       if(cls&&cls!==rec.diagnosisClass){open({...rec,diagnosisClass:cls,_teacherApplied:true},step);return}
     }
     if(rec.diagnosisClass===7){const status=decisions.get(recommendationId(rec))?.status;if(status==="approved"){const route=decisions.get(recommendationId(rec))?.teacherRoute||rec.route;const cls=({hanzi_form:5,tone_practice:8,listening:9,meaning_contrast:3,learn:6,usage_rewrite:10})[route]||6;open({...rec,diagnosisClass:cls});return}if(status==="pending"||status==="rejected")return;sendTeacher(rec);return}
-    const questions=rec._questions||practiceQuestions(rec),q=questions[step];if(!q||q.mode==="choice"&&new Set(q.options.map(norm)).size<2){alert(tr("Bạn đã làm hết các đề khác nhau hiện có cho kỹ năng này. Hãy chọn mục khác trong lúc chờ giáo viên bổ sung đề mới.","You have completed the available distinct questions for this skill. Choose another review item while your teacher adds more material."));return}
+    const assigned=window.PanTutorReviewGate?.question?.(rec);const questions=rec._questions||(assigned?[assigned]:practiceQuestions(rec)),q=questions[step];if(!q||q.mode==="choice"&&new Set(q.options.map(norm)).size<2){alert(tr("Bạn đã làm hết các đề khác nhau hiện có cho kỹ năng này. Hãy chọn mục khác trong lúc chờ giáo viên bổ sung đề mới.","You have completed the available distinct questions for this skill. Choose another review item while your teacher adds more material."));return}
     const memoryReview=[2,3,4,5,6,8,9,10].includes(rec.diagnosisClass)&&DIMS.includes(q.dimension)&&q.mode!=="production";
     const state=window.PanTutorMemory?.getState(rec.target,q.dimension);
     const priorLearned=state?.learned===true||(window.PanTutorAttemptHistory?.allRows?.()||[]).some(r=>r.taskId==="vocab-intro"&&(r.items||[]).some(i=>(i.char||i.target)===rec.target&&i.correct===true));
@@ -402,7 +402,7 @@
       }catch(e){console.warn("Teacher recommendations:",e?.code||e?.message||e)}
     }
   }
-  window.PanTutorTenLayer={practiceQuestions,questionId,rememberQuestion,errorDetails,diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions,choose};
+  window.PanTutorTenLayer={canPractice:rec=>rec.diagnosisClass!==7||decisions.get(recommendationId(rec))?.status==="approved",practiceQuestions,questionId,rememberQuestion,errorDetails,diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions,choose};
   window.firebase?.auth?.().onAuthStateChanged(user=>{if(user)loadDecisions()});
   window.addEventListener("pantutor-attempt-saved",event=>{
     if(document.querySelector("[data-ai-coach-plan]")&&event.detail?.dayNumber){
