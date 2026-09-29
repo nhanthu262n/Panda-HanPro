@@ -29,6 +29,42 @@
     if(task==="remediation")return {char:String(item.target||""),dim:item.dimension,correct:item.correct===true,kind:"remediation"};
     return null;
   }
+  function errorDetails(target, dimension, rows) {
+    const matches=[], seen=new Set();
+    for(const raw of [...rows].sort((a,b)=>a.createdAt-b.createdAt)) {
+      const row=window.PanTutorVocabularyMemory?.normalize?.(raw)||raw;
+      for(const [index,item] of (row.items||[]).entries()) {
+        const id=row.attemptId+":"+index;
+        const char=String(item.target||item.char||item.word||"");
+        const e=lexicalEvidence(row,item);
+        if(char!==target&&e?.char!==target||seen.has(id))continue;
+        const dim=item.dimension||e?.dim;
+        if(dim!==dimension||item.verified===false||item.hintShown||typeof item.correct!=="boolean")continue;
+        seen.add(id);matches.push({ ...item, at:row.createdAt, day:row.dayNumber });
+      }
+    }
+    const errors=matches.filter(x=>!x.correct), latest=matches.at(-1), w=word(target);
+    const entries=errors.map(item=>{
+      let why="",next="";
+      const expected=String(item.expected||"").trim(), answer=String(item.input||"").trim();
+      if(dimension==="SOUND") {
+        why="Câu trả lời nghe/Pinyin chưa khớp đáp án mẫu. Lượt này chưa đủ để kết luận bạn không hiểu nghĩa của từ.";
+        next="Nghe mẫu, đọc lại từng âm tiết, rồi nghe và chọn đáp án khi không nhìn gợi ý.";
+        const base=x=>x.normalize("NFD").replace(/[\u0300\u0301\u0304\u030c]/g,"").replace(/[1-5\s]/g,"").toLowerCase();
+        if(expected&&answer&&/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ0-5\s]+$/i.test(answer)&&/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ0-5\s]+$/i.test(expected)) {
+          if(base(answer)===base(expected)&&norm(answer)!==norm(expected)){why="Phần chữ của âm tiết trùng nhau nhưng dấu/số thanh khác đáp án. Đây là lỗi ghi hoặc chọn thanh điệu; chưa chứng minh phát âm thực tế sai.";next="Đối chiếu dấu thanh trong hai đáp án, nghe đường cao độ của mẫu rồi làm lại.";}
+          else if(base(answer)!==base(expected)){why="Cách viết âm tiết bạn chọn khác đáp án mẫu, không chỉ khác thanh điệu. Cần đối chiếu phụ âm đầu và vần trước khi luyện thanh.";}
+        }
+      } else if(dimension==="MEANING") {why="Bạn chọn/nhập nghĩa chưa đúng với từ trong câu hỏi. Kết quả này đánh giá hiểu nghĩa, không chứng minh bạn nghe hoặc phát âm sai.";next="Đọc lại nghĩa của từ, so sánh với đáp án đã chọn rồi thử một câu hỏi nghĩa trong ngữ cảnh mới.";}
+      else if(dimension==="FORM") {why="Chữ bạn trả lời chưa khớp chữ mẫu. Cần đối chiếu mặt chữ; chưa đủ căn cứ kết luận sai nghĩa.";next="So sánh từng chữ và bộ phận khác nhau, sau đó viết hoặc chọn lại chữ đúng.";}
+      else {why=item.validationReason==="missing_required_target"?`Câu viết chưa có từ bắt buộc “${target}”. Chưa thể từ lỗi này kết luận toàn bộ ngữ pháp sai.`:String(item.correction?.reason||"Câu trả lời chưa đạt yêu cầu dùng từ/cấu trúc của bài đã kiểm tra.");next="Đối chiếu yêu cầu và câu mẫu, sửa câu của bạn rồi viết lại một câu dùng đúng từ.";}
+      return {item,answer,expected,why,next};
+    });
+    const summary=matches.length?`Đã kiểm tra ${matches.length} câu: ${matches.length-errors.length} đúng, ${errors.length} sai. ${latest.correct?"Lượt gần nhất đã đúng; ôn lại để củng cố.":"Lượt gần nhất còn sai; cần luyện lại."}`:"Chưa có câu trả lời chi tiết đã xác minh để phân tích lỗi. Mục này được nhắc theo lịch ôn.";
+    const renderEntry=({item,answer,expected,why,next})=>`<div style="padding:12px 0;border-top:1px solid #eee"><p><b>Ngày ${Number(item.day)} · ${ESC(new Date(item.at).toLocaleString("vi-VN"))}</b></p>${item.prompt?`<p><b>Câu hỏi:</b> ${ESC(item.prompt)}</p>`:""}<p><b>Bạn trả lời:</b> ${ESC(answer||"Chưa lưu câu trả lời")}</p><p><b>Đáp án đúng:</b> ${ESC(expected||"Chưa lưu đáp án của lượt này")}</p><p><b>Phân tích:</b> ${ESC(why)}</p>${w?.pinyin||meaning(w)?`<p><b>Từ tham khảo:</b> ${ESC(target)} · ${ESC(w?.pinyin||"")} · ${ESC(meaning(w))}</p>`:""}<p><b>Cách sửa:</b> ${ESC(next)}</p></div>`;
+    const recent=entries.slice(-3).reverse(),older=entries.slice(0,-3).reverse();
+    return `<div class="pm-error-analysis" style="line-height:1.65;overflow-wrap:anywhere"><p><b>Nhận xét theo bài làm:</b> ${ESC(summary)}</p>${recent.map(renderEntry).join("")}${older.length?`<details><summary>Xem ${older.length} lỗi trước đó</summary>${older.map(renderEntry).join("")}</details>`:""}</div>`;
+  }
   function relatedMeaning(char,chosen){
     const pair={"方便":["容易","easy","dễ"],"容易":["方便","convenient","thuận tiện"]};
     return (pair[char]||[]).some(x=>norm(chosen).includes(norm(x)));
@@ -49,7 +85,7 @@
           confidence=cls===1?0.95:cls===2?0.85:0;
         }
       }else if(priorWrong>=2&&threeDistinctAttempts&&e.kind!=="remediation"){
-        cls=7;confidence=0.9;reason="Bạn đã trả lời sai từ này ba lần ở cùng một dạng bài. Hãy đổi cách luyện.";
+        cls=7;confidence=0.9;reason="Bạn đã trả lời sai từ này ba lần ở cùng một kỹ năng. Hãy đổi cách luyện.";
       }else if(e.kind==="writing"&&item.input&&item.correction?.reason){
         cls=10;dimensions=["USAGE","PRODUCTION"];confidence=0.85;reason="Câu bạn viết cần sửa cách dùng từ hoặc cấu trúc câu.";
       }else if(e.kind==="speaking"&&known&&Number(item.tone)<24){
@@ -100,7 +136,7 @@
       const reviewAt=Number(window.PandaHanAdaptiveLearning?.getStatFor?.(e.target)?.nextReview||0);
       const due=reviewAt>0&&reviewAt<=Date.now();
       const urgency=e.diagnosisClass===7?1.3:due?1.2:before.slice(-3).filter(x=>!x.correct).length>=2?1.15:1;
-      return {...e,id:recommendationId(e),route:ROUTES[e.diagnosisClass],label:LABELS[e.diagnosisClass],action:ACTIONS[e.diagnosisClass],confidence,due,priority:Math.round(weakness*confidence*relevance*urgency*1000)/1000,evidence:{correct:source.filter(x=>x.correct).length,total:source.length,attemptIds:[...new Set(source.map(x=>x.attemptId))],meaningCorrect:related.filter(x=>x.correct).length,meaningTotal:related.length,lastAt:e.createdAt},before:{correct:before.filter(x=>x.correct).length,total:before.length},after:{correct:after.filter(x=>x.correct).length,total:after.length},dimensions:byWord[e.target]||{}};
+      return {...e,id:recommendationId(e),route:ROUTES[e.diagnosisClass],label:e.correct===false&&e.diagnosisClass===2?"Chưa hiểu đúng nghĩa":LABELS[e.diagnosisClass],action:ACTIONS[e.diagnosisClass],confidence,due,priority:Math.round(weakness*confidence*relevance*urgency*1000)/1000,evidence:{correct:source.filter(x=>x.correct).length,total:source.length,attemptIds:[...new Set(source.map(x=>x.attemptId))],meaningCorrect:related.filter(x=>x.correct).length,meaningTotal:related.length,lastAt:e.createdAt},before:{correct:before.filter(x=>x.correct).length,total:before.length},after:{correct:after.filter(x=>x.correct).length,total:after.length},dimensions:byWord[e.target]||{}};
     }).sort((a,b)=>b.priority-a.priority||b.createdAt-a.createdAt).slice(0,8);
   }
   function quality({correct,responseMs,priorExposure,confidence}){
@@ -149,7 +185,7 @@
     const w=word(rec.target),s=SCENARIOS[rec.target];ensurePracticeStyle();document.getElementById("ptTenLayerOverlay")?.remove();
     const ov=document.createElement("div");ov.id="ptTenLayerOverlay";
     const details=rec.dimension==="FORM"?String(w?.chietu_vi||"Nhìn từng phần của chữ và đối chiếu với chữ mẫu."):rec.dimension==="SOUND"?`Nghe ${rec.target} (${w?.pinyin||""}) nhiều lần. Chú ý thanh điệu rồi chọn âm nghe được.`:s?.correction||String(w?.examples?.[0]?.[0]||"Xem ví dụ của từ trước khi làm bài.");
-    ov.innerHTML=`<section class="ptt-panel" role="dialog" aria-modal="true"><header class="ptt-head"><b class="ptt-title">Giải thích · ${ESC(rec.target)}</b><button class="ptt-close" type="button">✕ Thoát</button></header><div class="ptt-body"><div class="ptt-card"><p>${ESC(rec.reason)}</p><p style="white-space:pre-line">${ESC(details)}</p><div class="ptt-actions"><button class="ptt-primary" type="button" data-next="practice">Luyện ngay</button><button class="ptt-secondary" type="button" data-next="later">Để sau</button></div></div></div></section>`;
+    ov.innerHTML=`<section class="ptt-panel" role="dialog" aria-modal="true"><header class="ptt-head"><b class="ptt-title">Giải thích · ${ESC(rec.target)}</b><button class="ptt-close" type="button">✕ Thoát</button></header><div class="ptt-body"><div class="ptt-card">${errorDetails(rec.target,rec.dimension,window.PanTutorAttemptHistory?.allRows?.()||[])}<p style="white-space:pre-line">${ESC(details)}</p><div class="ptt-actions"><button class="ptt-primary" type="button" data-next="practice">Luyện ngay</button><button class="ptt-secondary" type="button" data-next="later">Để sau</button></div></div></div></section>`;
     document.body.appendChild(ov);ov.querySelector(".ptt-close").onclick=()=>ov.remove();ov.onclick=e=>{if(e.target===ov)ov.remove()};
     ov.querySelector('[data-next="practice"]').onclick=()=>{ov.remove();choose(rec,"practice").catch(e=>alert(e.message))};
     ov.querySelector('[data-next="later"]').onclick=()=>ov.remove();
@@ -315,7 +351,7 @@
       }catch(e){console.warn("Teacher recommendations:",e?.code||e?.message||e)}
     }
   }
-  window.PanTutorTenLayer={diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions,choose};
+  window.PanTutorTenLayer={errorDetails,diagnose,model,recommendations,quality,render,bind,open,renderTeacher,question,loadDecisions,choose};
   window.firebase?.auth?.().onAuthStateChanged(user=>{if(user)loadDecisions()});
   window.addEventListener("pantutor-attempt-saved",event=>{
     if(document.querySelector("[data-ai-coach-plan]")&&event.detail?.dayNumber){
