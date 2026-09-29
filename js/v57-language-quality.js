@@ -6,7 +6,7 @@
     "Choose language":"Chọn ngôn ngữ","⌛ Processing, please wait...":"⌛ Đang xử lý, vui lòng chờ...","New learner guide":"Hướng dẫn người học mới",
     "🔊 Test reminder":"🔊 Thử âm thanh nhắc nhở","🔔 Enable notifications":"🔔 Bật thông báo","🌍 中文 · English":"🌍 中文 · Tiếng Việt",
     "📚 Dictionary":"📚 Từ điển","🎯 Review (SRS)":"🎯 Ôn tập (SRS)","✍️ Practice":"✍️ Luyện tập","📊 Progress & Rubric":"📊 Tiến độ & Rubric",
-    "🎵 Phonics":"🎵 Ngữ âm","💬 Messages":"💬 Nhắn tin","🤖 AI Tutor":"🤖 AI Tutor","👩‍🏫 Teacher":"👩‍🏫 Giáo viên",
+    "🎵 Phonics":"🎵 Ngữ âm","💬 Messages (Learning Path)":"💬 Tin nhắn (Lộ trình học)","🤖 AI Tutor":"🤖 AI Tutor","👩‍🏫 Teacher":"👩‍🏫 Giáo viên",
     "📑 All parts of speech":"📑 Tất cả từ loại","📊 All levels":"📊 Tất cả cấp độ","⚪ Not studied":"⚪ Chưa học","🔴 New":"🔴 Mới học",
     "🟡 Reinforcing":"🟡 Đang củng cố","🔵 Familiar":"🔵 Đã quen","🟢 Mastered":"🟢 Thành thạo","⏰ Due for review":"⏰ Đến hạn ôn",
     "Elementary 1":"Sơ cấp 1","353 words":"353 từ","Elementary 2":"Sơ cấp 2","672 words":"672 từ","Intermediate":"Trung cấp","1229 words":"1229 từ",
