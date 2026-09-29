@@ -293,6 +293,7 @@
   }
 
   function startTask(type) {
+    if(window.PanTutorReviewGate&&!window.PanTutorReviewGate.enterCoach())return;
     const m = activeMission || mission();
     activeTask = m.tasks.find((task) => task.type === type) || { type };
     setFilterForMission(m);
