@@ -423,7 +423,7 @@ function nextVariant(mode,day){
       if(scorePassed && savedDay?.completed_tasks?.[taskId]) persistedPassed=true;
     }catch(_){}
     full.passed=persistedPassed;full.persisted=!!out;full.localOnlyTestMode=out?.result?.localOnlyTestMode===true;
-    try{full.attempt=await window.PanTutorAttemptHistory?.save?.({dayNumber:day,taskId,scorePercent:Number(score),passed:scorePassed,completeSet,correct:evidence.correct??S.answers.filter(x=>x.correct).length,total:evidence.total??S.items.length,items:taskId==="speaking"?S.speakingItems:S.answers,teacherReports:S.reports,scheduleSaved:!!out})}catch(e){saveError=saveError||e;console.warn("Attempt history save:",e?.message||e)}
+    try{full.attempt=await window.PanTutorAttemptHistory?.save?.({dayNumber:day,taskId,scorePercent:Number(score),passed:scorePassed,completeSet,correct:evidence.correct??S.answers.filter(x=>x.correct).length,total:evidence.total??S.items.length,items:taskId==="speaking"?S.speakingItems.map(i=>i&&S.mission?.reviewGate?{...i,reviewGate:S.mission.reviewGate,reviewRecordingSubmitted:Number.isFinite(i.score)&&i.valid!==false}:i):S.answers,teacherReports:S.reports,scheduleSaved:!!out})}catch(e){saveError=saveError||e;console.warn("Attempt history save:",e?.message||e)}
     try{localStorage.setItem(`pantutor_ai_coach_${taskId}_day_${day}`,JSON.stringify(full))}catch(_){}
     window.dispatchEvent(new CustomEvent("pandahan-learning-evaluation",{detail:{verified:true,action:persistedPassed?"standalone_task_passed_and_saved":scorePassed?"standalone_task_passed_save_failed":"standalone_task_needs_retry",...full}}));
     return {passed:persistedPassed,scorePassed,threshold,full,saveError:saveError?String(saveError.code||saveError.message||saveError):"",sync:out};
