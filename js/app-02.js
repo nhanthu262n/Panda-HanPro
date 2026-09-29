@@ -3309,13 +3309,9 @@ function renderMergedHistory() {
 
 /* ===================== TAB / SCREEN NAVIGATION ===================== */
   function switchTab(tab) {
-  if (tab === "coach") {
-    if (typeof window.openAiCoachChat === "function") window.openAiCoachChat();
-    else { showScreen("coach"); window.addEventListener("load", () => window.openAiCoachChat?.(), { once: true }); }
-    return;
-  }
+  if (tab === "coach") { window.openAiCoachChat?.(); return; }
   if (tab === "memoryPractice") { window.PanTutorMemory?.openPractice(); return; }
-  document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === (tab === "pinyin" ? "practice" : tab === "ai" ? "chat" : tab)));
+  document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   if (tab === "chat") {
     const dot = document.getElementById("chatNotifDot");
     if (dot) dot.style.display = "none";
@@ -3826,7 +3822,7 @@ function completeLogin(user) {
   updateHeaderStats();
   renderGrids();
   if (typeof renderMergedHistory === "function") renderMergedHistory();
-  switchTab("coach");
+  if (USER_ROLE === "teacher" || USER_ROLE === "master_teacher") switchTab("teacher"); else switchTab("browse");
   if (typeof checkStreakWarning === "function") checkStreakWarning();
   if (typeof updateNotifBell === "function") updateNotifBell();
 }
