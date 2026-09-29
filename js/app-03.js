@@ -1379,6 +1379,7 @@ function pvNextSession() {
         return;
       }
       if (item.section === 'writing') {
+        window.PanTutorHiddenEvidence?.capture({source:'ai_tutor_exam',questionId:item.id,prompt:item.prompt,input:value,expected:examCorrectAnswer(item),dimension:'USAGE',verified:false,kind:'writing'});
         const n = value.length;
         const hasHanzi = /[\u3400-\u9fff]/.test(value);
         const task = Math.min(100, n >= 12 ? 90 : n >= 6 ? 75 : 55);
@@ -1393,6 +1394,7 @@ function pvNextSession() {
       const ok = examAnswerMatches(value, item);
       const correctLetter = examCorrectLetter(item);
       const correctAnswer = examCorrectAnswer(item);
+      window.PanTutorHiddenEvidence?.capture({source:'ai_tutor_exam',questionId:item.id,prompt:item.prompt,input:value,expected:correctAnswer,correct:ok,verified:true,dimension:item.section==='listening'?'SOUND':'MEANING',taskSection:item.section});
       const expectedLabel = [correctLetter, correctAnswer].filter(Boolean).join('. ');
       out.innerHTML = ok
         ? '<span style="color:#15803d;font-weight:700;">✓ 正确 / Correct</span>'
@@ -1480,6 +1482,7 @@ function pvNextSession() {
       reply = localTutorNaturalReply(clean) || window.PandaHanMission?.replyTo?.(fallbackText, { language, length: aiTutorState.length, context: "ai-tutor", selectedStandardTopic: Boolean(topic) }) || tutorText("AI Tutor đang tải. Hãy thử lại sau.", "AI Tutor is loading. Please try again.", "AI Tutor 正在加载，请稍后再试。");
     }
     tutorClearProcessing(area);
+    if(isWritingCorrectionRequest(clean))window.PanTutorHiddenEvidence?.capture({source:'ai_tutor_writing',input:clean,feedback:reply,dimension:'USAGE',verified:false,kind:'writing'});
     const botCreatedAt = Date.now();
     tutorBubble(area, reply, "bot", botCreatedAt);
     if (examContext?.exam && examContext.mode === "create") renderChatboxExamForm(area, examContext.gradingExam || examContext.answerKey || examContext.exam);
