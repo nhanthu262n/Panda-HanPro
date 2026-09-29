@@ -46,26 +46,47 @@
       }
     }
     const errors=matches.filter(x=>!x.correct), latest=matches.at(-1), w=word(target);
-    const entries=errors.map(item=>{
-      let why="",next="";
-      const expected=String(item.expected||"").trim(), answer=String(item.input||"").trim();
-      if(dimension==="SOUND") {
-        why="Câu trả lời nghe/Pinyin chưa khớp đáp án mẫu. Lượt này chưa đủ để kết luận bạn không hiểu nghĩa của từ.";
-        next="Nghe mẫu, đọc lại từng âm tiết, rồi nghe và chọn đáp án khi không nhìn gợi ý.";
-        const base=x=>x.normalize("NFD").replace(/[\u0300\u0301\u0304\u030c]/g,"").replace(/[1-5\s]/g,"").toLowerCase();
-        if(expected&&answer&&/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ0-5\s]+$/i.test(answer)&&/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ0-5\s]+$/i.test(expected)) {
-          if(base(answer)===base(expected)&&norm(answer)!==norm(expected)){why="Phần chữ của âm tiết trùng nhau nhưng dấu/số thanh khác đáp án. Đây là lỗi ghi hoặc chọn thanh điệu; chưa chứng minh phát âm thực tế sai.";next="Đối chiếu dấu thanh trong hai đáp án, nghe đường cao độ của mẫu rồi làm lại.";}
-          else if(base(answer)!==base(expected)){why="Cách viết âm tiết bạn chọn khác đáp án mẫu, không chỉ khác thanh điệu. Cần đối chiếu phụ âm đầu và vần trước khi luyện thanh.";}
-        }
-      } else if(dimension==="MEANING") {why="Bạn chọn/nhập nghĩa chưa đúng với từ trong câu hỏi. Kết quả này đánh giá hiểu nghĩa, không chứng minh bạn nghe hoặc phát âm sai.";next="Đọc lại nghĩa của từ, so sánh với đáp án đã chọn rồi thử một câu hỏi nghĩa trong ngữ cảnh mới.";}
-      else if(dimension==="FORM") {why="Chữ bạn trả lời chưa khớp chữ mẫu. Cần đối chiếu mặt chữ; chưa đủ căn cứ kết luận sai nghĩa.";next="So sánh từng chữ và bộ phận khác nhau, sau đó viết hoặc chọn lại chữ đúng.";}
-      else {why=item.validationReason==="missing_required_target"?`Câu viết chưa có từ bắt buộc “${target}”. Chưa thể từ lỗi này kết luận toàn bộ ngữ pháp sai.`:String(item.correction?.reason||"Câu trả lời chưa đạt yêu cầu dùng từ/cấu trúc của bài đã kiểm tra.");next="Đối chiếu yêu cầu và câu mẫu, sửa câu của bạn rồi viết lại một câu dùng đúng từ.";}
-      return {item,answer,expected,why,next};
-    });
-    const summary=matches.length?`Đã kiểm tra ${matches.length} câu: ${matches.length-errors.length} đúng, ${errors.length} sai. ${latest.correct?"Lượt gần nhất đã đúng; ôn lại để củng cố.":"Lượt gần nhất còn sai; cần luyện lại."}`:"Chưa có câu trả lời chi tiết đã xác minh để phân tích lỗi. Mục này được nhắc theo lịch ôn.";
-    const renderEntry=({item,answer,expected,why,next})=>`<div style="padding:12px 0;border-top:1px solid #eee"><p><b>Ngày ${Number(item.day)} · ${ESC(new Date(item.at).toLocaleString("vi-VN"))}</b></p>${item.prompt?`<p><b>Câu hỏi:</b> ${ESC(item.prompt)}</p>`:""}<p><b>Bạn trả lời:</b> ${ESC(answer||"Chưa lưu câu trả lời")}</p><p><b>Đáp án đúng:</b> ${ESC(expected||"Chưa lưu đáp án của lượt này")}</p><p><b>Phân tích:</b> ${ESC(why)}</p>${w?.pinyin||meaning(w)?`<p><b>Từ tham khảo:</b> ${ESC(target)} · ${ESC(w?.pinyin||"")} · ${ESC(meaning(w))}</p>`:""}<p><b>Cách sửa:</b> ${ESC(next)}</p></div>`;
-    const recent=entries.slice(-3).reverse(),older=entries.slice(0,-3).reverse();
-    return `<div class="pm-error-analysis" style="line-height:1.65;overflow-wrap:anywhere"><p><b>Nhận xét theo bài làm:</b> ${ESC(summary)}</p>${recent.map(renderEntry).join("")}${older.length?`<details><summary>Xem ${older.length} lỗi trước đó</summary>${older.map(renderEntry).join("")}</details>`:""}</div>`;
+    const item=errors.at(-1);
+    if(!item)return `<div class="pm-error-analysis"><p>${matches.length?`Bạn đã trả lời đúng phần ${ESC(DIM_NAMES[dimension]?.toLowerCase()||"này")} của “${ESC(target)}”. Ôn theo lịch để kiểm tra lại khả năng ghi nhớ.`:"Mục này đến lịch ôn. Chưa có lỗi đã xác minh để nhận xét cụ thể."}</p></div>`;
+    const answer=String(item.input||""), expected=String(item.expected||"");
+    const event=diagnose(rows).filter(e=>e.target===target&&e.dimension===dimension&&!e.correct).at(-1);
+    const cls=event?.diagnosisClass;
+    let why="", next="";
+    const py=value=>{
+      const raw=String(value).split(/[·|]/).pop().trim().toLowerCase();
+      if(!raw||/[\u3400-\u9fff]/.test(raw)||!/^[a-züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ1-5\s'’]+$/i.test(raw))return [];
+      return raw.split(/[\s'’]+/).filter(Boolean).map(v=>{const n=v.normalize('NFD');const mark=[['\u0304',1],['\u0301',2],['\u030c',3],['\u0300',4]].find(([m])=>n.includes(m));const tone=Number(v.match(/[1-5]$/)?.[0]||mark?.[1]||0);const base=n.replace(/[\u0304\u0301\u030c\u0300]/g,'').replace(/[1-5]/g,'').normalize('NFC');const initial=base.match(/^(zh|ch|sh|[bpmfdtnlgkhjqxrzcswy])/i)?.[0]||'';return {text:v,base,initial,final:base.slice(initial.length),tone};});
+    };
+    if(dimension==='SOUND'){
+      const chosen=py(answer), correct=py(expected);
+      const differences=[];
+      if(chosen.length&&chosen.length===correct.length)correct.forEach((right,i)=>{const wrong=chosen[i],pos=correct.length>1?`Âm tiết ${i+1}: `:'';
+        if(wrong.initial!==right.initial)differences.push(`${pos}bạn nhầm âm đầu “${wrong.initial||'không có'}” với “${right.initial||'không có'}”`);
+        if(wrong.final!==right.final)differences.push(`${pos}bạn chọn phần vần “${wrong.final}” thay vì “${right.final}”`);
+        if(wrong.tone&&right.tone&&wrong.tone!==right.tone)differences.push(`${pos}bạn chọn thanh ${wrong.tone} thay vì thanh ${right.tone}`);
+      });
+      why=differences.length?`${differences.join('; ')}. Cặp cần phân biệt là “${answer}” và “${expected}”.`:`Bạn đã chọn “${answer||'đáp án chưa được lưu'}” thay cho “${expected||target}” trong bài nhận diện âm. Dữ liệu chưa chỉ rõ lỗi nằm ở âm đầu, vần hay thanh điệu.`;
+      if(chosen.length===1&&correct.length===1&&chosen[0].initial===correct[0].initial&&chosen[0].final!==correct[0].final){why+=` Hai cách đọc cùng âm đầu “${correct[0].initial}”, nhưng khác phần vần; không nên chỉ luyện thanh điệu.`;}
+      next=`Nghe luân phiên “${expected||target}” và “${answer||'âm đã nhầm'}”, tập trung vào phần khác nhau vừa nêu, rồi nghe chọn lại khi không nhìn chữ.`;
+      if(cls===8)why+=' Bài nghĩa trước đó có câu đúng; phần cần sửa ở đây là âm/thanh, không phải học lại toàn bộ nghĩa.';
+      if(cls===9)why+=' Bạn đã có câu đọc đúng; khó khăn đang xuất hiện khi chuyển sang nghe.';
+    }else if(dimension==='MEANING'){
+      why=`Với “${target}”, bạn trả lời “${answer||'chưa lưu'}” trong khi bài yêu cầu “${expected||'đáp án chưa lưu'}”.`;
+      if(cls===3)why+=' Đây là cặp nghĩa dễ nhầm: cần phân biệt ngữ cảnh dùng, không chỉ học thuộc bản dịch.';
+      next=`Đối chiếu nghĩa “${expected||meaning(w)}” với đáp án bạn chọn, tìm một ví dụ cho mỗi nghĩa rồi làm câu chọn nghĩa trong ngữ cảnh mới.`;
+    }else if(dimension==='FORM'){
+      why=`Bạn nhận diện/viết “${answer||'chưa lưu'}” thay vì “${expected||target}”.`;
+      const aa=Array.from(answer),bb=Array.from(expected||target);const diff=bb.map((c,i)=>aa[i]!==c?`vị trí ${i+1}: “${aa[i]||'thiếu chữ'}” → “${c}”`:'').filter(Boolean);if(diff.length)why+=' Chỗ cần đối chiếu: '+diff.join('; ')+'.';
+      next='So sánh các vị trí khác nhau với chữ mẫu, che mẫu rồi chọn hoặc viết lại. Không suy ra lỗi hiểu nghĩa từ lỗi mặt chữ này.';
+    }else{
+      why=item.validationReason==='missing_required_target'?`Câu “${answer}” chưa chứa từ bắt buộc “${target}”.`:String(item.correction?.reason||`Câu “${answer}” chưa khớp yêu cầu của bài dùng từ/cấu trúc.`);
+      if(expected)why+=` Đáp án tham chiếu của bài: “${expected}”.`;
+      next=`Sửa đúng phần vừa nêu trong câu của bạn, giữ ý định diễn đạt, rồi viết một câu mới với “${target}”.`;
+    }
+    if(cls===6){why+=' Bạn chưa có bước học ban đầu được ghi nhận.';next='Xem nghĩa và nghe mẫu trước, sau đó làm một câu kiểm tra ngắn.';}
+    if(cls===7){why+=' Lỗi ở kỹ năng này đã lặp lại qua ba lượt làm riêng.';next+=' Nếu vẫn nhầm, chuyển sang cách luyện khác và nhờ giáo viên kiểm tra.';}
+    const progress=latest?.correct?'Bạn đã sửa đúng ở lượt gần nhất. Phần dưới là điểm từng nhầm cần củng cố, không phải lỗi mới.':'';
+    return `<div class="pm-error-analysis" style="line-height:1.65;overflow-wrap:anywhere">${progress?`<p style="color:#15803d">${ESC(progress)}</p>`:''}<p><b>Điểm cần chú ý:</b> ${ESC(why)}</p><p><b>Luyện thế nào:</b> ${ESC(next)}</p></div>`;
   }
   function relatedMeaning(char,chosen){
     const pair={"方便":["容易","easy","dễ"],"容易":["方便","convenient","thuận tiện"]};
