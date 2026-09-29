@@ -3310,6 +3310,7 @@ function renderMergedHistory() {
 /* ===================== TAB / SCREEN NAVIGATION ===================== */
   function switchTab(tab) {
   if (tab === "coach") {
+    if(window.PanTutorReviewGate&&!window.PanTutorReviewGate.enterCoach())return;
     if (typeof window.openAiCoachChat === "function") window.openAiCoachChat();
     else { showScreen("coach"); window.addEventListener("load", () => window.openAiCoachChat?.(), { once: true }); }
     return;
@@ -3323,6 +3324,7 @@ function renderMergedHistory() {
   showScreen(tab === "browse" ? "browse" : tab === "review" ? "reviewIntro" : tab === "practice" ? "practice" : tab === "teacher" ? "teacher" : tab === "chat" ? "chat" : tab === "ai" ? "aiTeacher" : tab === "pinyin" ? "pinyin" : "dashboard");
 }
 function showScreen(name) {
+  if(name==="coach"&&window.PanTutorReviewGate&&!window.PanTutorReviewGate.enterCoach())return;
   document.body.classList.toggle("coach-workspace-open", name === "coach");
   const chatMain=document.getElementById("sharedChatMain");
   if(chatMain&&name==="coach")document.getElementById("coachConversation")?.appendChild(chatMain);
